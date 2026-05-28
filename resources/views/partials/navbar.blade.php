@@ -9,7 +9,7 @@
                     {{-- logo --}}
                     <div class="lg:w-1/6 md:w-1/2 w-2/5">
                         <a class="navbar-brand" href="{{ url('/') }}">
-                            <img src="{{ asset('images/logo/black.png') }}" class="site-logo"
+                            <img src="{{ asset('images/logo/black1.svg') }}" class="site-logo"
                                 alt="TailwindCSS eCommerce HTML Template" />
                         </a>
                     </div>
@@ -163,6 +163,21 @@
                         <div>
                             <ul class="navbar-nav lg:flex gap-3 lg:items-center">
                                 {{-- home --}}
+                                <div class="dropdown hidden lg:block">
+                            <button class="mr-4 btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-300" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-layout-grid" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                        <path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                        <path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                        <path d="M14 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                    </svg>
+                                </span>
+                               Tất cả sản phẩm
+                            </button>
+
+                        </div>
                                 <li class="nav-item dropdown w-full lg:w-auto">
                                     <a class="nav-link " href="{{ url('/') }}" role="button">Trang chủ</a>
 
@@ -172,28 +187,38 @@
                                     <a class="nav-link dropdown-toggle" href="#" role="button"
                                         data-bs-toggle="dropdown" aria-expanded="false">Danh sách sản phẩm</a>
                                     <ul class="dropdown-menu">
-
                                         <li>
-                                            <a class="dropdown-item" href="#!">
-                                                Liên kết
+                                            <a class="dropdown-item" href="/products?category=">
+                                                🍹 Tất cả sản phẩm
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/products?category=ca-phe">
+                                                ☕ Cà phê
 
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="#!">
-                                                Liên kết
+                                            <a class="dropdown-item" href="/products?category=tra-sua">
+                                                🧋 Trà sữa
 
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="#!">
-                                                Liên kết
+                                            <a class="dropdown-item" href="/products?category=tra-trai-cay">
+                                                🍋 Trà trái cây
 
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="#!">
-                                                Liên kết
+                                            <a class="dropdown-item" href="/products?category=sua-chua">
+                                                🍓 Sữa chua
+
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/products?category=do-uong-khac">
+                                                🥤 Đồ uống khác
 
                                             </a>
                                         </li>
@@ -231,9 +256,9 @@
 
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x text-gray-700"
-                        width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+                        width="auto" height="auto" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" style="margin-bottom: 10px" />
                         <path d="M18 6l-12 12" />
                         <path d="M6 6l12 12" />
                     </svg>
@@ -253,7 +278,8 @@
                         <label for="email" class="mb-2 block text-gray-800">Email hoặc Số điện thoại </label>
                         <input type="email"
                             class="form-control border border-gray-300 text-gray-900 rounded-lg focus:shadow-[0_0_0_.25rem_rgba(10,173,10,.25)] focus:ring-green-600 focus:ring-0 focus:border-green-600 block p-2 px-3 disabled:opacity-50 disabled:pointer-events-none w-full text-base"
-                            id="email" placeholder="Nhập địa chỉ email hoặc số điện thoại." autocomplete="email" required />
+                            id="email" placeholder="Nhập địa chỉ email hoặc số điện thoại."
+                            autocomplete="email" required />
                         <div class="invalid-feedback">Vui lòng nhập email hoặc số điện thoại.</div>
                     </div>
                     <div class="mb-5">
@@ -278,7 +304,8 @@
             </div>
             <div class="modal-footer flex border-0 justify-center mt-3">
                 Đã có tài khoản?
-                <a href="#!" class="text-green-600 ml-1" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a>
+                <a href="#!" class="text-green-600 ml-1" data-bs-toggle="modal"
+                    data-bs-target="#loginModal">Đăng nhập</a>
             </div>
         </div>
     </div>
@@ -623,28 +650,28 @@
     }
 </script>
 
-        <!-- Favorites Offcanvas -->
-        <div class="offcanvas offcanvas-right" tabindex="-1" id="offcanvasFavorites" aria-labelledby="offcanvasFavoritesLabel">
-            <div class="offcanvas-header border-b">
-                <div>
-                    <h5 id="offcanvasFavoritesLabel">Sản phẩm yêu thích</h5>
-                </div>
-                <button type="button" class="btn-close text-inherit" data-bs-dismiss="offcanvas" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x text-gray-700" width="24"
-                        height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                        <path d="M18 6l-12 12" />
-                        <path d="M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="offcanvas-body p-4">
-                <div id="favoritesList">
-                    <div class="text-center text-gray-500 py-6">
-                        Chưa có sản phẩm yêu thích.
-                    </div>
-                </div>
+<!-- Favorites Offcanvas -->
+<div class="offcanvas offcanvas-right" tabindex="-1" id="offcanvasFavorites"
+    aria-labelledby="offcanvasFavoritesLabel">
+    <div class="offcanvas-header border-b">
+        <div>
+            <h5 id="offcanvasFavoritesLabel">Sản phẩm yêu thích</h5>
+        </div>
+        <button type="button" class="btn-close text-inherit" data-bs-dismiss="offcanvas" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x text-gray-700"
+                width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+                fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M18 6l-12 12" />
+                <path d="M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+    <div class="offcanvas-body p-4">
+        <div id="favoritesList">
+            <div class="text-center text-gray-500 py-6">
+                Chưa có sản phẩm yêu thích.
             </div>
         </div>
-
+    </div>
+</div>
