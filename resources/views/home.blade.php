@@ -24,15 +24,15 @@
                     {{-- banner --}}
                     <div class="swiper-wrapper pb-8">
                         <div class="swiper-slide hero-slide"
-                            style="background: url({{ cloudinary_asset('images/slider/slider-1.png') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
+                            style="background: url({{ asset('images/slider/slider-1.png') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
 
                         </div>
                         <div class="swiper-slide hero-slide"
-                            style="background: url({{ cloudinary_asset('images/slider/slider-2.jpg') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
+                            style="background: url({{ asset('images/slider/slider-2.jpg') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
 
                         </div>
                         <div class="swiper-slide hero-slide"
-                            style="background: url({{ cloudinary_asset('images/slider/slider-3.jpg') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
+                            style="background: url({{ asset('images/slider/slider-3.jpg') }}) no-repeat; background-size: cover; border-radius: 0.5rem; background-position: center">
                             <div class="lg:py-32 lg:pl-12 lg:pr-6 px-12 py-12 xl:w-2/5 md:w-3/5">
                                 <span
                                     class="inline-block p-2 text-sm align-baseline leading-none rounded-lg bg-yellow-500 text-gray-900 font-semibold">
@@ -91,7 +91,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-dairy-bread-eggs.jpg') }}"
+                                        <img src="{{ asset('images/category/category-dairy-bread-eggs.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Sữa, bánh mì & trứng</div>
                                     </div>
@@ -103,7 +103,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-snack-munchies.jpg') }}"
+                                        <img src="{{ asset('images/category/category-snack-munchies.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Đồ ăn vặt</div>
                                     </div>
@@ -115,7 +115,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-bakery-biscuits.jpg') }}"
+                                        <img src="{{ asset('images/category/category-bakery-biscuits.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Bánh ngọt & bánh quy</div>
                                     </div>
@@ -127,7 +127,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-instant-food.jpg') }}"
+                                        <img src="{{ asset('images/category/category-instant-food.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Thực phẩm ăn liền</div>
                                     </div>
@@ -139,7 +139,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-tea-coffee-drinks.jpg') }}"
+                                        <img src="{{ asset('images/category/category-tea-coffee-drinks.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Trà, cà phê & đồ uống</div>
                                     </div>
@@ -151,7 +151,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-atta-rice-dal.jpg') }}"
+                                        <img src="{{ asset('images/category/category-atta-rice-dal.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Bột mì, gạo & đậu</div>
                                     </div>
@@ -164,7 +164,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-baby-care.jpg') }}"
+                                        <img src="{{ asset('images/category/category-baby-care.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Chăm sóc em bé</div>
                                     </div>
@@ -176,7 +176,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-chicken-meat-fish.jpg') }}"
+                                        <img src="{{ asset('images/category/category-chicken-meat-fish.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Gà, thịt & cá</div>
                                     </div>
@@ -188,7 +188,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-cleaning-essentials.jpg') }}"
+                                        <img src="{{ asset('images/category/category-cleaning-essentials.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Vật dụng vệ sinh</div>
                                     </div>
@@ -200,7 +200,7 @@
                                 <div
                                     class="relative rounded-lg break-words border bg-white border-gray-300 transition duration-75 hover:transition hover:duration-500 ease-in-out hover:border-green-600 hover:shadow-md">
                                     <div class="py-8 text-center">
-                                        <img src="{{ cloudinary_asset('images/category/category-pet-care.jpg') }}"
+                                        <img src="{{ asset('images/category/category-pet-care.jpg') }}"
                                             alt="Grocery Ecommerce Template" class="mb-3 m-auto" />
                                         <div class="text-base">Chăm sóc thú cưng</div>
                                     </div>
@@ -227,7 +227,7 @@
                 <div class="flex md:space-x-2 lg:space-x-6 flex-wrap md:flex-nowrap">
                     <div class="w-full md:w-1/2 mb-3 lg:">
                         <div class="py-10 px-8 rounded-lg"
-                            style="background: url({{ cloudinary_asset('images/banner/grocery-banner.png') }}) no-repeat; background-size: cover; background-position: center">
+                            style="background: url({{ asset('images/banner/grocery-banner.png') }}) no-repeat; background-size: cover; background-position: center">
                             <div class="flex flex-col gap-5">
                                 <div class="flex flex-col gap-1">
                                     <h2 class="font-bold text-xl">Trái cây & rau củ</h2>
@@ -249,7 +249,7 @@
                     </div>
                     <div class="w-full md:w-1/2">
                         <div class="py-10 px-8 rounded-lg"
-                            style="background: url({{ cloudinary_asset('images/banner/grocery-banner-2.jpg') }}) no-repeat; background-size: cover; background-position: center">
+                            style="background: url({{ asset('images/banner/grocery-banner-2.jpg') }}) no-repeat; background-size: cover; background-position: center">
                             <div class="flex flex-col gap-5">
                                 <div class="flex flex-col gap-1">
                                     <h2 class="font-bold text-xl">Bánh mì mới nướng</h2>
@@ -290,7 +290,7 @@
                                     <span
                                         class="inline-block p-1 text-center font-semibold text-sm align-baseline leading-none rounded bg-red-600 text-white">Giảm giá</span>
                                 </div>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-1.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-1.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -430,7 +430,7 @@
                                     <span
                                         class="inline-block p-1 text-center font-semibold text-sm align-baseline leading-none rounded bg-green-600 text-white">14%</span>
                                 </div>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-2.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-2.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -566,7 +566,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-3.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-3.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -703,7 +703,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-4.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-4.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
                                 <div class="absolute top-0 left-0">
                                     <span
@@ -841,7 +841,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-5.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-5.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -977,7 +977,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-6.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-6.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
                                 <div class="absolute top-0 left-0">
                                     <span
@@ -1117,7 +1117,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-7.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-7.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -1253,7 +1253,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-8.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-8.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -1389,7 +1389,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-9.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-9.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -1526,7 +1526,7 @@
                     <div class="relative rounded-lg break-words border bg-white border-gray-300 card-product">
                         <div class="flex-auto p-4">
                             <div class="text-center relative flex justify-center">
-                                <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-10.jpg') }}"
+                                <a href="#!"><img src="{{ asset('images/products/product-img-10.jpg') }}"
                                         alt="Grocery Ecommerce Template" class="w-full h-auto" /></a>
 
                                 <div class="absolute w-full bottom-[15%] opacity-0 invisible card-product-action">
@@ -1675,7 +1675,7 @@
                     <div class="xl:grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 flex-nowrap flex">
                         <div class="flex-0 block w-full md:w-auto">
                             <div class="pt-8 px-6 rounded-lg"
-                                style="background: url({{ cloudinary_asset('images/banner/banner-deal.jpg') }}) no-repeat; background-size: cover; height: 470px">
+                                style="background: url({{ asset('images/banner/banner-deal.jpg') }}) no-repeat; background-size: cover; height: 470px">
                                 <div class="flex flex-col gap-5">
                                     <div class="flex flex-col gap-2">
                                         <h3 class="text-lg text-white">100% Organic Coffee Beans.</h3>
@@ -1707,7 +1707,7 @@
                                 class="relative flex flex-col min-w-0 rounded-lg break-words border bg-white border-gray-300 card-product">
                                 <div class="flex-auto p-4">
                                     <div class="text-center relative flex justify-center">
-                                        <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-11.jpg') }}"
+                                        <a href="#!"><img src="{{ asset('images/products/product-img-11.jpg') }}"
                                                 alt="Grocery Ecommerce Template"
                                                 class="mb-3 m-auto max-w-full h-auto" /></a>
 
@@ -1852,7 +1852,7 @@
                                 class="relative flex flex-col min-w-0 rounded-lg break-words border bg-white border-gray-300 card-product">
                                 <div class="flex-auto p-4">
                                     <div class="text-center relative flex justify-center">
-                                        <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-12.jpg') }}"
+                                        <a href="#!"><img src="{{ asset('images/products/product-img-12.jpg') }}"
                                                 alt="Grocery Ecommerce Template"
                                                 class="mb-3 m-auto max-w-full h-auto" /></a>
                                         <div
@@ -1996,7 +1996,7 @@
                                 class="relative flex flex-col min-w-0 rounded-lg break-words border bg-white border-gray-300 card-product">
                                 <div class="flex-auto p-4">
                                     <div class="text-center relative flex justify-center">
-                                        <a href="#!"><img src="{{ cloudinary_asset('images/products/product-img-13.jpg') }}"
+                                        <a href="#!"><img src="{{ asset('images/products/product-img-13.jpg') }}"
                                                 alt="Grocery Ecommerce Template"
                                                 class="mb-3 m-auto max-w-full h-auto" /></a>
                                         <div
@@ -2145,7 +2145,7 @@
                 <div class="flex flex-wrap gap-y-6">
                     <div class="md:w-1/2 lg:w-1/4 px-3">
                         <div class="flex flex-col gap-4">
-                            <div class="inline-block"><img src="{{ cloudinary_asset('images/icons/clock.svg') }}" alt="" /></div>
+                            <div class="inline-block"><img src="{{ asset('images/icons/clock.svg') }}" alt="" /></div>
                             <div class="flex flex-col gap-2">
                                 <h3 class="text-md">Mua thực phẩm trong 10 phút</h3>
                                 <p>Đơn hàng của bạn sẽ được giao đến tận cửa sớm nhất từ các cửa hàng FreshCart gần
@@ -2155,7 +2155,7 @@
                     </div>
                     <div class="md:w-1/2 lg:w-1/4 px-3">
                         <div class="flex flex-col gap-4">
-                            <div class="inline-block"><img src="{{ cloudinary_asset('images/icons/gift.svg') }}" alt="" /></div>
+                            <div class="inline-block"><img src="{{ asset('images/icons/gift.svg') }}" alt="" /></div>
                             <div class="flex flex-col gap-2">
                                 <h3 class="text-md">Giá tốt nhất & ưu đãi</h3>
                                 <p>Giá rẻ hơn siêu thị gần nhà bạn, kèm theo các ưu đãi hoàn tiền hấp dẫn. Nhận mức giá &
@@ -2165,7 +2165,7 @@
                     </div>
                     <div class="md:w-1/2 lg:w-1/4 px-3">
                         <div class="flex flex-col gap-4">
-                            <div class="inline-block"><img src="{{ cloudinary_asset('images/icons/package.svg') }}" alt="" /></div>
+                            <div class="inline-block"><img src="{{ asset('images/icons/package.svg') }}" alt="" /></div>
                             <div class="flex flex-col gap-2">
                                 <h3 class="text-md">Danh mục đa dạng</h3>
                                 <p>Chọn từ hơn 5000 sản phẩm thuộc thực phẩm, chăm sóc cá nhân, gia dụng, bánh ngọt, rau
@@ -2176,7 +2176,7 @@
                     </div>
                     <div class="md:w-1/2 lg:w-1/4 px-3">
                         <div class="flex flex-col gap-4">
-                            <div class="inline-block"><img src="{{ cloudinary_asset('images/icons/refresh-cw.svg') }}" alt="" /></div>
+                            <div class="inline-block"><img src="{{ asset('images/icons/refresh-cw.svg') }}" alt="" /></div>
                             <div class="flex flex-col gap-2">
                                 <h3 class="text-md">Đổi trả dễ dàng</h3>
                                 <p>
@@ -2228,7 +2228,9 @@
                     </div>
 
                     <div class="login-forgot-row">
-                        <a href="#!">Quên mật khẩu?</a>
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+                            Quên mật khẩu?
+                        </a>
                     </div>
 
                     <button type="submit" class="login-submit">Đăng Nhập</button>
@@ -2270,6 +2272,7 @@
         </div>
     </div>
 
+    @include('partials.forgot-password-modal')
     @include('partials.modal-product')
     @include('partials.scripts')
 
@@ -2283,3 +2286,4 @@
 </body>
 
 </html>
+

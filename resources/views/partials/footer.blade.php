@@ -91,22 +91,22 @@
                         <div class="text-gray-900">Đối tác thanh toán</div>
                         <ul class="flex items-center flex-row gap-4">
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/payment/amazonpay.svg') }}"
+                                <a href="#!"><img src="{{ asset('images/payment/amazonpay.svg') }}"
                                         alt="amazon pay" /></a>
                             </li>
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/payment/american-express.svg') }}"
+                                <a href="#!"><img src="{{ asset('images/payment/american-express.svg') }}"
                                         alt="american express" /></a>
                             </li>
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/payment/mastercard.svg') }}"
+                                <a href="#!"><img src="{{ asset('images/payment/mastercard.svg') }}"
                                         alt="mastercard" /></a>
                             </li>
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/payment/paypal.svg') }}" alt="paypal" /></a>
+                                <a href="#!"><img src="{{ asset('images/payment/paypal.svg') }}" alt="paypal" /></a>
                             </li>
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/payment/visa.svg') }}" alt="visa" /></a>
+                                <a href="#!"><img src="{{ asset('images/payment/visa.svg') }}" alt="visa" /></a>
                             </li>
                         </ul>
                     </div>
@@ -116,11 +116,11 @@
                         <div class="text-gray-900">Nhận giao hàng với FreshCart</div>
                         <ul class="flex flex-row gap-2">
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/appbutton/appstore-btn.svg') }}" alt=""
+                                <a href="#!"><img src="{{ asset('images/appbutton/appstore-btn.svg') }}" alt=""
                                         style="width: 140px" /></a>
                             </li>
                             <li>
-                                <a href="#!"><img src="{{ cloudinary_asset('images/appbutton/googleplay-btn.svg') }}" alt=""
+                                <a href="#!"><img src="{{ asset('images/appbutton/googleplay-btn.svg') }}" alt=""
                                         style="width: 140px" /></a>
                             </li>
                         </ul>
@@ -198,3 +198,4 @@
         </div>
     </div>
 </footer>
+

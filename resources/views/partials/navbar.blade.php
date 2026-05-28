@@ -9,7 +9,7 @@
                     {{-- logo --}}
                     <div class="lg:w-1/6 md:w-1/2 w-2/5">
                         <a class="navbar-brand" href="{{ url('/') }}">
-                            <img src="{{ cloudinary_asset('images/logo/black.png') }}" class="site-logo"
+                            <img src="{{ asset('images/logo/black.png') }}" class="site-logo"
                                 alt="TailwindCSS eCommerce HTML Template" />
                         </a>
                     </div>
@@ -123,7 +123,7 @@
                 <div class="offcanvas offcanvas-left lg:visible" tabindex="-1" id="navbar-default">
                     {{-- logo + nút đóng --}}
                     <div class="offcanvas-header pb-1">
-                        <a href="{{ url('/') }}"><img src="{{ cloudinary_asset('images/logo/black.png') }}"
+                        <a href="{{ url('/') }}"><img src="{{ asset('images/logo/black.png') }}"
                                 alt="TailwindCSS eCommerce HTML Template" /></a>
                         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close">
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -647,3 +647,4 @@
                 </div>
             </div>
         </div>
+
