@@ -58,7 +58,25 @@
                     {{-- sản phẩm yêu thích - tài khoản - giỏ hàng --}}
                     <div class="lg:w-1/5 text-end md:w-1/2 w-3/5">
                         <div class="flex gap-7 items-center justify-end">
-
+                            {{-- sp yeu thich --}}
+                            <div>
+                                <a href="#!" class="relative" data-bs-toggle="offcanvas"
+                                    data-bs-target="#offcanvasFavorites">
+                                    <svg xmlns="" class="icon icon-tabler icon-tabler-heart" width="24"
+                                        height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+                                        fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path
+                                            d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572">
+                                        </path>
+                                    </svg>
+                                    <span
+                                        class="absolute top-0 -mt-1 left-full rounded-full h-5 w-5 -ml-2 bg-green-600 text-white text-center font-semibold text-sm">
+                                        5
+                                        <span class="invisible">unread messages</span>
+                                    </span>
+                                </a>
+                            </div>
                             {{-- tài khoản --}}
                             <div>
                                 <a href="#!" class="text-gray-600" data-bs-toggle="modal"
@@ -164,20 +182,35 @@
                             <ul class="navbar-nav lg:flex gap-3 lg:items-center">
                                 {{-- home --}}
                                 <div class="dropdown hidden lg:block">
-                            <button class="mr-4 btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-300" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-layout-grid" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                                        <path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
-                                        <path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
-                                        <path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
-                                        <path d="M14 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
-                                    </svg>
-                                </span>
-                               Tất cả sản phẩm
-                            </button>
+                                    <button
+                                        class="mr-4 btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-300"
+                                        type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown"
+                                        aria-expanded="false">
+                                        <span>
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="icon icon-tabler icon-tabler-layout-grid" width="16"
+                                                height="16" viewBox="0 0 24 24" stroke-width="2"
+                                                stroke="currentColor" fill="none" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                                <path
+                                                    d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z">
+                                                </path>
+                                                <path
+                                                    d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z">
+                                                </path>
+                                                <path
+                                                    d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z">
+                                                </path>
+                                                <path
+                                                    d="M14 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z">
+                                                </path>
+                                            </svg>
+                                        </span>
+                                        Tất cả sản phẩm
+                                    </button>
 
-                        </div>
+                                </div>
                                 <li class="nav-item dropdown w-full lg:w-auto">
                                     <a class="nav-link " href="{{ url('/') }}" role="button">Trang chủ</a>
 
@@ -254,11 +287,11 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-gray-800" id="userModalLabel">Đăng Ký</h3>
 
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x text-gray-700"
-                        width="auto" height="auto" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                        fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" style="margin-bottom: 10px" />
+                <button type="button" class="login-modal-close" data-bs-dismiss="modal" aria-label="Đóng">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                         <path d="M18 6l-12 12" />
                         <path d="M6 6l12 12" />
                     </svg>
@@ -288,27 +321,36 @@
                             class="form-control border border-gray-300 text-gray-900 rounded-lg focus:shadow-[0_0_0_.25rem_rgba(10,173,10,.25)] focus:ring-green-600 focus:ring-0 focus:border-green-600 block p-2 px-3 disabled:opacity-50 disabled:pointer-events-none w-full text-base"
                             id="password" placeholder="Nhập mật khẩu" required />
                         <div class="invalid-feedback">Vui lòng nhập mật khẩu.</div>
-                        <span class="block mt-1 text-sm text-gray-500">
-                            Bằng việc đăng ký, bạn đồng ý với
-                            <a href="#!" class="text-green-600">Điều khoản dịch vụ</a>
-                            &
-                            <a href="#!" class="text-green-600">Chính sách bảo mật</a>
-                        </span>
-                    </div>
 
-                    <button type="submit"
-                        class="btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 justify-center">
-                        Đăng ký
-                    </button>
-                </form>
+                    </div>
+                    <div class="mb-5">
+                        <label for="password" class="mb-2 block text-gray-800"> Xác nhận mật khẩu</label>
+                        <input type="password"
+                            class="form-control border border-gray-300 text-gray-900 rounded-lg focus:shadow-[0_0_0_.25rem_rgba(10,173,10,.25)] focus:ring-green-600 focus:ring-0 focus:border-green-600 block p-2 px-3 disabled:opacity-50 disabled:pointer-events-none w-full text-base"
+                            id="password" placeholder="Nhập mật khẩu xác nhận" required />
+                        <div class="invalid-feedback">Vui lòng nhập mật khẩu xác nhận.</div>
+                    </div>
+                    <span class="block mt-1 text-sm text-gray-500">
+                        Bằng việc đăng ký, bạn đồng ý với
+                        <a href="#!" class="text-green-600">Điều khoản dịch vụ</a>
+                        &
+                        <a href="#!" class="text-green-600">Chính sách bảo mật</a>
+                    </span>
             </div>
-            <div class="modal-footer flex border-0 justify-center mt-3">
-                Đã có tài khoản?
-                <a href="#!" class="text-green-600 ml-1" data-bs-toggle="modal"
-                    data-bs-target="#loginModal">Đăng nhập</a>
-            </div>
+
+            <button type="submit"
+                class="btn inline-flex items-center gap-x-2 bg-green-600 text-white border-green-600 disabled:opacity-50 disabled:pointer-events-none hover:text-white hover:bg-green-700 hover:border-green-700 active:bg-green-700 active:border-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 justify-center">
+                Đăng ký
+            </button>
+            </form>
+        </div>
+        <div class="modal-footer flex border-0 justify-center mt-3">
+            Đã có tài khoản?
+            <a href="#!" class="text-green-600 ml-1" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng
+                nhập</a>
         </div>
     </div>
+</div>
 </div>
 
 <!-- Shop Cart -->
