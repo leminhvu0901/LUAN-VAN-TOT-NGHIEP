@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
 
 <head>
@@ -553,7 +553,7 @@
                 </div>
             </div>
         </section>
-      
+
 
         <section class="lg:my-14 my-8">
             <div class="container">
@@ -610,77 +610,7 @@
     </main>
     @include('partials.footer')
 
-    <div class="modal fade login-modal" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered login-modal-dialog">
-            <div class="modal-content login-modal-content">
-                <div class="login-modal-header">
-                    <h3 id="loginModalLabel">Đăng Nhập</h3>
-                    <button type="button" class="login-modal-close" data-bs-dismiss="modal" aria-label="Đóng">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
-                            viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M18 6l-12 12" />
-                            <path d="M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
 
-                <form class="login-modal-form needs-validation" novalidate>
-                    <div class="login-field">
-                        <label for="loginIdentity">Email hoặc Số điện thoại</label>
-                        <input id="loginIdentity" type="text"
-                            placeholder="Nhập địa chỉ email hoặc số điện thoại." autocomplete="username" required />
-                        <div class="invalid-feedback">Vui lòng nhập email hoặc số điện thoại.</div>
-                    </div>
-
-                    <div class="login-field">
-                        <label for="loginPassword">Mật khẩu</label>
-                        <input id="loginPassword" type="password" placeholder="Nhập mật khẩu"
-                            autocomplete="current-password" required />
-                        <div class="invalid-feedback">Vui lòng nhập mật khẩu.</div>
-                    </div>
-
-                    <div class="login-forgot-row">
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
-                            Quên mật khẩu?
-                        </a>
-                    </div>
-
-                    <button type="submit" class="login-submit">Đăng Nhập</button>
-                </form>
-
-                <div class="login-separator">
-                    <span>Hoặc tiếp tục với</span>
-                </div>
-
-                <div class="login-socials">
-                    <button type="button" class="login-social-button">
-                        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
-                            <path fill="#4285F4"
-                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path fill="#34A853"
-                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path fill="#FBBC05"
-                                d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" />
-                            <path fill="#EA4335"
-                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9c.87-2.6 3.3-4.52 6.16-4.52z" />
-                        </svg>
-                        <span>Đăng nhập với Google</span>
-                    </button>
-
-                </div>
-
-                <div class="login-register">
-                    <span>Chưa có tài khoản?</span>
-                    <a href="#!" data-bs-toggle="modal" data-bs-target="#userModal">Đăng ký</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @include('partials.forgot-password-modal')
     @include('partials.modal-product')
     @include('partials.scripts')
 
