@@ -1,72 +1,120 @@
-﻿<div class="modal fade login-modal" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered login-modal-dialog">
-        <div class="modal-content login-modal-content forgot-modal-content">
-            <div class="forgot-modal-header">
-                <button type="button" class="forgot-back-button" data-bs-toggle="modal"
-                    data-bs-target="#loginModal" data-bs-dismiss="modal" aria-label="Quay lại đăng nhập">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="forgot-back-icon" width="18" height="18"
-                        viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                        <path d="M15 6l-6 6l6 6" />
-                    </svg>
-                </button>
-                <h3 id="forgotPasswordModalLabel" class="forgot-modal-title">Quên mật khẩu</h3>
-                <span class="forgot-header-spacer" aria-hidden="true"></span>
+<div id="forgot-modal" style="display: none; position: fixed; inset: 0; z-index: 99999; font-family: 'Inter', system-ui, sans-serif;">
+
+    <!-- Overlay -->
+    <div id="forgot-overlay" style="position: absolute; inset: 0; background: rgba(17, 24, 39, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);"></div>
+
+    <!-- Modal Wrapper -->
+    <div class="l-modal-wrapper">
+
+        <!-- Forgot Password Box -->
+        <div id="forgot-box" class="l-modal-box">
+
+            <!-- Back Button to Login -->
+            <button id="switch-to-login-from-forgot" type="button" class="l-back-btn" aria-label="Quay lại Đăng nhập">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+
+            <!-- Close Button -->
+            <button id="close-forgot" type="button" class="l-close-btn" aria-label="Đóng">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+
+            <!-- Icon -->
+            <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+                <img src="{{ asset('images/icons/quenmk.png') }}" alt="Quên mật khẩu" style="width: 80px; height: 80px; object-fit: contain;" />
             </div>
 
-            <div class="forgot-icon">
-                <img class="forgot-icon-image" src="{{ asset('images/icons/quenmk.png') }}" alt="Quên mật khẩu" />
-            </div>
+            <!-- Title -->
+            <h2 class="l-title" style="margin-bottom: 1rem;">Quên mật khẩu</h2>
 
-            <p class="forgot-description">
-                Vui lòng nhập email hoặc số điện thoại để nhận mã khôi phục mật khẩu.
+            <p style="text-align: center; color: #4b5563; font-size: 0.95rem; line-height: 1.5; margin-bottom: 2rem;">
+                Vui lòng nhập email  để nhận mã khôi phục mật khẩu.
             </p>
 
-            <form class="forgot-modal-form needs-validation" novalidate>
-                <label for="recoveryContact" class="forgot-label">Email hoặc số điện thoại</label>
-                <div class="forgot-input-wrap">
-                    <input id="recoveryContact" type="text" class="forgot-input"
-                        placeholder="Nhập email hoặc số điện thoại" autocomplete="username" required />
-                    <span class="forgot-input-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                            stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
-                            <path d="M3 7l9 6l9 -6" />
-                        </svg>
-                    </span>
+            <form action="#" method="post" novalidate>
+                @csrf
+                
+                <div class="l-form-group">
+                    <label for="recoveryContact" class="l-label">Email hoặc số điện thoại</label>
+                    <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email hoặc số điện thoại" class="l-input" required />
                 </div>
 
-                <button type="submit" class="forgot-submit">
+                <button type="submit" class="l-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                     Gửi mã xác nhận
-                    <span class="forgot-submit-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                            stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                            stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M5 12h14" />
-                            <path d="M13 6l6 6l-6 6" />
-                        </svg>
-                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M5 12h14" />
+                        <path d="M13 6l6 6l-6 6" />
+                    </svg>
                 </button>
             </form>
 
-            <div class="forgot-back-link">
-                <button type="button" class="forgot-back-link-button" data-bs-toggle="modal"
-                    data-bs-target="#loginModal" data-bs-dismiss="modal">
-                    Quay lại đăng nhập
-                </button>
+            <div class="l-divider">
+                <div class="l-divider-line"></div>
+                <span class="l-divider-text">Hoặc</span>
+                <div class="l-divider-line"></div>
             </div>
 
-            <div class="forgot-divider"></div>
+            <div class="l-footer" style="margin-top: 0;">
+                Chưa có tài khoản? <a href="#" id="switch-to-register-from-forgot">Đăng ký ngay</a>
+            </div>
 
-            <p class="forgot-footer">
-                Chưa có tài khoản?
-                <a href="{{ route('register') }}">Đăng ký</a>
-            </p>
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('click', function(e) {
+        const forgotModal = document.getElementById('forgot-modal');
+        if (!forgotModal) return;
+
+        // Đóng modal
+        const closeForgotBtn = e.target.closest('#close-forgot');
+        if (closeForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        // Click ra ngoài overlay
+        const overlayForgot = e.target.closest('#forgot-overlay');
+        if (overlayForgot) {
+            forgotModal.style.display = 'none';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        // Chuyển sang đăng nhập (nút back)
+        const switchToLoginFromForgotBtn = e.target.closest('#switch-to-login-from-forgot');
+        if (switchToLoginFromForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+            return;
+        }
+
+        // Chuyển sang đăng ký
+        const switchToRegisterFromForgotBtn = e.target.closest('#switch-to-register-from-forgot');
+        if (switchToRegisterFromForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            const registerModal = document.getElementById('register-modal');
+            if (registerModal) {
+                registerModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+            return;
+        }
+    });
+</script>
