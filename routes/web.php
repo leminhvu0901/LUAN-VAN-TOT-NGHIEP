@@ -3,23 +3,23 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('home');
+    return view('pages.home');
 });
 
 Route::get('/products', function () {
-    return view('products');
+    return view('pages.products');
 });
 
 Route::get('/register', function () {
-    return view('partials.register');
+    return view('auth.register');
 })->name('register');
 
 Route::get('/login', function () {
-    return view('partials.login');
+    return view('auth.login');
 })->name('login');
 
 Route::get('/forgot-password', function () {
-    return view('partials.forgot-password');
+    return view('auth.forgot-password');
 })->name('forgot-password');
 
 

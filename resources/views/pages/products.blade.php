@@ -1,15 +1,6 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    @include('partials.head')
-    <title>Sản phẩm - Happy</title>
+@extends('layouts.app')
 
-</head>
-<body class="p-page-body">
-    @include('partials.navbar')
-    <main>
+@section('content')
         <div class="p-page-wrapper">
             <!-- Breadcrumb -->
             <nav class="p-breadcrumb" aria-label="Breadcrumb">
@@ -417,13 +408,7 @@
                 </div><!-- end .p-product-area -->
             </div><!-- end .p-main-layout -->
         </div><!-- end .p-page-wrapper -->
-    </main>
 
-    @include('partials.footer')
-    @include('partials.scripts')
-    @include('partials.login')
-    @include('partials.register')
-    @include('partials.forgot-password')
 
     {{-- Quick View Modal (tích hợp từ partials/product.blade.php) --}}
     <div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
@@ -533,6 +518,4 @@
             input.value = Math.max(1, parseInt(input.value || 1) + delta);
         }
     </script>
-</body>
-</html>
-
+@endsection
