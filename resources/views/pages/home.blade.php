@@ -5,13 +5,20 @@
         {{-- ===== HERO BANNER ===== --}}
         <section class="home-hero">
             <div class="home-hero__inner" id="hero-slider">
-                <img src="{{ asset('images/slider/slider-1.png') }}" class="home-hero__img hero-slide-img active" alt="Banner 1">
-                <img src="{{ asset('images/slider/slider-2.png') }}" class="home-hero__img hero-slide-img" alt="Banner 2">
+                @if(isset($banners) && $banners->count() > 0)
+                    @foreach($banners as $index => $banner)
+                        <img src="{{ asset($banner->image_url) }}" class="home-hero__img hero-slide-img {{ $index === 0 ? 'active' : '' }}" data-title="{{ $banner->title }}" alt="{{ $banner->title ?? 'Banner' }}">
+                    @endforeach
+                @else
+                    <img src="{{ asset('images/slider/slider-1.png') }}" class="home-hero__img hero-slide-img active" data-title="Thưởng thức hương vị tuyệt vời" alt="Banner 1">
+                    <img src="{{ asset('images/slider/slider-2.png') }}" class="home-hero__img hero-slide-img" data-title="Khuyến mãi mùa hè" alt="Banner 2">
+                @endif
                 <div class="home-hero__overlay"></div>
                 <div class="home-hero__content">
                     <span class="home-hero__tag">🌿 Đồ uống tươi ngon</span>
-                    <h1 class="home-hero__title">Thưởng thức<br><span class="home-hero__title--accent">hương vị</span>
-                        tuyệt vời</h1>
+                    <h1 class="home-hero__title" id="hero-title">
+                        {{ isset($banners) && $banners->count() > 0 ? $banners->first()->title : 'Thưởng thức hương vị tuyệt vời' }}
+                    </h1>
                     <p class="home-hero__desc">Khám phá hơn 50+ món đồ uống thủ công, từ cà phê rang xay đến trà trái
                         cây tươi mát.</p>
                     <div class="home-hero__actions">
@@ -361,7 +368,7 @@
         </section>
 
         {{-- ===== PROMO BANNER ===== --}}
-        <section class="home-promo-section container">
+        <section class="home-promo-section container" id="promo">
             <div class="home-promo">
                 <div class="home-promo__deco home-promo__deco--1"></div>
                 <div class="home-promo__deco home-promo__deco--2"></div>
@@ -447,46 +454,5 @@
             </div>
         </section>
 
-    <script>
-        // Filter buttons for popular products
-        document.querySelectorAll('.home-popular__filter-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.home-popular__filter-btn').forEach(function (b) {
-                    b.classList.remove('home-popular__filter-btn--active');
-                });
-                this.classList.add('home-popular__filter-btn--active');
-            });
-        });
-
-        // Navbar scroll glassmorphism effect
-        const navbar = document.querySelector('.happy-navbar');
-        if (navbar) {
-            window.addEventListener('scroll', function () {
-                if (window.scrollY > 20) {
-                    navbar.classList.add('navbar--scrolled');
-                } else {
-                    navbar.classList.remove('navbar--scrolled');
-                }
-            }, { passive: true });
-        }
-
-        // Wishlist toggle
-        document.querySelectorAll('.home-prod-card__wishlist').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                this.classList.toggle('is-active');
-            });
-        });
-
-        // Hero Auto Slider (3s)
-        (function() {
-            var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
-            if (sliderImgs.length === 0) return;
-            var currentIdx = 0;
-            setInterval(function() {
-                sliderImgs[currentIdx].classList.remove('active');
-                currentIdx = (currentIdx + 1) % sliderImgs.length;
-                sliderImgs[currentIdx].classList.add('active');
-            }, 3000);
-        })();
-    </script>
+    <script src="{{ asset('js/home.js') }}"></script>
 @endsection

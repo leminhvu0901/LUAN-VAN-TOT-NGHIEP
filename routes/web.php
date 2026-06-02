@@ -2,8 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Banner;
+
 Route::get('/', function () {
-    return view('pages.home');
+    $banners = Banner::where('is_active', 1)->get();
+    return view('pages.home', compact('banners'));
 });
 
 Route::get('/products', function () {

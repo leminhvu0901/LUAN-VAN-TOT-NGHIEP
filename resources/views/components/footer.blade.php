@@ -1,5 +1,5 @@
 <!-- chan trang -->
-<footer class="bg-gray-200 py-8">
+<footer class="bg-gray-200 py-8" id="footer">
     <div class="container">
         <div class="flex flex-wrap md:gap-4 lg:gap-0 py-4 mb-6">
             {{-- Column 1 --}}

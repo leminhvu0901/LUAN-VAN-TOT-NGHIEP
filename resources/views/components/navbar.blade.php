@@ -15,7 +15,7 @@
             </a>
 
             <div class="l-nav-search hidden md:flex">
-                <span class="happy-navbar__search-icon happy-navbar__search-icon--desktop" aria-hidden="true">
+                <span class="text-gray-400 mr-2 flex-shrink-0" aria-hidden="true">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
                         <path stroke-linecap="round" d="m21 21-4.35-4.35" />
@@ -29,8 +29,8 @@
                 <nav class="happy-navbar__desktop-nav navbar-desktop-nav" aria-label="Điều hướng chính">
                     <a href="{{ url('/') }}" class="nav-link nav-link--active">Trang chủ</a>
                     <a href="/products" class="nav-link">Sản phẩm</a>
-                    <a href="#" class="nav-link">Khuyến mãi</a>
-                    <a href="#" class="nav-link">Liên hệ</a>
+                    <a href="/#promo" class="nav-link">Khuyến mãi</a>
+                    <a href="/#footer" class="nav-link">Liên hệ</a>
                 </nav>
 
                 <div class="happy-navbar__actions">
@@ -92,8 +92,8 @@
             <nav class="happy-navbar__mobile-nav" aria-label="Điều hướng di động">
                 <a href="{{ url('/') }}" class="happy-navbar__mobile-link is-active"> Trang chủ</a>
                 <a href="/products?category=" class="happy-navbar__mobile-link"> Sản phẩm</a>
-                <a href="#" class="happy-navbar__mobile-link"> Khuyến mãi</a>
-                <a href="#" class="happy-navbar__mobile-link"> Liên hệ</a>
+                <a href="/#promo" class="happy-navbar__mobile-link"> Khuyến mãi</a>
+                <a href="/#footer" class="happy-navbar__mobile-link"> Liên hệ</a>
             </nav>
         </div>
     </div>
@@ -124,8 +124,7 @@
 
         {{-- Item 1 --}}
         <div class="wl-item">
-            <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" alt="Cà phê sữa đá"
-                class="wl-item__img">
+            <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" alt="Cà phê sữa đá" class="wl-item__img">
             <div class="wl-item__info">
                 <p class="wl-item__name">Cà phê sữa đá</p>
                 <div class="wl-item__rating">
@@ -151,8 +150,7 @@
 
         {{-- Item 2 --}}
         <div class="wl-item">
-            <img src="{{ asset('images/products/matcha-latte.jpg') }}" alt="Matcha Latte"
-                class="wl-item__img">
+            <img src="{{ asset('images/products/matcha-latte.jpg') }}" alt="Matcha Latte" class="wl-item__img">
             <div class="wl-item__info">
                 <p class="wl-item__name">Matcha Latte</p>
                 <div class="wl-item__rating">
