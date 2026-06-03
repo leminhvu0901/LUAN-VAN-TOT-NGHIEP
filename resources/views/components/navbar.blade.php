@@ -1,3 +1,13 @@
+@php
+    $favoriteProducts = collect();
+    if(Auth::check()) {
+        $favoriteProducts = \Illuminate\Support\Facades\DB::table('favorites')
+            ->join('products', 'favorites.product_id', '=', 'products.id')
+            ->where('favorites.user_id', Auth::id())
+            ->select('products.*', 'favorites.id as favorite_id')
+            ->get();
+    }
+@endphp
 <header class="happy-navbar sticky top-0 z-50 bg-white shadow-sm" id="main-navbar">
     <div class="container-fluid px-8">
         <div class="happy-navbar__row">
@@ -41,17 +51,31 @@
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                         </svg>
-                        <span id="wishlist-badge">2</span>
+                        <span id="wishlist-badge">{{ count($favoriteProducts) }}</span>
                     </button>
 
-                    {{-- dang nhap --}}
-                    <button id="login-btn" type="button" class="happy-navbar__icon-btn" aria-label="Đăng nhập">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                        </svg>
-                    </button>
+                    @guest
+                        {{-- dang nhap --}}
+                        <button id="login-btn" type="button" class="happy-navbar__icon-btn" aria-label="Đăng nhập">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </button>
+                    @endguest
+
+                    @auth
+                        <div class="relative inline-block">
+                            <button id="account-btn" type="button" class="happy-navbar__icon-btn" aria-label="Tài khoản" aria-expanded="false">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                            </button>
+                        </div>
+                    @endauth
 
                     <button id="cart-btn" type="button" class="happy-navbar__icon-btn" aria-label="Giỏ hàng">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -110,7 +134,7 @@
     <div class="wl-drawer__header">
         <div>
             <h2 class="wl-drawer__title">Sản phẩm yêu thích</h2>
-            <p class="wl-drawer__subtitle">2 sản phẩm đã lưu</p>
+            <p class="wl-drawer__subtitle">{{ count($favoriteProducts) }} sản phẩm đã lưu</p>
         </div>
         <button id="wishlist-close" class="wl-drawer__close-btn" aria-label="Đóng">
             <svg width="16" height="16" fill="none" stroke="#374151" stroke-width="2.5" viewBox="0 0 24 24">
@@ -121,67 +145,77 @@
 
     {{-- Danh sách sản phẩm yêu thích --}}
     <div class="wl-drawer__body" id="wishlist-list">
-
-        {{-- Item 1 --}}
-        <div class="wl-item">
-            <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" alt="Cà phê sữa đá" class="wl-item__img">
-            <div class="wl-item__info">
-                <p class="wl-item__name">Cà phê sữa đá</p>
-                <div class="wl-item__rating">
-                    <span class="wl-item__stars">★★★★★</span>
-                    <span class="wl-item__rating-value">4.8</span>
+        @forelse($favoriteProducts as $item)
+            <div class="wl-item">
+                <img src="{{ asset('images/' . $item->image) }}" alt="{{ $item->name }}" class="wl-item__img" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                <div class="wl-item__info">
+                    <p class="wl-item__name">{{ $item->name }}</p>
+                    <div class="wl-item__rating">
+                        <span class="wl-item__stars">★★★★★</span>
+                        <span class="wl-item__rating-value">5.0</span>
+                    </div>
+                    <span class="wl-item__price">{{ number_format($item->base_price, 0, ',', '.') }}đ</span>
                 </div>
-                <span class="wl-item__price">29.000đ</span>
-            </div>
-            <div class="wl-item__actions">
-                <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn">
-                    <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                <button title="Thêm vào giỏ" class="wl-item__cart-btn">
-                    <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        {{-- Item 2 --}}
-        <div class="wl-item">
-            <img src="{{ asset('images/products/matcha-latte.jpg') }}" alt="Matcha Latte" class="wl-item__img">
-            <div class="wl-item__info">
-                <p class="wl-item__name">Matcha Latte</p>
-                <div class="wl-item__rating">
-                    <span class="wl-item__stars">★★★★★</span>
-                    <span class="wl-item__rating-value">4.7</span>
+                <div class="wl-item__actions">
+                    <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn" onclick="removeFromWishlist({{ $item->id }})">
+                        <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <button title="Thêm vào giỏ" class="wl-item__cart-btn" onclick="addToCart({{ $item->id }})">
+                        <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
+                        </svg>
+                    </button>
                 </div>
-                <span class="wl-item__price">39.000đ</span>
             </div>
-            <div class="wl-item__actions">
-                <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn">
-                    <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                </button>
-                <button title="Thêm vào giỏ" class="wl-item__cart-btn">
-                    <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                    </svg>
-                </button>
+        @empty
+            <div style="text-align: center; color: #6b7280; padding: 2rem 1rem;">
+                <p>Bạn chưa lưu sản phẩm nào.</p>
             </div>
-        </div>
-
+        @endforelse
     </div>
 
     {{-- Footer --}}
     <div class="wl-drawer__footer">
-        <a href="/products" class="wl-drawer__continue-btn">Tiếp tục mua</a>
         <button class="wl-drawer__add-all-btn">Thêm tất cả vào giỏ</button>
     </div>
 </aside>
+
+{{-- ===== CART DRAWER ===== --}}
+<div id="cart-overlay" aria-hidden="true" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; opacity: 0; transition: opacity 0.3s ease;"></div>
+<aside id="cart-drawer" role="dialog" aria-modal="true" aria-label="Giỏ hàng" style="position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 100%; background: white; z-index: 100; transform: translateX(100%); transition: transform 0.3s ease; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.1);">
+    
+    {{-- Header --}}
+    <div style="padding: 1.5rem; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">Giỏ hàng của bạn</h2>
+            <p style="font-size: 0.875rem; color: #6b7280; margin: 0; margin-top: 0.25rem;" id="cart-drawer-subtitle">0 sản phẩm</p>
+        </div>
+        <button id="cart-close" aria-label="Đóng" style="width: 36px; height: 36px; border-radius: 50%; background: #f3f4f6; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="16" height="16" fill="none" stroke="#374151" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
+    {{-- Body --}}
+    <div id="cart-list" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Cart items injected via JS -->
+    </div>
+
+    {{-- Footer --}}
+    <div style="padding: 1.5rem; border-top: 1px solid #f3f4f6; background: #fff;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <span style="font-weight: 600; color: #374151;">Tổng cộng:</span>
+            <span id="cart-drawer-total" style="font-size: 1.25rem; font-weight: 700; color: #10b981;">0đ</span>
+        </div>
+        <button style="width: 100%; padding: 0.875rem; background: #10b981; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">Thanh toán ngay</button>
+    </div>
+</aside>
+
+@include('components.user-profile-modal')
 
 @push('scripts')
     <script>
@@ -189,7 +223,7 @@
             const $ = (id) => document.getElementById(id);
 
             const closeAll = () => {
-                ['products-dropdown', 'account-dropdown'].forEach((id) => {
+                ['products-dropdown'].forEach((id) => {
                     const el = $(id);
                     if (!el) return;
                     el.classList.remove('open');
@@ -218,13 +252,10 @@
                 toggleDropdown($('products-btn'), $('products-dropdown'), $('products-chevron'));
             });
 
-            $('account-btn')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleDropdown($('account-btn'), $('account-dropdown'));
-            });
+
 
             document.addEventListener('click', closeAll);
-            ['products-dropdown', 'account-dropdown'].forEach((id) => {
+            ['products-dropdown'].forEach((id) => {
                 $(id)?.addEventListener('click', (e) => e.stopPropagation());
             });
 
@@ -262,14 +293,41 @@
             $('wishlist-btn')?.addEventListener('click', openWishlist);
             $('wishlist-close')?.addEventListener('click', closeWishlist);
             $('wishlist-overlay')?.addEventListener('click', closeWishlist);
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWishlist(); });
-
             $('cart-btn')?.addEventListener('click', () => {
-                const badge = $('cart-badge');
-                if (!badge) return;
-                badge.classList.remove('badge-pop');
-                void badge.offsetWidth;
-                badge.classList.add('badge-pop');
+                const drawer = $('cart-drawer');
+                const overlay = $('cart-overlay');
+                if (!drawer || !overlay) return;
+                
+                // Fetch and render cart before opening
+                if (typeof window.loadCart === 'function') {
+                    window.loadCart();
+                }
+                
+                overlay.style.display = 'block';
+                requestAnimationFrame(() => {
+                    drawer.style.transform = 'translateX(0)';
+                    overlay.style.opacity = '1';
+                });
+                document.body.style.overflow = 'hidden';
+            });
+            
+            const closeCart = () => {
+                const drawer = $('cart-drawer');
+                const overlay = $('cart-overlay');
+                if (!drawer || !overlay) return;
+                drawer.style.transform = 'translateX(100%)';
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; }, 320);
+                document.body.style.overflow = '';
+            };
+            
+            $('cart-close')?.addEventListener('click', closeCart);
+            $('cart-overlay')?.addEventListener('click', closeCart);
+            document.addEventListener('keydown', (e) => { 
+                if (e.key === 'Escape') {
+                    closeWishlist();
+                    closeCart();
+                } 
             });
         })();
     </script>

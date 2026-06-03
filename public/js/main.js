@@ -229,3 +229,234 @@ const tagsInput = document.querySelector('input[name=tags]');
 if (tagsInput && window.Tagify) {
 	new Tagify(tagsInput);
 }
+
+// Wishlist & Cart Global Functions
+window.updateWishlistUI = function(data) {
+    if (!data || !data.success) return;
+    
+    // 1. Update badges and counters
+    var badge = document.getElementById('wishlist-badge');
+    var subtitle = document.querySelector('.wl-drawer__subtitle');
+    if (badge) badge.innerText = data.count;
+    if (subtitle) subtitle.innerText = data.count + ' sản phẩm đã lưu';
+    
+    // 2. Update drawer list
+    var listBody = document.getElementById('wishlist-list');
+    if (listBody) {
+        if (data.count === 0) {
+            listBody.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem 1rem;"><p>Bạn chưa lưu sản phẩm nào.</p></div>';
+        } else {
+            let html = '';
+            data.items.forEach(item => {
+                let formattedPrice = new Intl.NumberFormat('vi-VN').format(item.base_price) + 'đ';
+                html += `
+                <div class="wl-item">
+                    <img src="/images/${item.image}" alt="${item.name}" class="wl-item__img" onerror="this.src='/images/products/placeholder.jpg'">
+                    <div class="wl-item__info">
+                        <p class="wl-item__name">${item.name}</p>
+                        <div class="wl-item__rating">
+                            <span class="wl-item__stars">★★★★★</span>
+                            <span class="wl-item__rating-value">5.0</span>
+                        </div>
+                        <span class="wl-item__price">${formattedPrice}</span>
+                    </div>
+                    <div class="wl-item__actions">
+                        <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn" onclick="removeFromWishlist(${item.id})">
+                            <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <button title="Thêm vào giỏ" class="wl-item__cart-btn" onclick="addToCart(${item.id})">
+                            <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>`;
+            });
+            listBody.innerHTML = html;
+        }
+    }
+};
+
+window.removeFromWishlist = function(productId) {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    fetch('/favorite/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data && data.success) {
+            updateWishlistUI(data);
+            
+            // Untoggle heart icon on homepage if exists
+            var heartBtn = document.querySelector('.home-prod-card__wishlist[data-id="' + productId + '"]');
+            if (heartBtn) {
+                heartBtn.classList.remove('is-active');
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+};
+
+// --- CART LOGIC ---
+const updateCartUI = (data) => {
+    if (!data || !data.success) return;
+    
+    // Update badge
+    var badge = document.getElementById('cart-badge');
+    if (badge) badge.innerText = data.count;
+    
+    // Update drawer subtitle
+    var subtitle = document.getElementById('cart-drawer-subtitle');
+    if (subtitle) subtitle.innerText = data.count + ' sản phẩm';
+    
+    // Update total
+    var totalEl = document.getElementById('cart-drawer-total');
+    if (totalEl) totalEl.innerText = data.formatted_total;
+    
+    // Update list
+    var list = document.getElementById('cart-list');
+    if (list) {
+        if (data.count === 0) {
+            list.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem 1rem;"><p>Giỏ hàng của bạn đang trống.</p></div>';
+        } else {
+            let html = '';
+            data.items.forEach(item => {
+                let formattedPrice = new Intl.NumberFormat('vi-VN').format(item.unit_price) + 'đ';
+                html += `
+                <div style="display: flex; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f3f4f6;">
+                    <img src="/images/${item.image}" alt="${item.name}" onerror="this.src='/images/products/placeholder.jpg'" style="width: 72px; height: 72px; object-fit: cover; border-radius: 0.5rem; flex-shrink: 0; background: #f9fafb;">
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <h4 style="font-size: 0.875rem; font-weight: 600; color: #111827; margin: 0; margin-bottom: 0.25rem;">${item.name}</h4>
+                        <span style="font-size: 0.875rem; font-weight: 600; color: #10b981;">${formattedPrice}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                            <div style="display: flex; align-items: center; border: 1px solid #e5e7eb; border-radius: 0.375rem; overflow: hidden;">
+                                <button onclick="updateCartItem(${item.id}, ${item.quantity - 1})" style="width: 28px; height: 28px; background: #f9fafb; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center;">-</button>
+                                <span style="width: 32px; text-align: center; font-size: 0.875rem;">${item.quantity}</span>
+                                <button onclick="updateCartItem(${item.id}, ${item.quantity + 1})" style="width: 28px; height: 28px; background: #f9fafb; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center;">+</button>
+                            </div>
+                            <button onclick="removeFromCart(${item.id})" style="border: none; background: transparent; color: #ef4444; font-size: 0.875rem; cursor: pointer; text-decoration: underline;">Xóa</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+    }
+};
+
+window.loadCart = function() {
+    fetch('/cart')
+        .then(res => res.json())
+        .then(updateCartUI)
+        .catch(err => console.error(err));
+};
+
+window.addToCart = function(productId, quantity = 1) {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        },
+        body: JSON.stringify({ product_id: productId, quantity: quantity })
+    })
+    .then(res => res.json())
+    .then(data => {
+        updateCartUI(data);
+        // Pop animation on cart icon
+        var badge = document.getElementById('cart-badge');
+        if (badge) {
+            badge.classList.remove('badge-pop');
+            void badge.offsetWidth;
+            badge.classList.add('badge-pop');
+        }
+    })
+    .catch(err => console.error(err));
+};
+
+window.addAllToCart = function() {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    fetch('/cart/add-all', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success === false) {
+            alert(data.message || 'Có lỗi xảy ra');
+            return;
+        }
+        updateCartUI(data);
+        alert('Đã thêm tất cả sản phẩm yêu thích vào giỏ hàng!');
+        
+        // Pop animation on cart icon
+        var badge = document.getElementById('cart-badge');
+        if (badge) {
+            badge.classList.remove('badge-pop');
+            void badge.offsetWidth;
+            badge.classList.add('badge-pop');
+        }
+    })
+    .catch(err => console.error(err));
+};
+
+window.removeFromCart = function(itemId) {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    fetch('/cart/remove', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        },
+        body: JSON.stringify({ item_id: itemId })
+    })
+    .then(res => res.json())
+    .then(updateCartUI)
+    .catch(err => console.error(err));
+};
+
+window.updateCartItem = function(itemId, quantity) {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+    
+    if (quantity < 1) {
+        removeFromCart(itemId);
+        return;
+    }
+
+    fetch('/cart/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        },
+        body: JSON.stringify({ item_id: itemId, quantity: quantity })
+    })
+    .then(res => res.json())
+    .then(updateCartUI)
+    .catch(err => console.error(err));
+};
+
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    loadCart();
+});

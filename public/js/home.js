@@ -23,7 +23,42 @@ if (navbar) {
 // Wishlist toggle
 document.querySelectorAll('.home-prod-card__wishlist').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        this.classList.toggle('is-active');
+        var productId = this.getAttribute('data-id');
+        var token = document.querySelector('meta[name="csrf-token"]');
+        var _this = this;
+
+        if (!token) {
+            alert('Vui lòng đăng nhập để sử dụng tính năng này.');
+            window.location.href = '/login';
+            return;
+        }
+
+        fetch('/favorite/toggle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token.getAttribute('content')
+            },
+            body: JSON.stringify({ product_id: productId })
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.success) {
+                _this.classList.toggle('is-active');
+                
+                // Update drawer UI and badge
+                if (typeof window.updateWishlistUI === 'function') {
+                    window.updateWishlistUI(data);
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
     });
 });
 

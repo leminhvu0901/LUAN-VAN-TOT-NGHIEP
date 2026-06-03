@@ -12,69 +12,59 @@
             <div class="p-main-layout">
                 <!-- Sidebar Filters -->
                 <aside class="p-sidebar">
-                    <!-- Danh mục -->
-                    <div class="p-filter-group">
-                        <h3 class="p-filter-title">Bộ lọc</h3>
-                        <label class="p-filter-item">
-                            <input type="checkbox" id="cat-ca-phe" name="category" value="ca-phe">
-                            <span>Cà phê</span>
-                        </label>
-                        <label class="p-filter-item">
-                            <input type="checkbox" id="cat-tra-sua" name="category" value="tra-sua">
-                            <span>Trà sữa</span>
-                        </label>
-                        <label class="p-filter-item">
-                            <input type="checkbox" id="cat-tra-trai-cay" name="category" value="tra-trai-cay">
-                            <span>Trà trái cây</span>
-                        </label>
-                        <label class="p-filter-item">
-                            <input type="checkbox" id="cat-da-xay" name="category" value="da-xay">
-                            <span>Đá xay</span>
-                        </label>
-                        <label class="p-filter-item">
-                            <input type="checkbox" id="cat-banh-ngot" name="category" value="banh-ngot">
-                            <span>Bánh ngọt</span>
-                        </label>
-                    </div>
-
-                    <!-- Giá -->
-                    <div class="p-filter-group">
-                        <h3 class="p-filter-title">Giá</h3>
-                        <div class="p-price-range-wrap">
-                            <input type="range" class="p-price-slider" id="price-slider"
-                                   min="10000" max="600000" value="390000"
-                                   oninput="updatePriceLabel(this.value)">
-                            <div class="p-price-label" id="price-label">100.000đ – 390.000đ</div>
+                    <form id="filter-form" action="{{ route('products') }}" method="GET">
+                        <!-- Danh mục -->
+                        <div class="p-filter-group">
+                            <h3 class="p-filter-title">Bộ lọc</h3>
+                            @foreach($categories as $category)
+                            <label class="p-filter-item">
+                                <input type="checkbox" name="category[]" value="{{ $category->id }}"
+                                       onchange="document.getElementById('filter-form').submit();"
+                                       {{ in_array($category->id, $categoryIds) ? 'checked' : '' }}>
+                                <span>{{ $category->name }}</span>
+                            </label>
+                            @endforeach
                         </div>
-                    </div>
 
-                    <!-- Thái cây (Rating) -->
+                        <!-- Giá -->
+                        <div class="p-filter-group">
+                            <h3 class="p-filter-title">Giá</h3>
+                            <div class="p-price-range-wrap">
+                                <input type="range" class="p-price-slider" id="price-slider" name="max_price"
+                                       min="10000" max="600000" value="{{ $maxPrice }}" step="10000"
+                                       oninput="updatePriceLabel(this.value)"
+                                       onchange="document.getElementById('filter-form').submit();">
+                                <div class="p-price-label" id="price-label">10.000đ – {{ number_format($maxPrice, 0, ',', '.') }}đ</div>
+                            </div>
+                        </div>
+
+                    <!-- Đánh giá (Rating) -->
                     <div class="p-filter-group">
-                        <h3 class="p-filter-title">Thái cây</h3>
+                        <h3 class="p-filter-title">Đánh giá</h3>
                         <label class="p-rating-item">
-                            <input type="checkbox" id="rating-46" name="rating" value="4.6">
+                            <input type="radio" id="rating-4" name="rating" value="4" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '4' ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
-                                <span class="p-star-filled">★</span>
+                                <span class="p-star-empty">★</span>
                             </span>
-                            <span class="p-rating-label">4.6</span>
+                            <span class="p-rating-label">Từ 4 sao</span>
                         </label>
                         <label class="p-rating-item">
-                            <input type="checkbox" id="rating-4" name="rating" value="4">
+                            <input type="radio" id="rating-3" name="rating" value="3" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '3' ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
-                                <span class="p-star-filled">★</span>
+                                <span class="p-star-empty">★</span>
                                 <span class="p-star-empty">★</span>
                             </span>
-                            <span class="p-rating-label">4.+</span>
+                            <span class="p-rating-label">Từ 3 sao</span>
                         </label>
                         <label class="p-rating-item">
-                            <input type="checkbox" id="rating-0" name="rating" value="0">
+                            <input type="radio" id="rating-all" name="rating" value="0" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '0' || !request()->has('rating') ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-empty">★</span>
                                 <span class="p-star-empty">★</span>
@@ -82,9 +72,10 @@
                                 <span class="p-star-empty">★</span>
                                 <span class="p-star-empty">★</span>
                             </span>
-                            <span class="p-rating-label">0</span>
+                            <span class="p-rating-label">Tất cả</span>
                         </label>
                     </div>
+                    </form>
                 </aside>
 
                 <!-- Product Area -->
@@ -103,419 +94,107 @@
                     <!-- Grid -->
                     <div class="p-product-grid" id="product-grid">
 
-                        <!-- Row 1 -->
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" alt="Cà phê sữa đá">
+                        @forelse($products as $product)
+                        <div class="p-product-card">
+                            <div class="p-product-img-wrap" onclick="openProductModal(this)"
+                                 data-id="{{ $product->id }}"
+                                 data-name="{{ $product->name }}"
+                                 data-price="{{ number_format($product->base_price, 0, ',', '.') }}đ"
+                                 data-category="{{ $product->category_name }}"
+                                 data-image="{{ asset('images/' . $product->image) }}"
+                                 data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
+                                
+                                <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                             </div>
                             <div class="p-product-body">
-                                <p class="p-product-name">Cà phê sữa đá</p>
+                                <p class="p-product-name" onclick="openProductModal(this.parentElement.previousElementSibling)">{{ $product->name }}</p>
                                 <div class="p-product-rating">
                                     <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.8 (120+)</span>
+                                    <span>{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }})</span>
                                 </div>
                                 <div class="p-product-price-row">
-                                    <span class="p-product-price">29.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
+                                    <span class="p-product-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <!-- Wishlist Heart Button -->
+                                        <button class="home-prod-card__wishlist {{ in_array($product->id, $favoriteProductIds) ? 'is-active' : '' }}" 
+                                                data-id="{{ $product->id }}" 
+                                                onclick="toggleFavorite(this, {{ $product->id }})" 
+                                                aria-label="Yêu thích" 
+                                                style="border: none; background: transparent; cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                        </button>
+                                        <!-- Add to Cart Button -->
+                                        <button class="p-add-btn" aria-label="Thêm vào giỏ" onclick="addToCart({{ $product->id }})">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/tra-dao.jpg') }}" alt="Trà đào miếng">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Trà đào miếng</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.9 (85+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">35.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
+                        @empty
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #6b7280;">
+                            Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
                         </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-sale">-15%</span>
-                                <img src="{{ asset('images/products/ca-phe-kem-sua.jpg') }}" alt="Cookie Đá Xay">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cookie Đá Xay</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.6 (92)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">42.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/matcha-latte.jpg') }}" alt="Matcha Latte">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Matcha Latte</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.7 (54+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">39.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/ca-phe-den-da.jpg') }}" alt="Bơ Sáp Mắt">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Bơ Sáp Mắt</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.8 (120+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">28.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Row 2 -->
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/matcha-latte.jpg') }}" alt="Bơ Sáp Mắt">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Bơ Sáp Mắt</p>
-                                <p class="p-product-name-secondary">(Hơn)</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.8 (120+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">28.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-sale">-15%</span>
-                                <img src="{{ asset('images/products/ca-phe-kem-sua.jpg') }}" alt="Cookie Đá Xay">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cookie Đá Xay</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.6 (92)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">42.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-sale">-15%</span>
-                                <img src="{{ asset('images/products/ca-phe-den-da.jpg') }}" alt="Cà phê Đá Xay">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cà phê Đá Xay</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.7 (54+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">39.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <img src="{{ asset('images/products/sua-chua-dau.jpg') }}" alt="Cookie Đá Xay">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cookie Đá Xay</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.6 (92)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">45.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/tra-dao.jpg') }}" alt="Cà phê tơ hàn mắt">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cà phê tơ hàn mắt</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.7 (23+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">35.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Row 3 -->
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" alt="Cà phê sữa">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Cà phê sữa</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.5 (67)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">25.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/tra-tac.jpg') }}" alt="Trà tắc mật ong">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Trà tắc mật ong</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.4 (31+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">22.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-sale">-18%</span>
-                                <img src="{{ asset('images/products/sua-chua-dau.jpg') }}" alt="Sữa chua dâu">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Sữa chua dâu</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.3 (48)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">32.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-hot">BÁN CHẠY</span>
-                                <img src="{{ asset('images/products/milo-dam-da.jpg') }}" alt="Milo đậm đà">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Milo đậm đà</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.9 (200+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">30.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-product-card" onclick="openProductModal(this)">
-                            <div class="p-product-img-wrap">
-                                <span class="p-product-badge p-badge-new">MỚI</span>
-                                <img src="{{ asset('images/products/tra-dao.jpg') }}" alt="Trà đào cam sả">
-                            </div>
-                            <div class="p-product-body">
-                                <p class="p-product-name">Trà đào cam sả</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>4.6 (78+)</span>
-                                </div>
-                                <div class="p-product-price-row">
-                                    <span class="p-product-price">38.000đ</span>
-                                    <button class="p-add-btn" aria-label="Thêm vào giỏ">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        @endforelse
 
                     </div><!-- end .p-product-grid -->
+                    
+                    <div style="margin-top: 2rem;">
+                        {{ $products->links() }}
+                    </div>
                 </div><!-- end .p-product-area -->
             </div><!-- end .p-main-layout -->
         </div><!-- end .p-page-wrapper -->
 
 
-    {{-- Quick View Modal (tích hợp từ partials/product.blade.php) --}}
-    <div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:900px;">
-            <div class="modal-content">
-                <div class="modal-body" style="padding:2rem;position:relative;">
-                    <div style="position:absolute;top:0.75rem;right:0.75rem;">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:1.5rem;">
-                        {{-- Hình ảnh sản phẩm --}}
-                        <div style="flex:1;min-width:260px;">
-                            <img id="modalMainImg" src="" alt=""
-                                 style="width:100%;border-radius:10px;object-fit:cover;aspect-ratio:1;" />
-                        </div>
-                        {{-- Thông tin sản phẩm --}}
-                        <div style="flex:1;min-width:240px;">
-                            <div style="display:flex;flex-direction:column;gap:0.85rem;">
-                                <p id="modal-name"
-                                   style="font-size:1.3rem;font-weight:700;color:#111827;margin:0;"></p>
-                                <div style="display:flex;align-items:center;gap:0.4rem;">
-                                    <span id="modal-stars" style="color:#f59e0b;font-size:1rem;"></span>
-                                    <span id="modal-review" style="font-size:0.82rem;color:#6b7280;"></span>
-                                </div>
-                                <div id="modal-price"
-                                     style="font-size:1.5rem;font-weight:800;color:#10b981;"></div>
-                                <hr style="margin:0;" />
-                                {{-- Số lượng --}}
-                                <div>
-                                    <p style="font-size:0.85rem;font-weight:600;color:#374151;margin:0 0 0.5rem;">Số lượng</p>
-                                    <div style="display:inline-flex;align-items:center;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-                                        <button onclick="changeQty(-1)"
-                                                style="width:36px;height:36px;background:#f9fafb;border:none;cursor:pointer;font-size:1.1rem;">−</button>
-                                        <input type="number" id="modal-qty" value="1" min="1"
-                                               style="width:48px;height:36px;text-align:center;border:none;outline:none;font-weight:600;" />
-                                        <button onclick="changeQty(1)"
-                                                style="width:36px;height:36px;background:#f9fafb;border:none;cursor:pointer;font-size:1.1rem;">+</button>
-                                    </div>
-                                </div>
-                                {{-- Nút thêm vào giỏ --}}
-                                <button type="button"
-                                        style="padding:0.75rem;background:#10b981;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;transition:background 0.2s;"
-                                        onmouseover="this.style.background='#059669'"
-                                        onmouseout="this.style.background='#10b981'">
-                                    + Thêm vào giỏ hàng
-                                </button>
-                                <hr style="margin:0;" />
-                                <table style="font-size:0.84rem;width:100%;border-collapse:collapse;">
-                                    <tbody>
-                                        <tr>
-                                            <td style="padding:0.35rem 0.75rem 0.35rem 0;color:#6b7280;white-space:nowrap;">Danh mục:</td>
-                                            <td id="modal-category" style="color:#111827;font-weight:500;"></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0.35rem 0.75rem 0.35rem 0;color:#6b7280;">Tình trạng:</td>
-                                            <td style="color:#10b981;font-weight:600;">Còn hàng</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0.35rem 0.75rem 0.35rem 0;color:#6b7280;">Giao hàng:</td>
-                                            <td style="color:#111827;">Miễn phí trong nội thành</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>{{-- /#quickViewModal --}}
+    {{-- Quick View Modal đã được include toàn cục tại layouts/app.blade.php --}}
 
     <script>
         /* ---- Price slider ---- */
         function updatePriceLabel(val) {
             const formatted = parseInt(val).toLocaleString('vi-VN');
-            document.getElementById('price-label').textContent = '100.000đ \u2013 ' + formatted + '\u0111';
+            document.getElementById('price-label').textContent = '10.000đ \u2013 ' + formatted + '\u0111';
             const slider = document.getElementById('price-slider');
             const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
             slider.style.background = `linear-gradient(to right, #10b981 0%, #10b981 ${pct}%, #d1d5db ${pct}%, #d1d5db 100%)`;
         }
 
+        window.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('price-slider');
+            if(slider) {
+                updatePriceLabel(slider.value);
+            }
+        });
+
         /* ---- Quick-view modal ---- */
-        function openProductModal(card) {
-            const imgEl   = card.querySelector('.p-product-img-wrap img');
-            const nameEl  = card.querySelector('.p-product-name');
-            const priceEl = card.querySelector('.p-product-price');
-            const ratEl   = card.querySelector('.p-product-rating span');
+        function openProductModal(wrap) {
+            const name = wrap.getAttribute('data-name');
+            const price = wrap.getAttribute('data-price');
+            const image = wrap.getAttribute('data-image');
+            const category = wrap.getAttribute('data-category');
+            const rating = wrap.getAttribute('data-rating');
 
-            document.getElementById('modal-name').textContent  = nameEl  ? nameEl.textContent.trim()  : '';
-            document.getElementById('modal-price').textContent = priceEl ? priceEl.textContent.trim() : '';
-            document.getElementById('modal-category').textContent = 'Đồ uống';
+            // Set data to global modal (partials/modal-product.blade.php)
+            document.getElementById('modal-product-name').textContent = name;
+            document.getElementById('modal-product-price').textContent = price;
+            document.getElementById('modal-product-rating').textContent = rating;
+            document.getElementById('modal-product-img').src = image;
+            
+            // Set Add to Cart button inside modal
+            const addToCartBtn = document.getElementById('modal-product-add-cart');
+            if (addToCartBtn) {
+                const productId = wrap.getAttribute('data-id');
+                addToCartBtn.setAttribute('onclick', 'addToCart(' + productId + ', document.getElementById(\'modal-qty\').textContent)');
+            }
+            
+            // Reset quantity to 1
+            if (typeof window.qty !== 'undefined') window.qty = 1;
+            document.getElementById('modal-qty').textContent = '1';
 
-            const stars = ratEl ? parseFloat(ratEl.textContent) : 0;
-            document.getElementById('modal-stars').textContent = '\u2605'.repeat(Math.round(stars)) + '\u2606'.repeat(5 - Math.round(stars));
-            document.getElementById('modal-review').textContent = ratEl ? ratEl.textContent.trim() : '';
-
-            const src = imgEl ? imgEl.src : '';
-            document.getElementById('modalMainImg').src = src;
-            document.getElementById('modal-qty').value = 1;
-
-            new bootstrap.Modal(document.getElementById('quickViewModal')).show();
+            // Show global modal overlay
+            document.getElementById('modal-product-overlay').style.display = 'flex';
         }
 
-        /* ---- Quantity stepper ---- */
-        function changeQty(delta) {
-            const input = document.getElementById('modal-qty');
-            input.value = Math.max(1, parseInt(input.value || 1) + delta);
-        }
+        /* ---- Quantity stepper is already defined globally in modal-product.blade.php ---- */
     </script>
 @endsection

@@ -145,103 +145,66 @@
             </div>
 
             <div class="home-products-grid">
-                {{-- sp1 --}}
+                @php
+                    $popularProducts = \Illuminate\Support\Facades\DB::table('products')
+                        ->select(
+                            'products.*',
+                            \Illuminate\Support\Facades\DB::raw('COALESCE(AVG(reviews.rating), 0) as avg_rating'),
+                            \Illuminate\Support\Facades\DB::raw('COUNT(reviews.id) as review_count')
+                        )
+                        ->leftJoin('reviews', function($join) {
+                            $join->on('products.id', '=', 'reviews.product_id')
+                                 ->where('reviews.is_visible', 1);
+                        })
+                        ->where('products.is_active', 1)
+                        ->groupBy(
+                            'products.id', 'products.sku', 'products.slug', 'products.name', 
+                            'products.base_price', 'products.image', 'products.description', 
+                            'products.is_active', 'products.category_id', 'products.created_at', 
+                            'products.updated_at'
+                        )
+                        ->limit(6)
+                        ->get();
+                        
+                    $userFavorites = [];
+                    if(Auth::check()) {
+                        $userFavorites = \Illuminate\Support\Facades\DB::table('favorites')
+                            ->where('user_id', Auth::id())
+                            ->pluck('product_id')->toArray();
+                    }
+                @endphp
+
+                @foreach($popularProducts as $product)
                 <div class="home-prod-card">
                     <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
-                        <img src="{{ asset('images/products/ca-phe-sua-da.jpg') }}" class="home-prod-card__img"
-                            alt="Cà phê sữa đá">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        @if($loop->iteration == 1) <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span> @endif
+                        @if($loop->iteration == 2 || $loop->iteration == 4 || $loop->iteration == 5) <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span> @endif
+                        @if($loop->iteration == 3 || $loop->iteration == 6) <span class="home-prod-card__badge home-prod-card__badge--sale">-15%</span> @endif
+                        
+                        <img src="{{ asset('images/' . $product->image) }}" class="home-prod-card__img" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                        
+                        <button class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}" aria-label="Yêu thích" data-id="{{ $product->id }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                             </svg>
                         </button>
                     </div>
                     <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Cà phê sữa đá</h3>
+                        <h3 class="home-prod-card__name">{{ $product->name }}</h3>
                         <div class="home-prod-card__rating">
                             <span class="home-prod-card__stars">★★★★★</span>
-                            <span class="home-prod-card__rating-val">4.8</span>
-                            <span class="home-prod-card__reviews">(120+)</span>
-                        </div>
-                        <div class="home-prod-card__footer">
-                            <span class="home-prod-card__price">29.000đ</span>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- sp2 --}}
-                <div class="home-prod-card">
-                    <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
-                        <img src="{{ asset('images/products/tra-dao.jpg') }}" class="home-prod-card__img"
-                            alt="Trà đào miếng">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Trà đào miếng</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★★</span>
-                            <span class="home-prod-card__rating-val">4.9</span>
-                            <span class="home-prod-card__reviews">(85+)</span>
-                        </div>
-                        <div class="home-prod-card__footer">
-                            <span class="home-prod-card__price">35.000đ</span>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- sp3 --}}
-                <div class="home-prod-card">
-                    <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--sale">-15%</span>
-                        <img src="{{ asset('images/products/ca-phe-kem-sua.jpg') }}" class="home-prod-card__img"
-                            alt="Cookie Đá Xay">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Cookie Đá Xay</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★☆</span>
-                            <span class="home-prod-card__rating-val">4.6</span>
-                            <span class="home-prod-card__reviews">(92)</span>
+                            <span class="home-prod-card__rating-val">{{ number_format($product->avg_rating, 1) }}</span>
+                            <span class="home-prod-card__reviews">({{ $product->review_count }})</span>
                         </div>
                         <div class="home-prod-card__footer">
                             <div>
-                                <span class="home-prod-card__price">42.000đ</span>
-                                <span class="home-prod-card__price-old">49.000đ</span>
+                                <span class="home-prod-card__price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                                @if($loop->iteration == 3 || $loop->iteration == 6) 
+                                    <span class="home-prod-card__price-old">{{ number_format($product->base_price * 1.15, 0, ',', '.') }}đ</span>
+                                @endif
                             </div>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
+                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng" onclick="addToCart({{ $product->id }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
@@ -249,111 +212,7 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- sp4 --}}
-                <div class="home-prod-card">
-                    <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
-                        <img src="{{ asset('images/products/matcha-latte.jpg') }}" class="home-prod-card__img"
-                            alt="Matcha Latte">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Matcha Latte</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★★</span>
-                            <span class="home-prod-card__rating-val">4.7</span>
-                            <span class="home-prod-card__reviews">(54+)</span>
-                        </div>
-                        <div class="home-prod-card__footer">
-                            <span class="home-prod-card__price">39.000đ</span>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- sp5 --}}
-                <div class="home-prod-card">
-                    <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
-                        <img src="{{ asset('images/products/ca-phe-den-da.jpg') }}" class="home-prod-card__img"
-                            alt="Cà phê đen đá">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Cà phê đen đá</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★★</span>
-                            <span class="home-prod-card__rating-val">4.8</span>
-                            <span class="home-prod-card__reviews">(120+)</span>
-                        </div>
-                        <div class="home-prod-card__footer">
-                            <span class="home-prod-card__price">28.000đ</span>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- sp6 --}}
-                <div class="home-prod-card">
-                    <div class="home-prod-card__img-wrap">
-                        <span class="home-prod-card__badge home-prod-card__badge--sale">-15%</span>
-                        <img src="{{ asset('images/products/sua-chua-dau.jpg') }}" class="home-prod-card__img"
-                            alt="Sữa chua dâu">
-                        <button class="home-prod-card__wishlist" aria-label="Yêu thích">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="home-prod-card__body">
-                        <h3 class="home-prod-card__name">Sữa chua dâu</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★☆</span>
-                            <span class="home-prod-card__rating-val">4.6</span>
-                            <span class="home-prod-card__reviews">(92)</span>
-                        </div>
-                        <div class="home-prod-card__footer">
-                            <div>
-                                <span class="home-prod-card__price">45.000đ</span>
-                                <span class="home-prod-card__price-old">53.000đ</span>
-                            </div>
-                            <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
 
             <div class="home-popular__view-all">
