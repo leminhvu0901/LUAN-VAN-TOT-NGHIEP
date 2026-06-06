@@ -81,8 +81,13 @@
 
                 <!-- Product Area -->
                 <div class="p-product-area">
-                    <!-- Sort -->
-                    <div class="p-sort-bar">
+                    <!-- Sort & Filter Pills -->
+                    <div class="p-sort-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div class="home-popular__filter" id="product-pill-filters">
+                            <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất cả</button>
+                            <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
+                            <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
+                        </div>
                         <select class="p-sort-select" id="sort-select" aria-label="Sắp xếp">
                             <option value="popular">Sắp xếp theo: Phổ biến nhất</option>
                             <option value="price-asc">Giá: Thấp đến cao</option>
@@ -96,7 +101,17 @@
                     <div class="p-product-grid" id="product-grid">
 
                         @forelse($products as $product)
-                        <div class="p-product-card">
+                        @php
+                            $isHot = in_array($product->id, $top6HotProductIds); // Bán chạy nếu lọt top 6
+                            $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
+                        @endphp
+                        <div class="p-product-card" 
+                             data-sold="{{ $product->total_sold }}" 
+                             data-price-val="{{ $product->base_price }}" 
+                             data-date="{{ strtotime($product->created_at) }}" 
+                             data-rating-val="{{ $product->avg_rating }}"
+                             data-is-hot="{{ $isHot ? '1' : '0' }}"
+                             data-is-new="{{ $isNew ? '1' : '0' }}">
                             <div class="p-product-img-wrap" onclick="openProductModal(this)"
                                  data-id="{{ $product->id }}"
                                  data-name="{{ $product->name }}"
@@ -105,6 +120,13 @@
                                  data-image="{{ asset('images/' . $product->image) }}"
                                  data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
                                 
+                                @if($isHot) 
+                                    <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span> 
+                                @endif
+                                @if($isNew) 
+                                    <span class="home-prod-card__badge home-prod-card__badge--new" style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span> 
+                                @endif
+
                                 <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                             </div>
                             <div class="p-product-body">
@@ -205,6 +227,111 @@
             if (navSearchInput) navSearchInput.value = '';
 
             document.getElementById('filter-form').submit();
+        }
+
+        /* ---- Lọc và Sắp xếp Frontend ---- */
+        const sortSelect = document.getElementById('sort-select');
+        const grid = document.getElementById('product-grid');
+        const pillButtons = document.querySelectorAll('#product-pill-filters .home-popular__filter-btn');
+        let currentPillFilter = 'all';
+        
+        function applySortAndFilter() {
+            if (!sortSelect || !grid) return;
+            
+            const sortBy = sortSelect.value;
+            const cards = Array.from(grid.querySelectorAll('.p-product-card'));
+            
+            // 1. Sắp xếp
+            cards.sort((a, b) => {
+                if (sortBy === 'popular') {
+                    return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute('data-sold') || 0);
+                } else if (sortBy === 'price-asc') {
+                    return parseFloat(a.getAttribute('data-price-val') || 0) - parseFloat(b.getAttribute('data-price-val') || 0);
+                } else if (sortBy === 'price-desc') {
+                    return parseFloat(b.getAttribute('data-price-val') || 0) - parseFloat(a.getAttribute('data-price-val') || 0);
+                } else if (sortBy === 'newest') {
+                    return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute('data-date') || 0);
+                } else if (sortBy === 'rating') {
+                    return parseFloat(b.getAttribute('data-rating-val') || 0) - parseFloat(a.getAttribute('data-rating-val') || 0);
+                }
+                return 0;
+            });
+            
+            // 2. Lọc (Filter) và Cập nhật DOM
+            let visibleCount = 0;
+            cards.forEach(card => {
+                grid.appendChild(card); // Re-order in DOM
+                
+                // Kiểm tra xem card có thỏa mãn bộ lọc Pill không
+                let isMatch = true;
+                if (currentPillFilter === 'hot') {
+                    isMatch = card.getAttribute('data-is-hot') === '1';
+                } else if (currentPillFilter === 'new') {
+                    isMatch = card.getAttribute('data-is-new') === '1';
+                }
+                
+                if (isMatch) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+                
+                // Logic ẩn/hiện tem dựa trên bộ lọc Sort
+                const hotBadge = card.querySelector('.home-prod-card__badge--hot');
+                const newBadge = card.querySelector('.home-prod-card__badge--new');
+                
+                if (sortBy === 'newest') {
+                    if (newBadge) {
+                        newBadge.style.display = '';
+                        if (hotBadge) hotBadge.style.display = 'none';
+                    } else if (hotBadge) {
+                        hotBadge.style.display = '';
+                    }
+                } else {
+                    if (hotBadge) {
+                        hotBadge.style.display = '';
+                        if (newBadge) newBadge.style.display = 'none';
+                    } else if (newBadge) {
+                        newBadge.style.display = '';
+                    }
+                }
+            });
+
+            // Nếu không có sản phẩm nào
+            let emptyMsg = document.getElementById('empty-product-msg');
+            if (visibleCount === 0) {
+                if (!emptyMsg) {
+                    emptyMsg = document.createElement('div');
+                    emptyMsg.id = 'empty-product-msg';
+                    emptyMsg.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 3rem; color: #6b7280;';
+                    emptyMsg.textContent = 'Không tìm thấy sản phẩm nào phù hợp với bộ lọc.';
+                    grid.appendChild(emptyMsg);
+                } else {
+                    emptyMsg.style.display = '';
+                    grid.appendChild(emptyMsg); // đưa xuống cuối
+                }
+            } else if (emptyMsg) {
+                emptyMsg.style.display = 'none';
+            }
+        }
+
+        if (sortSelect && grid) {
+            // Sự kiện khi đổi dropdown sắp xếp
+            sortSelect.addEventListener('change', applySortAndFilter);
+            
+            // Sự kiện khi bấm các nút Pill (Tất cả, Bán chạy, Mới nhất)
+            pillButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    pillButtons.forEach(b => b.classList.remove('home-popular__filter-btn--active'));
+                    this.classList.add('home-popular__filter-btn--active');
+                    currentPillFilter = this.getAttribute('data-filter');
+                    applySortAndFilter();
+                });
+            });
+            
+            // Tự động sắp xếp lần đầu khi tải trang
+            applySortAndFilter();
         }
     </script>
 @endsection

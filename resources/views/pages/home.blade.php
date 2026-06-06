@@ -149,11 +149,18 @@
                         ->where('user_id', Auth::id())
                         ->pluck('product_id')->toArray();
                 }
+
+                $top6HotProductIds = \Illuminate\Support\Facades\DB::table('order_items')
+                    ->select('product_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_sold'))
+                    ->groupBy('product_id')
+                    ->orderByDesc('total_sold')
+                    ->limit(6)
+                    ->pluck('product_id')->toArray();
             @endphp
 
             @foreach($popularProducts as $product)
                 @php
-                    $isHot = ($product->total_sold > 0); // Bán chạy nếu có đơn
+                    $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
                     $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
                 @endphp
                 <div class="home-prod-card" data-sold="{{ $product->total_sold }}" data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}" style="{{ $loop->iteration > 6 ? 'display: none;' : '' }}">

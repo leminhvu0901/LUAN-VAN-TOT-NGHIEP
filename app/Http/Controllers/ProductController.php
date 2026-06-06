@@ -37,13 +37,15 @@ class ProductController
                 'products.*',
                 'categories.name as category_name',
                 DB::raw('COALESCE(AVG(reviews.rating), 0) as avg_rating'),
-                DB::raw('COUNT(reviews.id) as review_count')
+                DB::raw('COUNT(reviews.id) as review_count'),
+                DB::raw('COALESCE(SUM(order_items.quantity), 0) as total_sold')
             )
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin('reviews', function ($join) {
                 $join->on('products.id', '=', 'reviews.product_id')
                     ->where('reviews.is_visible', 1);
             })
+            ->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
             ->where('products.is_active', 1)
             ->groupBy(
                 'products.id',
@@ -92,6 +94,14 @@ class ProductController
                 ->toArray();
         }
 
-        return view('pages.products', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice'));
+        // 4. Get Top 6 Best Selling Product IDs
+        $top6HotProductIds = DB::table('order_items')
+            ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->groupBy('product_id')
+            ->orderByDesc('total_sold')
+            ->limit(6)
+            ->pluck('product_id')->toArray();
+
+        return view('pages.products', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }
 }
