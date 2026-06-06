@@ -127,28 +127,31 @@
                                     <span class="home-prod-card__badge home-prod-card__badge--new" style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span> 
                                 @endif
 
+                                <!-- Wishlist Heart Button (Moved to top-right of image) -->
+                                <button class="home-prod-card__wishlist {{ in_array($product->id, $favoriteProductIds) ? 'is-active' : '' }}" 
+                                        data-id="{{ $product->id }}" 
+                                        onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})" 
+                                        aria-label="Yêu thích" 
+                                        style="position: absolute; top: 8px; right: 8px; border: none; background: white; border-radius: 50%; padding: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2; display: flex; align-items: center; justify-content: center;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                </button>
+
                                 <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                             </div>
                             <div class="p-product-body">
                                 <p class="p-product-name" onclick="openProductModal(this.parentElement.previousElementSibling)">{{ $product->name }}</p>
-                                <div class="p-product-rating">
-                                    <svg class="p-rating-star-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }})</span>
+                                <div class="p-product-stats" style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
+                                    <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                    <span>{{ number_format($product->avg_rating, 1) }} </span>
+                                    <span style="color: #cbd5e1;">|</span>
+                                    <span>Đã bán @if($product->total_sold >= 1000){{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}@endif</span>
                                 </div>
                                 <div class="p-product-price-row">
                                     <span class="p-product-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
                                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                        <!-- Wishlist Heart Button -->
-                                        <button class="home-prod-card__wishlist {{ in_array($product->id, $favoriteProductIds) ? 'is-active' : '' }}" 
-                                                data-id="{{ $product->id }}" 
-                                                onclick="toggleFavorite(this, {{ $product->id }})" 
-                                                aria-label="Yêu thích" 
-                                                style="border: none; background: transparent; cursor: pointer;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                        </button>
                                         <!-- Add to Cart Button -->
-                                        <button class="p-add-btn" aria-label="Thêm vào giỏ" onclick="addToCart({{ $product->id }})">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        <button class="p-add-btn" aria-label="Thêm vào giỏ" onclick="addToCart({{ $product->id }})" style="width: 32px; height: 32px;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                         </button>
                                     </div>
                                 </div>
