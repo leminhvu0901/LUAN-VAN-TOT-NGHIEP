@@ -15,6 +15,16 @@ class ProductController
         $maxPrice = $request->input('max_price', 600000); // Default to max 600k
         $minRating = $request->input('rating');
 
+        $rawSearch = $request->input('search');
+        $searchQuery = '';
+        if (!empty($rawSearch)) {
+            $searchQuery = trim($rawSearch);
+            if (class_exists('Normalizer')) {
+                $searchQuery = \Normalizer::normalize($searchQuery, \Normalizer::FORM_C);
+            }
+            $searchQuery = mb_strtolower($searchQuery, 'UTF-8');
+        }
+
         // 1. Fetch Active Categories
         $categories = DB::table('categories')
             ->where('is_active', 1)
@@ -24,22 +34,30 @@ class ProductController
         // 2. Query Products
         $query = DB::table('products')
             ->select(
-                'products.*', 
+                'products.*',
                 'categories.name as category_name',
                 DB::raw('COALESCE(AVG(reviews.rating), 0) as avg_rating'),
                 DB::raw('COUNT(reviews.id) as review_count')
             )
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-            ->leftJoin('reviews', function($join) {
+            ->leftJoin('reviews', function ($join) {
                 $join->on('products.id', '=', 'reviews.product_id')
-                     ->where('reviews.is_visible', 1);
+                    ->where('reviews.is_visible', 1);
             })
             ->where('products.is_active', 1)
             ->groupBy(
-                'products.id', 'products.sku', 'products.slug', 'products.name', 
-                'products.base_price', 'products.image', 'products.description', 
-                'products.is_active', 'products.category_id', 'products.created_at', 
-                'products.updated_at', 'categories.name'
+                'products.id',
+                'products.sku',
+                'products.slug',
+                'products.name',
+                'products.base_price',
+                'products.image',
+                'products.description',
+                'products.is_active',
+                'products.category_id',
+                'products.created_at',
+                'products.updated_at',
+                'categories.name'
             );
 
         // Filter by category if provided
@@ -57,8 +75,13 @@ class ProductController
             $query->having('avg_rating', '>=', $minRating);
         }
 
-        // Paginate results (e.g., 12 items per page)
-        $products = $query->paginate(12)->appends($request->query());
+        // Filter by search query (chỉ tìm theo tên sản phẩm)
+        if (!empty($searchQuery)) {
+            $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
+        }
+
+        // Get all results without pagination
+        $products = $query->get();
 
         // 3. Get User's Wishlist (if logged in)
         $favoriteProductIds = [];

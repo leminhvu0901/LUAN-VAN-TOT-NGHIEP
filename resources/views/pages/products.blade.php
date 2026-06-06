@@ -13,13 +13,14 @@
                 <!-- Sidebar Filters -->
                 <aside class="p-sidebar">
                     <form id="filter-form" action="{{ route('products') }}" method="GET">
+                        <input type="hidden" id="filter-search" name="search" value="{{ request('search') }}">
                         <!-- Danh mục -->
                         <div class="p-filter-group">
                             <h3 class="p-filter-title">Bộ lọc</h3>
                             @foreach($categories as $category)
                             <label class="p-filter-item">
                                 <input type="checkbox" name="category[]" value="{{ $category->id }}"
-                                       onchange="document.getElementById('filter-form').submit();"
+                                       onchange="clearSearchAndSubmit()"
                                        {{ in_array($category->id, $categoryIds) ? 'checked' : '' }}>
                                 <span>{{ $category->name }}</span>
                             </label>
@@ -138,10 +139,6 @@
                         @endforelse
 
                     </div><!-- end .p-product-grid -->
-                    
-                    <div style="margin-top: 2rem;">
-                        {{ $products->links() }}
-                    </div>
                 </div><!-- end .p-product-area -->
             </div><!-- end .p-main-layout -->
         </div><!-- end .p-page-wrapper -->
@@ -196,5 +193,18 @@
         }
 
         /* ---- Quantity stepper is already defined globally in modal-product.blade.php ---- */
+
+        /* ---- Khi chọn danh mục: xóa từ khóa tìm kiếm rồi submit ---- */
+        function clearSearchAndSubmit() {
+            // Xóa từ khóa tìm kiếm khỏi form
+            const searchInput = document.getElementById('filter-search');
+            if (searchInput) searchInput.value = '';
+
+            // Xóa ô tìm kiếm trên navbar nếu đang hiển thị
+            const navSearchInput = document.getElementById('search-input');
+            if (navSearchInput) navSearchInput.value = '';
+
+            document.getElementById('filter-form').submit();
+        }
     </script>
 @endsection

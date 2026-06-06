@@ -24,16 +24,16 @@
                 <span class="happy-navbar__brand-text"><span class="brand-happy">Happy</span></span>
             </a>
 
-            <div class="l-nav-search hidden md:flex">
-                <span class="text-gray-400 mr-2 flex-shrink-0" aria-hidden="true">
+            <form action="{{ url('/products') }}" method="GET" class="l-nav-search hidden md:flex">
+                <button type="submit" class="text-gray-400 mr-2 flex-shrink-0 bg-transparent border-none p-0 cursor-pointer" aria-label="Tìm kiếm">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
                         <path stroke-linecap="round" d="m21 21-4.35-4.35" />
                     </svg>
-                </span>
-                <input id="search-input" type="text" placeholder="Tìm kiếm trà sữa, cà phê..."
-                    class="l-nav-search-input" />
-            </div>
+                </button>
+                <input id="search-input" name="search" type="text" placeholder="Tìm kiếm trà sữa, cà phê..."
+                    class="l-nav-search-input" value="{{ request('search') }}" />
+            </form>
 
             <div class="happy-navbar__actions-wrapper">
                 <nav class="happy-navbar__desktop-nav navbar-desktop-nav" aria-label="Điều hướng chính">
@@ -101,15 +101,15 @@
         </div>
 
         <div id="mobile-search-bar" class="happy-navbar__mobile-search">
-            <div class="happy-navbar__search">
-                <span class="happy-navbar__search-icon" aria-hidden="true">
+            <form action="{{ url('/products') }}" method="GET" class="happy-navbar__search">
+                <button type="submit" class="happy-navbar__search-icon bg-transparent border-none p-0 cursor-pointer" aria-label="Tìm kiếm">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
                         <path stroke-linecap="round" d="m21 21-4.35-4.35" />
                     </svg>
-                </span>
-                <input type="text" placeholder="Tìm kiếm trà sữa, cà phê..." class="happy-navbar__search-input" />
-            </div>
+                </button>
+                <input type="text" name="search" placeholder="Tìm kiếm trà sữa, cà phê..." class="happy-navbar__search-input" value="{{ request('search') }}" />
+            </form>
         </div>
 
         <div id="mobile-menu" class="happy-navbar__mobile-menu">

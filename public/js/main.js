@@ -368,12 +368,26 @@ window.addToCart = function(productId, quantity = 1) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         },
         body: JSON.stringify({ product_id: productId, quantity: quantity })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (res.status === 401) {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = '/login';
+            }
+            return;
+        }
+        return res.json();
+    })
     .then(data => {
+        if (!data) return;
         updateCartUI(data);
         // Pop animation on cart icon
         var badge = document.getElementById('cart-badge');
@@ -394,11 +408,25 @@ window.addAllToCart = function() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         }
     })
-    .then(res => res.json())
+    .then(res => {
+        if (res.status === 401) {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = '/login';
+            }
+            return;
+        }
+        return res.json();
+    })
     .then(data => {
+        if (!data) return;
         if (data.success === false) {
             alert(data.message || 'Có lỗi xảy ra');
             return;
@@ -425,12 +453,28 @@ window.removeFromCart = function(itemId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         },
         body: JSON.stringify({ item_id: itemId })
     })
-    .then(res => res.json())
-    .then(updateCartUI)
+    .then(res => {
+        if (res.status === 401) {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = '/login';
+            }
+            return;
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (!data) return;
+        updateCartUI(data);
+    })
     .catch(err => console.error(err));
 };
 
@@ -447,12 +491,28 @@ window.updateCartItem = function(itemId, quantity) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         },
         body: JSON.stringify({ item_id: itemId, quantity: quantity })
     })
-    .then(res => res.json())
-    .then(updateCartUI)
+    .then(res => {
+        if (res.status === 401) {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = '/login';
+            }
+            return;
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (!data) return;
+        updateCartUI(data);
+    })
     .catch(err => console.error(err));
 };
 
