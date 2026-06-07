@@ -23,6 +23,7 @@ Route::get('/', function () {
 });
 
 Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products');
+Route::get('/products/{slug}', [App\Http\Controllers\ProductController::class, 'show'])->name('product.show');
 
 Route::get('/register', function () {
     return view('auth.register');

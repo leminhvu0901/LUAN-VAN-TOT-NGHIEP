@@ -53,8 +53,16 @@ class CartController
             ->orderBy('cart_items.created_at', 'desc')
             ->get();
             
+        $itemIds = $items->pluck('id');
+        $itemToppings = DB::table('cart_item_toppings')
+            ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
+            ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
+            ->select('cart_item_toppings.cart_item_id', 'toppings.name')
+            ->get();
+            
         $total = 0;
         foreach ($items as $item) {
+            $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
             $total += $item->unit_price * $item->quantity;
         }
 
@@ -71,6 +79,10 @@ class CartController
     {
         $productId = $request->input('product_id');
         $quantity = $request->input('quantity', 1);
+        $sizeName = $request->input('size_name');
+        $sugarLevel = $request->input('sugar_level');
+        $iceLevel = $request->input('ice_level');
+        $toppingIds = $request->input('toppings', []);
         
         if (!$productId) {
             return response()->json(['success' => false, 'message' => 'Product ID is missing']);
@@ -81,13 +93,55 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
 
+        // Tính giá dựa theo size
+        $unitPrice = $product->base_price;
+        if ($sizeName) {
+            $sizeRecord = DB::table('product_sizes')
+                ->where('product_id', $productId)
+                ->where('size_name', $sizeName)
+                ->first();
+            if ($sizeRecord) {
+                $unitPrice += $sizeRecord->price_adjustment;
+            }
+        }
+        
+        // Tính giá dựa theo topping
+        $tops = [];
+        if (!empty($toppingIds)) {
+            $tops = DB::table('toppings')->whereIn('id', $toppingIds)->get();
+            foreach ($tops as $t) {
+                $unitPrice += $t->price;
+            }
+        }
+
         $cart = $this->getOrCreateCart();
 
-        // Check if exact item exists
-        $existingItem = DB::table('cart_items')
+        // Tìm các items cùng product_id, size, sugar, ice
+        $potentialItems = DB::table('cart_items')
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
-            ->first();
+            ->where('size_name', $sizeName)
+            ->where('sugar_level', $sugarLevel)
+            ->where('ice_level', $iceLevel)
+            ->get();
+
+        $existingItem = null;
+        $reqTops = $toppingIds;
+        sort($reqTops);
+
+        foreach ($potentialItems as $pi) {
+            $piToppings = DB::table('cart_item_toppings')
+                ->where('cart_item_id', $pi->id)
+                ->pluck('topping_id')
+                ->toArray();
+                
+            sort($piToppings);
+            
+            if ($piToppings == $reqTops) {
+                $existingItem = $pi;
+                break;
+            }
+        }
 
         if ($existingItem) {
             DB::table('cart_items')
@@ -97,14 +151,29 @@ class CartController
                     'updated_at' => now()
                 ]);
         } else {
-            DB::table('cart_items')->insert([
+            $newItemId = DB::table('cart_items')->insertGetId([
                 'cart_id' => $cart->id,
                 'product_id' => $productId,
+                'size_name' => $sizeName,
+                'sugar_level' => $sugarLevel,
+                'ice_level' => $iceLevel,
                 'quantity' => $quantity,
-                'unit_price' => $product->base_price,
+                'unit_price' => $unitPrice,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+            
+            if (!empty($tops)) {
+                $inserts = [];
+                foreach ($tops as $t) {
+                    $inserts[] = [
+                        'cart_item_id' => $newItemId,
+                        'topping_id' => $t->id,
+                        'price' => $t->price
+                    ];
+                }
+                DB::table('cart_item_toppings')->insert($inserts);
+            }
         }
 
         return $this->getCartData();

@@ -1,58 +1,92 @@
-// Filter buttons for popular products
-document.querySelectorAll('.home-popular__filter-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        document.querySelectorAll('.home-popular__filter-btn').forEach(function (b) {
-            b.classList.remove('home-popular__filter-btn--active');
-        });
-        this.classList.add('home-popular__filter-btn--active');
+// ===== Filter buttons for popular products (trang chủ) =====
+(function () {
+    var pillButtons = document.querySelectorAll('#home-pill-filters .home-popular__filter-btn');
+    var grid = document.querySelector('.home-products-grid');
+    var currentFilter = 'all';
 
-        var filterType = this.innerText.trim();
-        var grid = document.querySelector('.home-products-grid');
+    function applyHomeFilter() {
         if (!grid) return;
-        
-        var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
 
-        cards.sort(function(a, b) {
-            if (filterType === 'Bán chạy') {
-                return parseInt(b.getAttribute('data-sold')) - parseInt(a.getAttribute('data-sold'));
-            } else if (filterType === 'Mới nhất') {
-                return parseInt(b.getAttribute('data-date')) - parseInt(a.getAttribute('data-date'));
+        var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
+        var visibleCount = 0;
+
+        // Sort cards based on filter
+        cards.sort(function (a, b) {
+            if (currentFilter === 'hot') {
+                return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute('data-sold') || 0);
+            } else if (currentFilter === 'new') {
+                return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute('data-date') || 0);
             } else {
-                return parseInt(a.getAttribute('data-original-order')) - parseInt(b.getAttribute('data-original-order'));
+                // 'all': sort by composite score (60% sales + 40% rating)
+                return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute('data-score') || 0);
             }
         });
 
-        // Re-append sorted cards and only show the first 6
-        cards.forEach(function(card, index) {
-            if (index < 6) {
+        // Filter & show max 6 matching cards
+        var shown = 0;
+        cards.forEach(function (card) {
+            grid.appendChild(card);
+
+            var isMatch = true;
+            if (currentFilter === 'hot') {
+                isMatch = card.getAttribute('data-is-hot') === '1';
+            } else if (currentFilter === 'new') {
+                isMatch = card.getAttribute('data-is-new') === '1';
+            }
+
+            if (isMatch && shown < 6) {
                 card.style.display = '';
-                
-                // Toggle badges based on filter
-                var hotBadge = card.querySelector('.home-prod-card__badge--hot');
-                var newBadge = card.querySelector('.home-prod-card__badge--new');
-                
-                if (filterType === 'Mới nhất') {
-                    if (newBadge) {
-                        newBadge.style.display = '';
-                        if (hotBadge) hotBadge.style.display = 'none';
-                    } else if (hotBadge) {
-                        hotBadge.style.display = '';
-                    }
-                } else {
-                    if (hotBadge) {
-                        hotBadge.style.display = '';
-                        if (newBadge) newBadge.style.display = 'none';
-                    } else if (newBadge) {
-                        newBadge.style.display = '';
-                    }
-                }
+                shown++;
+                visibleCount++;
             } else {
                 card.style.display = 'none';
             }
-            grid.appendChild(card);
+
+            // Badge visibility
+            var hotBadge = card.querySelector('.home-prod-card__badge--hot');
+            var newBadge = card.querySelector('.home-prod-card__badge--new');
+            if (currentFilter === 'new') {
+                if (hotBadge) hotBadge.style.display = 'none';
+                if (newBadge) newBadge.style.display = '';
+            } else {
+                if (hotBadge) hotBadge.style.display = '';
+                if (newBadge) newBadge.style.display = hotBadge ? 'none' : '';
+            }
+        });
+
+        // Show/hide empty message
+        var emptyMsg = document.getElementById('home-empty-msg');
+        if (visibleCount === 0) {
+            if (!emptyMsg) {
+                emptyMsg = document.createElement('div');
+                emptyMsg.id = 'home-empty-msg';
+                emptyMsg.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 3rem; color: #6b7280;';
+                emptyMsg.textContent = 'Không có sản phẩm nào phù hợp.';
+                grid.appendChild(emptyMsg);
+            } else {
+                emptyMsg.style.display = '';
+                grid.appendChild(emptyMsg);
+            }
+        } else if (emptyMsg) {
+            emptyMsg.style.display = 'none';
+        }
+    }
+
+    pillButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            pillButtons.forEach(function (b) {
+                b.classList.remove('home-popular__filter-btn--active');
+            });
+            this.classList.add('home-popular__filter-btn--active');
+            currentFilter = this.getAttribute('data-filter');
+            applyHomeFilter();
         });
     });
-});
+
+    // Initial render
+    applyHomeFilter();
+})();
+
 
 // ===== Animated stat counters =====
 (function () {

@@ -31,8 +31,14 @@
                         <div class="p-filter-group">
                             <h3 class="p-filter-title">Giá</h3>
                             <div class="p-price-range-wrap">
+                                @php
+                                    $sliderMin = 10000;
+                                    $sliderMax = 600000;
+                                    $sliderPct = round((($maxPrice - $sliderMin) / ($sliderMax - $sliderMin)) * 100, 2);
+                                @endphp
                                 <input type="range" class="p-price-slider" id="price-slider" name="max_price"
-                                       min="10000" max="600000" value="{{ $maxPrice }}" step="10000"
+                                       min="{{ $sliderMin }}" max="{{ $sliderMax }}" value="{{ $maxPrice }}" step="10000"
+                                       style="background: linear-gradient(to right, #10b981 0%, #10b981 {{ $sliderPct }}%, #d1d5db {{ $sliderPct }}%, #d1d5db 100%);"
                                        oninput="updatePriceLabel(this.value)"
                                        onchange="document.getElementById('filter-form').submit();">
                                 <div class="p-price-label" id="price-label">10.000đ – {{ number_format($maxPrice, 0, ',', '.') }}đ</div>
@@ -112,12 +118,15 @@
                              data-rating-val="{{ $product->avg_rating }}"
                              data-is-hot="{{ $isHot ? '1' : '0' }}"
                              data-is-new="{{ $isNew ? '1' : '0' }}">
-                            <div class="p-product-img-wrap" onclick="openProductModal(this)"
+                            <div class="p-product-img-wrap" 
+                                 onclick="window.location.href='{{ route('product.show', $product->slug) }}'"
+                                 style="cursor:pointer;"
                                  data-id="{{ $product->id }}"
                                  data-name="{{ $product->name }}"
                                  data-price="{{ number_format($product->base_price, 0, ',', '.') }}đ"
                                  data-category="{{ $product->category_name }}"
                                  data-image="{{ asset('images/' . $product->image) }}"
+                                 data-slug="{{ $product->slug }}"
                                  data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
                                 
                                 @if($isHot) 
@@ -139,7 +148,7 @@
                                 <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                             </div>
                             <div class="p-product-body">
-                                <p class="p-product-name" onclick="openProductModal(this.parentElement.previousElementSibling)">{{ $product->name }}</p>
+                                <a href="{{ route('product.show', $product->slug) }}" class="p-product-name" style="text-decoration:none; color:inherit;">{{ $product->name }}</a>
                                 <div class="p-product-stats" style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
                                     <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                                     <span>{{ number_format($product->avg_rating, 1) }} </span>
@@ -184,7 +193,9 @@
         window.addEventListener('DOMContentLoaded', () => {
             const slider = document.getElementById('price-slider');
             if(slider) {
-                updatePriceLabel(slider.value);
+                // Update label only (background already set via inline style)
+                const formatted = parseInt(slider.value).toLocaleString('vi-VN');
+                document.getElementById('price-label').textContent = '10.000đ \u2013 ' + formatted + '\u0111';
             }
         });
 

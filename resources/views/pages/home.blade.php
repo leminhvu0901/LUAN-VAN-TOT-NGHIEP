@@ -103,10 +103,10 @@
                 <p class="home-section__subtitle">Được yêu thích nhất</p>
                 <h2 class="home-section__title">Sản phẩm phổ biến</h2>
             </div>
-            <div class="home-popular__filters">
-                <button class="home-popular__filter-btn home-popular__filter-btn--active">Tất cả</button>
-                <button class="home-popular__filter-btn">Bán chạy</button>
-                <button class="home-popular__filter-btn">Mới nhất</button>
+            <div class="home-popular__filters" id="home-pill-filters">
+                <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất cả</button>
+                <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
+                <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
             </div>
         </div>
 
@@ -115,32 +115,15 @@
                 $popularProducts = \Illuminate\Support\Facades\DB::table('products')
                     ->select(
                         'products.*',
-                        \Illuminate\Support\Facades\DB::raw('COALESCE(AVG(reviews.rating), 0) as avg_rating'),
-                        \Illuminate\Support\Facades\DB::raw('COUNT(reviews.id) as review_count'),
-                        \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(order_items.quantity), 0) as total_sold')
+                        \Illuminate\Support\Facades\DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'),
+                        \Illuminate\Support\Facades\DB::raw('COALESCE(r.review_count, 0) as review_count'),
+                        \Illuminate\Support\Facades\DB::raw('COALESCE(o.total_sold, 0) as total_sold'),
+                        \Illuminate\Support\Facades\DB::raw('(COALESCE(o.total_sold, 0) * 0.6 + COALESCE(r.avg_rating, 0) * 10 * 0.4) as score')
                     )
-                    ->leftJoin('reviews', function ($join) {
-                        $join->on('products.id', '=', 'reviews.product_id')
-                            ->where('reviews.is_visible', 1);
-                    })
-                    ->leftJoin('order_items', 'products.id', '=', 'order_items.product_id')
+                    ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
+                    ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
                     ->where('products.is_active', 1)
-                    ->groupBy(
-                        'products.id',
-                        'products.sku',
-                        'products.slug',
-                        'products.name',
-                        'products.base_price',
-                        'products.image',
-                        'products.description',
-                        'products.is_active',
-                        'products.category_id',
-                        'products.created_at',
-                        'products.updated_at'
-                    )
-                    ->orderByDesc('total_sold')
-                    ->orderByDesc('products.created_at')
-                    ->limit(6)
+                    ->orderByDesc('score')
                     ->get();
 
                 $userFavorites = [];
@@ -163,7 +146,13 @@
                     $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
                     $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
                 @endphp
-                <div class="home-prod-card" data-sold="{{ $product->total_sold }}" data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}" style="{{ $loop->iteration > 6 ? 'display: none;' : '' }}">
+                <div class="home-prod-card"
+                    data-sold="{{ $product->total_sold }}"
+                    data-date="{{ strtotime($product->created_at) }}"
+                    data-original-order="{{ $loop->iteration }}"
+                    data-score="{{ round($product->score, 2) }}"
+                    data-is-hot="{{ $isHot ? '1' : '0' }}"
+                    data-is-new="{{ $isNew ? '1' : '0' }}">
                     <div class="home-prod-card__img-wrap">
                         @if($isHot) 
                             <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span> 
@@ -185,11 +174,12 @@
                     </div>
                     <div class="home-prod-card__body">
                         <h3 class="home-prod-card__name">{{ $product->name }}</h3>
-                        <div class="home-prod-card__rating">
-                            <span class="home-prod-card__stars">★★★★★</span>
-                            <span class="home-prod-card__rating-val">{{ number_format($product->avg_rating, 1) }}</span>
-                            <span class="home-prod-card__reviews">({{ $product->review_count }})</span>
-                        </div>
+                        <div class="p-product-stats" style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
+                                    <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                    <span>{{ number_format($product->avg_rating, 1) }} </span>
+                                    <span style="color: #cbd5e1;">|</span>
+                                    <span>Đã bán @if($product->total_sold >= 1000){{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}@endif</span>
+                                </div>
                         <div class="home-prod-card__footer">
                             <div>
                                 <span

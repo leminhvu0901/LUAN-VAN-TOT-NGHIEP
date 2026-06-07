@@ -301,6 +301,54 @@ window.removeFromWishlist = function(productId) {
             if (heartBtn) {
                 heartBtn.classList.remove('is-active');
             }
+            
+            // Untoggle heart icon on product detail page if exists
+            var pdHeartBtn = document.querySelector('#pd-wishlist-btn[data-id="' + productId + '"]');
+            if (pdHeartBtn) {
+                pdHeartBtn.classList.remove('is-active');
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+};
+
+window.toggleFavorite = function(btn, productId) {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    fetch('/favorite/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token.getAttribute('content')
+        },
+        body: JSON.stringify({ product_id: productId })
+    })
+    .then(res => {
+        if (res.status === 401) {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = '/login';
+            }
+            return;
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (data && data.success) {
+            btn.classList.toggle('is-active');
+            
+            // Pop animation
+            btn.classList.remove('badge-pop');
+            void btn.offsetWidth;
+            btn.classList.add('badge-pop');
+            
+            if (typeof updateWishlistUI === 'function') {
+                updateWishlistUI(data);
+            }
         }
     })
     .catch(error => console.error('Error:', error));
@@ -331,11 +379,33 @@ const updateCartUI = (data) => {
             let html = '';
             data.items.forEach(item => {
                 let formattedPrice = new Intl.NumberFormat('vi-VN').format(item.unit_price) + 'đ';
+
+                // Build option tags (size, đường, đá)
+                let optionTags = '';
+                if (item.size_name) {
+                    optionTags += `<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;">Size ${item.size_name}</span>`;
+                }
+                const sugarMap = {'100':'100% đường','70':'70% đường','50':'50% đường','0':'Không đường'};
+                const iceMap = {'full':'Đá riêng','normal':'Đá chung','less':'Ít đá','none':'Không đá'};
+                if (item.sugar_level && sugarMap[item.sugar_level]) {
+                    optionTags += `<span style="display:inline-flex;align-items:center;gap:3px;background:#fefce8;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;">${sugarMap[item.sugar_level]}</span>`;
+                }
+                if (item.ice_level && iceMap[item.ice_level]) {
+                    optionTags += `<span style="display:inline-flex;align-items:center;gap:3px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;">${iceMap[item.ice_level]}</span>`;
+                }
+                
+                // Hiển thị toppings
+                if (item.toppings && item.toppings.length > 0) {
+                    let tops = item.toppings.map(t => t.name).join(', ');
+                    optionTags += `<span style="display:inline-flex;align-items:center;gap:3px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;">+ ${tops}</span>`;
+                }
+
                 html += `
                 <div style="display: flex; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f3f4f6;">
                     <img src="/images/${item.image}" alt="${item.name}" onerror="this.src='/images/products/placeholder.jpg'" style="width: 72px; height: 72px; object-fit: cover; border-radius: 0.5rem; flex-shrink: 0; background: #f9fafb;">
                     <div style="flex: 1; display: flex; flex-direction: column;">
                         <h4 style="font-size: 0.875rem; font-weight: 600; color: #111827; margin: 0; margin-bottom: 0.25rem;">${item.name}</h4>
+                        ${optionTags ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:0.35rem;">${optionTags}</div>` : ''}
                         <span style="font-size: 0.875rem; font-weight: 600; color: #10b981;">${formattedPrice}</span>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                             <div style="display: flex; align-items: center; border: 1px solid #e5e7eb; border-radius: 0.375rem; overflow: hidden;">
@@ -360,7 +430,7 @@ window.loadCart = function() {
         .catch(err => console.error(err));
 };
 
-window.addToCart = function(productId, quantity = 1) {
+window.addToCart = function(productId, quantity = 1, options = {}) {
     var token = document.querySelector('meta[name="csrf-token"]');
     if (!token) return;
 
@@ -371,7 +441,14 @@ window.addToCart = function(productId, quantity = 1) {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         },
-        body: JSON.stringify({ product_id: productId, quantity: quantity })
+        body: JSON.stringify({
+            product_id: productId,
+            quantity: quantity,
+            size_name: options.size_name || null,
+            sugar_level: options.sugar_level || null,
+            ice_level: options.ice_level || null,
+            toppings: options.toppings || []
+        })
     })
     .then(res => {
         if (res.status === 401) {
