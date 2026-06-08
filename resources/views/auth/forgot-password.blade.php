@@ -70,6 +70,16 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(session('show_forgot'))
+            const forgotModal = document.getElementById('forgot-modal');
+            if (forgotModal) {
+                forgotModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+        @endif
+    });
+
     document.addEventListener('click', function(e) {
         const forgotModal = document.getElementById('forgot-modal');
         if (!forgotModal) return;

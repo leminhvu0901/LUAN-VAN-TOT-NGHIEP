@@ -83,7 +83,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        @if($errors->has('identity') || $errors->has('password') || $errors->has('login_error'))
+        @if($errors->has('identity') || $errors->has('password') || $errors->has('login_error') || session('show_login'))
             const loginModal = document.getElementById('login-modal');
             if (loginModal) {
                 loginModal.style.display = 'block';

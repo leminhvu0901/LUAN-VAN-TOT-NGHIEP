@@ -108,7 +108,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        @if($errors->has('full_name') || $errors->has('email') || $errors->has('password') || $errors->has('register_error'))
+        @if($errors->has('full_name') || $errors->has('email') || $errors->has('password') || $errors->has('register_error') || session('show_register'))
             const registerModal = document.getElementById('register-modal');
             if (registerModal) {
                 registerModal.style.display = 'block';

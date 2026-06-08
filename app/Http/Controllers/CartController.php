@@ -80,8 +80,26 @@ class CartController
         $productId = $request->input('product_id');
         $quantity = $request->input('quantity', 1);
         $sizeName = $request->input('size_name');
+        if (empty($sizeName)) {
+            $defaultSize = DB::table('product_sizes')
+                ->where('product_id', $productId)
+                ->orderBy('price_adjustment', 'asc')
+                ->first();
+            if ($defaultSize) {
+                $sizeName = $defaultSize->size_name;
+            }
+        }
+
         $sugarLevel = $request->input('sugar_level');
+        if ($sugarLevel === null) {
+            $sugarLevel = '100';
+        }
+
         $iceLevel = $request->input('ice_level');
+        if ($iceLevel === null) {
+            $iceLevel = 'normal';
+        }
+
         $toppingIds = $request->input('toppings', []);
         
         if (!$productId) {
@@ -226,10 +244,34 @@ class CartController
         $cart = $this->getOrCreateCart();
 
         foreach ($favorites as $product) {
+            $defaultSize = DB::table('product_sizes')
+                ->where('product_id', $product->id)
+                ->orderBy('price_adjustment', 'asc')
+                ->first();
+            
+            $sizeName = $defaultSize ? $defaultSize->size_name : null;
+            $unitPrice = $product->base_price + ($defaultSize ? $defaultSize->price_adjustment : 0);
+            $sugarLevel = '100';
+            $iceLevel = 'normal';
+
             $existingItem = DB::table('cart_items')
                 ->where('cart_id', $cart->id)
                 ->where('product_id', $product->id)
+                ->where('size_name', $sizeName)
+                ->where('sugar_level', $sugarLevel)
+                ->where('ice_level', $iceLevel)
                 ->first();
+
+            // We also need to make sure this existing item doesn't have toppings,
+            // but for simplicity we'll just check the basic fields.
+            $hasNoToppings = true;
+            if ($existingItem) {
+                $hasToppings = DB::table('cart_item_toppings')->where('cart_item_id', $existingItem->id)->exists();
+                if ($hasToppings) {
+                    $hasNoToppings = false;
+                    $existingItem = null; // force create new item
+                }
+            }
 
             if ($existingItem) {
                 DB::table('cart_items')
@@ -242,8 +284,11 @@ class CartController
                 DB::table('cart_items')->insert([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
+                    'size_name' => $sizeName,
+                    'sugar_level' => $sugarLevel,
+                    'ice_level' => $iceLevel,
                     'quantity' => 1,
-                    'unit_price' => $product->base_price,
+                    'unit_price' => $unitPrice,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);

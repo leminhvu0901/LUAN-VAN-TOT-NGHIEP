@@ -19,7 +19,11 @@
             <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #e5e7eb;">
                 <div style="position: relative;">
                     <div style="width: 72px; height: 72px; border-radius: 50%; border: 3px solid #10b981; padding: 2px; box-sizing: border-box;">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=10b981&color=fff&size=128" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        @if(Auth::user()->avatar)
+                            <img src="{{ asset('images/avatars/' . Auth::user()->avatar) }}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        @else
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=10b981&color=fff&size=128" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        @endif
                     </div>
                     <div style="position: absolute; bottom: 0; right: 0; background: #10b981; border: 2px solid white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: white;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

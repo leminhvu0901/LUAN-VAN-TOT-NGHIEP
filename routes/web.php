@@ -26,12 +26,12 @@ Route::get('/products', [App\Http\Controllers\ProductController::class, 'index']
 Route::get('/products/{slug}', [App\Http\Controllers\ProductController::class, 'show'])->name('product.show');
 
 Route::get('/register', function () {
-    return view('auth.register');
+    return redirect('/')->with('show_register', true);
 })->name('register');
 Route::post('/register', [App\Http\Controllers\AuthController::class, 'postRegister'])->name('register.post');
 
 Route::get('/login', function () {
-    return view('auth.login');
+    return redirect('/')->with('show_login', true);
 })->name('login');
 Route::post('/login', [App\Http\Controllers\AuthController::class, 'postLogin'])->name('login.post');
 
@@ -45,11 +45,12 @@ Route::get('/auth/google/callback', [App\Http\Controllers\AuthController::class,
 Route::get('/logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 
 Route::get('/forgot-password', function () {
-    return view('auth.forgot-password');
+    return redirect('/')->with('show_forgot', true);
 })->name('forgot-password');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile');
+    Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::get('/orders', [App\Http\Controllers\OrderController::class, 'index'])->name('orders');
     Route::post('/favorite/toggle', [App\Http\Controllers\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
     
@@ -58,6 +59,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cart/remove', [App\Http\Controllers\CartController::class, 'remove']);
     Route::post('/cart/update', [App\Http\Controllers\CartController::class, 'update']);
     Route::post('/cart/add-all', [App\Http\Controllers\CartController::class, 'addAll']);
+
+    // Address Routes
+    Route::post('/profile/address', [App\Http\Controllers\ProfileController::class, 'storeAddress'])->name('profile.address.store');
+    Route::post('/profile/address/{id}', [App\Http\Controllers\ProfileController::class, 'updateAddress'])->name('profile.address.update');
+    Route::post('/profile/address/{id}/delete', [App\Http\Controllers\ProfileController::class, 'deleteAddress'])->name('profile.address.delete');
+    Route::post('/profile/address/{id}/default', [App\Http\Controllers\ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
 });
 
 // Public Cart Route (View cart data)

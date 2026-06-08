@@ -68,11 +68,15 @@
                     @auth
                         <div class="relative inline-block">
                             <button id="account-btn" type="button" class="happy-navbar__icon-btn" aria-label="Tài khoản" aria-expanded="false">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                    <circle cx="12" cy="7" r="4" />
-                                </svg>
+                                @if(Auth::user()->avatar)
+                                    <img src="{{ asset('images/avatars/' . Auth::user()->avatar) }}" alt="Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid #10b981;">
+                                @else
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                @endif
                             </button>
                         </div>
                     @endauth

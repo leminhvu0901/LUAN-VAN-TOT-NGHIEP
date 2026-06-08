@@ -121,25 +121,16 @@
             <div class="pd-option-group">
                 <div class="pd-option-label">MỨC ĐÁ</div>
                 <div class="pd-option-chips" id="pd-ice">
-                    <button class="pd-chip pd-chip--sm is-active" data-value="full" onclick="selectOption(this, 'pd-ice')">Đá riêng</button>
-                    <button class="pd-chip pd-chip--sm" data-value="normal" onclick="selectOption(this, 'pd-ice')">Đá chung</button>
+                    <button class="pd-chip pd-chip--sm is-active" data-value="normal" onclick="selectOption(this, 'pd-ice')">Đá chung</button>
+                    <button class="pd-chip pd-chip--sm" data-value="full" onclick="selectOption(this, 'pd-ice')">Đá riêng</button>
                     <button class="pd-chip pd-chip--sm" data-value="less" onclick="selectOption(this, 'pd-ice')">Ít đá</button>
                     <button class="pd-chip pd-chip--sm" data-value="none" onclick="selectOption(this, 'pd-ice')">Không đá</button>
                 </div>
             </div>
 
             {{-- Toppings --}}
-            @if($toppings->count() > 0)
-            <style>
-                .topping-dropdown-btn:hover { border-color: #d1d5db !important; background: #f9fafb !important; }
-                .topping-dropdown-btn:focus { outline: none; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); border-color: #10b981 !important; }
-                .topping-item-label:hover { background-color: #f9fafb !important; }
-                .topping-item-label.is-selected { background-color: #ecfdf5 !important; }
-                .custom-checkbox:checked { background-color: #10b981; border-color: #10b981; }
-                .custom-checkbox:focus { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25); border-color: #10b981; }
-                /* Hide default bootstrap dropdown caret */
-                .topping-dropdown-btn::after { display: none; }
-            </style>
+            @if($toppings->count() > 0 && mb_stripos($product->category_name, 'cà phê') === false)
+
             <div class="pd-option-group">
                 <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
                 <div class="dropdown">
