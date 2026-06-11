@@ -320,19 +320,14 @@ window.toggleFavorite = function(btn, productId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': token.getAttribute('content')
         },
         body: JSON.stringify({ product_id: productId })
     })
     .then(res => {
-        if (res.status === 401) {
-            const loginModal = document.getElementById('login-modal');
-            if (loginModal) {
-                loginModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            } else {
-                window.location.href = '/login';
-            }
+        if (res.status === 401 || res.redirected) {
+            window.location.href = '/login';
             return;
         }
         return res.json();

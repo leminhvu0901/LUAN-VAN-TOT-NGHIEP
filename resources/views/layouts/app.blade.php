@@ -3,7 +3,7 @@
 <head>
     @include('partials.head')
 </head>
-<body>
+<body class="@yield('body_class')">
 
     @include('components.navbar')
 
@@ -14,10 +14,10 @@
     @include('components.footer')
 
     {{-- Thêm các modal dùng chung --}}
-    @include('partials.modal-product')
     @include('auth.login')
     @include('auth.register')
     @include('auth.forgot-password')
+    @include('auth.verify-otp')
 
     @include('partials.scripts')
 </body>

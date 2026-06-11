@@ -297,4 +297,58 @@ class CartController
 
         return $this->getCartData();
     }
+
+    public function checkout()
+    {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $userId = Auth::id();
+        
+        // Fetch user addresses
+        $addresses = DB::table('user_addresses')
+            ->where('user_id', $userId)
+            ->orderBy('is_default', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Fetch user's cart
+        $cart = DB::table('carts')
+            ->where('user_id', $userId)
+            ->first();
+
+        $items = collect();
+        $subtotal = 0;
+
+        if ($cart) {
+            $items = DB::table('cart_items')
+                ->join('products', 'cart_items.product_id', '=', 'products.id')
+                ->where('cart_items.cart_id', $cart->id)
+                ->select('cart_items.*', 'products.name', 'products.image')
+                ->orderBy('cart_items.created_at', 'desc')
+                ->get();
+
+            if ($items->isNotEmpty()) {
+                $itemIds = $items->pluck('id');
+                $itemToppings = DB::table('cart_item_toppings')
+                    ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
+                    ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
+                    ->select('cart_item_toppings.cart_item_id', 'toppings.name', 'toppings.price')
+                    ->get();
+
+                foreach ($items as $item) {
+                    $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
+                    $subtotal += $item->unit_price * $item->quantity;
+                }
+            }
+        }
+
+        // If cart is empty, redirect back to products or home with a warning
+        if ($items->isEmpty()) {
+            return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
+        }
+
+        return view('pages.checkout', compact('items', 'subtotal', 'addresses'));
+    }
 }

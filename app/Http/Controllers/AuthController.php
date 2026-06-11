@@ -73,13 +73,14 @@ class AuthController
             'verify_otp' => $otp,
             'verify_otp_time' => now()
         ]);
+        \Illuminate\Support\Facades\Log::info("OTP for register {$email} is: {$otp}");
 
         // Gửi email chứa mã OTP
         \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
             $message->to($email)->subject('Mã xác minh tài khoản');
         });
 
-        return redirect()->route('verify.otp');
+        return back()->with('show_otp', true);
     }
 
     public function getVerifyOtp(Request $request)
@@ -88,8 +89,7 @@ class AuthController
             return redirect('/');
         }
 
-        $email = $request->session()->get('verify_email');
-        return view('auth.verify-otp', compact('email'));
+        return back()->with('show_otp', true);
     }
 
     public function postVerifyOtp(Request $request)
@@ -110,18 +110,24 @@ class AuthController
                 return back()->withErrors(['otp_error' => 'Mã OTP đã hết hạn (quá 60 giây). Vui lòng nhấn Gửi lại để nhận mã mới.']);
             }
             
+            // Nếu là xác thực quên mật khẩu
+            if ($request->session()->get('is_forgot_password')) {
+                $request->session()->put('can_reset_password', true);
+                return redirect()->route('reset.password.get');
+            }
+
             // Chỉ khi nhập đúng OTP mới tạo User
             if ($registerData) {
                 $user = User::create($registerData);
             } else {
                 $user = User::where('email', $email)->first();
             }
-
             if ($user) {
                 Auth::login($user);
                 // Dọn dẹp session
                 $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
-                return redirect()->intended('/');
+                $request->session()->put('login_method', 'email');
+                return redirect('/');
             }
         }
 
@@ -140,6 +146,7 @@ class AuthController
             'verify_otp' => $otp,
             'verify_otp_time' => now()
         ]);
+        \Illuminate\Support\Facades\Log::info("OTP for resend {$email} is: {$otp}");
 
         \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
             $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
@@ -164,7 +171,8 @@ class AuthController
         // Tài khoản đã có trong DB thì chắc chắn đã xác thực (is_active mặc định là 1 khi register xong OTP)
         if (Auth::attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended('/');
+            $request->session()->put('login_method', 'email');
+            return redirect('/');
         }
 
         return back()->withErrors([
@@ -209,11 +217,95 @@ class AuthController
             }
 
             Auth::login($user);
-            return redirect()->intended('/');
+            session()->put('login_method', 'google');
+            return redirect('/');
             
         } catch (\Exception $e) {
             Log::error('Google Login Error: ' . $e->getMessage());
             return redirect('/login')->withErrors(['login_error' => 'Đăng nhập bằng Google thất bại. Vui lòng thử lại.']);
         }
+    }
+
+    public function postForgotPassword(Request $request)
+    {
+        $request->validate([
+            'recovery_contact' => 'required|email'
+        ], [
+            'recovery_contact.required' => 'Vui lòng nhập email.',
+            'recovery_contact.email' => 'Email không đúng định dạng.'
+        ]);
+
+        $email = $request->input('recovery_contact');
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // Không tìm thấy user, quay lại kèm lỗi để hiển thị modal lại
+            return redirect('/')->with('show_forgot', true)->withErrors(['forgot_error' => 'Email không tồn tại trong hệ thống.'])->withInput();
+        }
+
+        $otp = rand(1000, 9999);
+        session([
+            'verify_email' => $email,
+            'verify_otp' => $otp,
+            'verify_otp_time' => now(),
+            'is_forgot_password' => true
+        ]);
+        \Illuminate\Support\Facades\Log::info("OTP for forgot password {$email} is: {$otp}");
+
+        \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+            $message->to($email)->subject('Khôi phục mật khẩu');
+        });
+
+        return back()->with('show_otp', true);
+    }
+
+    public function getResetPassword(Request $request)
+    {
+        if (!$request->session()->has('can_reset_password')) {
+            return redirect('/');
+        }
+        return view('auth.reset-password');
+    }
+
+    public function postResetPassword(Request $request)
+    {
+        if (!$request->session()->has('can_reset_password')) {
+            return redirect('/');
+        }
+
+        $request->validate([
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!%*#?&]/',
+            ],
+        ], [
+            'password.required' => 'Vui lòng nhập mật khẩu mới',
+            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự có ký tự in hoa và ký tự đặc biệt',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp',
+            'password.regex' => 'Mật khẩu phải bao gồm ít nhất 1 chữ in hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt (@$!%*#?&)',
+        ]);
+
+        $email = $request->session()->get('verify_email');
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            $user->password = Hash::make($request->input('password'));
+            $user->save();
+
+            // Clear session data
+            $request->session()->forget(['verify_email', 'verify_otp', 'verify_otp_time', 'is_forgot_password', 'can_reset_password']);
+
+            Auth::login($user);
+            $request->session()->put('login_method', 'email');
+            return redirect('/');
+        }
+
+        return redirect('/');
     }
 }

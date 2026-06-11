@@ -67,7 +67,7 @@
 
                     @auth
                         <div class="relative inline-block">
-                            <button id="account-btn" type="button" class="happy-navbar__icon-btn" aria-label="Tài khoản" aria-expanded="false">
+                            <a href="{{ route('profile') }}" id="account-btn" class="happy-navbar__icon-btn" aria-label="Tài khoản">
                                 @if(Auth::user()->avatar)
                                     <img src="{{ asset('images/avatars/' . Auth::user()->avatar) }}" alt="Avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid #10b981;">
                                 @else
@@ -77,7 +77,7 @@
                                         <circle cx="12" cy="7" r="4" />
                                     </svg>
                                 @endif
-                            </button>
+                            </a>
                         </div>
                     @endauth
 
@@ -119,7 +119,7 @@
         <div id="mobile-menu" class="happy-navbar__mobile-menu">
             <nav class="happy-navbar__mobile-nav" aria-label="Điều hướng di động">
                 <a href="{{ url('/') }}" class="happy-navbar__mobile-link is-active"> Trang chủ</a>
-                <a href="/products?category=" class="happy-navbar__mobile-link"> Sản phẩm</a>
+                <a href="/products" class="happy-navbar__mobile-link"> Sản phẩm</a>
                 <a href="/#promo" class="happy-navbar__mobile-link"> Khuyến mãi</a>
                 <a href="/#footer" class="happy-navbar__mobile-link"> Liên hệ</a>
             </nav>
@@ -215,11 +215,9 @@
             <span style="font-weight: 600; color: #374151;">Tổng cộng:</span>
             <span id="cart-drawer-total" style="font-size: 1.25rem; font-weight: 700; color: #10b981;">0đ</span>
         </div>
-        <button style="width: 100%; padding: 0.875rem; background: #10b981; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">Thanh toán ngay</button>
+        <a href="{{ route('checkout') }}" style="display: block; text-align: center; text-decoration: none; width: 100%; padding: 0.875rem; background: #10b981; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">Thanh toán ngay</a>
     </div>
 </aside>
-
-@include('components.user-profile-modal')
 
 @push('scripts')
     <script>

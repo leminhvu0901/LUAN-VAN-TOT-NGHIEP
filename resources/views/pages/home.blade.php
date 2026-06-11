@@ -146,28 +146,26 @@
                     $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
                     $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
                 @endphp
-                <div class="home-prod-card"
-                    data-sold="{{ $product->total_sold }}"
-                    data-date="{{ strtotime($product->created_at) }}"
-                    data-original-order="{{ $loop->iteration }}"
-                    data-score="{{ round($product->score, 2) }}"
-                    data-is-hot="{{ $isHot ? '1' : '0' }}"
+                <div class="home-prod-card" data-sold="{{ $product->total_sold }}"
+                    data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}"
+                    data-score="{{ round($product->score, 2) }}" data-is-hot="{{ $isHot ? '1' : '0' }}"
                     data-is-new="{{ $isNew ? '1' : '0' }}">
                     <div class="home-prod-card__img-wrap"
-                         onclick="window.location.href='{{ route('product.show', $product->slug) }}'"
-                         style="cursor:pointer;">
-                        @if($isHot) 
-                            <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span> 
+                        onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;">
+                        @if($isHot)
+                            <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
                         @endif
-                        @if($isNew) 
-                            <span class="home-prod-card__badge home-prod-card__badge--new" style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span> 
+                        @if($isNew)
+                            <span class="home-prod-card__badge home-prod-card__badge--new"
+                                style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span>
                         @endif
 
                         <img src="{{ asset('images/' . $product->image) }}" class="home-prod-card__img"
                             alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
 
                         <button class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}"
-                            aria-label="Yêu thích" data-id="{{ $product->id }}" onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})">
+                            aria-label="Yêu thích" data-id="{{ $product->id }}"
+                            onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path
                                     d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -178,12 +176,18 @@
                         <a href="{{ route('product.show', $product->slug) }}" style="text-decoration: none; color: inherit;">
                             <h3 class="home-prod-card__name">{{ $product->name }}</h3>
                         </a>
-                        <div class="p-product-stats" style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
-                                    <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                    <span>{{ number_format($product->avg_rating, 1) }} </span>
-                                    <span style="color: #cbd5e1;">|</span>
-                                    <span>Đã bán @if($product->total_sold >= 1000){{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}@endif</span>
-                                </div>
+                        <div class="p-product-stats"
+                            style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
+                            <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;"
+                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            <span>{{ number_format($product->avg_rating, 1) }} </span>
+                            <span style="color: #cbd5e1;">|</span>
+                            <span>Đã bán
+                                @if($product->total_sold >= 1000){{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}@endif</span>
+                        </div>
                         <div class="home-prod-card__footer">
                             <div>
                                 <span

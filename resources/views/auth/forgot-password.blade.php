@@ -37,12 +37,23 @@
                 Vui lòng nhập email  để nhận mã khôi phục mật khẩu.
             </p>
 
-            <form action="#" method="post" novalidate>
+            <form action="{{ route('forgot-password.post') }}" method="post" novalidate>
                 @csrf
                 
+                @error('forgot_error')
+                    <div style="color: #ef4444; font-size: 0.875rem; text-align: center; margin-bottom: 1rem;">
+                        {{ $message }}
+                    </div>
+                @enderror
+
                 <div class="l-form-group">
-                    <label for="recoveryContact" class="l-label">Email hoặc số điện thoại</label>
-                    <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email hoặc số điện thoại" class="l-input" required />
+                    <label for="recoveryContact" class="l-label">Email</label>
+                    <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email của bạn" class="l-input" required value="{{ old('recovery_contact') }}" />
+                    @error('recovery_contact')
+                        <div style="color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem;">
+                            {{ $message }}
+                        </div>
+                    @enderror
                 </div>
 
                 <button type="submit" class="l-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">

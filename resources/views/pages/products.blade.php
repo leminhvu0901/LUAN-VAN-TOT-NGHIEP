@@ -12,7 +12,14 @@
             <div class="p-main-layout">
                 <!-- Sidebar Filters -->
                 <aside class="p-sidebar">
-                    <form id="filter-form" action="{{ route('products') }}" method="GET">
+                    <button type="button" class="p-sidebar-toggle" onclick="toggleFilter()">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="material-symbols-outlined">filter_list</span>
+                            <span>Bộ lọc sản phẩm</span>
+                        </div>
+                        <span class="material-symbols-outlined toggle-icon" style="transition: transform 0.2s;">expand_more</span>
+                    </button>
+                    <form id="filter-form" action="{{ route('products') }}" method="GET" class="p-filter-form">
                         <input type="hidden" id="filter-search" name="search" value="{{ request('search') }}">
                         <!-- Danh mục -->
                         <div class="p-filter-group">
@@ -40,7 +47,7 @@
                                        min="{{ $sliderMin }}" max="{{ $sliderMax }}" value="{{ $maxPrice }}" step="10000"
                                        style="background: linear-gradient(to right, #10b981 0%, #10b981 {{ $sliderPct }}%, #d1d5db {{ $sliderPct }}%, #d1d5db 100%);"
                                        oninput="updatePriceLabel(this.value)"
-                                       onchange="document.getElementById('filter-form').submit();">
+                                       onchange="submitFilterForm();">
                                 <div class="p-price-label" id="price-label">10.000đ – {{ number_format($maxPrice, 0, ',', '.') }}đ</div>
                             </div>
                         </div>
@@ -49,7 +56,7 @@
                     <div class="p-filter-group">
                         <h3 class="p-filter-title">Đánh giá</h3>
                         <label class="p-rating-item">
-                            <input type="radio" id="rating-4" name="rating" value="4" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '4' ? 'checked' : '' }}>
+                            <input type="radio" id="rating-4" name="rating" value="4" onchange="submitFilterForm();" {{ request('rating') == '4' ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
@@ -60,7 +67,7 @@
                             <span class="p-rating-label">Từ 4 sao</span>
                         </label>
                         <label class="p-rating-item">
-                            <input type="radio" id="rating-3" name="rating" value="3" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '3' ? 'checked' : '' }}>
+                            <input type="radio" id="rating-3" name="rating" value="3" onchange="submitFilterForm();" {{ request('rating') == '3' ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-filled">★</span>
                                 <span class="p-star-filled">★</span>
@@ -71,7 +78,7 @@
                             <span class="p-rating-label">Từ 3 sao</span>
                         </label>
                         <label class="p-rating-item">
-                            <input type="radio" id="rating-all" name="rating" value="0" onchange="document.getElementById('filter-form').submit();" {{ request('rating') == '0' || !request()->has('rating') ? 'checked' : '' }}>
+                            <input type="radio" id="rating-all" name="rating" value="0" onchange="submitFilterForm();" {{ request('rating') == '0' || !request()->has('rating') ? 'checked' : '' }}>
                             <span class="p-rating-stars">
                                 <span class="p-star-empty">★</span>
                                 <span class="p-star-empty">★</span>
@@ -82,6 +89,9 @@
                             <span class="p-rating-label">Tất cả</span>
                         </label>
                     </div>
+
+                    <!-- Nút Áp dụng trên di động -->
+                    <button type="submit" class="p-filter-submit-btn">Áp dụng bộ lọc</button>
                     </form>
                 </aside>
 
@@ -181,6 +191,14 @@
     {{-- Quick View Modal đã được include toàn cục tại layouts/app.blade.php --}}
 
     <script>
+        /* ---- Toggle Mobile Filters ---- */
+        function toggleFilter() {
+            const sidebar = document.querySelector('.p-sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+            }
+        }
+
         /* ---- Price slider ---- */
         function updatePriceLabel(val) {
             const formatted = parseInt(val).toLocaleString('vi-VN');
@@ -240,7 +258,16 @@
             const navSearchInput = document.getElementById('search-input');
             if (navSearchInput) navSearchInput.value = '';
 
-            document.getElementById('filter-form').submit();
+            if (window.innerWidth > 640) {
+                document.getElementById('filter-form').submit();
+            }
+        }
+
+        /* ---- Tự động submit nếu ở desktop ---- */
+        function submitFilterForm() {
+            if (window.innerWidth > 640) {
+                document.getElementById('filter-form').submit();
+            }
         }
 
         /* ---- Lọc và Sắp xếp Frontend ---- */

@@ -3,29 +3,48 @@
     <div class="container">
         <div class="flex flex-wrap md:gap-4 lg:gap-0 py-4 mb-6">
             {{-- Column 1 --}}
-            <div class="w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
-                <h6>Danh mục</h6>
-                <ul class="flex flex-col gap-2">
-                    <li><a href="#!" class="inline-block hover:text-green-600">Cà phê</a></li>
-                    <li><a href="#!" class="inline-block hover:text-green-600">Trà sữa</a></li>
-                    <li><a href="#!" class="inline-block hover:text-green-600">Trà trái cây</a></li>
-                    <li><a href="#!" class="inline-block hover:text-green-600">Sữa chua</a></li>
-                    <li><a href="#!" class="inline-block hover:text-green-600">Đồ uống khác</a></li>
+            <div class="footer-column w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
+                <h6 class="footer-header">
+                    <span>Danh mục</span>
+                    <span class="material-symbols-outlined footer-icon">expand_more</span>
+                </h6>
+                <ul class="footer-links flex flex-col gap-2">
+                    @php
+                        $footerCategories = \Illuminate\Support\Facades\DB::table('categories')
+                            ->where('is_active', 1)
+                            ->orderBy('display_order')
+                            ->get();
+                        $currentCategories = (array) request('category', []);
+                    @endphp
+                    @foreach($footerCategories as $cat)
+                        <li>
+                            <a href="/products?category[]={{ $cat->id }}" 
+                               class="inline-block hover:text-green-600 {{ in_array($cat->id, $currentCategories) ? 'text-green-600 font-semibold' : '' }}">
+                                {{ $cat->name }}
+                            </a>
+                        </li>
+                    @endforeach
                 </ul>
             </div>
             
             {{-- Column 2 --}}
-            <div class="w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
-                <h6>Về chúng tôi</h6>
-                <ul class="flex flex-col gap-2">
+            <div class="footer-column w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
+                <h6 class="footer-header">
+                    <span>Về chúng tôi</span>
+                    <span class="material-symbols-outlined footer-icon">expand_more</span>
+                </h6>
+                <ul class="footer-links flex flex-col gap-2">
                     <li><a href="#!" class="inline-block hover:text-green-600">Giới thiệu</a></li>
                 </ul>
             </div>
 
             {{-- Column 3 --}}
-            <div class="w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
-                <h6>Dành cho khách hàng</h6>
-                <ul class="flex flex-col gap-2">
+            <div class="footer-column w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
+                <h6 class="footer-header">
+                    <span>Dành cho khách hàng</span>
+                    <span class="material-symbols-outlined footer-icon">expand_more</span>
+                </h6>
+                <ul class="footer-links flex flex-col gap-2">
                     <li><a href="#!" class="inline-block hover:text-green-600">Thanh toán</a></li>
                     <li><a href="#!" class="inline-block hover:text-green-600">Giao hàng</a></li>
                     <li><a href="#!" class="inline-block hover:text-green-600">Đổi trả sản phẩm</a></li>
@@ -34,9 +53,12 @@
             </div>
 
             {{-- Column 4 --}}
-            <div class="w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
-                <h6>Chương trình Happy</h6>
-                <ul class="flex flex-col gap-2">
+            <div class="footer-column w-full sm:w-1/2 lg:w-1/4 flex flex-col gap-4 mb-6 pr-4">
+                <h6 class="footer-header">
+                    <span>Chương trình Happy</span>
+                    <span class="material-symbols-outlined footer-icon">expand_more</span>
+                </h6>
+                <ul class="footer-links flex flex-col gap-2">
                     <li><a href="#!" class="inline-block hover:text-green-600">Chương trình Happy</a></li>
                     <li><a href="#!" class="inline-block hover:text-green-600">Thẻ quà tặng</a></li>
                     <li><a href="#!" class="inline-block hover:text-green-600">Khuyến mãi & mã giảm giá</a></li>
@@ -105,4 +127,20 @@
         </div>
     </div>
 </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const headers = document.querySelectorAll('.footer-header');
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            if (window.innerWidth <= 640) {
+                const column = this.closest('.footer-column');
+                if (column) {
+                    column.classList.toggle('open');
+                }
+            }
+        });
+    });
+});
+</script>
 

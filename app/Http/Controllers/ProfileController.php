@@ -20,9 +20,13 @@ class ProfileController
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => ['nullable', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . \Illuminate\Support\Facades\Auth::id()],
             'address' => 'nullable|string|max:255',
             'cropped_avatar' => 'nullable|string',
+        ], [
+            'name.required' => 'Vui lòng nhập họ tên.',
+            'phone.regex' => 'Số điện thoại không đúng định dạng.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
         ]);
 
         $updateData = [
@@ -95,7 +99,7 @@ class ProfileController
             ->get();
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'status' => $status,
             'items' => $favorites,
             'count' => count($favorites)
@@ -106,12 +110,15 @@ class ProfileController
     {
         $request->validate([
             'fullname' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
             'province' => 'required|string|max:255',
             'district' => 'required|string|max:255',
             'ward' => 'required|string|max:255',
             'specific_address' => 'required|string|max:500',
             'type' => 'required|in:home,office',
+        ], [
+            'phone.required' => 'Vui lòng nhập số điện thoại.',
+            'phone.regex' => 'Số điện thoại không đúng định dạng.',
         ]);
 
         $userId = \Illuminate\Support\Facades\Auth::id();
@@ -147,12 +154,15 @@ class ProfileController
     {
         $request->validate([
             'fullname' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
             'province' => 'required|string|max:255',
             'district' => 'required|string|max:255',
             'ward' => 'required|string|max:255',
             'specific_address' => 'required|string|max:500',
             'type' => 'required|in:home,office',
+        ], [
+            'phone.required' => 'Vui lòng nhập số điện thoại.',
+            'phone.regex' => 'Số điện thoại không đúng định dạng.',
         ]);
 
         $userId = \Illuminate\Support\Facades\Auth::id();
@@ -207,5 +217,42 @@ class ProfileController
         \Illuminate\Support\Facades\DB::table('user_addresses')->where('id', $id)->where('user_id', $userId)->update(['is_default' => true]);
 
         return response()->json(['success' => true]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:6|confirmed',
+        ], [
+            'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
+            'new_password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'new_password.string' => 'Mật khẩu phải là chuỗi ký tự.',
+            'new_password.min' => 'Mật khẩu mới phải có ít nhất 6 ký tự.',
+            'new_password.confirmed' => 'Mật khẩu xác nhận không trùng khớp.',
+        ]);
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
+            return redirect()->back()
+                ->withErrors(['current_password' => 'Mật khẩu hiện tại không chính xác.'])
+                ->withInput();
+        }
+
+        if ($request->input('current_password') === $request->input('new_password')) {
+            return redirect()->back()
+                ->withErrors(['new_password' => 'Mật khẩu mới phải khác mật khẩu hiện tại.'])
+                ->withInput();
+        }
+
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => \Illuminate\Support\Facades\Hash::make($request->input('new_password')),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->back()->with('success', 'Đổi mật khẩu thành công!');
     }
 }

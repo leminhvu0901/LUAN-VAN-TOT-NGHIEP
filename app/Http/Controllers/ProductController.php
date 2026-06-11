@@ -109,6 +109,9 @@ class ProductController
     {
         // Get filter inputs
         $categoryIds = $request->input('category', []);
+        if (!is_array($categoryIds)) {
+            $categoryIds = empty($categoryIds) ? [] : [$categoryIds];
+        }
         $maxPrice = $request->input('max_price', 600000); // Default to max 600k
         $minRating = $request->input('rating');
 
