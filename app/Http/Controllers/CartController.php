@@ -349,6 +349,124 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        return view('pages.checkout', compact('items', 'subtotal', 'addresses'));
+        $now = now()->timezone('Asia/Ho_Chi_Minh');
+        $timeString = $now->format('H:i:s');
+        $isClosed = ($timeString < '07:00:00' || $timeString >= '19:00:00');
+
+        return view('pages.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
+    }
+
+    public function calculateDistance(Request $request)
+    {
+        $addressId = $request->query('address_id');
+        $userId = Auth::id();
+
+        $address = DB::table('user_addresses')
+            ->where('id', $addressId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$address) {
+            return response()->json(['success' => false, 'message' => 'Địa chỉ không hợp lệ'], 400);
+        }
+
+        $destAddress = $address->specific_address . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province;
+        $lat = isset($address->latitude) ? $address->latitude : null;
+        $lon = isset($address->longitude) ? $address->longitude : null;
+
+        // Fallback to geocoding address string via Nominatim if coordinates are missing
+        if (empty($lat) || empty($lon)) {
+            try {
+                $client = new \GuzzleHttp\Client();
+                $geocodeUrl = "https://nominatim.openstreetmap.org/search?q=" . urlencode($destAddress) . "&format=json&limit=1";
+                $geoRes = $client->get($geocodeUrl, [
+                    'headers' => [
+                        'User-Agent' => 'CoffeeDeliveryApp/1.0 (contact@example.com)'
+                    ],
+                    'verify' => false
+                ]);
+                $geoData = json_decode($geoRes->getBody()->getContents(), true);
+                if (!empty($geoData) && isset($geoData[0]['lat']) && isset($geoData[0]['lon'])) {
+                    $lat = floatval($geoData[0]['lat']);
+                    $lon = floatval($geoData[0]['lon']);
+                    
+                    // Save coordinates back to database to cache it
+                    DB::table('user_addresses')
+                        ->where('id', $addressId)
+                        ->update([
+                            'latitude' => $lat,
+                            'longitude' => $lon,
+                            'updated_at' => now()
+                        ]);
+                }
+            } catch (\Exception $e) {
+                // Ignore and keep coordinates empty
+            }
+        }
+
+        $orsKey = env('OPENROUTE_SERVICE_API_KEY');
+
+        // Check if we have coordinates and ORS API key
+        if (!empty($lat) && !empty($lon) && !empty($orsKey)) {
+            try {
+                // Shop coordinates: 180 Cao Lỗ, Quận 8 is lat 10.73809, lon 106.67812
+                $shopCoords = [106.67812, 10.73809]; // [lon, lat]
+                $destCoords = [floatval($lon), floatval($lat)];
+
+                $client = new \GuzzleHttp\Client();
+                $response = $client->post('https://api.openrouteservice.org/v2/directions/driving-car', [
+                    'headers' => [
+                        'Authorization' => $orsKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'coordinates' => [
+                            $shopCoords,
+                            $destCoords
+                        ]
+                    ],
+                    'verify' => false
+                ]);
+
+                $data = json_decode($response->getBody()->getContents(), true);
+                if (isset($data['routes'][0]['summary']['distance'])) {
+                    $distanceMeters = $data['routes'][0]['summary']['distance'];
+                    $distanceKm = round($distanceMeters / 1000, 1);
+                    return response()->json([
+                        'success' => true,
+                        'distance_km' => $distanceKm,
+                        'is_mock' => false
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Fall back below if ORS call fails
+            }
+        }
+
+        // Fallback mock distance based on District relative to shop at Quận 8
+        $district = mb_strtolower($address->district);
+        $distance = 3.5; // default
+        if (str_contains($district, '8')) {
+            $distance = 1.5;
+        } elseif (str_contains($district, '5')) {
+            $distance = 2.8;
+        } elseif (str_contains($district, '10')) {
+            $distance = 4.5;
+        } elseif (str_contains($district, '1') || str_contains($district, '4')) {
+            $distance = 5.2;
+        } elseif (str_contains($district, '7')) {
+            $distance = 4.8;
+        } elseif (str_contains($district, '3')) {
+            $distance = 5.8;
+        } elseif (str_contains($district, 'bình thạnh') || str_contains($district, 'binh thanh')) {
+            $distance = 7.5;
+        }
+
+        return response()->json([
+            'success' => true,
+            'distance_km' => $distance,
+            'is_mock' => true,
+            'message' => 'Sử dụng khoảng cách mô phỏng dự phòng.'
+        ]);
     }
 }

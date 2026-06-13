@@ -3,6 +3,7 @@
 @section('body_class', 'profile-body')
 
 @section('content')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 
 <!-- ============================================== -->
@@ -43,10 +44,7 @@
                 <span class="material-symbols-outlined">shopping_bag</span>
                 Đơn hàng của tôi
             </a>
-            <a id="tab-address-link" class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="#address" onclick="showTab('address'); return false;">
-                <span class="material-symbols-outlined">location_on</span>
-                Số địa chỉ
-            </a>
+
             <a id="tab-password-link" class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="#password" onclick="showTab('password'); return false;">
                 <span class="material-symbols-outlined">lock</span>
                 Đổi mật khẩu
@@ -147,70 +145,7 @@
 
             </div>
 
-            <!-- Address Section (Desktop) -->
-            <div id="desktop-address-content" class="hidden">
-                <div class="mb-stack_lg">
-                    <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Số địa chỉ</h1>
-                    <p class="font-body-md text-body-md text-on-surface-variant">Quản lý thông tin các địa chỉ nhận hàng của bạn</p>
-                </div>
-                
-                <section class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm">
-                    <div class="flex justify-between items-center border-b border-outline-variant pb-4 mb-4">
-                        <h2 class="font-headline-md text-[20px] text-on-surface font-bold">Địa Chỉ Của Tôi</h2>
-                        <button type="button" class="text-primary font-label-md flex items-center hover:opacity-80 transition" onclick="openAddressModal()">
-                            <span class="material-symbols-outlined mr-1" style="font-size: 20px;">add</span>
-                            Thêm địa chỉ mới
-                        </button>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        @forelse($addresses as $addr)
-                        <div class="flex justify-between items-start border border-outline-variant rounded-lg p-5 hover:bg-surface-container-lowest transition shadow-sm">
-                            <div>
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="font-bold text-on-surface">{{ $addr->fullname }}</span>
-                                    <span class="text-outline-variant">|</span>
-                                    <span class="text-on-surface-variant">{{ $addr->phone }}</span>
-                                </div>
-                                <div class="text-sm text-on-surface-variant mb-1">
-                                    {{ $addr->specific_address }}
-                                </div>
-                                @if(!($addr->province && str_contains($addr->specific_address, $addr->province)))
-                                <div class="text-sm text-on-surface-variant mb-3">
-                                    {{ $addr->ward }}, {{ $addr->district }}, {{ $addr->province }}
-                                </div>
-                                @endif
-                                <div class="flex gap-2 mt-2">
-                                    @if($addr->is_default)
-                                        <span class="border border-primary text-primary px-2 py-0.5 text-xs rounded-sm bg-primary/10">Mặc định</span>
-                                    @endif
-                                    @if($addr->type == 'home')
-                                        <span class="border border-outline-variant text-on-surface-variant px-2 py-0.5 text-xs rounded-sm">Nhà Riêng</span>
-                                    @else
-                                        <span class="border border-outline-variant text-on-surface-variant px-2 py-0.5 text-xs rounded-sm">Văn Phòng</span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-4">
-                                <div class="flex gap-4">
-                                    <button type="button" class="text-blue-600 hover:text-blue-800 text-sm font-medium transition" onclick='editAddress(@json($addr))'>Cập nhật</button>
-                                    @if(!$addr->is_default)
-                                    <button type="button" class="text-error hover:text-red-700 text-sm font-medium transition" onclick="deleteAddress({{ $addr->id }})">Xóa</button>
-                                    @endif
-                                </div>
-                                @if(!$addr->is_default)
-                                <button type="button" class="border border-outline-variant bg-white text-on-surface-variant px-3 py-1.5 rounded-sm text-sm hover:bg-surface-container-low transition shadow-sm" onclick="setDefaultAddress({{ $addr->id }})">Thiết lập mặc định</button>
-                                @endif
-                            </div>
-                        </div>
-                        @empty
-                        <div class="text-center py-8 text-on-surface-variant text-sm bg-surface-container-low rounded-lg">
-                            Bạn chưa có địa chỉ nào.
-                        </div>
-                        @endforelse
-                    </div>
-                </section>
-            </div>
+
 
             <!-- Change Password Section (Desktop) -->
             <div id="desktop-password-content" class="hidden">
@@ -443,13 +378,7 @@
                 </div>
                 <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">chevron_right</span>
             </a>
-            <a href="#address" onclick="showTab('address'); return false;" class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-primary-container/10 transition-colors group shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-primary-container">location_on</span>
-                    <span class="font-label-md text-label-md text-on-surface">Số địa chỉ</span>
-                </div>
-                <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">chevron_right</span>
-            </a>
+
             <a href="#password" onclick="showTab('password'); return false;" class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-primary-container/10 transition-colors group shadow-sm">
                 <div class="flex items-center gap-3">
                     <span class="material-symbols-outlined text-primary-container">lock_reset</span>
@@ -466,67 +395,7 @@
         </section>
         </div>
 
-        <!-- Address Section (Mobile) -->
-        <div id="mobile-address-content" class="hidden">
-            <div class="flex justify-between items-center mb-6">
-                <button type="button" class="w-full flex items-center justify-center gap-2 bg-primary-container text-white py-3 rounded-xl font-label-md text-label-md shadow-sm active:scale-95 transition-transform" onclick="openAddressModal()">
-                    <span class="material-symbols-outlined text-[20px]">add</span>
-                    Thêm địa chỉ mới
-                </button>
-            </div>
-            
-            <div class="space-y-4 mb-8">
-                @forelse($addresses as $addr)
-                <div class="bg-white border border-outline-variant rounded-xl p-5 shadow-sm relative">
-                    <div class="flex flex-col gap-1 mb-3 pr-8">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-on-surface text-label-md">{{ $addr->fullname }}</span>
-                            <span class="text-outline-variant">|</span>
-                            <span class="text-on-surface-variant text-body-md">{{ $addr->phone }}</span>
-                        </div>
-                        <div class="text-body-md text-on-surface-variant">
-                            {{ $addr->specific_address }}
-                        </div>
-                        @if(!($addr->province && str_contains($addr->specific_address, $addr->province)))
-                        <div class="text-body-md text-on-surface-variant">
-                            {{ $addr->ward }}, {{ $addr->district }}, {{ $addr->province }}
-                        </div>
-                        @endif
-                    </div>
-                    
-                    <div class="flex gap-2 mb-4">
-                        @if($addr->is_default)
-                            <span class="border border-primary text-primary px-2 py-0.5 text-[10px] rounded bg-primary/10 font-medium">Mặc định</span>
-                        @endif
-                        @if($addr->type == 'home')
-                            <span class="border border-outline-variant text-on-surface-variant px-2 py-0.5 text-[10px] rounded font-medium">Nhà Riêng</span>
-                        @else
-                            <span class="border border-outline-variant text-on-surface-variant px-2 py-0.5 text-[10px] rounded font-medium">Văn Phòng</span>
-                        @endif
-                    </div>
-                    
-                    <div class="flex gap-4 border-t border-outline-variant pt-4 mt-2">
-                        <button type="button" class="flex-1 text-center text-primary font-label-md text-sm py-2 hover:bg-primary-container/10 rounded-lg transition-colors" onclick='editAddress(@json($addr))'>Sửa</button>
-                        @if(!$addr->is_default)
-                        <div class="w-[1px] bg-outline-variant my-1"></div>
-                        <button type="button" class="flex-1 text-center text-error font-label-md text-sm py-2 hover:bg-error-container/20 rounded-lg transition-colors" onclick="deleteAddress({{ $addr->id }})">Xóa</button>
-                        @endif
-                    </div>
-                    
-                    @if(!$addr->is_default)
-                    <button type="button" class="w-full mt-2 border border-outline-variant bg-surface-container-lowest text-on-surface px-3 py-2.5 rounded-lg text-sm font-label-md hover:bg-surface-container-low transition-colors shadow-sm" onclick="setDefaultAddress({{ $addr->id }})">Thiết lập mặc định</button>
-                    @endif
-                </div>
-                @empty
-                <div class="text-center py-10 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
-                    <span class="material-symbols-outlined text-outline text-[48px] mb-2">location_off</span>
-                    <p class="text-on-surface-variant text-body-md">Bạn chưa có địa chỉ nào.</p>
-                </div>
-                @endforelse
-            </div>
-        </div>
 
-        <!-- Form Đổi mật khẩu (Mobile) -->
         <div id="mobile-password-content" class="hidden">
             @if(session('login_method') === 'google')
             <div class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm text-center mb-8 mt-2">
@@ -654,88 +523,6 @@
 <!-- MODALS & SCRIPTS (Dùng chung cho cả 2 view)  -->
 <!-- ============================================== -->
 
-<!-- Address Modal UI -->
-<style>
-@media (max-width: 640px) {
-    .addr-row {
-        flex-direction: column !important;
-        gap: 10px !important;
-    }
-    .loc-tabs {
-        flex-wrap: wrap;
-    }
-    .loc-tab {
-        padding: 8px 10px !important;
-        font-size: 13px !important;
-        flex: 1 1 30%;
-        text-align: center;
-    }
-    .addr-footer {
-        flex-direction: column;
-        gap: 10px;
-    }
-    .addr-footer button {
-        width: 100%;
-    }
-}
-</style>
-<div class="addr-modal-overlay" id="addressModal" style="padding: 1rem; box-sizing: border-box;">
-    <div class="addr-modal" style="width: 100%;">
-        <div class="addr-header" id="addressModalTitle">Địa chỉ mới</div>
-        <div class="addr-body">
-            <input type="hidden" id="addr_id">
-            <div class="addr-row">
-                <input type="text" id="addr_fullname" class="addr-input" placeholder="Họ và tên">
-                <input type="tel" id="addr_phone" class="addr-input" placeholder="Số điện thoại">
-            </div>
-            <div class="loc-picker-container" id="locPickerContainer">
-                <div class="loc-picker-input" id="locPickerInput" onclick="toggleLocPanel()">
-                    <span id="locPickerText">Tỉnh/Thành Phố, Quận/Huyện, Phường/Xã</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"><path d="M2 4L6 8L10 4"></path></svg>
-                </div>
-                <div class="loc-panel" id="locPanel">
-                    <div class="loc-tabs">
-                        <div class="loc-tab active" id="tab_province" onclick="switchLocTab('province')">Tỉnh/Thành Phố</div>
-                        <div class="loc-tab" id="tab_district" onclick="switchLocTab('district')">Quận/Huyện</div>
-                        <div class="loc-tab" id="tab_ward" onclick="switchLocTab('ward')">Phường/Xã</div>
-                    </div>
-                    <div class="loc-list" id="locList"></div>
-                </div>
-                <input type="hidden" id="addr_province">
-                <input type="hidden" id="addr_district">
-                <input type="hidden" id="addr_ward">
-            </div>
-            <div class="addr-row">
-                <textarea id="addr_specific" class="addr-input" rows="3" placeholder="Địa chỉ cụ thể" style="resize: none;"></textarea>
-            </div>
-            <button type="button" id="resetGpsBtn" style="display:none; margin-bottom: 15px; color: #dc2626; background: none; border: none; font-size: 14px; font-weight: 500; cursor: pointer; align-items: center; padding: 0;" onclick="resetToManual()">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                Hủy vị trí GPS, nhập lại thủ công
-            </button>
-            <div class="fake-map-box" id="fakeMapBox">
-                <button type="button" class="fake-map-btn" id="btn-get-gps" onclick="getCurrentLocation(this)">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span id="gps-btn-text">Thêm vị trí</span>
-                </button>
-            </div>
-            <div style="margin-bottom: 10px; font-size: 14px; color: #555;">Loại địa chỉ:</div>
-            <div class="addr-type-btns">
-                <button type="button" class="addr-type-btn active" id="btnTypeHome" onclick="setAddrType('home')">Nhà Riêng</button>
-                <button type="button" class="addr-type-btn" id="btnTypeOffice" onclick="setAddrType('office')">Văn Phòng</button>
-            </div>
-            <input type="hidden" id="addr_type" value="home">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="addr_default" style="width: 16px; height: 16px; cursor: pointer;">
-                <label for="addr_default" style="font-size: 14px; cursor: pointer; color: #555; user-select: none; margin: 0;">Đặt làm địa chỉ mặc định</label>
-            </div>
-        </div>
-        <div class="addr-footer">
-            <button type="button" class="btn-cancel" onclick="closeAddressModal()">Trở Lại</button>
-            <button type="button" class="btn-submit" onclick="saveAddress()">Hoàn thành</button>
-        </div>
-    </div>
-</div>
-
 <div id="cropperModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; padding: 1rem; box-sizing: border-box;">
     <div style="background:#fff; padding:20px; border-radius:12px; width:100%; max-width:500px; text-align:center; position: relative; max-height: 90vh; overflow-y: auto;">
         <h4 style="margin-bottom:15px; font-weight: 600; color: #374151;">Chỉnh sửa ảnh đại diện</h4>
@@ -750,8 +537,9 @@
 </div>
 
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<script src="{{ asset('js/profile.js') }}"></script>
+<script src="{{ asset('js/profile.js') }}?v={{ time() }}"></script>
 @if($errors->has('current_password') || $errors->has('new_password'))
 <script>
     document.addEventListener('DOMContentLoaded', function() {

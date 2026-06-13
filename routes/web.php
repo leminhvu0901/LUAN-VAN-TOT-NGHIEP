@@ -74,7 +74,12 @@ Route::middleware(['auth'])->group(function () {
     // Checkout Routes
     Route::get('/checkout', [App\Http\Controllers\CartController::class, 'checkout'])->name('checkout');
     Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'store'])->name('checkout.store');
+    Route::get('/checkout/distance', [App\Http\Controllers\CartController::class, 'calculateDistance']);
 });
 
 // Public Cart Route (View cart data)
 Route::get('/cart', [App\Http\Controllers\CartController::class, 'getCartData']);
+
+
+
+

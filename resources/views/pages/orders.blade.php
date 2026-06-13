@@ -197,8 +197,113 @@
                                 <p class="text-base md:text-xl font-bold md:font-extrabold text-primary whitespace-nowrap">{{ number_format($order->final_amount, 0, ',', '.') }}đ</p>
                             </div>
                             <div class="flex gap-2 md:gap-3 shrink-0">
-                                <button class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
+                                <button onclick="toggleOrderDetails({{ $order->id }})" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
                                 <button class="hidden md:inline-block px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Order Details Surcharge Breakdown & Items List -->
+                    <div id="order-details-{{ $order->id }}" class="hidden mt-6 pt-6 border-t border-dashed border-outline-variant/60 transition-all duration-300">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                            <!-- Deliver Details -->
+                            <div class="space-y-2">
+                                <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-primary text-lg">local_shipping</span>
+                                    Thông tin giao nhận
+                                </h4>
+                                <p class="text-on-surface-variant"><span class="font-bold text-on-surface">Người nhận:</span> {{ $order->customer_name }}</p>
+                                <p class="text-on-surface-variant"><span class="font-bold text-on-surface">Số điện thoại:</span> {{ $order->customer_phone }}</p>
+                                <p class="text-on-surface-variant"><span class="font-bold text-on-surface">Địa chỉ giao:</span> {{ $order->delivery_address }}</p>
+                                @if($order->customer_note)
+                                    <p class="text-on-surface-variant italic"><span class="font-bold text-on-surface">Ghi chú:</span> "{{ $order->customer_note }}"</p>
+                                @endif
+                            </div>
+
+                            <!-- Surcharge & Price Details -->
+                            <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/60">
+                                <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 mb-3 flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
+                                    Chi tiết thanh toán đơn hàng
+                                </h4>
+                                <div class="space-y-2 text-xs text-on-surface-variant font-medium">
+                                    <div class="flex justify-between">
+                                        <span>Tạm tính (Sản phẩm)</span>
+                                        <span class="text-on-surface font-bold">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
+                                    </div>
+                                    
+                                    <div class="flex justify-between">
+                                        <span>Phí vận chuyển (khoảng cách: {{ number_format($order->distance_km, 1) }} km)</span>
+                                        <span class="text-on-surface font-bold">{{ number_format($order->shipping_fee, 0, ',', '.') }}đ</span>
+                                    </div>
+
+                                    @if($order->weather_fee > 0)
+                                        <div class="flex justify-between">
+                                            <span>Phụ phí thời tiết</span>
+                                            <span class="text-on-surface font-bold text-primary">+{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
+                                        </div>
+                                    @endif
+
+                                    @if($order->peak_hour_fee > 0)
+                                        <div class="flex justify-between">
+                                            <span>Phụ phí giờ cao điểm</span>
+                                            <span class="text-on-surface font-bold text-primary">+{{ number_format($order->peak_hour_fee, 0, ',', '.') }}đ</span>
+                                        </div>
+                                    @endif
+
+                                    @if($order->discount_amount > 0)
+                                        <div class="flex justify-between text-error font-bold">
+                                            <span>Khuyến mãi ({{ $order->coupon_code ?? 'HAPPY' }})</span>
+                                            <span>-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
+                                        </div>
+                                    @endif
+
+                                    <div class="flex justify-between font-bold text-sm text-on-surface border-t border-outline-variant pt-2 mt-2">
+                                        <span>Tổng cộng</span>
+                                        <span class="text-primary text-base font-extrabold">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products List inside detail -->
+                        <div class="mt-6 pt-4 border-t border-outline-variant/60">
+                            <h4 class="font-bold text-on-surface text-sm mb-3 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-primary text-lg">local_cafe</span>
+                                Sản phẩm đã mua
+                            </h4>
+                            <div class="space-y-3">
+                                @foreach($order->items as $item)
+                                    <div class="flex items-center justify-between text-xs text-on-surface-variant bg-surface-container-low p-3 rounded-xl border border-outline-variant/50">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-outline-variant">
+                                                <img src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
+                                            </div>
+                                            <div>
+                                                <span class="font-bold text-on-surface text-sm block">{{ $item->product_name }}</span>
+                                                <div class="flex flex-wrap gap-2 mt-1">
+                                                    <span class="bg-primary/5 text-primary border border-primary/20 rounded-full px-2 py-0.5 text-[10px] font-bold">Size {{ $item->size_name ?? 'M' }}</span>
+                                                    @if($item->sugar_level !== null)
+                                                        <span class="bg-yellow-500/5 text-yellow-700 border border-yellow-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold">{{ $item->sugar_level }}% đường</span>
+                                                    @endif
+                                                    @if($item->ice_level !== null)
+                                                        <span class="bg-blue-500/5 text-blue-700 border border-blue-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold">Đá: {{ $item->ice_level == 'normal' ? 'Thường' : ($item->ice_level == 'no' ? 'Không đá' : $item->ice_level) }}</span>
+                                                    @endif
+                                                </div>
+                                                @if($item->options)
+                                                    @php $toppingsArr = json_decode($item->options); @endphp
+                                                    @if(!empty($toppingsArr))
+                                                        <div class="text-[10px] text-primary font-semibold mt-1.5">+ Toppings: {{ implode(', ', $toppingsArr) }}</div>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-on-surface-variant font-bold">x{{ $item->quantity }}</span>
+                                            <span class="font-extrabold text-on-surface ml-4 text-sm">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>

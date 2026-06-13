@@ -51,13 +51,22 @@ class OrderController
 
         $userId = Auth::id();
 
+        // 0. Enforce store operating hours (07:00 - 19:00)
+        $now = now()->timezone('Asia/Ho_Chi_Minh');
+        $timeString = $now->format('H:i:s');
+        if ($timeString < '07:00:00' || $timeString >= '19:00:00') {
+            return redirect()->back()->with('error', 'Cửa hàng chỉ cho phép đặt hàng từ 07:00 đến 19:00. Hiện tại cửa hàng đã đóng cửa.')->withInput();
+        }
+
         // 1. Validate request
         $request->validate([
             'address_id' => 'required',
-            'delivery_method' => 'required|in:standard,express',
             'payment_method' => 'required|in:cod,momo',
             'coupon_code' => 'nullable|string',
-            'note' => 'nullable|string|max:500'
+            'note' => 'nullable|string|max:500',
+            'distance_km' => 'required|numeric|min:0|max:10'
+        ], [
+            'distance_km.max' => 'Rất tiếc, địa chỉ của bạn quá xa (vượt quá 10km) nên cửa hàng không thể giao hàng.'
         ]);
 
         // 2. Get the address
@@ -101,8 +110,16 @@ class OrderController
         }
 
         // Calculate shipping fee and estimated time
-        $shippingFee = $request->input('delivery_method') === 'express' ? 25000 : 15000;
-        $estimatedTime = $request->input('delivery_method') === 'express' ? now()->addMinutes(30) : now()->addMinutes(45);
+        $distanceKm = floatval($request->input('distance_km'));
+
+        // Total shipping fee: 5000 VND per km
+        $shippingFee = round($distanceKm * 5000);
+
+        // Weather fee and peak hour fee removed
+        $weatherFee = 0;
+        $peakHourFee = 0;
+
+        $estimatedTime = now()->addMinutes(45);
 
         // Coupon discount
         $discountAmount = 0;
@@ -112,7 +129,7 @@ class OrderController
             $discountAmount = 10000;
         }
 
-        $finalAmount = max(0, $subtotal + $shippingFee - $discountAmount);
+        $finalAmount = max(0, $subtotal + $shippingFee + $weatherFee + $peakHourFee - $discountAmount);
 
         // Order code generation
         $orderCode = 'HPY-' . strtoupper(bin2hex(random_bytes(4)));
@@ -136,11 +153,11 @@ class OrderController
                 'status' => 'pending',
                 'coupon_code' => $couponCode,
                 'promotion_id' => null,
-                'delivery_type' => 'delivery',
+                'delivery_type' => 'standard',
                 'estimated_time' => $estimatedTime,
-                'distance_km' => 2.5,
-                'weather_fee' => 0,
-                'peak_hour_fee' => 0,
+                'distance_km' => $distanceKm,
+                'weather_fee' => $weatherFee,
+                'peak_hour_fee' => $peakHourFee,
                 'shipping_fee' => $shippingFee,
                 'customer_note' => $request->input('note'),
                 'created_at' => now(),

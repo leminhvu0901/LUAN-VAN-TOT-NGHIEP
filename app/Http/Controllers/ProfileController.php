@@ -116,6 +116,8 @@ class ProfileController
             'ward' => 'required|string|max:255',
             'specific_address' => 'required|string|max:500',
             'type' => 'required|in:home,office',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ], [
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
@@ -133,7 +135,7 @@ class ProfileController
             }
         }
 
-        \Illuminate\Support\Facades\DB::table('user_addresses')->insert([
+        $id = \Illuminate\Support\Facades\DB::table('user_addresses')->insertGetId([
             'user_id' => $userId,
             'fullname' => $request->input('fullname'),
             'phone' => $request->input('phone'),
@@ -143,11 +145,13 @@ class ProfileController
             'specific_address' => $request->input('specific_address'),
             'type' => $request->input('type'),
             'is_default' => $isDefault,
+            'latitude' => $request->input('latitude'),
+            'longitude' => $request->input('longitude'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'id' => $id]);
     }
 
     public function updateAddress(Request $request, $id)
@@ -160,6 +164,8 @@ class ProfileController
             'ward' => 'required|string|max:255',
             'specific_address' => 'required|string|max:500',
             'type' => 'required|in:home,office',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ], [
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
@@ -184,10 +190,12 @@ class ProfileController
                 'specific_address' => $request->input('specific_address'),
                 'type' => $request->input('type'),
                 'is_default' => $isDefault,
+                'latitude' => $request->input('latitude'),
+                'longitude' => $request->input('longitude'),
                 'updated_at' => now(),
             ]);
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'id' => intval($id)]);
     }
 
     public function deleteAddress($id)

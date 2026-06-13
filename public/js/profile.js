@@ -24,41 +24,34 @@ primaryBtns.forEach(btn => {
 });
 
 // ----- Address Logic -----
-let locState = { province: null, district: null, ward: null, province_name: '', district_name: '', ward_name: '', currentTab: 'province' };
+let locState = { province: null, district: null, ward: null, province_name: '', district_name: '', ward_name: '', currentTab: 'province', activePrefix: 'desk' };
 
-async function fetchProvinces() {
-    renderLocLoading();
+async function fetchProvinces(prefix) {
+    renderLocLoading(prefix);
     try {
-        const res = await fetch('https://provinces.open-api.vn/api/p/');
+        const res = await fetch('https://provinces.open-api.vn/api/v2/p/');
         const data = await res.json();
-        renderLocItems(data, 'province');
+        renderLocItems(data, 'province', prefix);
     } catch (e) { console.error(e); }
 }
 
-async function fetchDistricts(provinceCode) {
-    renderLocLoading();
+async function fetchWards(provinceCode, prefix) {
+    renderLocLoading(prefix);
     try {
-        const res = await fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`);
+        const res = await fetch(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`);
         const data = await res.json();
-        renderLocItems(data.districts, 'district');
+        renderLocItems(data.wards, 'ward', prefix);
     } catch (e) { console.error(e); }
 }
 
-async function fetchWards(districtCode) {
-    renderLocLoading();
-    try {
-        const res = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
-        const data = await res.json();
-        renderLocItems(data.wards, 'ward');
-    } catch (e) { console.error(e); }
+function renderLocLoading(prefix) {
+    const list = document.getElementById(`${prefix}_locList`);
+    if (list) list.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Đang tải...</div>';
 }
 
-function renderLocLoading() {
-    document.getElementById('locList').innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Đang tải...</div>';
-}
-
-function renderLocItems(items, type) {
-    const list = document.getElementById('locList');
+function renderLocItems(items, type, prefix) {
+    const list = document.getElementById(`${prefix}_locList`);
+    if (!list) return;
     list.innerHTML = '';
     if (!items || items.length === 0) {
         list.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Không có dữ liệu</div>';
@@ -66,167 +59,390 @@ function renderLocItems(items, type) {
     }
     items.forEach(item => {
         const div = document.createElement('div');
-        div.className = 'loc-item';
+        div.className = 'px-4 py-2 hover:bg-surface-container-lowest cursor-pointer transition-colors border-b border-outline-variant/50 last:border-0';
         div.textContent = item.name;
-        div.onclick = () => selectLocItem(item, type);
+        div.onclick = () => selectLocItem(item, type, prefix);
         list.appendChild(div);
     });
 }
 
-function selectLocItem(item, type) {
+function selectLocItem(item, type, prefix) {
     if (type === 'province') {
         locState.province = item.code; locState.province_name = item.name;
-        locState.district = null; locState.district_name = '';
         locState.ward = null; locState.ward_name = '';
-        document.getElementById('addr_province').value = item.name;
-        document.getElementById('addr_district').value = '';
-        document.getElementById('addr_ward').value = '';
-        switchLocTab('district');
-    } else if (type === 'district') {
-        locState.district = item.code; locState.district_name = item.name;
-        locState.ward = null; locState.ward_name = '';
-        document.getElementById('addr_district').value = item.name;
-        document.getElementById('addr_ward').value = '';
-        switchLocTab('ward');
+        document.getElementById(`${prefix}_addr_province`).value = item.name;
+        document.getElementById(`${prefix}_addr_district`).value = '';
+        document.getElementById(`${prefix}_addr_ward`).value = '';
+        switchLocTab(prefix, 'ward');
     } else if (type === 'ward') {
         locState.ward = item.code; locState.ward_name = item.name;
-        document.getElementById('addr_ward').value = item.name;
-        updateLocPickerText();
-        document.getElementById('locPanel').style.display = 'none';
+        document.getElementById(`${prefix}_addr_ward`).value = item.name;
+        // Trick backend by setting district equal to ward
+        document.getElementById(`${prefix}_addr_district`).value = item.name;
+        updateLocPickerText(prefix);
+        document.getElementById(`${prefix}_locPanel`).style.display = 'none';
+        geocodeAndUpdateMap(prefix);
     }
 }
 
-function updateLocPickerText() {
-    const textEl = document.getElementById('locPickerText');
-    const inputEl = document.getElementById('locPickerInput');
-    if (locState.province_name && locState.district_name && locState.ward_name) {
-        textEl.textContent = `${locState.province_name}, ${locState.district_name}, ${locState.ward_name}`;
-        inputEl.classList.add('has-value');
+function geocodeAndUpdateMap(prefix) {
+    const province = document.getElementById(`${prefix}_addr_province`).value;
+    const district = document.getElementById(`${prefix}_addr_district`).value;
+    const ward = document.getElementById(`${prefix}_addr_ward`).value;
+    const specific = document.getElementById(`${prefix}_addr_specific`).value;
+
+    let parts = [];
+    if (specific) parts.push(specific);
+    if (ward) parts.push(ward);
+    if (province) parts.push(province);
+
+    if (parts.length > 0) {
+        const addressStr = parts.join(', ');
+        geocodeAddress(addressStr).then(coords => {
+            if (coords) {
+                initLeafletMap(prefix, coords.lat, coords.lng);
+            }
+        });
+    }
+}
+
+// Attach blur and enter events to specific address inputs to trigger map update
+document.addEventListener('DOMContentLoaded', () => {
+    ['desk', 'mob'].forEach(prefix => {
+        const specificInput = document.getElementById(`${prefix}_addr_specific`);
+        if (specificInput) {
+            specificInput.addEventListener('blur', () => geocodeAndUpdateMap(prefix));
+            specificInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    geocodeAndUpdateMap(prefix);
+                }
+            });
+        }
+    });
+});
+
+function updateLocPickerText(prefix) {
+    const inputEl = document.getElementById(`${prefix}_locPickerInputText`);
+    if (!inputEl) return;
+    if (locState.province_name && locState.ward_name) {
+        inputEl.value = `${locState.province_name}, ${locState.ward_name}`;
     } else if (locState.province_name) {
-        textEl.textContent = `${locState.province_name}` + (locState.district_name ? `, ${locState.district_name}` : '');
-        inputEl.classList.add('has-value');
+        inputEl.value = `${locState.province_name}`;
     } else {
-        textEl.textContent = 'Tỉnh/Thành Phố, Quận/Huyện, Phường/Xã';
-        inputEl.classList.remove('has-value');
+        inputEl.value = '';
     }
 }
 
-function switchLocTab(tab) {
+function switchLocTab(prefix, tab) {
     locState.currentTab = tab;
-    document.getElementById('tab_province').classList.toggle('active', tab === 'province');
-    document.getElementById('tab_district').classList.toggle('active', tab === 'district');
-    document.getElementById('tab_ward').classList.toggle('active', tab === 'ward');
+
+    ['province', 'ward'].forEach(t => {
+        const el = document.getElementById(`${prefix}_tab_${t}`);
+        if (el) {
+            if (t === tab) el.classList.add('bg-surface-container-low', 'text-primary');
+            else el.classList.remove('bg-surface-container-low', 'text-primary');
+        }
+    });
 
     if (tab === 'province') {
-        fetchProvinces();
-    } else if (tab === 'district') {
-        if (locState.province) fetchDistricts(locState.province);
-        else document.getElementById('locList').innerHTML = '<div style="padding: 20px; text-align: center; color: #10b981;">Vui lòng chọn Tỉnh/Thành Phố trước</div>';
+        fetchProvinces(prefix);
     } else if (tab === 'ward') {
-        if (locState.district) fetchWards(locState.district);
-        else document.getElementById('locList').innerHTML = '<div style="padding: 20px; text-align: center; color: #10b981;">Vui lòng chọn Quận/Huyện trước</div>';
+        if (locState.province) fetchWards(locState.province, prefix);
+        else document.getElementById(`${prefix}_locList`).innerHTML = '<div style="padding: 20px; text-align: center; color: #10b981;">Vui lòng chọn Tỉnh/Thành Phố trước</div>';
     }
 }
 
-function toggleLocPanel() {
-    const panel = document.getElementById('locPanel');
+function toggleLocPanel(prefix) {
+    const panel = document.getElementById(`${prefix}_locPanel`);
+    if (!panel) return;
+    locState.activePrefix = prefix;
     if (panel.style.display === 'block') {
         panel.style.display = 'none';
     } else {
+        document.querySelectorAll('.loc-panel').forEach(p => p.style.display = 'none');
         panel.style.display = 'block';
-        if (!locState.province) switchLocTab('province');
-        else if (!locState.district) switchLocTab('district');
-        else if (!locState.ward) switchLocTab('ward');
-        else switchLocTab('province');
+        if (!locState.province) switchLocTab(prefix, 'province');
+        else if (!locState.ward) switchLocTab(prefix, 'ward');
+        else switchLocTab(prefix, 'province');
     }
 }
 
 document.addEventListener('click', function (e) {
-    const container = document.getElementById('locPickerContainer');
-    if (container && !container.contains(e.target) && document.body.contains(e.target)) {
-        const panel = document.getElementById('locPanel');
-        if (panel) panel.style.display = 'none';
+    // Prevent hiding if the clicked element was removed from the DOM (e.g. during selectLocItem)
+    if (!document.body.contains(e.target)) return;
+
+    let clickedInside = false;
+    ['desk', 'mob'].forEach(prefix => {
+        const input = document.getElementById(`${prefix}_locPickerInputText`);
+        const panel = document.getElementById(`${prefix}_locPanel`);
+        if (input && input.contains(e.target)) clickedInside = true;
+        if (panel && panel.contains(e.target)) clickedInside = true;
+    });
+
+    if (!clickedInside) {
+        document.querySelectorAll('.loc-panel').forEach(p => p.style.display = 'none');
     }
 });
 
-function openAddressModal() {
-    document.getElementById('addressModalTitle').textContent = 'Địa chỉ mới';
-    document.getElementById('addr_id').value = '';
-    document.getElementById('addr_fullname').value = '';
-    document.getElementById('addr_phone').value = '';
-    document.getElementById('addr_specific').value = '';
-    document.getElementById('addr_province').value = '';
-    document.getElementById('addr_district').value = '';
-    document.getElementById('addr_ward').value = '';
+let leafletMapDesk = null;
+let leafletMarkerDesk = null;
+let leafletMapMob = null;
+let leafletMarkerMob = null;
 
-    locState = { province: null, district: null, ward: null, province_name: '', district_name: '', ward_name: '', currentTab: 'province' };
-    updateLocPickerText();
+function initLeafletMap(prefix, lat, lng) {
+    const defaultLat = lat || 10.73809;
+    const defaultLng = lng || 106.67812;
 
-    document.getElementById('locPickerContainer').style.display = 'block';
-    document.getElementById('fakeMapBox').style.display = 'flex';
-    document.getElementById('resetGpsBtn').style.display = 'none';
-    document.getElementById('addr_specific').readOnly = false;
+    document.getElementById(`${prefix}_addr_lat`).value = defaultLat;
+    document.getElementById(`${prefix}_addr_lng`).value = defaultLng;
 
-    setAddrType('home');
-    document.getElementById('addr_default').checked = false;
-    document.getElementById('addressModal').style.display = 'flex';
+    let map = prefix === 'desk' ? leafletMapDesk : leafletMapMob;
+    let marker = prefix === 'desk' ? leafletMarkerDesk : leafletMarkerMob;
+    const mapId = `${prefix}_leafletMap`;
+
+    if (map) {
+        map.setView([defaultLat, defaultLng], 15);
+        if (marker) {
+            marker.setLatLng([defaultLat, defaultLng]);
+        } else {
+            marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+            setupMarkerEvents(prefix, marker);
+            if (prefix === 'desk') leafletMarkerDesk = marker;
+            else leafletMarkerMob = marker;
+        }
+        return;
+    }
+
+    map = L.map(mapId).setView([defaultLat, defaultLng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    setupMarkerEvents(prefix, marker);
+
+    if (prefix === 'desk') {
+        leafletMapDesk = map;
+        leafletMarkerDesk = marker;
+    } else {
+        leafletMapMob = map;
+        leafletMarkerMob = marker;
+    }
+
+    map.on('click', function (e) {
+        const newLat = e.latlng.lat;
+        const newLng = e.latlng.lng;
+        marker.setLatLng([newLat, newLng]);
+        updateCoordinates(prefix, newLat, newLng);
+        reverseGeocode(prefix, newLat, newLng);
+    });
 }
 
-function editAddress(addr) {
-    document.getElementById('addressModalTitle').textContent = 'Cập nhật địa chỉ';
-    document.getElementById('addr_id').value = addr.id;
-    document.getElementById('addr_fullname').value = addr.fullname;
-    document.getElementById('addr_phone').value = addr.phone;
-    document.getElementById('addr_specific').value = addr.specific_address;
-    document.getElementById('addr_province').value = addr.province;
-    document.getElementById('addr_district').value = addr.district;
-    document.getElementById('addr_ward').value = addr.ward;
+function setupMarkerEvents(prefix, marker) {
+    marker.on('dragend', function (e) {
+        const position = marker.getLatLng();
+        updateCoordinates(prefix, position.lat, position.lng);
+        reverseGeocode(prefix, position.lat, position.lng);
+    });
+}
+
+function updateCoordinates(prefix, lat, lng) {
+    document.getElementById(`${prefix}_addr_lat`).value = lat;
+    document.getElementById(`${prefix}_addr_lng`).value = lng;
+}
+
+async function geocodeAddress(addressString) {
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&addressdetails=1&limit=1&email=test@example.com`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+        }
+    } catch (e) {
+        console.error("Geocoding error:", e);
+    }
+    return null;
+}
+
+async function reverseGeocode(prefix, lat, lng) {
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=vi&email=test@example.com`);
+        const data = await res.json();
+        if (data && data.address) {
+            const addr = data.address;
+            const province = addr.state || addr.province || addr.city || '';
+            
+            let district = addr.county || addr.city_district || addr.suburb || addr.town || '';
+            if (!district && addr.city && addr.city !== province) {
+                district = addr.city;
+            }
+            const ward = addr.village || addr.quarter || addr.neighbourhood || addr.residential || '';
+
+            let specific = data.display_name;
+            if (addr.road) {
+                specific = (addr.house_number ? addr.house_number + ' ' : '') + addr.road;
+            }
+
+            document.getElementById(`${prefix}_addr_province`).value = province;
+            
+            // Combine Nominatim's district and ward into our single 'ward' field
+            const combinedWard = [district, ward].filter(Boolean).join(', ');
+            
+            document.getElementById(`${prefix}_addr_ward`).value = combinedWard;
+            // Trick backend again
+            document.getElementById(`${prefix}_addr_district`).value = combinedWard;
+            document.getElementById(`${prefix}_addr_specific`).value = specific;
+
+            locState.province_name = province;
+            locState.ward_name = combinedWard;
+            locState.province = null;
+            locState.ward = null;
+            updateLocPickerText(prefix);
+        }
+    } catch (e) {
+        console.error("Reverse geocoding error:", e);
+    }
+}
+
+function openAddressModal(prefix) {
+    const isDesktop = prefix === 'desk';
+
+    if (isDesktop) {
+        document.getElementById('desktop-address-content').classList.add('hidden');
+        document.getElementById('desktop-address-form-content').classList.remove('hidden');
+    } else {
+        document.getElementById('mobile-address-content').classList.add('hidden');
+        document.getElementById('mobile-address-form-content').classList.remove('hidden');
+    }
+
+    document.getElementById(`${prefix}_addressModalTitle`).textContent = 'Thêm địa chỉ mới';
+    document.getElementById(`${prefix}_addressModalTitleBc`).textContent = 'Thêm địa chỉ mới';
+    document.getElementById(`${prefix}_addr_id`).value = '';
+    document.getElementById(`${prefix}_addr_fullname`).value = '';
+    document.getElementById(`${prefix}_addr_phone`).value = '';
+    document.getElementById(`${prefix}_addr_specific`).value = '';
+    document.getElementById(`${prefix}_addr_province`).value = '';
+    document.getElementById(`${prefix}_addr_district`).value = '';
+    document.getElementById(`${prefix}_addr_ward`).value = '';
+    document.getElementById(`${prefix}_addr_lat`).value = '';
+    document.getElementById(`${prefix}_addr_lng`).value = '';
+
+    locState = { province: null, district: null, ward: null, province_name: '', district_name: '', ward_name: '', currentTab: 'province', activePrefix: prefix };
+    updateLocPickerText(prefix);
+
+    setAddrType(prefix, 'home');
+    document.getElementById(`${prefix}_addr_default`).checked = false;
+
+    setTimeout(() => {
+        initLeafletMap(prefix);
+        let map = prefix === 'desk' ? leafletMapDesk : leafletMapMob;
+        if (map) {
+            map.invalidateSize();
+        }
+    }, 200);
+}
+
+function editAddress(prefix, addr) {
+    const isDesktop = prefix === 'desk';
+
+    if (isDesktop) {
+        document.getElementById('desktop-address-content').classList.add('hidden');
+        document.getElementById('desktop-address-form-content').classList.remove('hidden');
+    } else {
+        document.getElementById('mobile-address-content').classList.add('hidden');
+        document.getElementById('mobile-address-form-content').classList.remove('hidden');
+    }
+
+    document.getElementById(`${prefix}_addressModalTitle`).textContent = 'Cập nhật địa chỉ';
+    document.getElementById(`${prefix}_addressModalTitleBc`).textContent = 'Cập nhật địa chỉ';
+    document.getElementById(`${prefix}_addr_id`).value = addr.id;
+    document.getElementById(`${prefix}_addr_fullname`).value = addr.fullname;
+    document.getElementById(`${prefix}_addr_phone`).value = addr.phone;
+    document.getElementById(`${prefix}_addr_specific`).value = addr.specific_address;
+    document.getElementById(`${prefix}_addr_province`).value = addr.province;
+    document.getElementById(`${prefix}_addr_district`).value = addr.district;
+    document.getElementById(`${prefix}_addr_ward`).value = addr.ward;
+
+    const lat = addr.latitude ? parseFloat(addr.latitude) : null;
+    const lng = addr.longitude ? parseFloat(addr.longitude) : null;
+    document.getElementById(`${prefix}_addr_lat`).value = lat || '';
+    document.getElementById(`${prefix}_addr_lng`).value = lng || '';
 
     locState.province_name = addr.province;
     locState.district_name = addr.district;
     locState.ward_name = addr.ward;
     locState.province = null; locState.district = null; locState.ward = null;
-    updateLocPickerText();
+    updateLocPickerText(prefix);
 
-    if (addr.specific_address && addr.province && addr.specific_address.includes(addr.province)) {
-        document.getElementById('locPickerContainer').style.display = 'none';
-        document.getElementById('fakeMapBox').style.display = 'none';
-        document.getElementById('resetGpsBtn').style.display = 'flex';
-        document.getElementById('addr_specific').readOnly = true;
+    setAddrType(prefix, addr.type);
+    document.getElementById(`${prefix}_addr_default`).checked = addr.is_default == 1;
+
+    setTimeout(() => {
+        if (lat && lng) {
+            initLeafletMap(prefix, lat, lng);
+            let map = prefix === 'desk' ? leafletMapDesk : leafletMapMob;
+            if (map) map.invalidateSize();
+        } else {
+            const addressStr = `${addr.specific_address}, ${addr.ward}, ${addr.district}, ${addr.province}`;
+            geocodeAddress(addressStr).then(coords => {
+                if (coords) {
+                    initLeafletMap(prefix, coords.lat, coords.lng);
+                } else {
+                    initLeafletMap(prefix);
+                }
+                let map = prefix === 'desk' ? leafletMapDesk : leafletMapMob;
+                if (map) map.invalidateSize();
+            });
+        }
+    }, 200);
+}
+
+function closeAddressModal(prefix) {
+    const isDesktop = prefix === 'desk';
+    if (isDesktop) {
+        document.getElementById('desktop-address-form-content').classList.add('hidden');
+        document.getElementById('desktop-address-content').classList.remove('hidden');
     } else {
-        document.getElementById('locPickerContainer').style.display = 'block';
-        document.getElementById('fakeMapBox').style.display = 'flex';
-        document.getElementById('resetGpsBtn').style.display = 'none';
-        document.getElementById('addr_specific').readOnly = false;
+        document.getElementById('mobile-address-form-content').classList.add('hidden');
+        document.getElementById('mobile-address-content').classList.remove('hidden');
     }
-
-    setAddrType(addr.type);
-    document.getElementById('addr_default').checked = addr.is_default == 1;
-    document.getElementById('addressModal').style.display = 'flex';
 }
 
-function closeAddressModal() {
-    document.getElementById('addressModal').style.display = 'none';
+function setAddrType(prefix, type) {
+    document.getElementById(`${prefix}_addr_type`).value = type;
+    ['home', 'office', 'family'].forEach(t => {
+        const btn = document.getElementById(`${prefix}_btnType${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+            if (t === type) {
+                btn.classList.add('bg-primary/10', 'border-primary', 'text-primary');
+                btn.classList.remove('bg-surface-container-lowest', 'border-outline-variant', 'text-on-surface-variant');
+            } else {
+                btn.classList.remove('bg-primary/10', 'border-primary', 'text-primary');
+                btn.classList.add('bg-surface-container-lowest', 'border-outline-variant', 'text-on-surface-variant');
+            }
+        }
+    });
 }
 
-function setAddrType(type) {
-    document.getElementById('addr_type').value = type;
-    document.getElementById('btnTypeHome').classList.toggle('active', type === 'home');
-    document.getElementById('btnTypeOffice').classList.toggle('active', type === 'office');
-}
-
-async function saveAddress() {
-    const id = document.getElementById('addr_id').value;
+async function saveAddress(prefix) {
+    const id = document.getElementById(`${prefix}_addr_id`).value;
     const data = {
         _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-        fullname: document.getElementById('addr_fullname').value,
-        phone: document.getElementById('addr_phone').value,
-        province: document.getElementById('addr_province').value,
-        district: document.getElementById('addr_district').value,
-        ward: document.getElementById('addr_ward').value,
-        specific_address: document.getElementById('addr_specific').value,
-        type: document.getElementById('addr_type').value,
-        is_default: document.getElementById('addr_default').checked ? 1 : 0
+        fullname: document.getElementById(`${prefix}_addr_fullname`).value,
+        phone: document.getElementById(`${prefix}_addr_phone`).value,
+        province: document.getElementById(`${prefix}_addr_province`).value,
+        district: document.getElementById(`${prefix}_addr_district`).value,
+        ward: document.getElementById(`${prefix}_addr_ward`).value,
+        specific_address: document.getElementById(`${prefix}_addr_specific`).value,
+        type: document.getElementById(`${prefix}_addr_type`).value,
+        is_default: document.getElementById(`${prefix}_addr_default`).checked ? 1 : 0,
+        latitude: document.getElementById(`${prefix}_addr_lat`).value || null,
+        longitude: document.getElementById(`${prefix}_addr_lng`).value || null
     };
 
     if (!data.fullname || !data.phone || !data.province || !data.district || !data.ward || !data.specific_address) {
@@ -279,15 +495,15 @@ async function setDefaultAddress(id) {
     } catch (e) { alert("Có lỗi xảy ra"); }
 }
 
-async function getCurrentLocation(btn) {
-    const currentProvince = document.getElementById('addr_province').value;
-    const currentSpecific = document.getElementById('addr_specific').value.trim();
+async function getCurrentLocation(prefix, btn) {
+    const currentProvince = document.getElementById(`${prefix}_addr_province`).value;
+    const currentSpecific = document.getElementById(`${prefix}_addr_specific`).value.trim();
 
     if (currentProvince || currentSpecific) {
         if (!confirm("Bạn đã nhập địa chỉ thủ công. Bạn có chắc muốn dùng địa chỉ GPS để thay thế không?")) return;
     }
 
-    const textSpan = document.getElementById('gps-btn-text');
+    const textSpan = document.getElementById(`${prefix}_gps-btn-text`);
     const originalText = textSpan.innerText;
 
     if (!navigator.geolocation) {
@@ -297,8 +513,7 @@ async function getCurrentLocation(btn) {
 
     btn.disabled = true;
     textSpan.innerText = "Đang lấy vị trí...";
-    const originalBg = btn.style.backgroundColor;
-    btn.style.backgroundColor = '#f3f4f6';
+    btn.style.opacity = '0.5';
     btn.style.cursor = 'wait';
 
     navigator.geolocation.getCurrentPosition(async (position) => {
@@ -306,7 +521,7 @@ async function getCurrentLocation(btn) {
         const lon = position.coords.longitude;
 
         try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi&email=test@example.com`);
             const data = await res.json();
 
             if (data && data.display_name) {
@@ -315,15 +530,29 @@ async function getCurrentLocation(btn) {
                 const district = addr.county || addr.city_district || addr.suburb || addr.town || '';
                 const ward = addr.village || addr.quarter || addr.neighbourhood || addr.residential || '';
 
-                document.getElementById('addr_province').value = province;
-                document.getElementById('addr_district').value = district;
-                document.getElementById('addr_ward').value = ward;
-                document.getElementById('addr_specific').value = data.display_name;
+                document.getElementById(`${prefix}_addr_province`).value = province;
+                document.getElementById(`${prefix}_addr_district`).value = district;
+                document.getElementById(`${prefix}_addr_ward`).value = ward;
 
-                document.getElementById('locPickerContainer').style.display = 'none';
-                document.getElementById('fakeMapBox').style.display = 'none';
-                document.getElementById('resetGpsBtn').style.display = 'flex';
-                document.getElementById('addr_specific').readOnly = true;
+                let specific = data.display_name;
+                if (addr.road) {
+                    specific = (addr.house_number ? addr.house_number + ' ' : '') + addr.road;
+                }
+                document.getElementById(`${prefix}_addr_specific`).value = specific;
+
+                locState.province_name = province;
+                locState.district_name = district;
+                locState.ward_name = ward;
+                locState.province = null;
+                locState.district = null;
+                locState.ward = null;
+                updateLocPickerText(prefix);
+
+                // Initialize/update Leaflet map and marker
+                initLeafletMap(prefix, lat, lon);
+                let map = prefix === 'desk' ? leafletMapDesk : leafletMapMob;
+                if (map) map.invalidateSize();
+
                 alert("Đã tự động điền địa chỉ dựa trên GPS!");
             } else {
                 alert("Không thể chuyển đổi tọa độ thành địa chỉ.");
@@ -334,7 +563,7 @@ async function getCurrentLocation(btn) {
         } finally {
             btn.disabled = false;
             textSpan.innerText = originalText;
-            btn.style.backgroundColor = originalBg;
+            btn.style.opacity = '1';
             btn.style.cursor = 'pointer';
         }
     }, (error) => {
@@ -347,24 +576,9 @@ async function getCurrentLocation(btn) {
         alert(msg);
         btn.disabled = false;
         textSpan.innerText = originalText;
-        btn.style.backgroundColor = originalBg;
+        btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
     }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
-}
-
-function resetToManual() {
-    document.getElementById('locPickerContainer').style.display = 'block';
-    document.getElementById('fakeMapBox').style.display = 'flex';
-    document.getElementById('resetGpsBtn').style.display = 'none';
-    document.getElementById('addr_specific').readOnly = false;
-
-    document.getElementById('addr_province').value = '';
-    document.getElementById('addr_district').value = '';
-    document.getElementById('addr_ward').value = '';
-    document.getElementById('addr_specific').value = '';
-
-    locState = { province: null, district: null, ward: null, province_name: '', district_name: '', ward_name: '', currentTab: 'province' };
-    updateLocPickerText();
 }
 
 // ----- Avatar Cropper Logic -----
@@ -437,7 +651,7 @@ function showTab(tab) {
     const deskProfile = document.getElementById('desktop-profile-content');
     const deskPass = document.getElementById('desktop-password-content');
     const deskAddress = document.getElementById('desktop-address-content');
-    
+
     const mobProfile = document.getElementById('mobile-profile-content');
     const mobPass = document.getElementById('mobile-password-content');
     const mobAddress = document.getElementById('mobile-address-content');
@@ -453,7 +667,7 @@ function showTab(tab) {
     if (deskProfile) deskProfile.classList.add('hidden');
     if (deskPass) deskPass.classList.add('hidden');
     if (deskAddress) deskAddress.classList.add('hidden');
-    
+
     if (mobProfile) mobProfile.classList.add('hidden');
     if (mobPass) mobPass.classList.add('hidden');
     if (mobAddress) mobAddress.classList.add('hidden');
@@ -464,7 +678,7 @@ function showTab(tab) {
         const icon = link.querySelector('.material-symbols-outlined');
         if (icon) icon.style.fontVariationSettings = "";
     }
-    
+
     function activeLink(link) {
         if (!link) return;
         link.className = "bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md";
@@ -533,7 +747,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const targetId = this.getAttribute('data-target');
             const input = document.getElementById(targetId);
             if (!input) return;
-            
+
             const iconSpan = this.querySelector('.material-symbols-outlined');
             if (input.type === 'password') {
                 input.type = 'text';
@@ -556,10 +770,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (this === newPassDesk && newPassMob) newPassMob.value = val;
         if (this === newPassMob && newPassDesk) newPassDesk.value = val;
 
-        const confirmVal = (this === newPassDesk || this === newPassMob) 
-            ? (confirmPassDesk ? confirmPassDesk.value : '') 
+        const confirmVal = (this === newPassDesk || this === newPassMob)
+            ? (confirmPassDesk ? confirmPassDesk.value : '')
             : this.value;
-            
+
         if (this === confirmPassDesk && confirmPassMob) confirmPassMob.value = this.value;
         if (this === confirmPassMob && confirmPassDesk) confirmPassDesk.value = this.value;
 
