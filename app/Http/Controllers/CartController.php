@@ -470,6 +470,79 @@ class CartController
         ]);
     }
 
+    public function validateCoupon(Request $request)
+    {
+        $code = strtoupper(trim($request->input('coupon_code')));
+        $subtotal = floatval($request->input('subtotal', 0));
+        $userId = Auth::id();
+
+        $coupon = DB::table('promotions')->where('code', $code)->first();
+
+        if (!$coupon) {
+            return response()->json(['valid' => false, 'message' => 'Mã giảm giá không tồn tại.']);
+        }
+
+        if (!$coupon->is_active) {
+            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã ngừng hoạt động.']);
+        }
+
+        if ($coupon->end_at && now() > $coupon->end_at) {
+            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã hết hạn.']);
+        }
+
+        if ($coupon->start_at && now() < $coupon->start_at) {
+            return response()->json(['valid' => false, 'message' => 'Mã giảm giá chưa đến thời gian áp dụng.']);
+        }
+
+        if ($coupon->min_order_amount && $subtotal < $coupon->min_order_amount) {
+            return response()->json(['valid' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($coupon->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.']);
+        }
+
+        if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
+            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.']);
+        }
+
+        // Check if user already used this coupon
+        if ($userId) {
+            $hasUsed = DB::table('orders')
+                ->where('promotion_id', $coupon->id)
+                ->where('user_id', $userId)
+                ->where('status', '!=', 'cancelled')
+                ->exists();
+
+            if ($hasUsed) {
+                return response()->json(['valid' => false, 'message' => 'Bạn đã sử dụng mã giảm giá này rồi.']);
+            }
+        }
+
+        // Calculate discount
+        $discountAmount = 0;
+        if ($coupon->type === 'percent') {
+            $discountAmount = round($subtotal * ($coupon->value / 100));
+            // Cap at max discount amount if set
+            if ($coupon->max_discount_amount && $discountAmount > $coupon->max_discount_amount) {
+                $discountAmount = $coupon->max_discount_amount;
+            }
+        } else {
+            $discountAmount = $coupon->value;
+        }
+
+        // Ensure discount doesn't exceed subtotal
+        if ($discountAmount > $subtotal) {
+            $discountAmount = $subtotal;
+        }
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'Áp dụng thành công mã giảm giá ' . $code . '!',
+            'discount_amount' => $discountAmount,
+            'coupon_code' => $code,
+            'discount_value' => $coupon->value,
+            'discount_type' => $coupon->type,
+            'max_discount_amount' => $coupon->max_discount_amount
+        ]);
+    }
+
     public function calculateWeatherFee(Request $request)
     {
         $addressId = $request->query('address_id');

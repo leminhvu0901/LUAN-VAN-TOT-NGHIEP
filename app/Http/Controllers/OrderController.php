@@ -32,9 +32,9 @@ class OrderController
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->where('order_items.order_id', $order->id)
                 ->select(
-                    'order_items.*', 
-                    'products.name as product_name', 
-                    'products.image as product_image', 
+                    'order_items.*',
+                    'products.name as product_name',
+                    'products.image as product_image',
                     'products.slug as product_slug'
                 )
                 ->get();
@@ -124,9 +124,43 @@ class OrderController
         // Coupon discount
         $discountAmount = 0;
         $couponCode = null;
-        if (strtoupper($request->input('coupon_code')) === 'HAPPY') {
-            $couponCode = 'HAPPY';
-            $discountAmount = 10000;
+        $promotionId = null;
+
+        $inputCoupon = trim($request->input('coupon_code'));
+        if (!empty($inputCoupon)) {
+            $coupon = DB::table('promotions')->where('code', strtoupper($inputCoupon))->first();
+            if ($coupon && $coupon->is_active && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
+                // Check if not expired
+                $isValidDate = true;
+                if ($coupon->start_at && now() < $coupon->start_at) $isValidDate = false;
+                if ($coupon->end_at && now() > $coupon->end_at) $isValidDate = false;
+                
+                if ($isValidDate && (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount)) {
+                    // Check if user already used
+                    $hasUsed = DB::table('orders')
+                        ->where('promotion_id', $coupon->id)
+                        ->where('user_id', $userId)
+                        ->where('status', '!=', 'cancelled')
+                        ->exists();
+
+                    if (!$hasUsed) {
+                        $couponCode = $coupon->code;
+                        $promotionId = $coupon->id;
+                        if ($coupon->type === 'percent') {
+                            $discountAmount = round($subtotal * ($coupon->value / 100));
+                            if ($coupon->max_discount_amount && $discountAmount > $coupon->max_discount_amount) {
+                                $discountAmount = $coupon->max_discount_amount;
+                            }
+                        } else {
+                            $discountAmount = $coupon->value;
+                        }
+
+                        if ($discountAmount > $subtotal) {
+                            $discountAmount = $subtotal;
+                        }
+                    }
+                }
+            }
         }
 
         $finalAmount = max(0, $subtotal + $shippingFee + $weatherFee + $peakHourFee - $discountAmount);
@@ -152,8 +186,8 @@ class OrderController
                 'payment_status' => 'unpaid',
                 'status' => 'pending',
                 'coupon_code' => $couponCode,
-                'promotion_id' => null,
-                'delivery_type' => 'standard',
+                'promotion_id' => $promotionId,
+                'delivery_type' => 'delivery',
                 'estimated_time' => $estimatedTime,
                 'distance_km' => $distanceKm,
                 'weather_fee' => $weatherFee,
@@ -186,6 +220,11 @@ class OrderController
             // Clear cart items and toppings
             DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
             DB::table('cart_items')->where('cart_id', $cart->id)->delete();
+
+            // Update promotion used count
+            if ($promotionId) {
+                DB::table('promotions')->where('id', $promotionId)->increment('used_count');
+            }
 
             DB::commit();
 

@@ -361,7 +361,7 @@
                             </div>
                             <div class="flex justify-between text-sm text-primary font-bold hidden" id="summary-free-ship-row">
                                 <span>🎉 Miễn phí giao hàng (Đơn ≥ 150.000đ)</span>
-                                <span>0đ</span>
+                                
                             </div>
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium hidden" id="summary-weather-fee-row">
                                 <span>Phụ thu thời tiết (<span id="summary-weather-condition-val">Bình thường</span>)</span>
@@ -1100,29 +1100,79 @@ document.addEventListener('DOMContentLoaded', function() {
     updateBorders(paymentRadios);
 
     // Apply coupon
+    let discountPercent = 0;
+    let maxDiscountAmount = 0;
     if (applyCouponBtn && couponInput) {
         applyCouponBtn.addEventListener('click', () => {
             const code = couponInput.value.trim().toUpperCase();
-            if (code === 'HAPPY') {
-                discount = 10000;
-                couponMessage.innerText = 'Áp dụng thành công mã giảm giá HAPPY!';
-                couponMessage.className = 'text-xs text-primary font-bold mt-1';
-                discountRow.classList.remove('hidden');
-                discountText.innerText = '-10.000đ';
-                document.getElementById('hidden_coupon_code').value = 'HAPPY';
-            } else if (code === '') {
+            
+            if (code === '') {
                 discount = 0;
+                discountPercent = 0;
+                maxDiscountAmount = 0;
                 couponMessage.innerText = '';
                 discountRow.classList.add('hidden');
                 document.getElementById('hidden_coupon_code').value = '';
-            } else {
+                calculateTotal();
+                return;
+            }
+
+            const token = document.querySelector('input[name="_token"]').value;
+            const priceSummaryEl = document.getElementById('price-summary');
+            const currentSubtotal = priceSummaryEl ? parseInt(priceSummaryEl.dataset.subtotal) : 0;
+
+            couponMessage.innerText = 'Đang kiểm tra...';
+            couponMessage.className = 'text-xs text-on-surface-variant font-medium mt-1';
+
+            fetch('/checkout/validate-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({
+                    coupon_code: code,
+                    subtotal: currentSubtotal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.valid) {
+                    discount = parseFloat(data.discount_amount) || 0;
+                    if (data.discount_type === 'percent') {
+                        discountPercent = data.discount_value;
+                        maxDiscountAmount = data.max_discount_amount ? parseFloat(data.max_discount_amount) : 0;
+                    } else {
+                        discountPercent = 0;
+                        maxDiscountAmount = 0;
+                    }
+
+                    couponMessage.innerText = data.message;
+                    couponMessage.className = 'text-xs text-primary font-bold mt-1';
+                    discountRow.classList.remove('hidden');
+                    discountText.innerText = '-' + discount.toLocaleString('vi-VN') + 'đ';
+                    document.getElementById('hidden_coupon_code').value = data.coupon_code;
+                } else {
+                    discount = 0;
+                    discountPercent = 0;
+                    couponMessage.innerText = data.message;
+                    couponMessage.className = 'text-xs text-error font-bold mt-1';
+                    discountRow.classList.add('hidden');
+                    document.getElementById('hidden_coupon_code').value = '';
+                }
+                calculateTotal();
+            })
+            .catch(err => {
+                console.error(err);
                 discount = 0;
-                couponMessage.innerText = 'Mã giảm giá không hợp lệ.';
+                discountPercent = 0;
+                maxDiscountAmount = 0;
+                couponMessage.innerText = 'Có lỗi xảy ra khi kiểm tra mã.';
                 couponMessage.className = 'text-xs text-error font-bold mt-1';
                 discountRow.classList.add('hidden');
                 document.getElementById('hidden_coupon_code').value = '';
-            }
-            calculateTotal();
+                calculateTotal();
+            });
         });
     }
 
@@ -1138,6 +1188,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Shipping fee: 3000 VND per km (free if order >= 150,000)
         const distanceFee = freeShip ? 0 : Math.round(distanceKm * 3000);
+
+        // Calculate dynamic discount if it's percent based
+        if (discountPercent > 0) {
+            discount = Math.round(subtotal * (discountPercent / 100));
+            if (maxDiscountAmount && maxDiscountAmount > 0 && discount > maxDiscountAmount) {
+                discount = maxDiscountAmount;
+            }
+            if (discount > subtotal) discount = subtotal;
+            if (discountText) {
+                discountText.innerText = '-' + discount.toLocaleString('vi-VN') + 'đ';
+            }
+        }
 
         // Calculate final total
         const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - discount);

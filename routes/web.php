@@ -76,11 +76,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'store'])->name('checkout.store');
     Route::get('/checkout/distance', [App\Http\Controllers\CartController::class, 'calculateDistance']);
     Route::get('/checkout/weather-fee', [App\Http\Controllers\CartController::class, 'calculateWeatherFee']);
+    Route::get('/checkout/weather-fee-by-coords', [App\Http\Controllers\CartController::class, 'calculateWeatherFeeByCoords']);
+    Route::post('/checkout/validate-coupon', [App\Http\Controllers\CartController::class, 'validateCoupon']);
 });
 
 // Public Cart Route (View cart data)
 Route::get('/cart', [App\Http\Controllers\CartController::class, 'getCartData']);
 
-
-
+Route::get('/test-db', function() {
+    $promo = \Illuminate\Support\Facades\DB::table('promotions')->where('id', 1)->first();
+    $orders = \Illuminate\Support\Facades\DB::table('orders')->where('promotion_id', 1)->count();
+    \Illuminate\Support\Facades\Log::info('DB Check: ', ['promo' => (array) $promo, 'orders_count' => $orders]);
+    return 'done';
+});
 

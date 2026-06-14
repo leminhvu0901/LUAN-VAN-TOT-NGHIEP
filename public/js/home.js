@@ -34,7 +34,7 @@
                 isMatch = card.getAttribute('data-is-new') === '1';
             }
 
-            if (isMatch && shown < 6) {
+            if (isMatch && shown < 7) {
                 card.style.display = '';
                 shown++;
                 visibleCount++;

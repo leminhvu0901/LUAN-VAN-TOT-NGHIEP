@@ -19,24 +19,43 @@
             @endif
             <div class="home-hero__overlay"></div>
             <div class="home-hero__content">
-                <span class="home-hero__tag">🌿 Đồ uống tươi ngon</span>
-                <h1 class="home-hero__title" id="hero-title">
-                    {{ isset($banners) && $banners->count() > 0 ? $banners->first()->title : 'Thưởng thức hương vị tuyệt vời' }}
-                </h1>
-                <p class="home-hero__desc">Khám phá hơn 50+ món đồ uống thủ công, từ cà phê rang xay đến trà trái
-                    cây tươi mát.</p>
-                <div class="home-hero__actions">
-                    <a href="/products" class="home-hero__btn home-hero__btn--primary">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5">
-                            <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                        </svg>
-                        Đặt ngay
-                    </a>
-                    <a href="/products" class="home-hero__btn home-hero__btn--ghost">Xem menu</a>
+                <div class="home-hero__top">
+                    <span class="home-hero__tag">🌿 Đồ uống tươi ngon</span>
+                </div>
+
+                <div class="home-hero__middle">
+                    @php
+                        $heroTitle = isset($banners) && $banners->count() > 0 ? $banners->first()->title : 'Thưởng thức hương vị tuyệt vời';
+                        $titleLen = mb_strlen($heroTitle);
+                        $maxFs = '3.5rem';
+                        $midFs = '8cqw';
+                        if ($titleLen > 60) {
+                            $maxFs = '2.2rem';
+                            $midFs = '4.5cqw';
+                        } elseif ($titleLen > 30) {
+                            $maxFs = '2.8rem';
+                            $midFs = '6cqw';
+                        }
+                    @endphp
+                    <h1 class="home-hero__title" id="hero-title" style="--max-fs: {{ $maxFs }}; --mid-fs: {{ $midFs }};">
+                        {{ $heroTitle }}
+                    </h1>
+                </div>
+
+                <div class="home-hero__bottom">
+                    <div class="home-hero__actions">
+                        <a href="/products" class="home-hero__btn home-hero__btn--primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
+                            </svg>
+                            Đặt ngay
+                        </a>
+                        <a href="/products" class="home-hero__btn home-hero__btn--ghost">Xem menu</a>
+                    </div>
                 </div>
             </div>
-            <div class="home-hero__stats">
+            <div class="home-hero__stats" style="z-index: 10;">
                 <div class="home-hero__stat">
                     <span class="home-hero__stat-num">50+</span>
                     <span class="home-hero__stat-label">Món đồ uống</span>
@@ -228,12 +247,11 @@
             <div class="home-promo__deco home-promo__deco--2"></div>
             <div class="home-promo__body">
                 <span class="home-promo__chip">🎉 Ưu đãi đặc biệt</span>
-                <h2 class="home-promo__title">Giảm 20% cho đơn hàng đầu tiên</h2>
-                <p class="home-promo__desc">Dùng mã <strong>HAPPY20</strong> khi thanh toán. Áp dụng cho tất cả sản
-                    phẩm, không giới hạn số lượng.</p>
+                <h2 class="home-promo__title">Giảm 10% cho đơn hàng đầu tiên</h2>
+                <p class="home-promo__desc">Dùng mã <strong>NEW</strong> khi thanh toán. Áp dụng cho tất cả sản
+                    phẩm, giảm tối đa 50.000đ.</p>
                 <div class="home-promo__actions">
                     <a href="/products" class="home-promo__btn">Đặt hàng ngay</a>
-                    <span class="home-promo__expire">⏰ Kết thúc sau 2 ngày</span>
                 </div>
             </div>
             <div class="home-promo__visual">
