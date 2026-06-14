@@ -14,7 +14,7 @@ class CartController
         if (Auth::check()) {
             return ['user_id' => Auth::id()];
         }
-        
+
         $sessionId = Session::getId();
         return ['session_id' => $sessionId];
     }
@@ -22,7 +22,7 @@ class CartController
     private function getOrCreateCart()
     {
         $identifier = $this->getCartIdentifier();
-        
+
         $cart = DB::table('carts');
         if (isset($identifier['user_id'])) {
             $cart->where('user_id', $identifier['user_id']);
@@ -38,28 +38,28 @@ class CartController
             ]));
             return DB::table('carts')->where('id', $cartId)->first();
         }
-        
+
         return $cart;
     }
 
     public function getCartData()
     {
         $cart = $this->getOrCreateCart();
-        
+
         $items = DB::table('cart_items')
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.cart_id', $cart->id)
             ->select('cart_items.*', 'products.name', 'products.image')
             ->orderBy('cart_items.created_at', 'desc')
             ->get();
-            
+
         $itemIds = $items->pluck('id');
         $itemToppings = DB::table('cart_item_toppings')
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
             ->select('cart_item_toppings.cart_item_id', 'toppings.name')
             ->get();
-            
+
         $total = 0;
         foreach ($items as $item) {
             $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
@@ -101,7 +101,7 @@ class CartController
         }
 
         $toppingIds = $request->input('toppings', []);
-        
+
         if (!$productId) {
             return response()->json(['success' => false, 'message' => 'Product ID is missing']);
         }
@@ -122,7 +122,7 @@ class CartController
                 $unitPrice += $sizeRecord->price_adjustment;
             }
         }
-        
+
         // Tính giá dựa theo topping
         $tops = [];
         if (!empty($toppingIds)) {
@@ -152,9 +152,9 @@ class CartController
                 ->where('cart_item_id', $pi->id)
                 ->pluck('topping_id')
                 ->toArray();
-                
+
             sort($piToppings);
-            
+
             if ($piToppings == $reqTops) {
                 $existingItem = $pi;
                 break;
@@ -180,7 +180,7 @@ class CartController
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-            
+
             if (!empty($tops)) {
                 $inserts = [];
                 foreach ($tops as $t) {
@@ -200,7 +200,7 @@ class CartController
     public function remove(Request $request)
     {
         $itemId = $request->input('item_id');
-        
+
         if ($itemId) {
             DB::table('cart_items')->where('id', $itemId)->delete();
         }
@@ -212,7 +212,7 @@ class CartController
     {
         $itemId = $request->input('item_id');
         $quantity = $request->input('quantity');
-        
+
         if ($itemId && $quantity > 0) {
             DB::table('cart_items')
                 ->where('id', $itemId)
@@ -238,7 +238,7 @@ class CartController
             ->get();
 
         if ($favorites->isEmpty()) {
-             return $this->getCartData();
+            return $this->getCartData();
         }
 
         $cart = $this->getOrCreateCart();
@@ -248,7 +248,7 @@ class CartController
                 ->where('product_id', $product->id)
                 ->orderBy('price_adjustment', 'asc')
                 ->first();
-            
+
             $sizeName = $defaultSize ? $defaultSize->size_name : null;
             $unitPrice = $product->base_price + ($defaultSize ? $defaultSize->price_adjustment : 0);
             $sugarLevel = '100';
@@ -305,7 +305,7 @@ class CartController
         }
 
         $userId = Auth::id();
-        
+
         // Fetch user addresses
         $addresses = DB::table('user_addresses')
             ->where('user_id', $userId)
@@ -389,7 +389,7 @@ class CartController
                 if (!empty($geoData) && isset($geoData[0]['lat']) && isset($geoData[0]['lon'])) {
                     $lat = floatval($geoData[0]['lat']);
                     $lon = floatval($geoData[0]['lon']);
-                    
+
                     // Save coordinates back to database to cache it
                     DB::table('user_addresses')
                         ->where('id', $addressId)
@@ -467,6 +467,97 @@ class CartController
             'distance_km' => $distance,
             'is_mock' => true,
             'message' => 'Sử dụng khoảng cách mô phỏng dự phòng.'
+        ]);
+    }
+
+    public function calculateWeatherFee(Request $request)
+    {
+        $addressId = $request->query('address_id');
+        $distanceKm = floatval($request->query('distance_km', 0));
+        $subtotal = floatval($request->query('subtotal', 0));
+        // Nếu đơn hàng >= 150,000 thì miễn phí ship => phụ thu thời tiết cũng = 0
+        $baseShipping = $subtotal >= 150000 ? 0 : round($distanceKm * 3000);
+        $userId = Auth::id();
+
+        $address = DB::table('user_addresses')
+            ->where('id', $addressId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$address) {
+            return response()->json(['success' => false, 'message' => 'Địa chỉ không hợp lệ', 'fee' => 0], 400);
+        }
+
+        $lat = isset($address->latitude) ? $address->latitude : null;
+        $lon = isset($address->longitude) ? $address->longitude : null;
+
+        // Nếu không có tọa độ, không thể tính phí thời tiết, trả về 0
+        if (empty($lat) || empty($lon)) {
+            return response()->json([
+                'success' => true,
+                'fee' => 0,
+                'condition' => 'Bình thường',
+                'message' => 'Không có tọa độ để kiểm tra thời tiết.'
+            ]);
+        }
+
+        try {
+            $client = new \GuzzleHttp\Client();
+            $url = "https://api.open-meteo.com/v1/forecast?latitude={$lat}&longitude={$lon}&current=weather_code";
+
+            $response = $client->get($url, [
+                'verify' => false,
+                'timeout' => 5
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($data['current']['weather_code'])) {
+                $code = $data['current']['weather_code'];
+                $fee = 0;
+                $condition = 'Bình thường';
+
+                // WMO Weather interpretation codes
+                // Drizzle (Mưa phùn): 51, 53, 55
+                // Slight/Moderate Rain + Showers (Mưa nhỏ/vừa): 51, 53, 55, 61, 63, 80, 81
+                // Heavy Rain + Violent Showers (Mưa to): 65, 66, 67, 82
+                // Thunderstorm (Giông bão): 95, 96, 99
+                // Snow (Tuyết - hiếm gặp VN): 71, 73, 75, 77, 85, 86
+
+                if (in_array($code, [51, 53, 55, 61, 63, 80, 81])) {
+                    // Mưa nhỏ / mưa phùn / mưa rào nhẹ -> +5%
+                    $fee = round($baseShipping * 0.05);
+                    $condition = 'Mưa nhỏ';
+                } elseif (in_array($code, [65, 66, 67, 82])) {
+                    // Mưa to / mưa rào mạnh -> +10%
+                    $fee = round($baseShipping * 0.10);
+                    $condition = 'Mưa to';
+                } elseif (in_array($code, [95, 96, 99])) {
+                    // Giông bão -> +15%
+                    $fee = round($baseShipping * 0.15);
+                    $condition = 'Giông bão';
+                } elseif (in_array($code, [71, 73, 75, 77, 85, 86])) {
+                    // Tuyết (ít xảy ra ở VN) -> +15%
+                    $fee = round($baseShipping * 0.15);
+                    $condition = 'Có tuyết';
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'fee' => $fee,
+                    'condition' => $condition,
+                    'code' => $code
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Lỗi call API, trả về 0 để không chặn quá trình thanh toán
+        }
+
+        return response()->json([
+            'success' => true,
+            'fee' => 0,
+            'condition' => 'Bình thường',
+            'message' => 'Không thể kết nối dịch vụ thời tiết.'
         ]);
     }
 }

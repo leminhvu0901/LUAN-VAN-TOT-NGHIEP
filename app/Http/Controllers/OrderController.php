@@ -64,7 +64,8 @@ class OrderController
             'payment_method' => 'required|in:cod,momo',
             'coupon_code' => 'nullable|string',
             'note' => 'nullable|string|max:500',
-            'distance_km' => 'required|numeric|min:0|max:10'
+            'distance_km' => 'required|numeric|min:0|max:10',
+            'weather_fee' => 'nullable|numeric|min:0'
         ], [
             'distance_km.max' => 'Rất tiếc, địa chỉ của bạn quá xa (vượt quá 10km) nên cửa hàng không thể giao hàng.'
         ]);
@@ -109,14 +110,13 @@ class OrderController
             $subtotal += $item->unit_price * $item->quantity;
         }
 
-        // Calculate shipping fee and estimated time
+        // Calculate shipping fee: 3000 VND per km
+        // Free shipping for orders >= 150,000 VND
         $distanceKm = floatval($request->input('distance_km'));
+        $shippingFee = $subtotal >= 150000 ? 0 : round($distanceKm * 3000);
 
-        // Total shipping fee: 5000 VND per km
-        $shippingFee = round($distanceKm * 5000);
-
-        // Weather fee and peak hour fee removed
-        $weatherFee = 0;
+        // Weather fee from request (only applied when shipping is not free)
+        $weatherFee = $subtotal >= 150000 ? 0 : floatval($request->input('weather_fee', 0));
         $peakHourFee = 0;
 
         $estimatedTime = now()->addMinutes(45);

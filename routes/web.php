@@ -75,6 +75,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/checkout', [App\Http\Controllers\CartController::class, 'checkout'])->name('checkout');
     Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'store'])->name('checkout.store');
     Route::get('/checkout/distance', [App\Http\Controllers\CartController::class, 'calculateDistance']);
+    Route::get('/checkout/weather-fee', [App\Http\Controllers\CartController::class, 'calculateWeatherFee']);
 });
 
 // Public Cart Route (View cart data)

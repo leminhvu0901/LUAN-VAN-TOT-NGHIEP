@@ -37,6 +37,7 @@
         <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form">
             @csrf
             <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
+            <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Left: Shipping Address & Method & Payment (2 columns on desktop) -->
@@ -355,8 +356,16 @@
                                 <span id="summary-subtotal-text">{{ number_format($subtotal, 0, ',', '.') }}đ</span>
                             </div>
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium" id="summary-shipping-distance-row">
-                                <span>Phí giao hàng (<span id="summary-distance-km-val">0.0</span> km x 5.000đ)</span>
+                                <span>Phí giao hàng (<span id="summary-distance-km-val">0.0</span> km × 3.000đ)</span>
                                 <span id="summary-shipping-distance-text">0đ</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-primary font-bold hidden" id="summary-free-ship-row">
+                                <span>🎉 Miễn phí giao hàng (Đơn ≥ 150.000đ)</span>
+                                <span>0đ</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-on-surface-variant font-medium hidden" id="summary-weather-fee-row">
+                                <span>Phụ thu thời tiết (<span id="summary-weather-condition-val">Bình thường</span>)</span>
+                                <span id="summary-weather-fee-text" class="text-error font-bold">+0đ</span>
                             </div>
 
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium hidden" id="summary-discount-row">
@@ -1121,21 +1130,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const hiddenDist = document.getElementById('hidden_distance_km');
         const distanceKm = hiddenDist ? parseFloat(hiddenDist.value) : 2.5;
 
-        // 1. Total shipping fee
-        const distanceFee = Math.round(distanceKm * 5000);
-        const baseShipping = 0;
+        const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
+        const weatherFee = hiddenWeatherFee ? parseFloat(hiddenWeatherFee.value) : 0;
 
-        // Calculate shipping fee total
-        const totalShipping = baseShipping + distanceFee;
+        // Free shipping for orders >= 150,000
+        const freeShip = subtotal >= 150000;
+
+        // Shipping fee: 3000 VND per km (free if order >= 150,000)
+        const distanceFee = freeShip ? 0 : Math.round(distanceKm * 3000);
 
         // Calculate final total
-        const total = Math.max(0, subtotal + totalShipping - discount);
+        const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - discount);
 
         // Update UI
-        if (shippingBaseText) shippingBaseText.innerText = baseShipping.toLocaleString('vi-VN') + 'đ';
-        
+        if (shippingBaseText) shippingBaseText.innerText = '0đ';
         const distValEl = document.getElementById('summary-distance-km-val');
         if (distValEl) distValEl.innerText = distanceKm.toFixed(1);
+
+        const freeShipRow = document.getElementById('summary-free-ship-row');
+        const shippingDistRow = document.getElementById('summary-shipping-distance-row');
 
         if (distanceKm > 10) {
             if (orderBtn) {
@@ -1145,6 +1158,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (shippingDistanceText) shippingDistanceText.innerHTML = '<span class="text-error font-bold">Không hỗ trợ giao quá 10km</span>';
             if (totalText) totalText.innerHTML = '<span class="text-error font-bold">---</span>';
+            // Reset weather fee - ẩn hàng phụ thu và reset giá trị cũ khi địa chỉ quá xa
+            const weatherRowOver = document.getElementById('summary-weather-fee-row');
+            if (weatherRowOver) weatherRowOver.classList.add('hidden');
+            if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
         } else {
             if (orderBtn) {
                 orderBtn.disabled = false;
@@ -1152,7 +1169,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 orderBtn.innerText = selectedPayment && selectedPayment.value === 'momo' ? 'Thanh toán qua MoMo' : 'Đặt hàng (COD)';
                 orderBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
-            if (shippingDistanceText) shippingDistanceText.innerText = distanceFee.toLocaleString('vi-VN') + 'đ';
+
+            // Free ship logic
+            if (freeShip) {
+                if (freeShipRow) freeShipRow.classList.remove('hidden');
+                if (shippingDistRow) shippingDistRow.classList.add('hidden');
+                if (shippingDistanceText) shippingDistanceText.innerText = '0đ';
+                // Ẩn phụ thu thời tiết khi miễn ship
+                const weatherRow = document.getElementById('summary-weather-fee-row');
+                if (weatherRow) weatherRow.classList.add('hidden');
+                if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
+            } else {
+                if (freeShipRow) freeShipRow.classList.add('hidden');
+                if (shippingDistRow) shippingDistRow.classList.remove('hidden');
+                if (shippingDistanceText) shippingDistanceText.innerText = distanceFee.toLocaleString('vi-VN') + 'đ';
+
+                const weatherRow = document.getElementById('summary-weather-fee-row');
+                if (weatherFee > 0) {
+                    if (weatherRow) weatherRow.classList.remove('hidden');
+                    const weatherText = document.getElementById('summary-weather-fee-text');
+                    if (weatherText) weatherText.innerText = '+' + weatherFee.toLocaleString('vi-VN') + 'đ';
+                } else {
+                    if (weatherRow) weatherRow.classList.add('hidden');
+                }
+            }
+
             if (totalText) totalText.innerText = total.toLocaleString('vi-VN') + 'đ';
         }
     }
@@ -1188,14 +1229,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (hiddenDist) {
                         hiddenDist.value = distanceKm;
                     }
+                    
+                    updateWeatherFeeForAddress(addressId, distanceKm);
+                    
                     calculateTotal();
                     
                     const calcDesc = document.getElementById('distance-calc-desc');
                     if (calcDesc) {
                         if (data.is_mock) {
-                            calcDesc.innerHTML = `<span style="color:#d97706; font-weight: 600;">⚠️ ${data.message}</span><br>Phí vận chuyển: 5.000đ / km.`;
+                            calcDesc.innerHTML = `<span style="color:#d97706; font-weight: 600;">⚠️ ${data.message}</span><br>Phí vận chuyển: 3.000đ / km.`;
                         } else {
-                            calcDesc.innerHTML = `<span style="color:#15803d; font-weight: 600;">✅ Khoảng cách được tính thực tế bằng OpenRouteService API.</span><br>Phí vận chuyển: 5.000đ / km.`;
+                            calcDesc.innerHTML = `<span style="color:#15803d; font-weight: 600;">✅ Khoảng cách được tính thực tế bằng OpenRouteService API.</span><br>Phí vận chuyển: 3.000đ / km.`;
                         }
                     }
                 }
@@ -1204,6 +1248,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error fetching distance:', err);
                 const errValText = document.getElementById('distance-calc-desc');
                 if (errValText) errValText.innerText = 'Lỗi kết nối';
+            });
+    }
+
+    function updateWeatherFeeForAddress(addressId, distanceKm) {
+        if (!addressId) return;
+
+        fetch(`/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const fee = data.fee;
+                    const condition = data.condition;
+
+                    const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
+                    if (hiddenWeatherFee) hiddenWeatherFee.value = fee;
+
+                    const conditionValEl = document.getElementById('summary-weather-condition-val');
+                    if (conditionValEl) conditionValEl.innerText = condition;
+
+                    calculateTotal();
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching weather fee:', err);
             });
     }
 
@@ -1220,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (activeAddressPhone) activeAddressPhone.innerText = radio.dataset.phone;
             if (activeAddressDetails) activeAddressDetails.innerText = radio.dataset.address;
             
-            // Fetch real distance on selection change
+            // Fetch real distance on selection change, which then fetches weather
             updateDistanceForAddress(radio.value);
             
             // Highlight selected address card
