@@ -78,12 +78,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/checkout/weather-fee', [App\Http\Controllers\CartController::class, 'calculateWeatherFee']);
     Route::get('/checkout/weather-fee-by-coords', [App\Http\Controllers\CartController::class, 'calculateWeatherFeeByCoords']);
     Route::post('/checkout/validate-coupon', [App\Http\Controllers\CartController::class, 'validateCoupon']);
+
+    // MoMo Payment Routes
+    Route::post('/checkout/momo', [App\Http\Controllers\MomoController::class, 'createPayment'])->name('momo.pay');
+    Route::get('/checkout/momo/return', [App\Http\Controllers\MomoController::class, 'handleReturn'])->name('momo.return');
 });
+
+// MoMo IPN - phải public (MoMo server gọi vào, không qua auth)
+Route::post('/checkout/momo/ipn', [App\Http\Controllers\MomoController::class, 'handleIpn'])->name('momo.ipn');
 
 // Public Cart Route (View cart data)
 Route::get('/cart', [App\Http\Controllers\CartController::class, 'getCartData']);
 
-Route::get('/test-db', function() {
+Route::get('/test-db', function () {
     $promo = \Illuminate\Support\Facades\DB::table('promotions')->where('id', 1)->first();
     $orders = \Illuminate\Support\Facades\DB::table('orders')->where('promotion_id', 1)->count();
     \Illuminate\Support\Facades\Log::info('DB Check: ', ['promo' => (array) $promo, 'orders_count' => $orders]);

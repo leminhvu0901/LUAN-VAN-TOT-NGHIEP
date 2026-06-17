@@ -18,7 +18,8 @@ class OrderController
         $status = $request->query('status');
 
         $query = DB::table('orders')
-            ->where('user_id', $userId);
+            ->where('user_id', $userId)
+            ->where('payment_status', '!=', 'unpaid'); // Ẩn đơn MoMo chưa thanh toán
 
         if ($status && in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
             $query->where('status', $status);

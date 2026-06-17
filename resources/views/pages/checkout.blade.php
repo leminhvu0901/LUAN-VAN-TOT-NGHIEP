@@ -34,7 +34,9 @@
             </div>
         @endif
 
-        <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form">
+        <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form"
+              data-cod-url="{{ route('checkout.store') }}"
+              data-momo-url="{{ route('momo.pay') }}">
             @csrf
             <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
             <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
@@ -280,7 +282,7 @@
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
                                 <input type="radio" name="payment_method" value="momo" class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
-                                    <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.svg" alt="MoMo" class="w-8 h-8 rounded-lg">
+                                    <img src="{{ asset('images/payment/momo.svg') }}" alt="MoMo" class="w-8 h-8 rounded-lg" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                                     <div>
                                         <span class="block font-bold text-on-surface">Ví điện tử MoMo</span>
                                         <span class="text-xs text-on-surface-variant">Liên kết thanh toán online</span>
@@ -392,7 +394,7 @@
                             </button>
                         @elseif(!$addresses->isEmpty())
                             <button type="submit" id="order-submit-btn" class="w-full bg-primary-container text-on-primary hover:bg-[#008f00] font-bold text-center py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-98 mt-6">
-                                Đặt hàng (COD)
+                                <span id="submit-btn-text">Đặt hàng (COD)</span>
                             </button>
                         @else
                             <button type="button" disabled class="w-full bg-gray-300 text-gray-500 font-bold text-center py-3.5 rounded-xl cursor-not-allowed mt-6">
@@ -407,6 +409,44 @@
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ─── Xử lý chuyển đổi phương thức thanh toán (COD ↔ MoMo) ────────────────
+(function () {
+    const form       = document.getElementById('checkout-form');
+    const submitBtn  = document.getElementById('order-submit-btn');
+    const submitText = document.getElementById('submit-btn-text');
+    if (!form || !submitBtn || !submitText) return;
+
+    const codUrl  = form.dataset.codUrl;
+    const momoUrl = form.dataset.momoUrl;
+
+    function updateFormByPayment(method) {
+        if (method === 'momo') {
+            form.action = momoUrl;
+            submitText.textContent = '💳 Thanh toán qua MoMo';
+            submitBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]');
+            submitBtn.classList.add('bg-[#ae2070]', 'hover:bg-[#8b1a5a]');
+        } else {
+            form.action = codUrl;
+            submitText.textContent = 'Đặt hàng (COD)';
+            submitBtn.classList.add('bg-primary-container', 'hover:bg-[#008f00]');
+            submitBtn.classList.remove('bg-[#ae2070]', 'hover:bg-[#8b1a5a]');
+        }
+    }
+
+    document.querySelectorAll('input[name="payment_method"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            updateFormByPayment(this.value);
+        });
+    });
+
+    // Khởi tạo theo lựa chọn mặc định
+    const defaultChecked = document.querySelector('input[name="payment_method"]:checked');
+    if (defaultChecked) updateFormByPayment(defaultChecked.value);
+})();
+</script>
+
 <script>
 // ----- Location & Address Modal State -----
 let locState = { province: null, ward: null, province_name: '', ward_name: '', currentTab: 'province' };

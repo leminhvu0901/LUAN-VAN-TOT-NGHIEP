@@ -74,7 +74,7 @@
                         <div class="text-gray-900">Đối tác thanh toán</div>
                         <ul class="flex items-center flex-row gap-4">
                             <li>
-                                <a href="#!"><img src="{{ asset('images/payment/MoMo.svg') }}"
+                                <a href="#!"><img src="{{ asset('images/payment/momo.svg') }}"
                                         alt="momo pay" /></a>
                             </li>
 

@@ -1,11 +1,17 @@
 @php
     $favoriteProducts = collect();
+    $cartCount = 0;
     if(Auth::check()) {
         $favoriteProducts = \Illuminate\Support\Facades\DB::table('favorites')
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->where('favorites.user_id', Auth::id())
             ->select('products.*', 'favorites.id as favorite_id')
             ->get();
+
+        $cart = \Illuminate\Support\Facades\DB::table('carts')->where('user_id', Auth::id())->first();
+        if ($cart) {
+            $cartCount = \Illuminate\Support\Facades\DB::table('cart_items')->where('cart_id', $cart->id)->sum('quantity');
+        }
     }
 @endphp
 <header class="happy-navbar sticky top-0 z-50 bg-white shadow-sm" id="main-navbar">
@@ -86,7 +92,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
                         </svg>
-                        <span id="cart-badge">3</span>
+                        <span id="cart-badge" style="{{ $cartCount > 0 ? '' : 'display: none;' }}">{{ $cartCount }}</span>
                     </button>
 
                     <button id="hamburger" type="button" class="happy-navbar__icon-btn navbar-hamburger"
