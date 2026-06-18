@@ -49,7 +49,7 @@ class ProductController
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
             ->where('reviews.is_visible', 1)
-            ->select('reviews.*', 'users.name as user_name')
+            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar')
             ->orderBy('reviews.created_at', 'desc')
             ->limit(10)
             ->get();

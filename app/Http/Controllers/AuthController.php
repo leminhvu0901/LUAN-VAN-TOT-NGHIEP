@@ -205,14 +205,18 @@ class AuthController
                 $user = User::create([
                     'name' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
+                    'avatar' => $googleUser->getAvatar(),
                     'password' => Hash::make(Str::random(24)),
                     'role' => 'customer',
                     'is_active' => 1,
                     'google_id' => $googleUser->getId(),
                 ]);
             } else {
-                if (!$user->google_id) {
-                    $user->update(['google_id' => $googleUser->getId()]);
+                if (!$user->google_id || !$user->avatar) {
+                    $user->update([
+                        'google_id' => $googleUser->getId(),
+                        'avatar' => $user->avatar ?: $googleUser->getAvatar()
+                    ]);
                 }
             }
 

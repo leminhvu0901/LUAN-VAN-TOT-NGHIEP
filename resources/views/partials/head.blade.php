@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/tiny-slider.css" />
 <link rel="stylesheet" href="{{ asset('css/app.css') }}" />
 
-@if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout'))
+@if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout') || request()->routeIs('review.*'))
     <!-- Tailwind CDN & Config (Injected for generated design) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link
@@ -24,7 +24,7 @@
     @if(request()->routeIs('profile'))
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     @endif
-    @if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout'))
+    @if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout') || request()->routeIs('review.*'))
         <script src="{{ asset('js/tailwind-config-profile.js') }}"></script>
     @endif
 @endif

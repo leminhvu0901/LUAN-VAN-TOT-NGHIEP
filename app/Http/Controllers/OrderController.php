@@ -19,7 +19,11 @@ class OrderController
 
         $query = DB::table('orders')
             ->where('user_id', $userId)
-            ->where('payment_status', '!=', 'unpaid'); // Ẩn đơn MoMo chưa thanh toán
+            ->where(function ($q) {
+                $q->where('payment_method', '!=', 'momo')
+                  ->orWhereNull('payment_method')
+                  ->orWhere('payment_status', '!=', 'unpaid');
+            }); // Chỉ ẩn đơn MoMo chưa thanh toán (bị hủy/lỗi), vẫn hiện đơn COD (luôn là unpaid lúc mới đặt)
 
         if ($status && in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
             $query->where('status', $status);
@@ -41,7 +45,14 @@ class OrderController
                 ->get();
         }
 
-        return view('pages.orders', compact('orders', 'status'));
+        // Get existing reviews by this user to check which items are already reviewed
+        $reviewedItems = DB::table('reviews')
+            ->where('user_id', $userId)
+            ->whereNotNull('order_id')
+            ->select('order_id', 'product_id')
+            ->get();
+
+        return view('pages.orders', compact('orders', 'status', 'reviewedItems'));
     }
 
     public function store(Request $request)
@@ -185,6 +196,7 @@ class OrderController
                 'discount_amount' => $discountAmount,
                 'final_amount' => $finalAmount,
                 'payment_status' => 'unpaid',
+                'payment_method' => 'cod',
                 'status' => 'pending',
                 'coupon_code' => $couponCode,
                 'promotion_id' => $promotionId,

@@ -4,6 +4,22 @@
 
 @push('scripts')
     <script src="{{ asset('js/orders.js') }}"></script>
+    @if(session('open_order_id'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const orderId = {{ session('open_order_id') }};
+                if(typeof toggleOrderDetails === 'function') {
+                    toggleOrderDetails(orderId);
+                }
+                const el = document.getElementById('order-details-' + orderId);
+                if(el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300);
+        });
+    </script>
+    @endif
 @endpush
 
 @section('content')
@@ -298,9 +314,21 @@
                                                 @endif
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <span class="text-on-surface-variant font-bold">x{{ $item->quantity }}</span>
-                                            <span class="font-extrabold text-on-surface ml-4 text-sm">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                                        <div class="text-right flex flex-col items-end justify-center">
+                                            <div>
+                                                <span class="text-on-surface-variant font-bold">x{{ $item->quantity }}</span>
+                                                <span class="font-extrabold text-on-surface ml-4 text-sm">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                                            </div>
+                                            @if($order->status == 'completed')
+                                                @php
+                                                    $hasReviewed = $reviewedItems->where('order_id', $order->id)->where('product_id', $item->product_id)->isNotEmpty();
+                                                @endphp
+                                                @if($hasReviewed)
+                                                    <span class="mt-2 text-[10px] md:text-xs text-primary font-bold px-3 py-1 bg-primary/10 rounded-full border border-primary/20">Đã đánh giá</span>
+                                                @else
+                                                    <a href="{{ route('review.create', ['orderId' => $order->id, 'productId' => $item->product_id]) }}" class="mt-2 text-[10px] md:text-xs text-white bg-primary font-bold px-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95">Đánh giá</a>
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                 @endforeach

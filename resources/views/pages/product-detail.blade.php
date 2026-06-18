@@ -241,7 +241,15 @@
             @forelse($reviews as $review)
             <div class="pd-review-item">
                 <div class="pd-review-avatar">
-                    <span class="pd-review-avatar__initial">{{ mb_substr($review->user_name, 0, 1) }}</span>
+                    @if($review->user_avatar)
+                        @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
+                            <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" referrerpolicy="no-referrer">
+                        @else
+                            <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        @endif
+                    @else
+                        <span class="pd-review-avatar__initial">{{ mb_substr($review->user_name, 0, 1) }}</span>
+                    @endif
                 </div>
                 <div class="pd-review-body">
                     <div class="pd-review-header">
@@ -255,6 +263,25 @@
                     </div>
                     @if($review->comment)
                     <p class="pd-review-comment">{{ $review->comment }}</p>
+                    @endif
+                    @if($review->image)
+                    @php
+                        $images = [];
+                        $decoded = json_decode($review->image, true);
+                        if (is_array($decoded)) {
+                            $images = $decoded;
+                        } else {
+                            $images = [$review->image]; // Fallback for older single string images
+                        }
+                    @endphp
+                    <div class="pd-review-images mt-2" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        @foreach($images as $img)
+                            <img src="{{ asset('images/' . $img) }}" 
+                                 alt="Review Image" 
+                                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer;"
+                                 onclick="window.open(this.src, '_blank')">
+                        @endforeach
+                    </div>
                     @endif
                 </div>
             </div>

@@ -57,6 +57,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/change-password', [App\Http\Controllers\ProfileController::class, 'changePassword'])->name('profile.change-password');
     Route::get('/orders', [App\Http\Controllers\OrderController::class, 'index'])->name('orders');
+    Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\ReviewController::class, 'create'])->name('review.create');
+    Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\ReviewController::class, 'store'])->name('review.store');
     Route::post('/favorite/toggle', [App\Http\Controllers\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
 
     // Protected Cart Routes
