@@ -6,12 +6,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <div class="min-h-screen bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container pb-24">
     <!-- Header Page (Material Style) -->
-    <header class="bg-surface/80 backdrop-blur-md border-b border-outline-variant sticky top-16 z-40 py-4 px-6 md:px-12 flex items-center justify-between shadow-sm">
+    <header class="bg-white border-b border-outline-variant py-4 px-6 md:px-12 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
             <a href="{{ url('/') }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform md:hidden">
                 <span class="material-symbols-outlined text-primary">arrow_back</span>
             </a>
-            <h1 class="font-headline-lg text-headline-md-mobile md:text-headline-lg text-primary">Thanh toán đơn hàng</h1>
+            <h1 class="font-headline-lg text-xl md:text-headline-lg text-primary font-bold">Thanh toán đơn hàng</h1>
         </div>
         <p class="hidden md:block text-sm text-on-surface-variant font-medium">Bảo mật &amp; Đáng tin cậy</p>
     </header>
@@ -96,13 +96,13 @@
                                 <input type="hidden" name="address_id" id="selected_address_id" value="{{ $defaultAddress->id }}">
                             </div>
 
-                            <div id="address-action-buttons" class="mt-3 flex items-center gap-4">
+                            <div id="address-action-buttons" class="mt-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                                 <button type="button" class="add-address-btn text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1">
                                     <span class="material-symbols-outlined text-sm">add</span>
                                     Thêm địa chỉ mới
                                 </button>
                                 @if($addresses->count() > 1)
-                                    <button type="button" id="change-address-btn" class="text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1 ml-auto">
+                                    <button type="button" id="change-address-btn" class="text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1 sm:ml-auto">
                                         <span class="material-symbols-outlined text-sm">swap_horiz</span>
                                         Thay đổi địa chỉ
                                     </button>
@@ -169,7 +169,7 @@
                                     <!-- Left: Form Inputs -->
                                     <div class="space-y-4">
                                         <input type="hidden" id="addr_id">
-                                        <div class="grid grid-cols-2 gap-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div class="space-y-1">
                                                 <label class="text-xs font-bold text-on-surface-variant ml-1">Họ và tên</label>
                                                 <input type="text" id="addr_fullname" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Nhập họ tên">
@@ -1255,8 +1255,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (distanceKm > 10) {
             if (orderBtn) {
                 orderBtn.disabled = true;
-                orderBtn.innerText = 'Quá xa (>10km)';
-                orderBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                orderBtn.innerText = 'Chỉ giao trong 10km';
+                orderBtn.classList.add('opacity-80', 'cursor-not-allowed', 'bg-gray-300', 'text-gray-600');
+                orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary', 'bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
             }
             if (shippingDistanceText) shippingDistanceText.innerHTML = '<span class="text-error font-bold">Không hỗ trợ giao quá 10km</span>';
             if (totalText) totalText.innerHTML = '<span class="text-error font-bold">---</span>';
@@ -1268,8 +1269,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (orderBtn) {
                 orderBtn.disabled = false;
                 const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
-                orderBtn.innerText = selectedPayment && selectedPayment.value === 'momo' ? 'Thanh toán qua MoMo' : 'Đặt hàng (COD)';
-                orderBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                orderBtn.classList.remove('opacity-80', 'cursor-not-allowed', 'bg-gray-300', 'text-gray-600', 'opacity-50');
+                if (selectedPayment && selectedPayment.value === 'momo') {
+                    orderBtn.innerText = 'Thanh toán qua MoMo';
+                    orderBtn.classList.add('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
+                    orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary');
+                } else {
+                    orderBtn.innerText = 'Đặt hàng (COD)';
+                    orderBtn.classList.add('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary');
+                    orderBtn.classList.remove('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
+                }
             }
 
             // Free ship logic
