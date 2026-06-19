@@ -7138,6 +7138,16 @@ h6>a:hover,
   }
 
   /* Hero Banner */
+  .home-hero__inner {
+    min-height: 380px;
+  }
+  
+  .home-hero__img.active {
+    position: absolute;
+    height: 100%;
+    z-index: 0;
+  }
+
   .home-hero__content {
     padding: 0 2rem 3.5rem;
     max-width: 550px;

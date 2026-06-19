@@ -45,7 +45,7 @@
                 <nav class="happy-navbar__desktop-nav navbar-desktop-nav" aria-label="Điều hướng chính">
                     <a href="{{ url('/') }}" class="nav-link nav-link--active">Trang chủ</a>
                     <a href="/products" class="nav-link">Sản phẩm</a>
-                    <a href="/#promo" class="nav-link">Khuyến mãi</a>
+                    <a href="/orders" class="nav-link">Đơn hàng</a>
                     <a href="/#footer" class="nav-link">Liên hệ</a>
                 </nav>
 
@@ -126,7 +126,7 @@
             <nav class="happy-navbar__mobile-nav" aria-label="Điều hướng di động">
                 <a href="{{ url('/') }}" class="happy-navbar__mobile-link is-active"> Trang chủ</a>
                 <a href="/products" class="happy-navbar__mobile-link"> Sản phẩm</a>
-                <a href="/#promo" class="happy-navbar__mobile-link"> Khuyến mãi</a>
+                <a href="/profile/orders" class="happy-navbar__mobile-link"> Đơn hàng</a>
                 <a href="/#footer" class="happy-navbar__mobile-link"> Liên hệ</a>
             </nav>
         </div>
