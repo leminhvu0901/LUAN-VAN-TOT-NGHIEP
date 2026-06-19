@@ -172,6 +172,11 @@ class AuthController
         if (Auth::attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
             $request->session()->regenerate();
             $request->session()->put('login_method', 'email');
+
+            if (Auth::user()->role === 'admin') {
+                return redirect()->route('admin.orders.index');
+            }
+
             return redirect('/');
         }
 
@@ -222,6 +227,11 @@ class AuthController
 
             Auth::login($user);
             session()->put('login_method', 'google');
+            
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.orders.index');
+            }
+
             return redirect('/');
             
         } catch (\Exception $e) {

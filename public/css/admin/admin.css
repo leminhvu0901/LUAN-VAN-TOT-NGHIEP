@@ -1,0 +1,57 @@
+body {
+    background-color: #f9fafb;
+    color: #111827;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 24;
+}
+
+/* Global Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+}
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8; 
+}
+
+/* Specific Custom Scrollbar (Used in Tables & Tabs) */
+.custom-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white !important;
+    }
+    .print\:hidden {
+        display: none !important;
+    }
+    /* Hide sidebar and header if any */
+    .sidebar, header, #admin-sidebar {
+        display: none !important;
+    }
+    /* Adjust margins */
+    @page { margin: 0; }
+}
