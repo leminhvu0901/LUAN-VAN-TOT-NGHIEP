@@ -355,7 +355,10 @@ const updateCartUI = (data) => {
     
     // Update badge
     var badge = document.getElementById('cart-badge');
-    if (badge) badge.innerText = data.count;
+    if (badge) {
+        badge.innerText = data.count;
+        badge.style.display = data.count > 0 ? '' : 'none';
+    }
     
     // Update drawer subtitle
     var subtitle = document.getElementById('cart-drawer-subtitle');

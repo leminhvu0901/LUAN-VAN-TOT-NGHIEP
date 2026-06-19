@@ -133,60 +133,7 @@ if (navbar) {
     }, { passive: true });
 }
 
-// Wishlist toggle
-document.querySelectorAll('.home-prod-card__wishlist').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        var productId = this.getAttribute('data-id');
-        var token = document.querySelector('meta[name="csrf-token"]');
-        var _this = this;
-
-        if (!token) {
-            alert('Vui lòng đăng nhập để sử dụng tính năng này.');
-            const loginModal = document.getElementById('login-modal');
-            if (loginModal) {
-                loginModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            } else {
-                window.location.href = '/login';
-            }
-            return;
-        }
-
-        fetch('/favorite/toggle', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': token.getAttribute('content')
-            },
-            body: JSON.stringify({ product_id: productId })
-        })
-            .then(response => {
-                if (response.status === 401) {
-                    const loginModal = document.getElementById('login-modal');
-                    if (loginModal) {
-                        loginModal.style.display = 'block';
-                        document.body.style.overflow = 'hidden';
-                    } else {
-                        window.location.href = '/login';
-                    }
-                    return;
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.success) {
-                    _this.classList.toggle('is-active');
-
-                    // Update drawer UI and badge
-                    if (typeof window.updateWishlistUI === 'function') {
-                        window.updateWishlistUI(data);
-                    }
-                }
-            })
-            .catch(error => console.error('Error:', error));
-    });
-});
+// Wishlist toggle is handled globally in main.js via inline onclick handlers
 
 // Hero Auto Slider (3s)
 (function () {
