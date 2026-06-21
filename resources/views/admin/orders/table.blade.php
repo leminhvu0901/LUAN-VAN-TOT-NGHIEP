@@ -82,9 +82,6 @@
                     <a href="{{ route('admin.orders.show', $order['id']) }}" class="text-primary hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md transition-colors" title="Xem chi tiết">
                         <span class="material-symbols-outlined text-[18px]">visibility</span>
                     </a>
-                    <a href="javascript:alert('Tính năng Chỉnh sửa đang được phát triển!')" class="text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-200 p-1.5 rounded-md transition-colors" title="Chỉnh sửa">
-                        <span class="material-symbols-outlined text-[18px]">edit_square</span>
-                    </a>
                 </div>
             </td>
         </tr>

@@ -3,19 +3,15 @@
 @section('body_class', 'profile-body')
 
 @push('scripts')
-    <script src="{{ asset('js/orders.js') }}"></script>
+    <script src="{{ asset('js/frontend/orders.js') }}"></script>
     @if(session('open_order_id'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 const orderId = {{ session('open_order_id') }};
-                if(typeof toggleOrderDetails === 'function') {
-                    toggleOrderDetails(orderId);
-                }
+                if(typeof toggleOrderDetails === 'function') toggleOrderDetails(orderId);
                 const el = document.getElementById('order-details-' + orderId);
-                if(el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         });
     </script>
@@ -24,7 +20,7 @@
 
 @section('content')
 <div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0">
-    
+
     <!-- MOBILE: TopAppBar -->
     <header class="md:hidden fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center px-4 h-16 shadow-sm">
         <a href="{{ url()->previous() }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform">
@@ -90,14 +86,14 @@
                 <span class="font-bold text-sm">{{ session('success') }}</span>
             </div>
             @endif
-            
+
             <!-- DESKTOP: Heading -->
             <div class="hidden md:block mb-stack_lg">
                 <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Đơn hàng của tôi</h1>
                 <p class="font-body-md text-body-md text-on-surface-variant">Xem lại lịch sử các đơn hàng bạn đã đặt</p>
             </div>
-            
-            <!-- Status Filter Bar (Unified) -->
+
+            <!-- Status Filter Bar -->
             <div class="flex gap-2 md:gap-4 mb-6 md:mb-8 overflow-x-auto pb-2 hide-scrollbar sticky md:static top-16 z-10 bg-background/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none pt-2 md:pt-0">
                 <a href="{{ route('orders') }}" class="px-5 md:px-6 py-2 {{ !$status ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Tất cả</a>
                 <a href="{{ route('orders', ['status' => 'pending']) }}" class="px-5 md:px-6 py-2 {{ $status == 'pending' ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Chờ xác nhận</a>
@@ -107,11 +103,11 @@
                 <a href="{{ route('orders', ['status' => 'cancelled']) }}" class="px-5 md:px-6 py-2 {{ $status == 'cancelled' ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Đã hủy</a>
             </div>
 
-            <!-- Orders Container (Unified) -->
+            <!-- Orders Container -->
             <div class="space-y-4 md:space-y-6">
                 @forelse($orders as $order)
                 <div class="bg-white rounded-2xl md:rounded-xl border border-outline-variant p-4 md:p-6 shadow-sm md:shadow-none md:order-card-hover transition-all duration-300">
-                    
+
                     <!-- Card Header -->
                     <div class="flex justify-between items-start mb-3 md:mb-6 border-b border-gray-100 md:border-outline-variant pb-3 md:pb-4">
                         <div>
@@ -125,15 +121,11 @@
                             <div class="hidden md:flex items-center gap-2 mt-1">
                                 <span class="material-symbols-outlined text-sm text-on-surface-variant">local_shipping</span>
                                 <span class="text-sm text-on-surface-variant">
-                                    @if($order->delivery_type == 'delivery')
-                                        Giao hàng tận nơi
-                                    @else
-                                        Nhận tại cửa hàng
-                                    @endif
+                                    @if($order->delivery_type == 'delivery') Giao hàng tận nơi @else Nhận tại cửa hàng @endif
                                 </span>
                             </div>
                         </div>
-                        
+
                         @switch($order->status)
                             @case('pending')
                                 <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Chờ xác nhận</span>
@@ -152,12 +144,10 @@
                                 @break
                         @endswitch
                     </div>
-                    
+
                     <!-- Card Body -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between">
-                        <!-- Product Info -->
                         <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-0 flex-1 min-w-0">
-                            <!-- Mobile Image -->
                             <div class="md:hidden w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-outline-variant">
                                 @if($order->items->first())
                                     <img src="{{ asset('images/' . $order->items->first()->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" alt="Product" class="w-full h-full object-cover">
@@ -165,8 +155,7 @@
                                     <img src="{{ asset('images/products/placeholder.jpg') }}" alt="Product" class="w-full h-full object-cover">
                                 @endif
                             </div>
-                            
-                            <!-- Desktop Images -->
+
                             <div class="hidden md:flex -space-x-3 overflow-hidden">
                                 @foreach($order->items->take(2) as $item)
                                     <img alt="{{ $item->product_name }}" class="inline-block h-16 w-16 rounded-lg ring-4 ring-white object-cover bg-surface-container-low border border-outline-variant" src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
@@ -180,12 +169,9 @@
                                 <h3 class="font-bold text-gray-900 md:text-on-surface text-base truncate">
                                     {{ $order->items->first()->product_name ?? 'Sản phẩm đồ uống' }}
                                     <span class="hidden md:inline">
-                                        @if($order->items->count() > 1)
-                                            và {{ $order->items->count() - 1 }} sản phẩm khác
-                                        @endif
+                                        @if($order->items->count() > 1) và {{ $order->items->count() - 1 }} sản phẩm khác @endif
                                     </span>
                                 </h3>
-                                <!-- Mobile variations -->
                                 <p class="md:hidden text-gray-600 text-xs mt-0.5">
                                     @if($order->items->first())
                                         x{{ $order->items->first()->quantity }} • Size {{ $order->items->first()->size_name ?? 'M' }}
@@ -195,13 +181,8 @@
                                 @if($order->items->count() > 1)
                                     <p class="md:hidden text-gray-500 text-xs mt-1 font-medium">+ {{ $order->items->count() - 1 }} sản phẩm khác</p>
                                 @endif
-                                <!-- Desktop payment method -->
                                 <p class="hidden md:block text-sm text-on-surface-variant">
-                                    @if($order->payment_status == 'paid')
-                                        Đã thanh toán trực tuyến
-                                    @else
-                                        Thanh toán khi nhận hàng (COD)
-                                    @endif
+                                    @if($order->payment_status == 'paid') Đã thanh toán trực tuyến @else Thanh toán khi nhận hàng (COD) @endif
                                 </p>
                             </div>
                         </div>
@@ -219,10 +200,10 @@
                         </div>
                     </div>
 
-                    <!-- Collapsible Order Details Surcharge Breakdown & Items List -->
+                    <!-- Collapsible Order Details -->
                     <div id="order-details-{{ $order->id }}" class="hidden mt-6 pt-6 border-t border-dashed border-outline-variant/60 transition-all duration-300">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                            <!-- Deliver Details -->
+                            <!-- Delivery Details -->
                             <div class="space-y-2">
                                 <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-primary text-lg">local_shipping</span>
@@ -236,7 +217,7 @@
                                 @endif
                             </div>
 
-                            <!-- Surcharge & Price Details -->
+                            <!-- Price Details -->
                             <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/60">
                                 <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 mb-3 flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
@@ -247,33 +228,28 @@
                                         <span>Tạm tính (Sản phẩm)</span>
                                         <span class="text-on-surface font-bold">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
                                     </div>
-                                    
                                     <div class="flex justify-between">
                                         <span>Phí vận chuyển (khoảng cách: {{ number_format($order->distance_km, 1) }} km)</span>
                                         <span class="text-on-surface font-bold">{{ number_format($order->shipping_fee, 0, ',', '.') }}đ</span>
                                     </div>
-
                                     @if($order->weather_fee > 0)
                                         <div class="flex justify-between">
                                             <span>Phụ phí thời tiết</span>
                                             <span class="text-on-surface font-bold text-primary">+{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
                                         </div>
                                     @endif
-
                                     @if($order->peak_hour_fee > 0)
                                         <div class="flex justify-between">
                                             <span>Phụ phí giờ cao điểm</span>
                                             <span class="text-on-surface font-bold text-primary">+{{ number_format($order->peak_hour_fee, 0, ',', '.') }}đ</span>
                                         </div>
                                     @endif
-
                                     @if($order->discount_amount > 0)
                                         <div class="flex justify-between text-error font-bold">
                                             <span>Khuyến mãi ({{ $order->coupon_code ?? 'HAPPY' }})</span>
                                             <span>-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
                                         </div>
                                     @endif
-
                                     <div class="flex justify-between font-bold text-sm text-on-surface border-t border-outline-variant pt-2 mt-2">
                                         <span>Tổng cộng</span>
                                         <span class="text-primary text-base font-extrabold">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
@@ -282,7 +258,7 @@
                             </div>
                         </div>
 
-                        <!-- Products List inside detail -->
+                        <!-- Products List -->
                         <div class="mt-6 pt-4 border-t border-outline-variant/60">
                             <h4 class="font-bold text-on-surface text-sm mb-3 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-primary text-lg">local_cafe</span>
@@ -337,7 +313,6 @@
                     </div>
                 </div>
                 @empty
-                <!-- Empty State Placeholder -->
                 <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl md:rounded-xl border border-outline-variant p-6" id="empty-state">
                     <span class="material-symbols-outlined text-6xl text-outline-variant mb-4">shopping_cart_off</span>
                     <h3 class="text-lg md:text-xl font-bold text-on-background mb-2">Chưa có đơn hàng nào</h3>
@@ -347,7 +322,7 @@
                 @endforelse
             </div>
 
-            <!-- Pagination (Unified) -->
+            <!-- Pagination -->
             @if($orders->lastPage() > 1)
             <div class="mt-8 md:mt-12 flex justify-center items-center gap-2 pb-6 md:pb-0">
                 @if($orders->onFirstPage())
@@ -355,7 +330,7 @@
                         <span class="material-symbols-outlined text-lg md:text-base">chevron_left</span>
                     </span>
                 @else
-                    <a href="{{ $orders->previousPageUrl() }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low active:bg-surface-container-low transition-all">
+                    <a href="{{ $orders->previousPageUrl() }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-all">
                         <span class="material-symbols-outlined text-lg md:text-base">chevron_left</span>
                     </a>
                 @endif
@@ -364,12 +339,12 @@
                     @if ($page == $orders->currentPage())
                         <span class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-primary text-white text-sm md:text-base font-bold">{{ $page }}</span>
                     @else
-                        <a href="{{ $url }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant text-sm md:text-base hover:bg-surface-container-low active:bg-surface-container-low transition-all">{{ $page }}</a>
+                        <a href="{{ $url }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant text-sm md:text-base hover:bg-surface-container-low transition-all">{{ $page }}</a>
                     @endif
                 @endforeach
 
                 @if($orders->hasMorePages())
-                    <a href="{{ $orders->nextPageUrl() }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low active:bg-surface-container-low transition-all">
+                    <a href="{{ $orders->nextPageUrl() }}" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-all">
                         <span class="material-symbols-outlined text-lg md:text-base">chevron_right</span>
                     </a>
                 @else
@@ -393,7 +368,6 @@
             <span class="material-symbols-outlined">eco</span>
             <span class="font-label-md text-[11px] mt-1">Sản phẩm</span>
         </a>
-        <!-- Active Tab: Đơn hàng -->
         <a href="{{ route('orders') }}" class="flex flex-col items-center justify-center bg-primary-container/10 text-primary-container rounded-xl px-4 py-1.5 active:scale-90 transition-all duration-200">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
             <span class="font-label-md text-[12px] font-bold mt-0.5">Đơn hàng</span>

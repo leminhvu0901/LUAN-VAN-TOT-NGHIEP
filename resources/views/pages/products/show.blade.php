@@ -46,7 +46,6 @@
                          alt="{{ $product->name }}"
                          onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
-
             </div>
         </div>
 
@@ -130,9 +129,8 @@
 
             {{-- Toppings --}}
             @if($toppings->count() > 0 && mb_stripos($product->category_name, 'cà phê') === false)
-
             <div class="pd-option-group">
-                <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
+                <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
                 <div class="dropdown">
                     <button class="btn w-100 text-start topping-dropdown-btn" type="button" id="toppingDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="border-radius: 12px; padding: 14px 18px; border: 1.5px solid #e5e7eb; background: #ffffff; display: flex; justify-content: space-between; align-items: center; color: #6b7280; font-size: 15px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                         <span id="topping-summary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">Chọn topping (không bắt buộc....)</span>
@@ -209,7 +207,6 @@
         <h2 class="pd-section-title">Đánh giá từ khách hàng</h2>
 
         <div class="pd-reviews-summary">
-            {{-- Score Overview --}}
             <div class="pd-reviews-score">
                 <div class="pd-reviews-score__num">{{ number_format($product->avg_rating, 1) }}</div>
                 <div class="pd-reviews-score__stars">
@@ -220,7 +217,6 @@
                 <div class="pd-reviews-score__total">{{ $product->review_count }} đánh giá</div>
             </div>
 
-            {{-- Rating Bars --}}
             <div class="pd-rating-bars">
                 @php $totalReviews = $product->review_count ?: 1; @endphp
                 @for($star = 5; $star >= 1; $star--)
@@ -236,7 +232,6 @@
             </div>
         </div>
 
-        {{-- Review List --}}
         <div class="pd-review-list">
             @forelse($reviews as $review)
             <div class="pd-review-item">
@@ -268,18 +263,12 @@
                     @php
                         $images = [];
                         $decoded = json_decode($review->image, true);
-                        if (is_array($decoded)) {
-                            $images = $decoded;
-                        } else {
-                            $images = [$review->image]; // Fallback for older single string images
-                        }
+                        if (is_array($decoded)) { $images = $decoded; }
+                        else { $images = [$review->image]; }
                     @endphp
                     <div class="pd-review-images mt-2" style="display: flex; gap: 8px; flex-wrap: wrap;">
                         @foreach($images as $img)
-                            <img src="{{ asset('images/' . $img) }}" 
-                                 alt="Review Image" 
-                                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer;"
-                                 onclick="window.open(this.src, '_blank')">
+                            <img src="{{ asset('images/' . $img) }}" alt="Review Image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer;" onclick="window.open(this.src, '_blank')">
                         @endforeach
                     </div>
                     @endif
@@ -302,10 +291,7 @@
             @foreach($relatedProducts as $rel)
             <a href="{{ route('product.show', $rel->slug) }}" class="pd-rel-card">
                 <div class="pd-rel-card__img-wrap">
-                    <img src="{{ asset('images/' . $rel->image) }}"
-                         alt="{{ $rel->name }}"
-                         class="pd-rel-card__img"
-                         onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                    <img src="{{ asset('images/' . $rel->image) }}" alt="{{ $rel->name }}" class="pd-rel-card__img" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
                 <div class="pd-rel-card__body">
                     <p class="pd-rel-card__name">{{ $rel->name }}</p>
@@ -327,137 +313,9 @@
 
 @push('scripts')
 <script>
-(function() {
-    // ---- State ----
-    let qty = 1;
-    let basePrice = {{ $product->base_price }};
-    let sizeAdj = 0;
-    let toppingAdj = 0;
-    const productId = {{ $product->id }};
-
-    // ---- Price display ----
-    function updatePrice() {
-        const total = (basePrice + sizeAdj + toppingAdj) * qty;
-        const formatted = total.toLocaleString('vi-VN') + 'đ';
-        document.getElementById('pd-price').textContent = formatted;
-    }
-
-    // ---- Quantity ----
-    window.changeQty = function(delta) {
-        qty = Math.max(1, qty + delta);
-        document.getElementById('pd-qty-val').textContent = qty;
-        updatePrice();
-        // animate
-        const el = document.getElementById('pd-qty-val');
-        el.classList.remove('pd-qty__val--bump');
-        void el.offsetWidth;
-        el.classList.add('pd-qty__val--bump');
-    };
-
-    // ---- Size selection ----
-    window.selectSize = function(btn) {
-        document.querySelectorAll('#pd-sizes .pd-chip').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        sizeAdj = parseFloat(btn.getAttribute('data-price-adj')) || 0;
-        updatePrice();
-    };
-
-    // ---- Generic option (sugar, ice) ----
-    window.selectOption = function(btn, groupId) {
-        document.querySelectorAll('#' + groupId + ' .pd-chip').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-    };
-
-    // ---- Topping toggle (Checkbox) ----
-    window.handleToppingChange = function(inputEl = null) {
-        // Toggle selected background
-        if (inputEl) {
-            const labelEl = inputEl.closest('.topping-item-label');
-            if (inputEl.checked) {
-                labelEl.classList.add('is-selected');
-            } else {
-                labelEl.classList.remove('is-selected');
-            }
-        }
-
-        toppingAdj = 0;
-        let selectedNames = [];
-        document.querySelectorAll('.topping-checkbox:checked').forEach(cb => {
-            toppingAdj += parseFloat(cb.getAttribute('data-topping-price')) || 0;
-            selectedNames.push(cb.getAttribute('data-topping-name'));
-        });
-        updatePrice();
-        
-        // Update summary text
-        const summary = document.getElementById('topping-summary');
-        const btn = document.getElementById('toppingDropdown');
-        if (selectedNames.length > 0) {
-            summary.innerText = selectedNames.join(', ');
-            summary.style.color = '#065f46';
-            btn.style.borderColor = '#10b981';
-            btn.style.background = '#ecfdf5';
-        } else {
-            summary.innerText = 'Chọn topping (không bắt buộc)...';
-            summary.style.color = '#6b7280';
-            btn.style.borderColor = '#e5e7eb';
-            btn.style.background = '#ffffff';
-        }
-    };
-
-    // Rotate chevron on dropdown open/close
-    const toppingDropdownEl = document.getElementById('toppingDropdown');
-    if (toppingDropdownEl) {
-        toppingDropdownEl.addEventListener('show.bs.dropdown', event => {
-            toppingDropdownEl.querySelector('.dropdown-chevron').style.transform = 'rotate(180deg)';
-        });
-        toppingDropdownEl.addEventListener('hide.bs.dropdown', event => {
-            toppingDropdownEl.querySelector('.dropdown-chevron').style.transform = 'rotate(0deg)';
-        });
-    }
-
-    // ---- Add to cart from detail page ----
-    window.addToCartFromDetail = function() {
-        const btn = document.getElementById('pd-add-cart');
-        btn.disabled = true;
-        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Đang thêm...';
-
-        // Đọc các tùy chọn đang active
-        const activeSize = document.querySelector('#pd-sizes .pd-chip.is-active');
-        const activeSugar = document.querySelector('#pd-sugar .pd-chip.is-active');
-        const activeIce = document.querySelector('#pd-ice .pd-chip.is-active');
-        const activeToppings = document.querySelectorAll('.topping-checkbox:checked');
-        const toppingIds = Array.from(activeToppings).map(cb => cb.value);
-
-        const options = {
-            size_name: activeSize ? activeSize.getAttribute('data-size-name') : null,
-            sugar_level: activeSugar ? activeSugar.getAttribute('data-value') : null,
-            ice_level: activeIce ? activeIce.getAttribute('data-value') : null,
-            toppings: toppingIds
-        };
-
-        addToCart(productId, qty, options);
-
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> Thêm vào giỏ hàng';
-        }, 1200);
-    };
-
-    // ---- Image gallery ----
-    window.switchImage = function(thumb, url) {
-        document.querySelectorAll('.pd-gallery__thumb').forEach(t => t.classList.remove('is-active'));
-        thumb.classList.add('is-active');
-        const mainImg = document.getElementById('pd-main-img');
-        mainImg.style.opacity = '0';
-        setTimeout(() => {
-            mainImg.src = url;
-            mainImg.style.opacity = '1';
-        }, 180);
-    };
-
-    // Init
-    updatePrice();
-})();
+    window.productBasePrice = {{ $product->base_price }};
+    window.productId = {{ $product->id }};
 </script>
+<script src="{{ asset('js/frontend/product-show.js') }}"></script>
 @endpush
 @endsection

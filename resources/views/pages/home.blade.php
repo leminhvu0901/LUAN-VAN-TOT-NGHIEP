@@ -322,5 +322,7 @@
         </div>
     </section>
 
-    <script src="{{ asset('js/home.js') }}"></script>
+    @push('scripts')
+        <script src="{{ asset('js/frontend/home.js') }}"></script>
+    @endpush
 @endsection

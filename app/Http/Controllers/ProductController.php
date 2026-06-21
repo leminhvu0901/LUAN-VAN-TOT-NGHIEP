@@ -99,9 +99,16 @@ class ProductController
         $isHot = in_array($product->id, $top6HotProductIds);
         $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
 
-        return view('pages.product-detail', compact(
-            'product', 'sizes', 'toppings', 'reviews',
-            'ratingDistribution', 'relatedProducts', 'isFavorite', 'isHot', 'isNew'
+        return view('pages.products.show', compact(
+            'product',
+            'sizes',
+            'toppings',
+            'reviews',
+            'ratingDistribution',
+            'relatedProducts',
+            'isFavorite',
+            'isHot',
+            'isNew'
         ));
     }
 
@@ -185,6 +192,6 @@ class ProductController
             ->limit(6)
             ->pluck('product_id')->toArray();
 
-        return view('pages.products', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
+        return view('pages.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }
 }

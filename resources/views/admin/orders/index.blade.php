@@ -12,14 +12,17 @@
             <p class="text-sm text-gray-500">Theo dõi và quản lý các đơn đặt hàng từ hệ thống Happy Tea.</p>
         </div>
         <div class="flex items-center gap-3 w-full sm:w-auto">
-            <button onclick="alert('Tính năng Xuất báo cáo đang được phát triển!')" class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors flex-1 sm:flex-none">
+            <a href="{{ route('admin.orders.export', array_filter([
+                    'status'    => request('status'),
+                    'search'    => request('search'),
+                    'date_from' => request('date_from'),
+                    'date_to'   => request('date_to'),
+                ])) }}"
+               id="export-btn"
+               class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors flex-1 sm:flex-none">
                 <span class="material-symbols-outlined text-[20px]">download</span>
                 Xuất báo cáo
-            </button>
-            <a href="{{ route('admin.orders.create') }}" class="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors shadow-sm shadow-emerald-200 flex-1 sm:flex-none whitespace-nowrap">
-                <span class="material-symbols-outlined text-[20px]">add</span>
-                Tạo đơn mới
-            </a>
+            </a>            
         </div>
     </div>
 
@@ -104,55 +107,62 @@
     </div>
 
     {{-- Bottom Stats Cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-        
-        {{-- Card 1 --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0 pb-10" >
+
+        {{-- Card 1: Đơn trong ngày --}}
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mb-4 border border-blue-100">
                 <span class="material-symbols-outlined text-blue-500">shopping_bag</span>
             </div>
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ĐƠN TRONG NGÀY</p>
             <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $stats['today_orders']['value'] }}</h3>
-            <div class="flex items-center text-xs font-medium text-success">
-                <span class="material-symbols-outlined text-[14px]">trending_up</span>
+            <div class="flex items-center text-xs font-medium {{ $stats['today_orders']['is_up'] ? 'text-success' : 'text-danger' }}">
+                <span class="material-symbols-outlined text-[14px]">{{ $stats['today_orders']['is_up'] ? 'trending_up' : 'trending_down' }}</span>
                 <span class="ml-1">{{ $stats['today_orders']['trend'] }}</span>
             </div>
         </div>
 
-        {{-- Card 2 --}}
+        {{-- Card 2: Doanh thu ngày --}}
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-100">
                 <span class="material-symbols-outlined text-emerald-500">payments</span>
             </div>
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DOANH THU NGÀY</p>
             <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $stats['today_revenue']['value'] }}</h3>
-            <div class="flex items-center text-xs font-medium text-success">
-                <span class="material-symbols-outlined text-[14px]">trending_up</span>
+            <div class="flex items-center text-xs font-medium {{ $stats['today_revenue']['is_up'] ? 'text-success' : 'text-danger' }}">
+                <span class="material-symbols-outlined text-[14px]">{{ $stats['today_revenue']['is_up'] ? 'trending_up' : 'trending_down' }}</span>
                 <span class="ml-1">{{ $stats['today_revenue']['trend'] }}</span>
             </div>
         </div>
 
-        {{-- Card 3 --}}
+        {{-- Card 3: Đang chờ xử lý --}}
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center mb-4 border border-amber-100">
                 <span class="material-symbols-outlined text-amber-500">assignment_late</span>
             </div>
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ĐANG CHỜ XỬ LÝ</p>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $stats['pending_orders']['value'] }}</h3>
-            <div class="flex items-center text-xs font-medium text-gray-500">
-                <span class="ml-1">{{ $stats['pending_orders']['trend'] }}</span>
+            <h3 class="text-2xl font-bold {{ $stats['pending_orders']['value'] > 0 ? 'text-amber-600' : 'text-gray-900' }} mb-2">
+                {{ $stats['pending_orders']['value'] }}
+            </h3>
+            <div class="flex items-center text-xs font-medium {{ $stats['pending_orders']['value'] > 0 ? 'text-amber-500' : 'text-gray-400' }}">
+                @if($stats['pending_orders']['value'] > 0)
+                    <span class="material-symbols-outlined text-[14px] mr-1">notification_important</span>
+                @endif
+                <span>{{ $stats['pending_orders']['trend'] }}</span>
             </div>
         </div>
 
-        {{-- Card 4 --}}
+        {{-- Card 4: Đơn bị hủy (tháng) --}}
+        @php $cancelIsGood = $stats['cancelled_orders']['is_up']; @endphp
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center mb-4 border border-red-100">
                 <span class="material-symbols-outlined text-red-500">cancel</span>
             </div>
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">ĐƠN BỊ HỦY (THÁNG)</p>
             <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ $stats['cancelled_orders']['value'] }}</h3>
-            <div class="flex items-center text-xs font-medium text-danger">
-                <span class="material-symbols-outlined text-[14px]">trending_down</span>
+            {{-- is_up = true nghĩa là ít hủy hơn tháng trước → màu xanh (tốt) --}}
+            <div class="flex items-center text-xs font-medium {{ $cancelIsGood ? 'text-success' : 'text-danger' }}">
+                <span class="material-symbols-outlined text-[14px]">{{ $cancelIsGood ? 'trending_down' : 'trending_up' }}</span>
                 <span class="ml-1">{{ $stats['cancelled_orders']['trend'] }}</span>
             </div>
         </div>
@@ -188,156 +198,8 @@
     </div>
 </div>
 
-<script>
-    // --- Cancel Modal Logic ---
-    let currentOrderId = null;
-    let currentFormId = null;
-    let previousStatus = null;
-
-    function handleStatusChange(selectElement, orderId, oldStatus) {
-        if (selectElement.value === 'cancelled') {
-            currentOrderId = orderId;
-            currentFormId = 'form-status-' + orderId;
-            previousStatus = oldStatus;
-            document.getElementById('cancel-modal').classList.remove('hidden');
-        } else {
-            selectElement.closest('form').submit();
-        }
-    }
-
-    function closeCancelModal() {
-        document.getElementById('cancel-modal').classList.add('hidden');
-        document.getElementById('cancel-reason-input').value = '';
-        if (currentFormId) {
-            const form = document.getElementById(currentFormId);
-            if(form) form.querySelector('select').value = previousStatus;
-        }
-        currentOrderId = null;
-        currentFormId = null;
-    }
-
-    function submitCancelReason() {
-        const reason = document.getElementById('cancel-reason-input').value.trim();
-        if (!reason) {
-            alert('Vui lòng nhập lý do hủy đơn!');
-            document.getElementById('cancel-reason-input').focus();
-            return;
-        }
-        
-        if (currentFormId && currentOrderId) {
-            const form = document.getElementById(currentFormId);
-            document.getElementById('reason-' + currentOrderId).value = reason;
-            form.submit();
-        }
-    }
-
-    // --- AJAX Live Search Logic ---
-    let searchTimeout = null;
-    const form = document.getElementById('search-form');
-    const tableContainer = document.getElementById('table-container');
-    const loader = document.getElementById('table-loader');
-
-    function loadTableData(url = null) {
-        if (!url) {
-            const formData = new FormData(form);
-            const params = new URLSearchParams(formData);
-            url = form.action + '?' + params.toString();
-        }
-
-        // Update URL state (pushState)
-        window.history.pushState({}, '', url);
-
-        loader.classList.remove('hidden');
-        loader.classList.add('flex');
-
-        fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            // Because table-container contains both the loader and the overflow div,
-            // we will replace the inner content of the overflow div.
-            const wrapper = tableContainer.querySelector('.overflow-x-auto');
-            wrapper.innerHTML = html;
-            loader.classList.add('hidden');
-            loader.classList.remove('flex');
-            attachPaginationListeners();
-        })
-        .catch(err => {
-            console.error(err);
-            loader.classList.add('hidden');
-            loader.classList.remove('flex');
-        });
-    }
-
-    function handleLiveSearch() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            loadTableData();
-        }, 500); // Wait 500ms after user stops typing
-    }
-
-    document.getElementById('search-input').addEventListener('input', handleLiveSearch);
-    document.getElementById('date-from-input').addEventListener('change', handleLiveSearch);
-    document.getElementById('date-to-input').addEventListener('change', handleLiveSearch);
-
-    // Prevent default form submission on enter
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        loadTableData();
-    });
-
-    // Delegate pagination clicks so they also run through AJAX
-    function attachPaginationListeners() {
-        const wrapper = tableContainer.querySelector('.overflow-x-auto');
-        const links = wrapper.querySelectorAll('.ajax-pagination a');
-        links.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                loadTableData(this.href);
-            });
-        });
-    }
-
-    // Initial attach
-    attachPaginationListeners();
-
-    // Make Tabs use AJAX
-    const tabLinks = document.querySelectorAll('.custom-scrollbar a');
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Update Active Class visually immediately
-            tabLinks.forEach(t => {
-                t.classList.remove('font-semibold', 'text-primary', 'border-primary', 'bg-emerald-50/30');
-                t.classList.add('font-medium', 'text-gray-500', 'border-transparent');
-            });
-            this.classList.remove('font-medium', 'text-gray-500', 'border-transparent');
-            this.classList.add('font-semibold', 'text-primary', 'border-primary', 'bg-emerald-50/30');
-
-            // Find status from URL
-            const url = new URL(this.href);
-            const status = url.searchParams.get('status') || '';
-            
-            // Update hidden status input
-            let statusInput = form.querySelector('input[name="status"]');
-            if (!statusInput) {
-                statusInput = document.createElement('input');
-                statusInput.type = 'hidden';
-                statusInput.name = 'status';
-                form.appendChild(statusInput);
-            }
-            statusInput.value = status;
-
-            // Trigger Search
-            loadTableData();
-        });
-    });
-
-</script>
+@push('scripts')
+<script src="{{ asset('js/admin/orders-index.js') }}"></script>
+@endpush
 
 @endsection

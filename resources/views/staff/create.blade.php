@@ -2,11 +2,13 @@
 
 @section('title', 'Tạo đơn hàng mới (POS)')
 
+{{-- CSS cho trang POS đã được đặt trong public/css/admin/admin.css (section POS PAGE) --}}
+
 @section('content')
-<div class="h-[calc(100vh-6rem)] flex flex-col xl:flex-row gap-6 pb-4">
+<div class="flex flex-col xl:flex-row gap-4 h-full min-h-0">
     
     {{-- Left Column: Menu (7 parts out of 12) --}}
-    <div class="w-full xl:w-7/12 2xl:w-8/12 flex flex-col gap-4 h-full">
+    <div class="w-full xl:w-7/12 2xl:w-8/12 flex flex-col gap-3 h-full min-h-0">
         
         {{-- POS Header --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 shrink-0">
@@ -88,39 +90,35 @@
     </div>
 
     {{-- Right Column: Cart (5 parts out of 12) --}}
-    <div class="w-full xl:w-5/12 2xl:w-4/12 flex flex-col gap-4 h-full xl:max-h-[calc(100vh-6rem)]">
+    <div class="pos-right-col w-full xl:w-5/12 2xl:w-4/12 flex flex-col gap-3 h-full min-h-0">
         
-        {{-- Customer Info --}}
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 shrink-0">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-gray-900 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-gray-400">person</span> Khách hàng
-                </h3>
+        {{-- Customer Info - Compact --}}
+        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 shrink-0">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-gray-400 text-[18px]">person</span>
+                <span class="font-bold text-gray-900 text-sm flex-1">Khách hàng</span>
                 <span class="text-xs font-bold text-primary cursor-pointer hover:underline">THÀNH VIÊN MỚI</span>
             </div>
-            
-            <div class="relative mb-3">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">call</span>
-                <input type="text" id="customer-phone" placeholder="Nhập số điện thoại..." class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium">
-            </div>
-
-            {{-- Auto-suggested Customer --}}
-            <div class="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-                <div>
-                    <div id="customer-name" class="font-bold text-gray-900 text-sm">Khách lẻ</div>
+            <div class="flex items-center gap-2">
+                <div class="relative flex-1">
+                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[16px]">call</span>
+                    <input type="text" id="customer-phone" placeholder="Số điện thoại..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium">
                 </div>
-                <button class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-emerald-100 text-emerald-600 transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">close</span>
-                </button>
+                <div class="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg flex-shrink-0">
+                    <div id="customer-name" class="font-bold text-gray-900 text-xs">Khách lẻ</div>
+                    <button class="w-4 h-4 flex items-center justify-center text-emerald-600 hover:text-emerald-800 transition-colors">
+                        <span class="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                </div>
             </div>
         </div>
 
         {{-- Cart List --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-                <h3 class="font-bold text-gray-900">Giỏ hàng (<span id="cart-count">2</span>)</h3>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden min-h-0">
+            <div class="px-3 py-2 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h3 class="font-bold text-gray-900 text-sm">Giỏ hàng (<span id="cart-count">0</span>)</h3>
                 <button onclick="clearCart()" class="text-xs font-bold text-red-500 flex items-center gap-1 hover:bg-red-50 px-2 py-1 rounded transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">delete_sweep</span> Xóa tất cả
+                    <span class="material-symbols-outlined text-[15px]">delete_sweep</span> Xóa tất cả
                 </button>
             </div>
             
@@ -129,48 +127,48 @@
             </div>
 
             {{-- Summary --}}
-            <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0 space-y-3">
-                <div class="flex justify-between text-gray-600 text-sm">
+            <div class="px-4 py-2 border-t border-gray-100 bg-gray-50 shrink-0 space-y-1">
+                <div class="flex justify-between text-gray-600 text-xs">
                     <span>Tạm tính</span>
                     <span class="font-bold text-gray-900" id="subtotal">0đ</span>
                 </div>
-                <div class="flex justify-between text-red-500 text-sm">
-                    <span>Giảm giá (Voucher WELCOME)</span>
-                    <span class="font-bold">-15.000đ</span>
+                <div id="discount-row" class="flex justify-between text-red-500 text-xs hidden">
+                    <span id="discount-label">Giảm giá</span>
+                    <span class="font-bold" id="discount-amount">-0đ</span>
                 </div>
-                <div class="flex justify-between text-lg pt-2 border-t border-gray-200">
-                    <span class="font-bold text-gray-900">Tổng cộng</span>
-                    <span class="font-bold text-primary" id="total">0đ</span>
+                <div class="flex justify-between pt-1.5 border-t border-gray-200">
+                    <span class="font-bold text-gray-900 text-sm">Tổng cộng</span>
+                    <span class="font-bold text-primary text-base" id="total">0đ</span>
                 </div>
             </div>
         </div>
 
-        {{-- Payment Block --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 shrink-0">
-            <div class="flex items-center gap-2 mb-4">
-                <span class="material-symbols-outlined text-gray-400">payments</span>
-                <h3 class="font-bold text-gray-900 text-sm uppercase">Nghiệp vụ tiền mặt</h3>
+        {{-- Payment Block - Compact --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 shrink-0">
+            <div class="flex items-center gap-1.5 mb-2">
+                <span class="material-symbols-outlined text-gray-400 text-[18px]">payments</span>
+                <h3 class="font-bold text-gray-900 text-xs uppercase tracking-wide">Nghiệp vụ tiền mặt</h3>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tiền khách đưa</label>
-                    <input type="text" id="cash-tendered" value="200000" onkeyup="calculateChange()" class="w-full px-3 py-2 bg-white border border-green-300 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-green-700 font-bold text-right outline-none transition-all">
+                    <input type="text" id="cash-tendered" value="200.000" inputmode="numeric" class="w-full px-3 py-1.5 bg-white border border-green-300 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg text-green-700 font-bold text-right outline-none transition-all text-sm">
                 </div>
-                <div class="text-right flex flex-col justify-end pb-2">
+                <div class="text-right">
                     <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tiền thừa</label>
-                    <div id="change-amount" class="text-lg font-bold text-gray-900">0đ</div>
+                    <div id="change-amount" class="text-base font-bold text-gray-900">0đ</div>
                 </div>
             </div>
         </div>
 
-        {{-- Actions --}}
-        <div class="grid grid-cols-3 gap-3 shrink-0">
-            <button class="col-span-1 flex flex-col items-center justify-center py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition-colors font-bold text-sm">
-                <span class="material-symbols-outlined mb-1">cancel</span>
+        {{-- Actions - Compact --}}
+        <div class="grid grid-cols-3 gap-2 shrink-0">
+            <button class="col-span-1 flex items-center justify-center gap-1.5 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition-colors font-bold text-sm">
+                <span class="material-symbols-outlined text-[18px]">cancel</span>
                 Hủy đơn
             </button>
-            <button onclick="submitOrder()" class="col-span-2 flex flex-col items-center justify-center py-3 bg-primary text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-primary/30 font-bold text-lg">
-                <span class="material-symbols-outlined mb-1 text-[28px]">check_circle</span>
+            <button onclick="submitOrder()" class="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-primary/30 font-bold text-base">
+                <span class="material-symbols-outlined text-[22px]">check_circle</span>
                 Tạo đơn hàng
             </button>
         </div>
@@ -308,6 +306,7 @@
         const rawTotalStr = document.getElementById('total').innerText.replace(/\./g,'').replace('đ','');
         const total = parseInt(rawTotalStr) || 0;
         
+        // Lấy giá trị thuần số từ input đã được format (bỏ dấu chấm)
         const tenderedStr = document.getElementById('cash-tendered').value.replace(/\./g,'');
         const tendered = parseInt(tenderedStr) || 0;
         
@@ -316,10 +315,10 @@
         const changeEl = document.getElementById('change-amount');
         if(change >= 0) {
             changeEl.innerText = formatVND(change);
-            changeEl.className = 'text-lg font-bold text-gray-900';
+            changeEl.className = 'text-base font-bold text-gray-900';
         } else {
             changeEl.innerText = 'Thiếu tiền!';
-            changeEl.className = 'text-lg font-bold text-red-500';
+            changeEl.className = 'text-base font-bold text-red-500';
         }
     }
 
@@ -389,15 +388,42 @@
     });
 
     // Init
-    document.addEventListener('DOMContentLoaded', renderCart);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Thêm class page-pos vào body để kích hoạt CSS riêng cho trang POS
+        document.body.classList.add('page-pos');
+        renderCart();
+        
+        // Auto-format input tiền khách đưa
+        const cashInput = document.getElementById('cash-tendered');
+        
+        cashInput.addEventListener('input', function() {
+            // Lưu vị trí cursor
+            const selectionStart = this.selectionStart;
+            const prevLen = this.value.length;
+            
+            // Chỉ giữ lại chữ số
+            let raw = this.value.replace(/[^0-9]/g, '');
+            
+            // Giới hạn 10 chữ số (~9.999.999.999đ)
+            if (raw.length > 10) raw = raw.slice(0, 10);
+            
+            // Format với dấu chấm ngăn cách
+            const formatted = raw === '' ? '' : new Intl.NumberFormat('vi-VN').format(parseInt(raw));
+            this.value = formatted;
+            
+            // Giữ cursor ở đúng vị trí sau khi thêm dấu chấm
+            const newLen = this.value.length;
+            const diff = newLen - prevLen;
+            const newPos = Math.max(0, selectionStart + diff);
+            this.setSelectionRange(newPos, newPos);
+            
+            calculateChange();
+        });
+        
+        // Tính tiền thừa khi load trang
+        calculateChange();
+    });
 </script>
 
-<style>
-/* Remove spinner from number inputs if any */
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
-}
-</style>
+{{-- Styles moved to public/css/admin/admin.css --}}
 @endsection

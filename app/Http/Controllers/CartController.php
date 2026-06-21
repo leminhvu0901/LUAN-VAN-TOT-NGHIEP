@@ -353,7 +353,7 @@ class CartController
         $timeString = $now->format('H:i:s');
         $isClosed = ($timeString < '07:00:00' || $timeString >= '19:00:00');
 
-        return view('pages.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
+        return view('pages.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
     }
 
     public function calculateDistance(Request $request)

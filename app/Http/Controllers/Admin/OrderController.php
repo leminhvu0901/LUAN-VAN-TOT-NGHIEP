@@ -13,46 +13,73 @@ class OrderController
 {
     public function index(Request $request)
     {
-        $today = Carbon::today();
+        $today     = Carbon::today();
+        $yesterday = Carbon::yesterday();
         $currentStatus = $request->query('status');
-        
-        // Caculate real stats
-        $todayOrdersCount = DB::table('orders')->whereDate('created_at', $today)->count();
-        $todayRevenue = DB::table('orders')
-            ->whereDate('created_at', $today)
-            ->where('status', 'completed')
-            ->sum('final_amount');
-            
+
+        // ── Đơn trong ngày ──────────────────────────────────────
+        $todayOrdersCount     = DB::table('orders')->whereDate('created_at', $today)->count();
+        $yesterdayOrdersCount = DB::table('orders')->whereDate('created_at', $yesterday)->count();
+
+        // ── Doanh thu ngày (đơn hoàn thành) ─────────────────────
+        $todayRevenue     = DB::table('orders')->whereDate('created_at', $today)->where('status', 'completed')->sum('final_amount');
+        $yesterdayRevenue = DB::table('orders')->whereDate('created_at', $yesterday)->where('status', 'completed')->sum('final_amount');
+
+        // ── Đơn chờ xử lý ───────────────────────────────────────
         $pendingOrdersCount = DB::table('orders')->where('status', 'pending')->count();
-        
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
+
+        // ── Đơn hủy tháng này vs tháng trước ────────────────────
+        $now           = Carbon::now();
+        $currentMonth  = $now->month;
+        $currentYear   = $now->year;
+        $lastMonth     = $now->copy()->subMonth();
+
         $cancelledOrdersCount = DB::table('orders')
             ->whereMonth('created_at', $currentMonth)
-            ->whereYear('created_at', $currentYear)
+            ->whereYear('created_at',  $currentYear)
             ->where('status', 'cancelled')
             ->count();
 
+        $lastMonthCancelledCount = DB::table('orders')
+            ->whereMonth('created_at', $lastMonth->month)
+            ->whereYear('created_at',  $lastMonth->year)
+            ->where('status', 'cancelled')
+            ->count();
+
+        // ── Helper: tính % thay đổi ──────────────────────────────
+        $pct = function (int|float $current, int|float $previous): string {
+            if ($previous == 0) {
+                return $current > 0 ? '+100%' : '0%';
+            }
+            $diff = round((($current - $previous) / $previous) * 100, 1);
+            return ($diff >= 0 ? '+' : '') . $diff . '%';
+        };
+
+        // ── Trend labels ─────────────────────────────────────────
+        $ordersTrend   = $pct($todayOrdersCount, $yesterdayOrdersCount)   . ' so với hôm qua';
+        $revenueTrend  = $pct($todayRevenue,     $yesterdayRevenue)        . ' so với hôm qua';
+        $cancelTrend   = $pct($cancelledOrdersCount, $lastMonthCancelledCount) . ' so với tháng trước';
+
         $stats = [
             'today_orders' => [
-                'value' => $todayOrdersCount,
-                'trend' => '+0% so với hôm qua',
-                'is_up' => true
+                'value'  => $todayOrdersCount,
+                'trend'  => $ordersTrend,
+                'is_up'  => $todayOrdersCount >= $yesterdayOrdersCount,
             ],
             'today_revenue' => [
-                'value' => number_format($todayRevenue, 0, ',', '.') . 'đ',
-                'trend' => '+0% so với hôm qua',
-                'is_up' => true
+                'value'  => number_format($todayRevenue, 0, ',', '.') . 'đ',
+                'trend'  => $revenueTrend,
+                'is_up'  => $todayRevenue >= $yesterdayRevenue,
             ],
             'pending_orders' => [
-                'value' => $pendingOrdersCount,
-                'trend' => 'Cần phê duyệt gấp',
-                'is_up' => null
+                'value'  => $pendingOrdersCount,
+                'trend'  => $pendingOrdersCount > 0 ? 'Cần phê duyệt gấp' : 'Không có đơn chờ',
+                'is_up'  => null,
             ],
             'cancelled_orders' => [
-                'value' => $cancelledOrdersCount,
-                'trend' => '-0% so với tháng trước',
-                'is_up' => false
+                'value'  => $cancelledOrdersCount,
+                'trend'  => $cancelTrend,
+                'is_up'  => $cancelledOrdersCount <= $lastMonthCancelledCount, // ít hủy hơn = tốt
             ],
         ];
 
@@ -258,5 +285,104 @@ class OrderController
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    public function export(Request $request)
+    {
+        // Áp dụng cùng bộ lọc như trang index
+        $ordersQuery = DB::table('orders')->orderBy('created_at', 'desc');
+
+        $currentStatus = $request->query('status');
+        if ($currentStatus && in_array($currentStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
+            $ordersQuery->where('status', $currentStatus);
+        }
+
+        if ($request->filled('date_from')) {
+            $ordersQuery->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $ordersQuery->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        $allOrders = $ordersQuery->get();
+
+        if ($request->filled('search')) {
+            $search = mb_strtolower(trim($request->input('search')), 'UTF-8');
+            $searchAscii = Str::ascii($search);
+            $searchCode  = strtolower(str_replace('#', '', $search));
+            $searchPhone = str_replace([' ', '.', '-'], '', $search);
+
+            $allOrders = $allOrders->filter(function ($o) use ($search, $searchAscii, $searchCode, $searchPhone) {
+                $name      = mb_strtolower($o->customer_name ?? '', 'UTF-8');
+                $nameAscii = Str::ascii($name);
+                $code      = strtolower($o->order_code ?? ('hpy-' . $o->id));
+                $phone     = $o->customer_phone ?? '';
+
+                return str_contains($code, $searchCode)
+                    || str_contains($phone, $searchPhone)
+                    || str_contains($name, $search)
+                    || str_contains($nameAscii, $searchAscii);
+            });
+        }
+
+        // Map trạng thái sang tiếng Việt
+        $statusMap = [
+            'pending'   => 'Chờ xác nhận',
+            'confirmed' => 'Đã xác nhận',
+            'shipping'  => 'Đang giao',
+            'completed' => 'Hoàn thành',
+            'cancelled' => 'Đã hủy',
+        ];
+
+        // Tên file theo ngày xuất & bộ lọc
+        $filename = 'don-hang_' . now()->format('Ymd_His') . '.csv';
+
+        // Stream CSV response
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use ($allOrders, $statusMap) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM UTF-8 để Excel nhận dạng tiếng Việt đúng
+            fputs($handle, "\xEF\xBB\xBF");
+
+            // Header row
+            fputcsv($handle, [
+                'Mã đơn hàng',
+                'Tên khách hàng',
+                'Số điện thoại',
+                'Tổng tiền (VNĐ)',
+                'Phương thức thanh toán',
+                'Trạng thái thanh toán',
+                'Trạng thái đơn hàng',
+                'Loại đơn',
+                'Thời gian tạo',
+            ]);
+
+            foreach ($allOrders as $o) {
+                fputcsv($handle, [
+                    $o->order_code ?? ('#HPY-' . $o->id),
+                    $o->customer_name  ?? 'Khách lẻ',
+                    $o->customer_phone ?? '',
+                    number_format($o->final_amount, 0, ',', '.'),
+                    strtoupper($o->payment_method ?? 'COD'),
+                    $o->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán',
+                    $statusMap[$o->status] ?? $o->status,
+                    $o->delivery_type   ?? '',
+                    Carbon::parse($o->created_at)->format('d/m/Y H:i'),
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

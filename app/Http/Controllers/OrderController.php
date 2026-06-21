@@ -21,8 +21,8 @@ class OrderController
             ->where('user_id', $userId)
             ->where(function ($q) {
                 $q->where('payment_method', '!=', 'momo')
-                  ->orWhereNull('payment_method')
-                  ->orWhere('payment_status', '!=', 'unpaid');
+                    ->orWhereNull('payment_method')
+                    ->orWhere('payment_status', '!=', 'unpaid');
             }); // Chỉ ẩn đơn MoMo chưa thanh toán (bị hủy/lỗi), vẫn hiện đơn COD (luôn là unpaid lúc mới đặt)
 
         if ($status && in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
@@ -52,7 +52,7 @@ class OrderController
             ->select('order_id', 'product_id')
             ->get();
 
-        return view('pages.orders', compact('orders', 'status', 'reviewedItems'));
+        return view('pages.orders.index', compact('orders', 'status', 'reviewedItems'));
     }
 
     public function store(Request $request)
@@ -144,9 +144,11 @@ class OrderController
             if ($coupon && $coupon->is_active && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
                 // Check if not expired
                 $isValidDate = true;
-                if ($coupon->start_at && now() < $coupon->start_at) $isValidDate = false;
-                if ($coupon->end_at && now() > $coupon->end_at) $isValidDate = false;
-                
+                if ($coupon->start_at && now() < $coupon->start_at)
+                    $isValidDate = false;
+                if ($coupon->end_at && now() > $coupon->end_at)
+                    $isValidDate = false;
+
                 if ($isValidDate && (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount)) {
                     // Check if user already used
                     $hasUsed = DB::table('orders')

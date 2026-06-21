@@ -84,7 +84,7 @@ class ReviewController
             ->pluck('count', 'rating')
             ->toArray();
 
-        return view('pages.product-review', compact('order', 'product', 'reviews', 'ratingDistribution'));
+        return view('pages.products.review', compact('order', 'product', 'reviews', 'ratingDistribution'));
     }
 
     public function store(Request $request, $orderId, $productId)
@@ -143,13 +143,13 @@ class ReviewController
         // 4. Handle multiple image upload
         $imageNames = [];
         $files = $request->file('images');
-        
+
         if ($files) {
             // Ensure it's an array even if a single file is uploaded
             if (!is_array($files)) {
                 $files = [$files];
             }
-            
+
             foreach ($files as $image) {
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';

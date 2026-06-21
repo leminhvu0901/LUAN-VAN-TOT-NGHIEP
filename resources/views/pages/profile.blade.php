@@ -539,7 +539,7 @@
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<script src="{{ asset('js/profile.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('js/frontend/profile.js') }}?v={{ time() }}"></script>
 @if($errors->has('current_password') || $errors->has('new_password'))
 <script>
     document.addEventListener('DOMContentLoaded', function() {

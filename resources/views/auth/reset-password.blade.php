@@ -113,16 +113,7 @@
     </form>
 </div>
 
-<script>
-    function toggleVisibility(id) {
-        const input = document.getElementById(id);
-        if (input.type === 'password') {
-            input.type = 'text';
-        } else {
-            input.type = 'password';
-        }
-    }
-</script>
+<script src="{{ asset('js/frontend/reset-password.js') }}"></script>
 
 </body>
 </html>

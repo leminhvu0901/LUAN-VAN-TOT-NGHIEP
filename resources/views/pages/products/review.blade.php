@@ -3,10 +3,10 @@
 @section('content')
 <div class="min-h-screen bg-gray-50/50 py-8 px-4 font-body-md text-on-surface">
     <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
-        
+
         <!-- LEFT COLUMN: Product & Review Form -->
         <div class="w-full md:w-[340px] flex-shrink-0 flex flex-col gap-6">
-            
+
             <!-- Product Info Card -->
             <div class="bg-white rounded-2xl border border-outline-variant/60 p-4 shadow-sm">
                 <div class="w-full aspect-square rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-4 border border-outline-variant/30">
@@ -34,10 +34,10 @@
             <!-- Review Form Card -->
             <div class="bg-white rounded-2xl border border-outline-variant/60 p-5 shadow-sm">
                 <h2 class="font-bold text-gray-900 text-base mb-4">Viết đánh giá của bạn</h2>
-                
+
                 <form action="{{ route('review.store', ['orderId' => $order->id, 'productId' => $product->id]) }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    
+
                     <div class="mb-4">
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Đánh giá sản phẩm:</label>
                         <div class="flex items-center gap-1 cursor-pointer" id="star-rating-container">
@@ -78,13 +78,13 @@
                     </button>
                 </form>
             </div>
-            
+
         </div>
 
         <!-- RIGHT COLUMN: Customer Reviews -->
         <div class="flex-1 bg-white rounded-2xl border border-outline-variant/60 p-6 shadow-sm">
             <h2 class="font-headline-md text-2xl font-bold text-gray-900 mb-6">Đánh giá từ khách hàng</h2>
-            
+
             <!-- Filters -->
             <div class="flex flex-wrap gap-2 mb-8">
                 <button class="px-4 py-1.5 bg-[#00a82d] text-white text-sm font-bold rounded-full border border-[#00a82d]">Tất cả</button>
@@ -124,7 +124,7 @@
                             <span class="material-symbols-outlined text-[12px]">check_circle</span> ĐÃ MUA HÀNG
                         </span>
                     </div>
-                    
+
                     @if($review->comment)
                         <p class="text-sm text-gray-700 leading-relaxed">{{ $review->comment }}</p>
                     @endif
@@ -133,11 +133,8 @@
                         @php
                             $images = [];
                             $decoded = json_decode($review->image, true);
-                            if (is_array($decoded)) {
-                                $images = $decoded;
-                            } else {
-                                $images = [$review->image]; // Fallback for older single string images
-                            }
+                            if (is_array($decoded)) { $images = $decoded; }
+                            else { $images = [$review->image]; }
                         @endphp
                         <div class="mt-3 flex flex-wrap gap-2">
                             @foreach($images as $img)
@@ -159,99 +156,11 @@
                 </div>
             @endif
         </div>
-        
+
     </div>
 </div>
 
 @push('scripts')
-<script>
-    // Star Rating Logic
-    const stars = document.querySelectorAll('#star-rating-container span');
-    const ratingInput = document.getElementById('rating-input');
-    let currentRating = 0;
-
-    stars.forEach(star => {
-        star.addEventListener('mouseover', function() {
-            const val = this.getAttribute('data-value');
-            highlightStars(val);
-        });
-
-        star.addEventListener('mouseout', function() {
-            highlightStars(currentRating);
-        });
-
-        star.addEventListener('click', function() {
-            currentRating = this.getAttribute('data-value');
-            ratingInput.value = currentRating;
-            highlightStars(currentRating);
-            // Change color to solid yellow
-            stars.forEach(s => s.classList.replace('text-gray-300', 'text-yellow-400'));
-        });
-    });
-
-    function highlightStars(val) {
-        stars.forEach(star => {
-            if (star.getAttribute('data-value') <= val) {
-                star.style.fontVariationSettings = "'FILL' 1";
-                if(currentRating == 0) star.classList.replace('text-gray-300', 'text-yellow-400');
-            } else {
-                star.style.fontVariationSettings = "'FILL' 0";
-                if(currentRating == 0) star.classList.replace('text-yellow-400', 'text-gray-300');
-            }
-        });
-    }
-
-    // Image Preview Logic
-    function previewImages(input) {
-        const previewContainer = document.getElementById('image-preview-container');
-        previewContainer.innerHTML = '';
-        
-        if (input.files && input.files.length > 0) {
-            if (input.files.length > 5) {
-                alert('Chỉ được phép chọn tối đa 5 hình ảnh.');
-                input.value = '';
-                return;
-            }
-
-            // Client-side file size validation (2MB limit)
-            let hasLargeFile = false;
-            Array.from(input.files).forEach(file => {
-                if (file.size > 2 * 1024 * 1024) {
-                    hasLargeFile = true;
-                }
-            });
-
-            if (hasLargeFile) {
-                alert('Dung lượng mỗi hình ảnh không được vượt quá 2MB. Vui lòng chọn ảnh nhẹ hơn.');
-                input.value = '';
-                return;
-            }
-
-            Array.from(input.files).forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.className = 'relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200';
-                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                    previewContainer.appendChild(div);
-                }
-                reader.readAsDataURL(file);
-            });
-            
-            const clearDiv = document.createElement('div');
-            clearDiv.className = 'relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 border-dashed flex items-center justify-center cursor-pointer hover:bg-red-50 text-error transition-colors';
-            clearDiv.onclick = removeImages;
-            clearDiv.innerHTML = '<span class="material-symbols-outlined text-2xl">delete</span>';
-            previewContainer.appendChild(clearDiv);
-        }
-    }
-
-    function removeImages() {
-        const input = document.getElementById('image-upload');
-        const previewContainer = document.getElementById('image-preview-container');
-        input.value = '';
-        previewContainer.innerHTML = '';
-    }
-</script>
+<script src="{{ asset('js/frontend/product-review.js') }}"></script>
 @endpush
 @endsection
