@@ -57,7 +57,7 @@ class MomoController
         ]);
 
         // ── 2. Lấy địa chỉ ────────────────────────────────────────────────────
-        $address = DB::table('user_addresses')
+        $address = \App\Models\UserAddress::query()
             ->where('id', $request->input('address_id'))
             ->where('user_id', $userId)
             ->first();
@@ -67,7 +67,7 @@ class MomoController
         }
 
         // ── 3. Xóa đơn MoMo cũ còn pending/unpaid (user đã hủy trước đó) ─────
-        $oldPendingOrders = DB::table('orders')
+        $oldPendingOrders = \App\Models\Order::query()
             ->where('user_id', $userId)
             ->where('payment_method', 'momo')
             ->where('payment_status', 'unpaid')
@@ -75,27 +75,27 @@ class MomoController
             ->get();
 
         foreach ($oldPendingOrders as $oldOrder) {
-            DB::table('order_items')->where('order_id', $oldOrder->id)->delete();
+            \App\Models\OrderItem::query()->where('order_id', $oldOrder->id)->delete();
             if ($oldOrder->promotion_id) {
-                DB::table('promotions')->where('id', $oldOrder->promotion_id)->decrement('used_count');
+                \App\Models\Promotion::query()->where('id', $oldOrder->promotion_id)->decrement('used_count');
             }
-            DB::table('orders')->where('id', $oldOrder->id)->delete();
+            \App\Models\Order::query()->where('id', $oldOrder->id)->delete();
         }
 
         // ── 4. Lấy giỏ hàng ───────────────────────────────────────────────────
-        $cart = DB::table('carts')->where('user_id', $userId)->first();
+        $cart = \App\Models\Cart::query()->where('user_id', $userId)->first();
         if (!$cart) {
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $cartItems = DB::table('cart_items')->where('cart_id', $cart->id)->get();
+        $cartItems = \App\Models\CartItem::query()->where('cart_id', $cart->id)->get();
         if ($cartItems->isEmpty()) {
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
         // ── 4. Tính tiền ───────────────────────────────────────────────────────
         $itemIds = $cartItems->pluck('id');
-        $cartToppings = DB::table('cart_item_toppings')
+        $cartToppings = \App\Models\CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
             ->select('cart_item_toppings.cart_item_id', 'toppings.name', 'toppings.price')
@@ -118,7 +118,7 @@ class MomoController
 
         $inputCoupon = trim($request->input('coupon_code'));
         if (!empty($inputCoupon)) {
-            $coupon = DB::table('promotions')->where('code', strtoupper($inputCoupon))->first();
+            $coupon = \App\Models\Promotion::query()->where('code', strtoupper($inputCoupon))->first();
             if ($coupon && $coupon->is_active && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
                 $isValidDate = true;
                 if ($coupon->start_at && now() < $coupon->start_at)
@@ -127,7 +127,7 @@ class MomoController
                     $isValidDate = false;
 
                 if ($isValidDate && (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount)) {
-                    $hasUsed = DB::table('orders')
+                    $hasUsed = \App\Models\Order::query()
                         ->where('promotion_id', $coupon->id)
                         ->where('user_id', $userId)
                         ->where('status', '!=', 'cancelled')
@@ -159,7 +159,7 @@ class MomoController
         // ── 6. Lưu đơn hàng + order items vào DB (CHƯA xóa giỏ hàng) ──────────
         DB::beginTransaction();
         try {
-            $orderId = DB::table('orders')->insertGetId([
+            $orderId = \App\Models\Order::query()->insertGetId([
                 'order_code' => $orderCode,
                 'user_id' => $userId,
                 'customer_name' => $address->fullname,
@@ -188,7 +188,7 @@ class MomoController
                 $toppings = $cartToppings->where('cart_item_id', $item->id)->pluck('name')->toArray();
                 $toppingsList = json_encode($toppings, JSON_UNESCAPED_UNICODE);
 
-                DB::table('order_items')->insert([
+                \App\Models\OrderItem::query()->insert([
                     'order_id' => $orderId,
                     'product_id' => $item->product_id,
                     'size_name' => $item->size_name,
@@ -203,7 +203,7 @@ class MomoController
 
             // Tăng used_count coupon (nếu có)
             if ($promotionId) {
-                DB::table('promotions')->where('id', $promotionId)->increment('used_count');
+                \App\Models\Promotion::query()->where('id', $promotionId)->increment('used_count');
             }
 
             DB::commit();
@@ -264,10 +264,10 @@ class MomoController
             }
 
             // ❌ MoMo không trả payUrl → hủy đơn hàng đã tạo (giỏ hàng vẫn còn)
-            DB::table('order_items')->where('order_id', $orderId)->delete();
-            DB::table('orders')->where('id', $orderId)->delete();
+            \App\Models\OrderItem::query()->where('order_id', $orderId)->delete();
+            \App\Models\Order::query()->where('id', $orderId)->delete();
             if ($promotionId) {
-                DB::table('promotions')->where('id', $promotionId)->decrement('used_count');
+                \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
             }
 
             $errMessage = $result['message'] ?? 'Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.';
@@ -275,10 +275,10 @@ class MomoController
 
         } catch (\Exception $e) {
             // ❌ Lỗi network → hủy đơn hàng (giỏ hàng vẫn còn)
-            DB::table('order_items')->where('order_id', $orderId)->delete();
-            DB::table('orders')->where('id', $orderId)->delete();
+            \App\Models\OrderItem::query()->where('order_id', $orderId)->delete();
+            \App\Models\Order::query()->where('id', $orderId)->delete();
             if ($promotionId) {
-                DB::table('promotions')->where('id', $promotionId)->decrement('used_count');
+                \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
             }
 
             Log::error('MoMo API error: ' . $e->getMessage());
@@ -299,9 +299,9 @@ class MomoController
 
         if ($resultCode == '0') {
             // ✅ Thanh toán thành công - cập nhật đơn hàng + xóa giỏ hàng
-            $order = DB::table('orders')->where('order_code', $orderId)->first();
+            $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
             if ($order && $order->payment_status === 'unpaid') {
-                DB::table('orders')
+                \App\Models\Order::query()
                     ->where('order_code', $orderId)
                     ->update([
                         'payment_status' => 'paid',
@@ -310,11 +310,11 @@ class MomoController
                     ]);
 
                 // Xóa giỏ hàng sau khi thanh toán thành công
-                $cart = DB::table('carts')->where('user_id', $order->user_id)->first();
+                $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
                 if ($cart) {
-                    $cartItemIds = DB::table('cart_items')->where('cart_id', $cart->id)->pluck('id');
-                    DB::table('cart_item_toppings')->whereIn('cart_item_id', $cartItemIds)->delete();
-                    DB::table('cart_items')->where('cart_id', $cart->id)->delete();
+                    $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
+                    \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
+                    \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
                 }
             }
 
@@ -322,15 +322,15 @@ class MomoController
         }
 
         // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán
-        $order = DB::table('orders')->where('order_code', $orderId)->first();
+        $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
         if ($order && in_array($order->payment_status, ['unpaid', 'failed'])) {
             // Xóa hoàn toàn đơn hàng khỏi DB → giỏ hàng vẫn còn nguyên
-            DB::table('order_items')->where('order_id', $order->id)->delete();
-            DB::table('orders')->where('id', $order->id)->delete();
+            \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
+            \App\Models\Order::query()->where('id', $order->id)->delete();
 
             // Hoàn lại lượt sử dụng mã giảm giá (nếu có)
             if ($order->promotion_id) {
-                DB::table('promotions')->where('id', $order->promotion_id)->decrement('used_count');
+                \App\Models\Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
             }
         }
 
@@ -373,14 +373,14 @@ class MomoController
         $orderId = $data['orderId'];
         $resultCode = (int) $data['resultCode'];
 
-        $order = DB::table('orders')->where('order_code', $orderId)->first();
+        $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
         if (!$order) {
             return response()->json(['message' => 'Order not found'], 404);
         }
 
         if ($resultCode === 0) {
             // ✅ Thanh toán thành công
-            DB::table('orders')
+            \App\Models\Order::query()
                 ->where('order_code', $orderId)
                 ->update([
                     'payment_status' => 'paid',
@@ -389,23 +389,23 @@ class MomoController
                 ]);
 
             // Xóa giỏ hàng (safety backup - phòng trường hợp handleReturn chưa xóa)
-            $cart = DB::table('carts')->where('user_id', $order->user_id)->first();
+            $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
             if ($cart) {
-                $cartItemIds = DB::table('cart_items')->where('cart_id', $cart->id)->pluck('id');
+                $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
                 if ($cartItemIds->isNotEmpty()) {
-                    DB::table('cart_item_toppings')->whereIn('cart_item_id', $cartItemIds)->delete();
-                    DB::table('cart_items')->where('cart_id', $cart->id)->delete();
+                    \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
+                    \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
                 }
             }
 
             Log::info("MoMo IPN: Order {$orderId} marked as PAID");
         } else {
             // Thanh toán thất bại → Xóa luôn đơn hàng (để không rác lịch sử của user)
-            DB::table('order_items')->where('order_id', $order->id)->delete();
-            DB::table('orders')->where('id', $order->id)->delete();
+            \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
+            \App\Models\Order::query()->where('id', $order->id)->delete();
 
             if ($order->promotion_id) {
-                DB::table('promotions')->where('id', $order->promotion_id)->decrement('used_count');
+                \App\Models\Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
             }
             Log::info("MoMo IPN: Order {$orderId} marked as FAILED (resultCode={$resultCode})");
         }

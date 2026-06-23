@@ -2,44 +2,61 @@
 <html lang="vi">
 
 <head>
+    {{-- @yield('title'): Nơi các trang con sẽ truyền tiêu đề (title) vào. Nếu không truyền, mặc định sẽ là 'Happy Tea'
+    --}}
     <title>@yield('title', 'Happy Tea')</title>
+
+    {{-- @include: Nạp nội dung từ file resources/views/components/head.blade.php vào đây (thường chứa các thẻ meta,
+    link CSS) --}}
     @include('components.head')
 </head>
 
+{{-- @yield('body_class'): Cho phép trang con tự thêm class CSS riêng vào thẻ body (vd: class 'home-page' cho trang chủ)
+--}}
+
 <body class="@yield('body_class')">
 
+    {{-- Nạp thanh điều hướng phía trên (Header/Navbar) - hiển thị chung cho mọi trang --}}
     @include('components.navbar')
 
+    {{-- Phần thân chính của trang web --}}
     <main>
+        {{-- @yield('content'): Điểm nối vô cùng quan trọng. Nội dung chính của các trang con (home, products,
+        profile...) sẽ được "nhét" vào đúng vị trí này --}}
         @yield('content')
     </main>
 
+    {{-- Nạp chân trang (Footer) - hiển thị chung ở cuối mọi trang --}}
     @include('components.footer')
 
-    {{-- Modals xác thực --}}
+    {{-- ===== MODALS XÁC THỰC ===== --}}
+    {{-- Các file này chứa mã HTML của các hộp thoại (popup) bị ẩn đi. Chúng chỉ hiện lên khi JavaScript kích hoạt. Nạp
+    sẵn ở layout để trang nào cũng có thể gọi popup đăng nhập --}}
     @include('auth.login')
     @include('auth.register')
     @include('auth.forgot-password')
     @include('auth.verify-otp')
 
-    {{-- Modal tài khoản (chỉ khi đã đăng nhập) --}}
-    @auth
-        @include('components.user-profile-modal')
-    @endauth
 
-    {{-- Scripts --}}
-    <!-- Libs JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- ===== SCRIPTS ===== --}}
+    <!-- Thư viện Javascript bên thứ 3 (Thanh cuộn mượt, Slider/Carousel) -->
     <script src="https://cdn.jsdelivr.net/npm/simplebar@6.2.5/dist/simplebar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/min/tiny-slider.js"></script>
+
+    <!-- Code Javascript tự viết chung cho cả hệ thống (Giỏ hàng, Yêu thích...) -->
     <script src="{{ asset('js/frontend/main.js') }}"></script>
+
+    <!-- Các script plugin tĩnh được đặt trong thư mục public/js/vendors -->
     <script src="{{ asset('js/vendors/countdown.js') }}"></script>
     <script src="{{ asset('js/vendors/tns-slider.js') }}"></script>
     <script src="{{ asset('js/vendors/zoom.js') }}"></script>
     <script src="{{ asset('js/vendors/swiper.js') }}"></script>
     <script src="{{ asset('js/vendors/validation.js') }}"></script>
 
+    {{-- @stack('scripts'): Khác với @yield, @stack cho phép nhiều trang con cùng "đẩy" (@push) các đoạn mã script bổ
+    sung vào vị trí này. Rất hữu ích khi một trang cụ thể cần chạy một file JS riêng biệt --}}
     @stack('scripts')
 
 </body>

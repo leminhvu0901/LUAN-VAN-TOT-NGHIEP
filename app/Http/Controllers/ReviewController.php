@@ -18,7 +18,7 @@ class ReviewController
         $userId = Auth::id();
 
         // 1. Verify order belongs to user and is completed
-        $order = DB::table('orders')
+        $order = \App\Models\Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
             ->where('status', 'completed')
@@ -29,7 +29,7 @@ class ReviewController
         }
 
         // 2. Verify product is in the order
-        $orderItem = DB::table('order_items')
+        $orderItem = \App\Models\OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->first();
@@ -39,7 +39,7 @@ class ReviewController
         }
 
         // 3. Verify not already reviewed
-        $existingReview = DB::table('reviews')
+        $existingReview = \App\Models\Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
@@ -50,7 +50,7 @@ class ReviewController
         }
 
         // 4. Get product details (similar to ProductController)
-        $product = DB::table('products')
+        $product = \App\Models\Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -67,7 +67,7 @@ class ReviewController
         }
 
         // 5. Get existing reviews for this product
-        $reviews = DB::table('reviews')
+        $reviews = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $productId)
             ->where('reviews.is_visible', 1)
@@ -76,7 +76,7 @@ class ReviewController
             ->limit(10)
             ->get();
 
-        $ratingDistribution = DB::table('reviews')
+        $ratingDistribution = \App\Models\Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
             ->selectRaw('rating, COUNT(*) as count')
@@ -84,7 +84,7 @@ class ReviewController
             ->pluck('count', 'rating')
             ->toArray();
 
-        return view('pages.products.review', compact('order', 'product', 'reviews', 'ratingDistribution'));
+        return view('frontend.products.review', compact('order', 'product', 'reviews', 'ratingDistribution'));
     }
 
     public function store(Request $request, $orderId, $productId)
@@ -114,13 +114,13 @@ class ReviewController
         ]);
 
         // 2. Verify order and item again
-        $order = DB::table('orders')
+        $order = \App\Models\Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
             ->where('status', 'completed')
             ->first();
 
-        $orderItem = DB::table('order_items')
+        $orderItem = \App\Models\OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->first();
@@ -130,7 +130,7 @@ class ReviewController
         }
 
         // 3. Verify not already reviewed
-        $existingReview = DB::table('reviews')
+        $existingReview = \App\Models\Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
@@ -162,7 +162,7 @@ class ReviewController
         $imageJson = empty($imageNames) ? null : json_encode($imageNames);
 
         // 5. Insert review
-        DB::table('reviews')->insert([
+        \App\Models\Review::query()->insert([
             'user_id' => $userId,
             'product_id' => $productId,
             'order_id' => $orderId,

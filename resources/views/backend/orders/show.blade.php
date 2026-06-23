@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('backend.layouts.app')
 
 @section('title', 'Chi tiết Đơn hàng ' . $order->order_code)
 

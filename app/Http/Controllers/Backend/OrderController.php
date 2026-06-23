@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Backend;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,15 +18,15 @@ class OrderController
         $currentStatus = $request->query('status');
 
         // ── Đơn trong ngày ──────────────────────────────────────
-        $todayOrdersCount     = DB::table('orders')->whereDate('created_at', $today)->count();
-        $yesterdayOrdersCount = DB::table('orders')->whereDate('created_at', $yesterday)->count();
+        $todayOrdersCount     = \App\Models\Order::query()->whereDate('created_at', $today)->count();
+        $yesterdayOrdersCount = \App\Models\Order::query()->whereDate('created_at', $yesterday)->count();
 
         // ── Doanh thu ngày (đơn hoàn thành) ─────────────────────
-        $todayRevenue     = DB::table('orders')->whereDate('created_at', $today)->where('status', 'completed')->sum('final_amount');
-        $yesterdayRevenue = DB::table('orders')->whereDate('created_at', $yesterday)->where('status', 'completed')->sum('final_amount');
+        $todayRevenue     = \App\Models\Order::query()->whereDate('created_at', $today)->where('status', 'completed')->sum('final_amount');
+        $yesterdayRevenue = \App\Models\Order::query()->whereDate('created_at', $yesterday)->where('status', 'completed')->sum('final_amount');
 
         // ── Đơn chờ xử lý ───────────────────────────────────────
-        $pendingOrdersCount = DB::table('orders')->where('status', 'pending')->count();
+        $pendingOrdersCount = \App\Models\Order::query()->where('status', 'pending')->count();
 
         // ── Đơn hủy tháng này vs tháng trước ────────────────────
         $now           = Carbon::now();
@@ -34,13 +34,13 @@ class OrderController
         $currentYear   = $now->year;
         $lastMonth     = $now->copy()->subMonth();
 
-        $cancelledOrdersCount = DB::table('orders')
+        $cancelledOrdersCount = \App\Models\Order::query()
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at',  $currentYear)
             ->where('status', 'cancelled')
             ->count();
 
-        $lastMonthCancelledCount = DB::table('orders')
+        $lastMonthCancelledCount = \App\Models\Order::query()
             ->whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at',  $lastMonth->year)
             ->where('status', 'cancelled')
@@ -84,7 +84,7 @@ class OrderController
         ];
 
         // Pagination and real data
-        $ordersQuery = DB::table('orders')->orderBy('created_at', 'desc');
+        $ordersQuery = \App\Models\Order::query()->orderBy('created_at', 'desc');
         
         if ($currentStatus && in_array($currentStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
             $ordersQuery->where('status', $currentStatus);
@@ -163,10 +163,10 @@ class OrderController
         }
 
         if ($request->ajax() || $request->has('ajax')) {
-            return view('admin.orders.partials.table', compact('orders', 'paginator', 'currentStatus'))->render();
+            return view('backend.orders.table', compact('orders', 'paginator', 'currentStatus'))->render();
         }
 
-        return view('admin.orders.index', compact('stats', 'orders', 'paginator', 'currentStatus'));
+        return view('backend.orders.index', compact('stats', 'orders', 'paginator', 'currentStatus'));
     }
 
     public function updateStatus(Request $request, $id)
@@ -185,7 +185,7 @@ class OrderController
             $updateData['cancel_reason'] = $request->input('cancel_reason');
         }
 
-        DB::table('orders')
+        \App\Models\Order::query()
             ->where('id', $id)
             ->update($updateData);
 
@@ -193,25 +193,25 @@ class OrderController
     }
     public function show($id)
     {
-        $order = DB::table('orders')->where('id', $id)->first();
+        $order = \App\Models\Order::query()->where('id', $id)->first();
         if (!$order) {
             return redirect()->route('admin.orders.index')->with('error', 'Không tìm thấy đơn hàng!');
         }
 
-        $items = DB::table('order_items')
+        $items = \App\Models\OrderItem::query()
             ->leftJoin('products', 'order_items.product_id', '=', 'products.id')
             ->where('order_items.order_id', $id)
             ->select('order_items.*', 'products.name as product_name', 'products.image as product_image')
             ->get();
 
-        return view('admin.orders.show', compact('order', 'items'));
+        return view('backend.orders.show', compact('order', 'items'));
     }
 
     public function create()
     {
         // Fetch categories if table exists, otherwise mock
         $categories = Schema::hasTable('categories') 
-            ? DB::table('categories')->get() 
+            ? \App\Models\Category::query()->get() 
             : collect([
                 (object)['id' => 1, 'name' => 'Cà phê'],
                 (object)['id' => 2, 'name' => 'Trà sữa'],
@@ -221,10 +221,10 @@ class OrderController
 
         // Fetch products
         $products = Schema::hasTable('products') 
-            ? DB::table('products')->get() 
+            ? \App\Models\Product::query()->get() 
             : collect([]); // If no table, return empty
 
-        return view('admin.orders.create', compact('categories', 'products'));
+        return view('backend.orders.create', compact('categories', 'products'));
     }
 
     public function store(Request $request)
@@ -244,7 +244,7 @@ class OrderController
 
             DB::beginTransaction();
 
-            $orderId = DB::table('orders')->insertGetId([
+            $orderId = \App\Models\Order::query()->insertGetId([
                 'order_code' => $orderCode,
                 'customer_name' => $request->input('customer_name', 'Khách lẻ'),
                 'customer_phone' => $request->input('customer_phone', ''),
@@ -260,7 +260,7 @@ class OrderController
             ]);
 
             foreach ($items as $item) {
-                DB::table('order_items')->insert([
+                \App\Models\OrderItem::query()->insert([
                     'order_id' => $orderId,
                     'product_id' => $item['id'],
                     'size_name' => 'M', // Default for POS fast order
@@ -290,7 +290,7 @@ class OrderController
     public function export(Request $request)
     {
         // Áp dụng cùng bộ lọc như trang index
-        $ordersQuery = DB::table('orders')->orderBy('created_at', 'desc');
+        $ordersQuery = \App\Models\Order::query()->orderBy('created_at', 'desc');
 
         $currentStatus = $request->query('status');
         if ($currentStatus && in_array($currentStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {

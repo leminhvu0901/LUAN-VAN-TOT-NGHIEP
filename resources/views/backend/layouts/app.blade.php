@@ -13,14 +13,14 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="{{ asset('js/admin/tailwind-config.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('css/admin/admin.css') }}">
+    <script src="{{ asset('js/backend/tailwind-config.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}">
     @stack('styles')
 </head>
 <body class="flex h-screen overflow-hidden antialiased">
     
     {{-- Sidebar (Desktop & Mobile Drawer) --}}
-    @include('admin.components.sidebar')
+    @include('backend.components.sidebar')
 
     {{-- Main Content --}}
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f8fafc]">
@@ -47,7 +47,7 @@
     {{-- Overlay cho mobile sidebar --}}
     <div id="sidebar-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 hidden lg:hidden transition-opacity"></div>
 
-    <script src="{{ asset('js/admin/layout.js') }}"></script>
+    <script src="{{ asset('js/backend/layout.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

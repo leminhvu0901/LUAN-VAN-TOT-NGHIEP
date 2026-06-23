@@ -11,7 +11,7 @@ class ProductController
     public function show($slug)
     {
         // 1. Find Product by slug
-        $product = DB::table('products')
+        $product = \App\Models\Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -31,13 +31,13 @@ class ProductController
         }
 
         // 2. Get Sizes
-        $sizes = DB::table('product_sizes')
+        $sizes = \App\Models\ProductSize::query()
             ->where('product_id', $product->id)
             ->orderBy('price_adjustment')
             ->get();
 
         // 3. Get Toppings
-        $toppings = DB::table('toppings')
+        $toppings = \App\Models\Topping::query()
             ->join('product_toppings', 'toppings.id', '=', 'product_toppings.topping_id')
             ->where('product_toppings.product_id', $product->id)
             ->where('toppings.is_available', 1)
@@ -45,7 +45,7 @@ class ProductController
             ->get();
 
         // 4. Get Reviews with User Info
-        $reviews = DB::table('reviews')
+        $reviews = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
             ->where('reviews.is_visible', 1)
@@ -55,7 +55,7 @@ class ProductController
             ->get();
 
         // 5. Rating distribution
-        $ratingDistribution = DB::table('reviews')
+        $ratingDistribution = \App\Models\Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
             ->selectRaw('rating, COUNT(*) as count')
@@ -64,7 +64,7 @@ class ProductController
             ->toArray();
 
         // 6. Related Products (same category)
-        $relatedProducts = DB::table('products')
+        $relatedProducts = \App\Models\Product::query()
             ->select(
                 'products.*',
                 DB::raw('COALESCE(r2.avg_rating, 0) as avg_rating'),
@@ -82,14 +82,14 @@ class ProductController
         // 7. Wishlist status
         $isFavorite = false;
         if (Auth::check()) {
-            $isFavorite = DB::table('favorites')
+            $isFavorite = \App\Models\Favorite::query()
                 ->where('user_id', Auth::id())
                 ->where('product_id', $product->id)
                 ->exists();
         }
 
         // 8. Check if bestseller
-        $top6HotProductIds = DB::table('order_items')
+        $top6HotProductIds = \App\Models\OrderItem::query()
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
@@ -99,7 +99,7 @@ class ProductController
         $isHot = in_array($product->id, $top6HotProductIds);
         $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
 
-        return view('pages.products.show', compact(
+        return view('frontend.products.show', compact(
             'product',
             'sizes',
             'toppings',
@@ -133,13 +133,13 @@ class ProductController
         }
 
         // 1. Fetch Active Categories
-        $categories = DB::table('categories')
+        $categories = \App\Models\Category::query()
             ->where('is_active', 1)
             ->orderBy('display_order')
             ->get();
 
         // 2. Query Products
-        $query = DB::table('products')
+        $query = \App\Models\Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -178,20 +178,20 @@ class ProductController
         // 3. Get User's Wishlist (if logged in)
         $favoriteProductIds = [];
         if (Auth::check()) {
-            $favoriteProductIds = DB::table('favorites')
+            $favoriteProductIds = \App\Models\Favorite::query()
                 ->where('user_id', Auth::id())
                 ->pluck('product_id')
                 ->toArray();
         }
 
         // 4. Get Top 6 Best Selling Product IDs
-        $top6HotProductIds = DB::table('order_items')
+        $top6HotProductIds = \App\Models\OrderItem::query()
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
             ->limit(6)
             ->pluck('product_id')->toArray();
 
-        return view('pages.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
+        return view('frontend.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }
 }

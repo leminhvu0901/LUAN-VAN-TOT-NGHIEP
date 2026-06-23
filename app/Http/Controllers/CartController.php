@@ -23,7 +23,7 @@ class CartController
     {
         $identifier = $this->getCartIdentifier();
 
-        $cart = DB::table('carts');
+        $cart = \App\Models\Cart::query();
         if (isset($identifier['user_id'])) {
             $cart->where('user_id', $identifier['user_id']);
         } else {
@@ -32,11 +32,11 @@ class CartController
         $cart = $cart->first();
 
         if (!$cart) {
-            $cartId = DB::table('carts')->insertGetId(array_merge($identifier, [
+            $cartId = \App\Models\Cart::query()->insertGetId(array_merge($identifier, [
                 'created_at' => now(),
                 'updated_at' => now()
             ]));
-            return DB::table('carts')->where('id', $cartId)->first();
+            return \App\Models\Cart::query()->where('id', $cartId)->first();
         }
 
         return $cart;
@@ -46,7 +46,7 @@ class CartController
     {
         $cart = $this->getOrCreateCart();
 
-        $items = DB::table('cart_items')
+        $items = \App\Models\CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.cart_id', $cart->id)
             ->select('cart_items.*', 'products.name', 'products.image')
@@ -54,7 +54,7 @@ class CartController
             ->get();
 
         $itemIds = $items->pluck('id');
-        $itemToppings = DB::table('cart_item_toppings')
+        $itemToppings = \App\Models\CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
             ->select('cart_item_toppings.cart_item_id', 'toppings.name')
@@ -81,7 +81,7 @@ class CartController
         $quantity = $request->input('quantity', 1);
         $sizeName = $request->input('size_name');
         if (empty($sizeName)) {
-            $defaultSize = DB::table('product_sizes')
+            $defaultSize = \App\Models\ProductSize::query()
                 ->where('product_id', $productId)
                 ->orderBy('price_adjustment', 'asc')
                 ->first();
@@ -106,7 +106,7 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Product ID is missing']);
         }
 
-        $product = DB::table('products')->where('id', $productId)->first();
+        $product = \App\Models\Product::query()->where('id', $productId)->first();
         if (!$product) {
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
@@ -114,7 +114,7 @@ class CartController
         // Tính giá dựa theo size
         $unitPrice = $product->base_price;
         if ($sizeName) {
-            $sizeRecord = DB::table('product_sizes')
+            $sizeRecord = \App\Models\ProductSize::query()
                 ->where('product_id', $productId)
                 ->where('size_name', $sizeName)
                 ->first();
@@ -126,7 +126,7 @@ class CartController
         // Tính giá dựa theo topping
         $tops = [];
         if (!empty($toppingIds)) {
-            $tops = DB::table('toppings')->whereIn('id', $toppingIds)->get();
+            $tops = \App\Models\Topping::query()->whereIn('id', $toppingIds)->get();
             foreach ($tops as $t) {
                 $unitPrice += $t->price;
             }
@@ -135,7 +135,7 @@ class CartController
         $cart = $this->getOrCreateCart();
 
         // Tìm các items cùng product_id, size, sugar, ice
-        $potentialItems = DB::table('cart_items')
+        $potentialItems = \App\Models\CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
             ->where('size_name', $sizeName)
@@ -148,7 +148,7 @@ class CartController
         sort($reqTops);
 
         foreach ($potentialItems as $pi) {
-            $piToppings = DB::table('cart_item_toppings')
+            $piToppings = \App\Models\CartItemTopping::query()
                 ->where('cart_item_id', $pi->id)
                 ->pluck('topping_id')
                 ->toArray();
@@ -162,14 +162,14 @@ class CartController
         }
 
         if ($existingItem) {
-            DB::table('cart_items')
+            \App\Models\CartItem::query()
                 ->where('id', $existingItem->id)
                 ->update([
                     'quantity' => $existingItem->quantity + $quantity,
                     'updated_at' => now()
                 ]);
         } else {
-            $newItemId = DB::table('cart_items')->insertGetId([
+            $newItemId = \App\Models\CartItem::query()->insertGetId([
                 'cart_id' => $cart->id,
                 'product_id' => $productId,
                 'size_name' => $sizeName,
@@ -190,7 +190,7 @@ class CartController
                         'price' => $t->price
                     ];
                 }
-                DB::table('cart_item_toppings')->insert($inserts);
+                \App\Models\CartItemTopping::query()->insert($inserts);
             }
         }
 
@@ -202,7 +202,7 @@ class CartController
         $itemId = $request->input('item_id');
 
         if ($itemId) {
-            DB::table('cart_items')->where('id', $itemId)->delete();
+            \App\Models\CartItem::query()->where('id', $itemId)->delete();
         }
 
         return $this->getCartData();
@@ -214,7 +214,7 @@ class CartController
         $quantity = $request->input('quantity');
 
         if ($itemId && $quantity > 0) {
-            DB::table('cart_items')
+            \App\Models\CartItem::query()
                 ->where('id', $itemId)
                 ->update([
                     'quantity' => $quantity,
@@ -231,7 +231,7 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Bạn cần đăng nhập để sử dụng tính năng này']);
         }
 
-        $favorites = DB::table('favorites')
+        $favorites = \App\Models\Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->where('favorites.user_id', Auth::id())
             ->select('products.id', 'products.base_price')
@@ -244,7 +244,7 @@ class CartController
         $cart = $this->getOrCreateCart();
 
         foreach ($favorites as $product) {
-            $defaultSize = DB::table('product_sizes')
+            $defaultSize = \App\Models\ProductSize::query()
                 ->where('product_id', $product->id)
                 ->orderBy('price_adjustment', 'asc')
                 ->first();
@@ -254,7 +254,7 @@ class CartController
             $sugarLevel = '100';
             $iceLevel = 'normal';
 
-            $existingItem = DB::table('cart_items')
+            $existingItem = \App\Models\CartItem::query()
                 ->where('cart_id', $cart->id)
                 ->where('product_id', $product->id)
                 ->where('size_name', $sizeName)
@@ -266,7 +266,7 @@ class CartController
             // but for simplicity we'll just check the basic fields.
             $hasNoToppings = true;
             if ($existingItem) {
-                $hasToppings = DB::table('cart_item_toppings')->where('cart_item_id', $existingItem->id)->exists();
+                $hasToppings = \App\Models\CartItemTopping::query()->where('cart_item_id', $existingItem->id)->exists();
                 if ($hasToppings) {
                     $hasNoToppings = false;
                     $existingItem = null; // force create new item
@@ -274,14 +274,14 @@ class CartController
             }
 
             if ($existingItem) {
-                DB::table('cart_items')
+                \App\Models\CartItem::query()
                     ->where('id', $existingItem->id)
                     ->update([
                         'quantity' => $existingItem->quantity + 1,
                         'updated_at' => now()
                     ]);
             } else {
-                DB::table('cart_items')->insert([
+                \App\Models\CartItem::query()->insert([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
                     'size_name' => $sizeName,
@@ -307,14 +307,14 @@ class CartController
         $userId = Auth::id();
 
         // Fetch user addresses
-        $addresses = DB::table('user_addresses')
+        $addresses = \App\Models\UserAddress::query()
             ->where('user_id', $userId)
             ->orderBy('is_default', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Fetch user's cart
-        $cart = DB::table('carts')
+        $cart = \App\Models\Cart::query()
             ->where('user_id', $userId)
             ->first();
 
@@ -322,7 +322,7 @@ class CartController
         $subtotal = 0;
 
         if ($cart) {
-            $items = DB::table('cart_items')
+            $items = \App\Models\CartItem::query()
                 ->join('products', 'cart_items.product_id', '=', 'products.id')
                 ->where('cart_items.cart_id', $cart->id)
                 ->select('cart_items.*', 'products.name', 'products.image')
@@ -331,7 +331,7 @@ class CartController
 
             if ($items->isNotEmpty()) {
                 $itemIds = $items->pluck('id');
-                $itemToppings = DB::table('cart_item_toppings')
+                $itemToppings = \App\Models\CartItemTopping::query()
                     ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
                     ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
                     ->select('cart_item_toppings.cart_item_id', 'toppings.name', 'toppings.price')
@@ -353,7 +353,7 @@ class CartController
         $timeString = $now->format('H:i:s');
         $isClosed = ($timeString < '07:00:00' || $timeString >= '19:00:00');
 
-        return view('pages.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
     }
 
     public function calculateDistance(Request $request)
@@ -361,7 +361,7 @@ class CartController
         $addressId = $request->query('address_id');
         $userId = Auth::id();
 
-        $address = DB::table('user_addresses')
+        $address = \App\Models\UserAddress::query()
             ->where('id', $addressId)
             ->where('user_id', $userId)
             ->first();
@@ -391,7 +391,7 @@ class CartController
                     $lon = floatval($geoData[0]['lon']);
 
                     // Save coordinates back to database to cache it
-                    DB::table('user_addresses')
+                    \App\Models\UserAddress::query()
                         ->where('id', $addressId)
                         ->update([
                             'latitude' => $lat,
@@ -476,7 +476,7 @@ class CartController
         $subtotal = floatval($request->input('subtotal', 0));
         $userId = Auth::id();
 
-        $coupon = DB::table('promotions')->where('code', $code)->first();
+        $coupon = \App\Models\Promotion::query()->where('code', $code)->first();
 
         if (!$coupon) {
             return response()->json(['valid' => false, 'message' => 'Mã giảm giá không tồn tại.']);
@@ -504,7 +504,7 @@ class CartController
 
         // Check if user already used this coupon
         if ($userId) {
-            $hasUsed = DB::table('orders')
+            $hasUsed = \App\Models\Order::query()
                 ->where('promotion_id', $coupon->id)
                 ->where('user_id', $userId)
                 ->where('status', '!=', 'cancelled')
@@ -552,7 +552,7 @@ class CartController
         $baseShipping = $subtotal >= 150000 ? 0 : round($distanceKm * 3000);
         $userId = Auth::id();
 
-        $address = DB::table('user_addresses')
+        $address = \App\Models\UserAddress::query()
             ->where('id', $addressId)
             ->where('user_id', $userId)
             ->first();

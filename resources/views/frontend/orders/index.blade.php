@@ -62,10 +62,6 @@
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
                 Đơn hàng của tôi
             </a>
-            <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}#address">
-                <span class="material-symbols-outlined">location_on</span>
-                Sổ địa chỉ
-            </a>
             <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}#password">
                 <span class="material-symbols-outlined">lock</span>
                 Đổi mật khẩu

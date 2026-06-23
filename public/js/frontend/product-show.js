@@ -59,14 +59,36 @@
         }
     };
 
-    const toppingDropdownEl = document.getElementById('toppingDropdown');
-    if (toppingDropdownEl) {
-        toppingDropdownEl.addEventListener('show.bs.dropdown', () => {
-            toppingDropdownEl.querySelector('.dropdown-chevron').style.transform = 'rotate(180deg)';
-        });
-        toppingDropdownEl.addEventListener('hide.bs.dropdown', () => {
-            toppingDropdownEl.querySelector('.dropdown-chevron').style.transform = 'rotate(0deg)';
-        });
+    const toppingDropdownBtn = document.getElementById('toppingDropdown');
+    if (toppingDropdownBtn) {
+        const dropdownContainer = toppingDropdownBtn.closest('.dropdown');
+        const dropdownMenu = dropdownContainer ? dropdownContainer.querySelector('.dropdown-menu') : null;
+        const chevron = toppingDropdownBtn.querySelector('.dropdown-chevron');
+
+        if (dropdownMenu) {
+            toppingDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = dropdownMenu.classList.contains('show');
+                if (isOpen) {
+                    dropdownMenu.classList.remove('show');
+                    if (chevron) chevron.style.transform = 'rotate(0deg)';
+                } else {
+                    dropdownMenu.classList.add('show');
+                    if (chevron) chevron.style.transform = 'rotate(180deg)';
+                }
+            });
+
+            // Prevent dropdown from closing when clicking inside the dropdown menu (auto-close: outside)
+            dropdownMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', () => {
+                dropdownMenu.classList.remove('show');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            });
+        }
     }
 
     window.addToCartFromDetail = function() {

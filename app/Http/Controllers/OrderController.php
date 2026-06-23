@@ -17,7 +17,7 @@ class OrderController
         $userId = Auth::id();
         $status = $request->query('status');
 
-        $query = DB::table('orders')
+        $query = \App\Models\Order::query()
             ->where('user_id', $userId)
             ->where(function ($q) {
                 $q->where('payment_method', '!=', 'momo')
@@ -33,7 +33,7 @@ class OrderController
 
         // Map items to each order
         foreach ($orders as $order) {
-            $order->items = DB::table('order_items')
+            $order->items = \App\Models\OrderItem::query()
                 ->join('products', 'order_items.product_id', '=', 'products.id')
                 ->where('order_items.order_id', $order->id)
                 ->select(
@@ -46,13 +46,13 @@ class OrderController
         }
 
         // Get existing reviews by this user to check which items are already reviewed
-        $reviewedItems = DB::table('reviews')
+        $reviewedItems = \App\Models\Review::query()
             ->where('user_id', $userId)
             ->whereNotNull('order_id')
             ->select('order_id', 'product_id')
             ->get();
 
-        return view('pages.orders.index', compact('orders', 'status', 'reviewedItems'));
+        return view('frontend.orders.index', compact('orders', 'status', 'reviewedItems'));
     }
 
     public function store(Request $request)
@@ -83,7 +83,7 @@ class OrderController
         ]);
 
         // 2. Get the address
-        $address = DB::table('user_addresses')
+        $address = \App\Models\UserAddress::query()
             ->where('id', $request->input('address_id'))
             ->where('user_id', $userId)
             ->first();
@@ -93,7 +93,7 @@ class OrderController
         }
 
         // 3. Get cart and items
-        $cart = DB::table('carts')
+        $cart = \App\Models\Cart::query()
             ->where('user_id', $userId)
             ->first();
 
@@ -101,7 +101,7 @@ class OrderController
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $cartItems = DB::table('cart_items')
+        $cartItems = \App\Models\CartItem::query()
             ->where('cart_id', $cart->id)
             ->get();
 
@@ -112,7 +112,7 @@ class OrderController
         // Calculate totals
         $subtotal = 0;
         $itemIds = $cartItems->pluck('id');
-        $cartToppings = DB::table('cart_item_toppings')
+        $cartToppings = \App\Models\CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
             ->select('cart_item_toppings.cart_item_id', 'toppings.name', 'toppings.price')
@@ -140,7 +140,7 @@ class OrderController
 
         $inputCoupon = trim($request->input('coupon_code'));
         if (!empty($inputCoupon)) {
-            $coupon = DB::table('promotions')->where('code', strtoupper($inputCoupon))->first();
+            $coupon = \App\Models\Promotion::query()->where('code', strtoupper($inputCoupon))->first();
             if ($coupon && $coupon->is_active && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
                 // Check if not expired
                 $isValidDate = true;
@@ -151,7 +151,7 @@ class OrderController
 
                 if ($isValidDate && (!$coupon->min_order_amount || $subtotal >= $coupon->min_order_amount)) {
                     // Check if user already used
-                    $hasUsed = DB::table('orders')
+                    $hasUsed = \App\Models\Order::query()
                         ->where('promotion_id', $coupon->id)
                         ->where('user_id', $userId)
                         ->where('status', '!=', 'cancelled')
@@ -188,7 +188,7 @@ class OrderController
         DB::beginTransaction();
         try {
             // Insert into orders table
-            $orderId = DB::table('orders')->insertGetId([
+            $orderId = \App\Models\Order::query()->insertGetId([
                 'order_code' => $orderCode,
                 'user_id' => $userId,
                 'customer_name' => $address->fullname,
@@ -219,7 +219,7 @@ class OrderController
                 $toppings = $cartToppings->where('cart_item_id', $item->id)->pluck('name')->toArray();
                 $toppingsList = json_encode($toppings, JSON_UNESCAPED_UNICODE);
 
-                DB::table('order_items')->insert([
+                \App\Models\OrderItem::query()->insert([
                     'order_id' => $orderId,
                     'product_id' => $item->product_id,
                     'size_name' => $item->size_name,
@@ -233,12 +233,12 @@ class OrderController
             }
 
             // Clear cart items and toppings
-            DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
-            DB::table('cart_items')->where('cart_id', $cart->id)->delete();
+            \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $itemIds)->delete();
+            \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
 
             // Update promotion used count
             if ($promotionId) {
-                DB::table('promotions')->where('id', $promotionId)->increment('used_count');
+                \App\Models\Promotion::query()->where('id', $promotionId)->increment('used_count');
             }
 
             DB::commit();

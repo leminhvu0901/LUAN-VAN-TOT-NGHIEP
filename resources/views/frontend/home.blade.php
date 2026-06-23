@@ -131,7 +131,7 @@
 
         <div class="home-products-grid">
             @php
-                $popularProducts = \Illuminate\Support\Facades\DB::table('products')
+                $popularProducts = \App\Models\Product::query()
                     ->select(
                         'products.*',
                         \Illuminate\Support\Facades\DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'),
@@ -147,12 +147,12 @@
 
                 $userFavorites = [];
                 if (Auth::check()) {
-                    $userFavorites = \Illuminate\Support\Facades\DB::table('favorites')
+                    $userFavorites = \App\Models\Favorite::query()
                         ->where('user_id', Auth::id())
                         ->pluck('product_id')->toArray();
                 }
 
-                $top6HotProductIds = \Illuminate\Support\Facades\DB::table('order_items')
+                $top6HotProductIds = \App\Models\OrderItem::query()
                     ->select('product_id', \Illuminate\Support\Facades\DB::raw('SUM(quantity) as total_sold'))
                     ->groupBy('product_id')
                     ->orderByDesc('total_sold')

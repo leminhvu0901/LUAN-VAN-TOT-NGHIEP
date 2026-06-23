@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('backend.layouts.app')
 
 @section('title', 'Tạo đơn hàng mới (POS)')
 

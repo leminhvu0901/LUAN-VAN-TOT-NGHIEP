@@ -132,7 +132,7 @@
             <div class="pd-option-group">
                 <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
                 <div class="dropdown">
-                    <button class="btn w-100 text-start topping-dropdown-btn" type="button" id="toppingDropdown" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="border-radius: 12px; padding: 14px 18px; border: 1.5px solid #e5e7eb; background: #ffffff; display: flex; justify-content: space-between; align-items: center; color: #6b7280; font-size: 15px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <button class="btn w-100 text-start topping-dropdown-btn" type="button" id="toppingDropdown" style="border-radius: 12px; padding: 14px 18px; border: 1.5px solid #e5e7eb; background: #ffffff; display: flex; justify-content: space-between; align-items: center; color: #6b7280; font-size: 15px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                         <span id="topping-summary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">Chọn topping (không bắt buộc....)</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #9ca3af; transition: transform 0.2s ease;" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>

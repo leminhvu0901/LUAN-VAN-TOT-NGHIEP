@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('backend.layouts.app')
 
 @section('title', 'Danh sách Đơn hàng - Admin')
 
@@ -101,7 +101,7 @@
             </div>
             
             <div class="flex-1 overflow-x-auto custom-scrollbar relative">
-                @include('admin.orders.partials.table')
+                @include('backend.orders.table')
             </div>
         </div>
     </div>
@@ -199,7 +199,7 @@
 </div>
 
 @push('scripts')
-<script src="{{ asset('js/admin/orders-index.js') }}"></script>
+<script src="{{ asset('js/backend/orders-index.js') }}"></script>
 @endpush
 
 @endsection

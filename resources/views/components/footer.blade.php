@@ -59,7 +59,7 @@
                     </h6>
                     <ul class="footer-links flex flex-col gap-2 list-none p-0 mt-2">
                         @php
-                            $footerCategories = \Illuminate\Support\Facades\DB::table('categories')
+                            $footerCategories = \App\Models\Category::query()
                                 ->where('is_active', 1)
                                 ->orderBy('display_order')
                                 ->get();
