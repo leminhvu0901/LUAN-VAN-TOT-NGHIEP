@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 
 class OrderController
 {
+    //TRANG CHU
     public function index(Request $request)
     {
         $today     = Carbon::today();
@@ -169,83 +170,7 @@ class OrderController
         return view('backend.orders.index', compact('stats', 'orders', 'paginator', 'currentStatus'));
     }
 
-    public function updateStatus(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:pending,confirmed,shipping,completed,cancelled',
-            'cancel_reason' => 'nullable|string|max:500'
-        ]);
 
-        $newStatus = $request->input('status');
-
-        $order = \App\Models\Order::query()->where('id', $id)->first();
-        if (!$order) {
-            return redirect()->back()->with('error', 'Không tìm thấy đơn hàng!');
-        }
-
-        // Tích lũy điểm khi đơn hàng chuyển sang trạng thái Hoàn thành (completed)
-        if ($newStatus === 'completed' && $order->status !== 'completed') {
-            if ($order->user_id) {
-                $user = \App\Models\User::find($order->user_id);
-                if ($user) {
-                    // Doanh thu tính điểm = Tổng tiền trừ phí giao hàng
-                    $amountToCalculate = max(0, $order->final_amount - ($order->shipping_fee ?? 0));
-                    
-                    // Quy đổi cơ bản: Cứ mỗi 10.000đ = 1 điểm tích lũy
-                    $basePoints = floor($amountToCalculate / 10000);
-
-                    // Hệ số nhân theo hạng hiện tại của khách hàng
-                    $multiplier = 1.0;
-                    switch ($user->membership_level) {
-                        case 'silver':  $multiplier = 1.2; break;
-                        case 'gold':    $multiplier = 1.5; break;
-                        case 'diamond': $multiplier = 2.0; break;
-                    }
-
-                    // Điểm thực tế nhận được (làm tròn số nguyên)
-                    $pointsEarned = round($basePoints * $multiplier);
-
-                    if ($pointsEarned > 0) {
-                        // Cộng điểm vào tài khoản
-                        $user->increment('points', $pointsEarned);
-
-                        // Cập nhật lại hạng thành viên dựa trên tổng điểm mới
-                        $newPoints = $user->points;
-                        $newLevel = 'new';
-
-                        if ($newPoints >= 1000) {
-                            $newLevel = 'diamond';
-                        } elseif ($newPoints >= 500) {
-                            $newLevel = 'gold';
-                        } elseif ($newPoints >= 200) {
-                            $newLevel = 'silver';
-                        }
-
-                        if ($newLevel !== ($user->membership_level ?? 'new')) {
-                            $user->update([
-                                'membership_level' => $newLevel
-                            ]);
-                        }
-                    }
-                }
-            }
-        }
-
-        $updateData = [
-            'status' => $newStatus,
-            'updated_at' => now()
-        ];
-
-        if ($newStatus === 'cancelled') {
-            $updateData['cancel_reason'] = $request->input('cancel_reason');
-        }
-
-        \App\Models\Order::query()
-            ->where('id', $id)
-            ->update($updateData);
-
-        return redirect()->back()->with('success', 'Đã cập nhật trạng thái đơn hàng thành công!');
-    }
     public function show($id)
     {
         $order = \App\Models\Order::query()->where('id', $id)->first();
@@ -262,86 +187,8 @@ class OrderController
         return view('backend.orders.show', compact('order', 'items'));
     }
 
-    public function create()
-    {
-        // Fetch categories if table exists, otherwise mock
-        $categories = Schema::hasTable('categories') 
-            ? \App\Models\Category::query()->get() 
-            : collect([
-                (object)['id' => 1, 'name' => 'Cà phê'],
-                (object)['id' => 2, 'name' => 'Trà sữa'],
-                (object)['id' => 3, 'name' => 'Trà trái cây'],
-                (object)['id' => 4, 'name' => 'Đá xay']
-            ]);
 
-        // Fetch products
-        $products = Schema::hasTable('products') 
-            ? \App\Models\Product::query()->get() 
-            : collect([]); // If no table, return empty
-
-        return view('backend.orders.create', compact('categories', 'products'));
-    }
-
-    public function store(Request $request)
-    {
-        try {
-            $items = $request->input('items', []);
-            if (empty($items)) {
-                return response()->json(['success' => false, 'message' => 'Giỏ hàng trống']);
-            }
-
-            // Generate order code
-            $orderCode = 'POS-' . strtoupper(bin2hex(random_bytes(3)));
-
-            // Determine status based on type
-            $orderType = $request->input('order_type', 'dine-in');
-            $status = in_array($orderType, ['dine-in', 'takeaway']) ? 'completed' : 'pending';
-
-            DB::beginTransaction();
-
-            $orderId = \App\Models\Order::query()->insertGetId([
-                'order_code' => $orderCode,
-                'customer_name' => $request->input('customer_name', 'Khách lẻ'),
-                'customer_phone' => $request->input('customer_phone', ''),
-                'total_amount' => $request->input('final_amount', 0),
-                'discount_amount' => 0,
-                'final_amount' => $request->input('final_amount', 0),
-                'payment_status' => 'paid', // POS orders are usually paid immediately
-                'payment_method' => 'cash',
-                'status' => $status,
-                'delivery_type' => $orderType,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            foreach ($items as $item) {
-                \App\Models\OrderItem::query()->insert([
-                    'order_id' => $orderId,
-                    'product_id' => $item['id'],
-                    'size_name' => 'M', // Default for POS fast order
-                    'quantity' => $item['qty'],
-                    'unit_price' => $item['price'],
-                    'sugar_level' => '100%',
-                    'ice_level' => '100%',
-                    'options' => json_encode(['Mặc định'], JSON_UNESCAPED_UNICODE),
-                    'note' => null
-                ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true, 
-                'message' => 'Đã tạo đơn hàng thành công!',
-                'order_code' => $orderCode
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
+//XUAT FILE 
     public function export(Request $request)
     {
         // Áp dụng cùng bộ lọc như trang index

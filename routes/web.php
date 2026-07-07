@@ -33,9 +33,9 @@ Route::get('/', function () {
 });
 
 // Route xem danh sách tất cả sản phẩm. Gọi hàm index() trong ProductController. Đặt tên route là 'products'
-Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products');
+Route::get('/products', [App\Http\Controllers\Frontend\ProductController::class, 'index'])->name('products');
 // Route xem chi tiết 1 sản phẩm theo đường dẫn động {slug} (VD: /products/tra-sua-tran-chau)
-Route::get('/products/{slug}', [App\Http\Controllers\ProductController::class, 'show'])->name('product.show');
+Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
 
 
 // ==============================================
@@ -47,43 +47,43 @@ Route::get('/register', function () {
     return redirect('/')->with('show_register', true);
 })->name('register');
 // Route xử lý dữ liệu form Đăng ký gửi lên server (Method POST)
-Route::post('/register', [App\Http\Controllers\AuthController::class, 'postRegister'])->name('register.post');
+Route::post('/register', [App\Http\Controllers\Frontend\AuthController::class, 'postRegister'])->name('register.post');
 
 // Tương tự, khi gõ /login, đá về trang chủ kèm cờ bật popup Đăng nhập
 Route::get('/login', function () {
     return redirect('/')->with('show_login', true);
 })->name('login');
 // Route xử lý việc kiểm tra tài khoản/mật khẩu khi user bấm Đăng nhập
-Route::post('/login', [App\Http\Controllers\AuthController::class, 'postLogin'])->name('login.post');
+Route::post('/login', [App\Http\Controllers\Frontend\AuthController::class, 'postLogin'])->name('login.post');
 
 // Hiển thị giao diện màn hình nhập mã OTP (sau khi đăng ký)
-Route::get('/verify-otp', [App\Http\Controllers\AuthController::class, 'getVerifyOtp'])->name('verify.otp');
+Route::get('/verify-otp', [App\Http\Controllers\Frontend\AuthController::class, 'getVerifyOtp'])->name('verify.otp');
 // Nhận mã OTP do user nhập và kiểm tra với Database
-Route::post('/verify-otp', [App\Http\Controllers\AuthController::class, 'postVerifyOtp'])->name('verify.otp.post');
+Route::post('/verify-otp', [App\Http\Controllers\Frontend\AuthController::class, 'postVerifyOtp'])->name('verify.otp.post');
 // Gửi lại mã OTP mới qua email nếu user bấm "Gửi lại mã"
-Route::get('/resend-otp', [App\Http\Controllers\AuthController::class, 'resendOtp'])->name('resend.otp');
+Route::get('/resend-otp', [App\Http\Controllers\Frontend\AuthController::class, 'resendOtp'])->name('resend.otp');
 // Hủy và xóa session OTP khi đóng modal hoặc hủy xác thực
-Route::post('/cancel-otp', [App\Http\Controllers\AuthController::class, 'cancelOtp'])->name('verify.otp.cancel');
+Route::post('/cancel-otp', [App\Http\Controllers\Frontend\AuthController::class, 'cancelOtp'])->name('verify.otp.cancel');
 
 // Bấm nút đăng nhập bằng Google -> Chuyển hướng sang giao diện xác thực của Google
-Route::get('/auth/google', [App\Http\Controllers\AuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google', [App\Http\Controllers\Frontend\AuthController::class, 'redirectToGoogle'])->name('auth.google');
 // Sau khi Google xác thực xong, nó sẽ đá về route này kèm theo thông tin (email, tên, avatar) của user
-Route::get('/auth/google/callback', [App\Http\Controllers\AuthController::class, 'handleGoogleCallback']);
+Route::get('/auth/google/callback', [App\Http\Controllers\Frontend\AuthController::class, 'handleGoogleCallback']);
 
 // Đăng xuất tài khoản (Xóa session)
-Route::get('/logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+Route::get('/logout', [App\Http\Controllers\Frontend\AuthController::class, 'logout'])->name('logout');
 
 // Vào trang quên mật khẩu -> Đá về trang chủ bật popup Quên mật khẩu
 Route::get('/forgot-password', function () {
     return redirect('/')->with('show_forgot', true);
 })->name('forgot-password');
 // Xử lý việc gửi email chứa link đặt lại mật khẩu cho user
-Route::post('/forgot-password', [App\Http\Controllers\AuthController::class, 'postForgotPassword'])->name('forgot-password.post');
+Route::post('/forgot-password', [App\Http\Controllers\Frontend\AuthController::class, 'postForgotPassword'])->name('forgot-password.post');
 
 // Hiển thị form để user nhập mật khẩu mới (khi bấm từ link trong email)
-Route::get('/reset-password', [App\Http\Controllers\AuthController::class, 'getResetPassword'])->name('reset.password.get');
+Route::get('/reset-password', [App\Http\Controllers\Frontend\AuthController::class, 'getResetPassword'])->name('reset.password.get');
 // Lưu mật khẩu mới vào Database
-Route::post('/reset-password', [App\Http\Controllers\AuthController::class, 'postResetPassword'])->name('reset.password.post');
+Route::post('/reset-password', [App\Http\Controllers\Frontend\AuthController::class, 'postResetPassword'])->name('reset.password.post');
 
 
 // ==============================================
@@ -94,64 +94,64 @@ Route::middleware(['auth'])->group(function () {
     
     // --- Hồ sơ cá nhân ---
     // Hiển thị trang Hồ sơ
-    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile');
+    Route::get('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'index'])->name('profile');
     // Cập nhật thông tin Hồ sơ (Tên, SĐT, Avatar...)
-    Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
     // Đổi mật khẩu tài khoản
-    Route::post('/profile/change-password', [App\Http\Controllers\ProfileController::class, 'changePassword'])->name('profile.change-password');
+    Route::post('/profile/change-password', [App\Http\Controllers\Frontend\ProfileController::class, 'changePassword'])->name('profile.change-password');
     
     // --- Lịch sử mua hàng & Đánh giá ---
     // Xem danh sách đơn hàng đã đặt
-    Route::get('/orders', [App\Http\Controllers\OrderController::class, 'index'])->name('orders');
+    Route::get('/orders', [App\Http\Controllers\Frontend\OrderController::class, 'index'])->name('orders');
     // Hiện giao diện đánh giá (Review) 1 sản phẩm nằm trong 1 đơn hàng cụ thể
-    Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\ReviewController::class, 'create'])->name('review.create');
+    Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'create'])->name('review.create');
     // Gửi đánh giá (số sao, nhận xét) vào Database
-    Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\ReviewController::class, 'store'])->name('review.store');
+    Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'store'])->name('review.store');
     
     // Bật/tắt trạng thái Yêu thích sản phẩm (Thả tim)
-    Route::post('/favorite/toggle', [App\Http\Controllers\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
+    Route::post('/favorite/toggle', [App\Http\Controllers\Frontend\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
 
     // --- Giỏ hàng (Các thao tác sửa đổi giỏ hàng cần đăng nhập) ---
     // Thêm 1 sản phẩm mới vào giỏ
-    Route::post('/cart/add', [App\Http\Controllers\CartController::class, 'add']);
+    Route::post('/cart/add', [App\Http\Controllers\Frontend\CartController::class, 'add']);
     // Bấm nút xóa sản phẩm khỏi giỏ
-    Route::post('/cart/remove', [App\Http\Controllers\CartController::class, 'remove']);
+    Route::post('/cart/remove', [App\Http\Controllers\Frontend\CartController::class, 'remove']);
     // Bấm nút (+), (-) để cập nhật số lượng
-    Route::post('/cart/update', [App\Http\Controllers\CartController::class, 'update']);
+    Route::post('/cart/update', [App\Http\Controllers\Frontend\CartController::class, 'update']);
     // Bấm "Thêm tất cả vào giỏ" ở bên ngăn kéo Yêu Thích
-    Route::post('/cart/add-all', [App\Http\Controllers\CartController::class, 'addAll']);
+    Route::post('/cart/add-all', [App\Http\Controllers\Frontend\CartController::class, 'addAll']);
 
     // --- Quản lý Danh bạ Địa chỉ nhận hàng ---
     // Lưu địa chỉ mới
-    Route::post('/profile/address', [App\Http\Controllers\ProfileController::class, 'storeAddress'])->name('profile.address.store');
+    Route::post('/profile/address', [App\Http\Controllers\Frontend\ProfileController::class, 'storeAddress'])->name('profile.address.store');
     // Chỉnh sửa địa chỉ đã có (dựa theo id)
-    Route::post('/profile/address/{id}', [App\Http\Controllers\ProfileController::class, 'updateAddress'])->name('profile.address.update');
+    Route::post('/profile/address/{id}', [App\Http\Controllers\Frontend\ProfileController::class, 'updateAddress'])->name('profile.address.update');
     // Xóa địa chỉ (dựa theo id)
-    Route::post('/profile/address/{id}/delete', [App\Http\Controllers\ProfileController::class, 'deleteAddress'])->name('profile.address.delete');
+    Route::post('/profile/address/{id}/delete', [App\Http\Controllers\Frontend\ProfileController::class, 'deleteAddress'])->name('profile.address.delete');
     // Đánh dấu 1 địa chỉ làm địa chỉ mặc định
-    Route::post('/profile/address/{id}/default', [App\Http\Controllers\ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
+    Route::post('/profile/address/{id}/default', [App\Http\Controllers\Frontend\ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
 
     // --- Thanh toán đơn hàng (Checkout) ---
     // Mở trang Thanh toán
-    Route::get('/checkout', [App\Http\Controllers\CartController::class, 'checkout'])->name('checkout');
+    Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])->name('checkout');
     // Nút "Đặt hàng" (Phương thức COD), lưu đơn hàng vào Database
-    Route::post('/checkout', [App\Http\Controllers\OrderController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout', [App\Http\Controllers\Frontend\OrderController::class, 'store'])->name('checkout.store');
     
     // Các đường dẫn phụ trợ (API) gọi ngầm qua AJAX:
     // Tính khoảng cách km giao hàng
-    Route::get('/checkout/distance', [App\Http\Controllers\CartController::class, 'calculateDistance']);
+    Route::get('/checkout/distance', [App\Http\Controllers\Frontend\CartController::class, 'calculateDistance']);
     // Tính phụ phí thời tiết
-    Route::get('/checkout/weather-fee', [App\Http\Controllers\CartController::class, 'calculateWeatherFee']);
+    Route::get('/checkout/weather-fee', [App\Http\Controllers\Frontend\CartController::class, 'calculateWeatherFee']);
     // Tính phụ phí thời tiết theo tọa độ GPS
-    Route::get('/checkout/weather-fee-by-coords', [App\Http\Controllers\CartController::class, 'calculateWeatherFeeByCoords']);
+    Route::get('/checkout/weather-fee-by-coords', [App\Http\Controllers\Frontend\CartController::class, 'calculateWeatherFeeByCoords']);
     // Kiểm tra Mã giảm giá (Coupon) có hợp lệ không
-    Route::post('/checkout/validate-coupon', [App\Http\Controllers\CartController::class, 'validateCoupon']);
+    Route::post('/checkout/validate-coupon', [App\Http\Controllers\Frontend\CartController::class, 'validateCoupon']);
 
     // --- Thanh toán qua ví điện tử MoMo ---
     // Gửi yêu cầu trừ tiền sang máy chủ MoMo
-    Route::post('/checkout/momo', [App\Http\Controllers\MomoController::class, 'createPayment'])->name('momo.pay');
+    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\MomoController::class, 'createPayment'])->name('momo.pay');
     // Sau khi quét mã MoMo xong, khách bị đá ngược về route này để xem màn hình "Thanh toán thành công"
-    Route::get('/checkout/momo/return', [App\Http\Controllers\MomoController::class, 'handleReturn'])->name('momo.return');
+    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
 });
 
 // ==============================================
@@ -159,10 +159,10 @@ Route::middleware(['auth'])->group(function () {
 // ==============================================
 
 // IPN của MoMo (Server-to-Server). MoMo gọi ngầm vào đường dẫn này để báo cáo kết quả giao dịch. BẮT BUỘC PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)!
-Route::post('/checkout/momo/ipn', [App\Http\Controllers\MomoController::class, 'handleIpn'])->name('momo.ipn');
+Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
 
 // API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
-Route::get('/cart', [App\Http\Controllers\CartController::class, 'getCartData']);
+Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
 
 // Route hỗ trợ dev test nhanh kết nối Database
 Route::get('/test-db', function () {
@@ -181,23 +181,18 @@ Route::get('/auto-login', function () {
     return 'No user found in the database.';
 });
 
-// ==============================================
-// 4. ADMIN & QUẢN TRỊ VIÊN
-// ==============================================
-// Gom nhóm các route của Admin lại. URL sẽ tự động được thêm prefix '/admin/'. Name route tự động thêm chữ 'admin.'
-// Lưu ý: Đáng ra chỗ này phải có Middleware bảo vệ (ví dụ: auth.admin), nhưng hiện tại đang mở public cho thầy cô dễ chấm điểm.
+
+//4. ADMIN & QUẢN TRỊ VIÊN
+
 Route::prefix('admin')->name('admin.')->group(function () {
+
     // Xem danh sách toàn bộ đơn hàng của quán
     Route::get('/orders', [App\Http\Controllers\Backend\OrderController::class, 'index'])->name('orders.index');
-    // Hiển thị form tạo đơn hàng mới bằng tay (Dành cho thu ngân)
-    Route::get('/orders/create', [App\Http\Controllers\Backend\OrderController::class, 'create'])->name('orders.create');
+
     // Xuất báo cáo đơn hàng ra file Excel/CSV
     Route::get('/orders/export', [App\Http\Controllers\Backend\OrderController::class, 'export'])->name('orders.export');
-    // Lưu đơn hàng tạo bằng tay vào Database
-    Route::post('/orders', [App\Http\Controllers\Backend\OrderController::class, 'store'])->name('orders.store');
+
     // Xem chi tiết 1 đơn hàng cụ thể của khách (dựa vào id đơn)
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\OrderController::class, 'show'])->name('orders.show');
-    // Quản lý cập nhật trạng thái đơn hàng (Mới -> Đang giao -> Hoàn thành -> Hủy)
-    Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\OrderController::class, 'updateStatus'])->name('orders.update-status');
 });
 
