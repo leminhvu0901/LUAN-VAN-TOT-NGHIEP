@@ -25,6 +25,7 @@
     };
 
     const closeWishlist = () => {
+        
         const drawer = $('wishlist-drawer');
         const overlay = $('wishlist-overlay');
         if (!drawer || !overlay) return;

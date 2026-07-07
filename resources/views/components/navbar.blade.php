@@ -23,7 +23,7 @@ Chạy trước khi render HTML để chuẩn bị:
             ->leftJoin(
                 \Illuminate\Support\Facades\DB::raw(
                     '(SELECT product_id, ROUND(AVG(rating), 1) as avg_rating, COUNT(id) as review_count
-                          FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'
+                                  FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'
                 ),
                 'products.id',
                 '=',
@@ -220,7 +220,7 @@ shadow-sm: đổ bóng nhẹ phía dưới
             <nav class="happy-navbar__mobile-nav" aria-label="Điều hướng di động">
                 <a href="{{ url('/') }}" class="happy-navbar__mobile-link is-active">Trang chủ</a>
                 <a href="/products" class="happy-navbar__mobile-link">Sản phẩm</a>
-                <a href="/profile/orders" class="happy-navbar__mobile-link">Đơn hàng</a>
+                <a href="{{ route('orders') }}" class="happy-navbar__mobile-link">Đơn hàng</a>
                 <a href="/#footer-custom" class="happy-navbar__mobile-link">Liên hệ</a>
             </nav>
         </div>

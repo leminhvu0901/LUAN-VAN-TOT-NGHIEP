@@ -1,8 +1,10 @@
+{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
 @extends('layouts.app')
 
 @section('content')
-<div class="pd-wrapper">
-    {{-- ===== BREADCRUMB ===== --}}
+{{-- Thẻ wrapper bao bọc chi tiết sản phẩm, đồng thời truyền id sản phẩm và giá cơ bản qua thuộc tính data để JS đọc --}}
+<div class="pd-wrapper" data-product-id="{{ $product->id }}" data-base-price="{{ $product->base_price }}">
+    {{-- ===== BREADCRUMB (ĐƯỜNG DẪN ĐỊNH VỊ) ===== --}}
     <nav class="pd-breadcrumb" aria-label="Breadcrumb">
         <a href="/">Trang chủ</a>
         <span class="pd-breadcrumb__sep">›</span>
@@ -11,18 +13,22 @@
         <span class="pd-breadcrumb__current">{{ $product->name }}</span>
     </nav>
 
-    {{-- ===== MAIN PRODUCT SECTION ===== --}}
+    {{-- ===== KHU VỰC CHI TIẾT SẢN PHẨM CHÍNH ===== --}}
     <div class="pd-main">
-        {{-- LEFT: Image Gallery --}}
+        {{-- BÊN TRÁI: Gallery hình ảnh sản phẩm --}}
         <div class="pd-gallery">
             <div class="pd-gallery__main">
-                @if($isHot)
+                {{-- Huy hiệu trạng thái Bán chạy (Hot) hoặc Sản phẩm mới (New) --}}
+                @if($isHot && $product->is_active)
                     <span class="pd-badge pd-badge--hot">🔥 BESTSELLER</span>
-                @elseif($isNew)
+                @elseif($isNew && $product->is_active)
                     <span class="pd-badge pd-badge--new">✨ Mới</span>
                 @endif
+                @if(!$product->is_active)
+                    <span class="out-of-stock-overlay" style="font-size:1.2rem; padding: 0.6rem 1.6rem;">Hết Hàng</span>
+                @endif
 
-                {{-- Wishlist --}}
+                {{-- Nút yêu thích sản phẩm (Wishlist). Nếu đã được yêu thích ($isFavorite = true), class 'is-active' sẽ tô màu đỏ cho trái tim --}}
                 <button class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}"
                         id="pd-wishlist-btn"
                         onclick="toggleFavorite(this, {{ $product->id }})"
@@ -32,6 +38,7 @@
                     </svg>
                 </button>
 
+                {{-- Ảnh lớn hiển thị sản phẩm chính. Có sự kiện onerror tải ảnh placeholder nếu ảnh chính bị lỗi --}}
                 <img id="pd-main-img"
                      src="{{ asset('images/' . $product->image) }}"
                      alt="{{ $product->name }}"
@@ -39,7 +46,7 @@
                      onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
             </div>
 
-            {{-- Thumbnails --}}
+            {{-- Các ảnh thu nhỏ (Thumbnails) bổ sung ở phía dưới ảnh chính --}}
             <div class="pd-gallery__thumbs" id="pd-thumbs">
                 <div class="pd-gallery__thumb is-active" onclick="switchImage(this, '{{ asset('images/' . $product->image) }}')">
                     <img src="{{ asset('images/' . $product->image) }}"
@@ -49,13 +56,15 @@
             </div>
         </div>
 
-        {{-- RIGHT: Product Info --}}
+        {{-- BÊN PHẢI: Thông tin chi tiết sản phẩm --}}
         <div class="pd-info">
+            {{-- Tên sản phẩm --}}
             <h1 class="pd-info__name">{{ $product->name }}</h1>
 
-            {{-- Rating Row --}}
+            {{-- Dòng hiển thị đánh giá sao và lượt mua --}}
             <div class="pd-info__rating-row">
                 <div class="pd-stars">
+                    {{-- Tính toán làm tròn điểm số để đổ màu ngôi sao (Filled, Half, Empty) --}}
                     @php $avgR = round($product->avg_rating * 2) / 2; @endphp
                     @for($i = 1; $i <= 5; $i++)
                         @if($i <= floor($avgR))
@@ -69,20 +78,21 @@
                 </div>
                 <span class="pd-rating-score">{{ number_format($product->avg_rating, 1) }}</span>
                 <span class="pd-rating-count">({{ $product->review_count }} đánh giá)</span>
+                {{-- Lượt mua: viết tắt dạng 1.5k+ nếu >= 1000 lượt bán --}}
                 <span class="pd-sold-count">· Đã bán {{ $product->total_sold >= 1000 ? number_format($product->total_sold/1000,1).'k+' : $product->total_sold }}</span>
             </div>
 
-            {{-- Price --}}
+            {{-- Giá bán của sản phẩm --}}
             <div class="pd-info__price-row">
                 <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
             </div>
 
-            {{-- Description --}}
+            {{-- Mô tả ngắn về sản phẩm (nếu có) --}}
             @if($product->description)
             <p class="pd-info__desc">{{ $product->description }}</p>
             @endif
 
-            {{-- Sizes --}}
+            {{-- Lựa chọn Kích cỡ (Size). Gắn các thuộc tính data- để JS cộng trừ chênh lệch giá tiền khi click chọn --}}
             @if($sizes->count() > 0)
             <div class="pd-option-group">
                 <div class="pd-option-label">CHỌN KÍCH CỠ</div>
@@ -105,7 +115,7 @@
             </div>
             @endif
 
-            {{-- Sugar Level --}}
+            {{-- Lựa chọn mức đường --}}
             <div class="pd-option-group">
                 <div class="pd-option-label">MỨC ĐƯỜNG</div>
                 <div class="pd-option-chips" id="pd-sugar">
@@ -116,7 +126,7 @@
                 </div>
             </div>
 
-            {{-- Ice Level --}}
+            {{-- Lựa chọn mức đá --}}
             <div class="pd-option-group">
                 <div class="pd-option-label">MỨC ĐÁ</div>
                 <div class="pd-option-chips" id="pd-ice">
@@ -127,26 +137,26 @@
                 </div>
             </div>
 
-            {{-- Toppings --}}
+            {{-- Tùy chọn thêm Toppings (Không áp dụng cho danh mục Cà phê để khớp thực đơn) --}}
             @if($toppings->count() > 0 && mb_stripos($product->category_name, 'cà phê') === false)
             <div class="pd-option-group">
                 <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
                 <div class="dropdown">
-                    <button class="btn w-100 text-start topping-dropdown-btn" type="button" id="toppingDropdown" style="border-radius: 12px; padding: 14px 18px; border: 1.5px solid #e5e7eb; background: #ffffff; display: flex; justify-content: space-between; align-items: center; color: #6b7280; font-size: 15px; font-weight: 500; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                        <span id="topping-summary" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">Chọn topping (không bắt buộc....)</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #9ca3af; transition: transform 0.2s ease;" class="dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <button class="btn w-100 text-start topping-dropdown-btn pd-topping-dropdown-btn" type="button" id="toppingDropdown">
+                        <span id="topping-summary" class="pd-topping-summary">Chọn topping (không bắt buộc....)</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron pd-dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </button>
-                    <ul class="dropdown-menu w-100 shadow-lg" aria-labelledby="toppingDropdown" style="border-radius: 12px; border: 1px solid #f3f4f6; max-height: 280px; overflow-y: auto; padding: 8px; margin-top: 8px;">
+                    <ul class="dropdown-menu w-100 shadow-lg pd-topping-dropdown-menu" aria-labelledby="toppingDropdown">
                         @foreach($toppings as $topping)
-                        <li style="margin-bottom: 4px;">
-                            <label class="dropdown-item d-flex justify-content-between align-items-center topping-item-label" style="cursor: pointer; padding: 12px 14px; border-radius: 8px; transition: all 0.2s ease;">
+                        <li class="pd-topping-item-li">
+                            <label class="dropdown-item d-flex justify-content-between align-items-center topping-item-label pd-topping-item-label">
                                 <div class="form-check m-0 d-flex align-items-center">
-                                    <input class="form-check-input topping-checkbox custom-checkbox" type="checkbox" value="{{ $topping->id }}" data-topping-price="{{ $topping->price }}" data-topping-name="{{ $topping->name }}" onchange="handleToppingChange(this)" style="width: 20px; height: 20px; margin-top: 0; cursor: pointer; border: 1.5px solid #d1d5db; border-radius: 6px;">
-                                    <span class="form-check-label ms-3" style="font-size: 15px; color: #374151; font-weight: 500; cursor: pointer;">
+                                    <input class="form-check-input topping-checkbox custom-checkbox pd-topping-checkbox" type="checkbox" value="{{ $topping->id }}" data-topping-price="{{ $topping->price }}" data-topping-name="{{ $topping->name }}" onchange="handleToppingChange(this)">
+                                    <span class="form-check-label ms-3 pd-topping-label-text">
                                         {{ $topping->name }}
                                     </span>
                                 </div>
-                                <span style="font-size: 14px; font-weight: 600; color: #10b981; background: #ecfdf5; padding: 4px 8px; border-radius: 6px;">+{{ number_format($topping->price, 0, ',', '.') }}đ</span>
+                                <span class="pd-topping-price-badge">+{{ number_format($topping->price, 0, ',', '.') }}đ</span>
                             </label>
                         </li>
                         @endforeach
@@ -155,13 +165,18 @@
             </div>
             @endif
 
-            {{-- Quantity + Add to Cart --}}
+            {{-- Chọn Số lượng & Nút Thêm vào giỏ hàng --}}
             <div class="pd-actions">
                 <div class="pd-qty">
-                    <button class="pd-qty__btn" id="pd-qty-minus" onclick="changeQty(-1)" aria-label="Giảm">−</button>
+                    <button class="pd-qty__btn" id="pd-qty-minus"
+                        @if(!$product->is_active) disabled @else onclick="changeQty(-1)" @endif
+                        aria-label="Giảm">−</button>
                     <span class="pd-qty__val" id="pd-qty-val">1</span>
-                    <button class="pd-qty__btn" id="pd-qty-plus" onclick="changeQty(1)" aria-label="Tăng">+</button>
+                    <button class="pd-qty__btn" id="pd-qty-plus"
+                        @if(!$product->is_active) disabled @else onclick="changeQty(1)" @endif
+                        aria-label="Tăng">+</button>
                 </div>
+                @if($product->is_active)
                 <button class="pd-add-cart-btn" id="pd-add-cart" onclick="addToCartFromDetail()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
@@ -170,9 +185,19 @@
                     </svg>
                     Thêm vào giỏ hàng
                 </button>
+                @else
+                <button class="pd-add-cart-btn pd-add-cart-btn--sold-out" id="pd-add-cart" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <path d="M16 10a4 4 0 01-8 0"/>
+                    </svg>
+                    Hết hàng
+                </button>
+                @endif
             </div>
 
-            {{-- Delivery & Quality Badges --}}
+            {{-- Nhãn đảm bảo chất lượng và thời gian giao hàng --}}
             <div class="pd-badges-row">
                 <div class="pd-badge-item">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -192,7 +217,7 @@
         </div>
     </div>
 
-    {{-- ===== PRODUCT DESCRIPTION ===== --}}
+    {{-- ===== PHẦN MÔ TẢ CHI TIẾT SẢN PHẨM ===== --}}
     @if($product->description)
     <div class="pd-desc-section">
         <h2 class="pd-section-title">Mô tả sản phẩm</h2>
@@ -202,10 +227,11 @@
     </div>
     @endif
 
-    {{-- ===== REVIEWS ===== --}}
+    {{-- ===== PHẦN ĐÁNH GIÁ TỪ KHÁCH HÀNG ===== --}}
     <div class="pd-reviews-section">
         <h2 class="pd-section-title">Đánh giá từ khách hàng</h2>
 
+        {{-- Bảng tóm tắt điểm đánh giá sao trung bình & tỉ lệ phần trăm các mức sao --}}
         <div class="pd-reviews-summary">
             <div class="pd-reviews-score">
                 <div class="pd-reviews-score__num">{{ number_format($product->avg_rating, 1) }}</div>
@@ -232,15 +258,17 @@
             </div>
         </div>
 
+        {{-- Danh sách các bình luận của khách hàng --}}
         <div class="pd-review-list">
             @forelse($reviews as $review)
             <div class="pd-review-item">
+                {{-- Ảnh đại diện (avatar) của người đánh giá, hỗ trợ hiển thị ảnh ngoài (Google) và ảnh tải lên cục bộ --}}
                 <div class="pd-review-avatar">
                     @if($review->user_avatar)
                         @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
-                            <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" referrerpolicy="no-referrer">
+                            <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img" referrerpolicy="no-referrer">
                         @else
-                            <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img">
                         @endif
                     @else
                         <span class="pd-review-avatar__initial">{{ mb_substr($review->user_name, 0, 1) }}</span>
@@ -254,11 +282,14 @@
                                 <svg class="pd-star pd-star--sm {{ $i <= $review->rating ? 'pd-star--filled' : 'pd-star--empty' }}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
                             @endfor
                         </div>
+                        {{-- Thời gian bình luận: chuyển sang định dạng "khoảng thời gian trước" --}}
                         <span class="pd-review-date">{{ \Carbon\Carbon::parse($review->created_at)->diffForHumans() }}</span>
                     </div>
                     @if($review->comment)
                     <p class="pd-review-comment">{{ $review->comment }}</p>
                     @endif
+                    
+                    {{-- Hiển thị các hình ảnh đính kèm bài đánh giá (nếu có) --}}
                     @if($review->image)
                     @php
                         $images = [];
@@ -266,9 +297,9 @@
                         if (is_array($decoded)) { $images = $decoded; }
                         else { $images = [$review->image]; }
                     @endphp
-                    <div class="pd-review-images mt-2" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div class="pd-review-images mt-2 pd-review-images-wrap">
                         @foreach($images as $img)
-                            <img src="{{ asset('images/' . $img) }}" alt="Review Image" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                            <img src="{{ asset('images/' . $img) }}" alt="Review Image" class="pd-review-image-thumb" onclick="window.open(this.src, '_blank')">
                         @endforeach
                     </div>
                     @endif
@@ -283,7 +314,7 @@
         </div>
     </div>
 
-    {{-- ===== RELATED PRODUCTS ===== --}}
+    {{-- ===== SẢN PHẨM TƯƠNG TỰ (GỢI Ý) ===== --}}
     @if($relatedProducts->count() > 0)
     <div class="pd-related-section">
         <h2 class="pd-section-title">Sản phẩm tương tự</h2>
@@ -296,10 +327,11 @@
                 <div class="pd-rel-card__body">
                     <p class="pd-rel-card__name">{{ $rel->name }}</p>
                     <div class="pd-rel-card__stats">
-                        <svg style="color:#f59e0b;width:12px;height:12px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <svg class="pd-rel-rating-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         <span>{{ number_format($rel->avg_rating, 1) }}</span>
                     </div>
                     <span class="pd-rel-card__price">{{ number_format($rel->base_price, 0, ',', '.') }}đ</span>
+                    {{-- Nút thêm nhanh sản phẩm tương tự vào giỏ hàng --}}
                     <button class="pd-rel-card__add" onclick="event.preventDefault(); addToCart({{ $rel->id }})" aria-label="Thêm vào giỏ">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
@@ -311,11 +343,8 @@
     @endif
 </div>
 
+{{-- Đẩy mã JS của trang chi tiết sản phẩm vào ngăn xếp stack của Layout --}}
 @push('scripts')
-<script>
-    window.productBasePrice = {{ $product->base_price }};
-    window.productId = {{ $product->id }};
-</script>
 <script src="{{ asset('js/frontend/product-show.js') }}"></script>
 @endpush
 @endsection

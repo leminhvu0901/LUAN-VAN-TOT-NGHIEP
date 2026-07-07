@@ -62,6 +62,8 @@ Route::get('/verify-otp', [App\Http\Controllers\AuthController::class, 'getVerif
 Route::post('/verify-otp', [App\Http\Controllers\AuthController::class, 'postVerifyOtp'])->name('verify.otp.post');
 // Gửi lại mã OTP mới qua email nếu user bấm "Gửi lại mã"
 Route::get('/resend-otp', [App\Http\Controllers\AuthController::class, 'resendOtp'])->name('resend.otp');
+// Hủy và xóa session OTP khi đóng modal hoặc hủy xác thực
+Route::post('/cancel-otp', [App\Http\Controllers\AuthController::class, 'cancelOtp'])->name('verify.otp.cancel');
 
 // Bấm nút đăng nhập bằng Google -> Chuyển hướng sang giao diện xác thực của Google
 Route::get('/auth/google', [App\Http\Controllers\AuthController::class, 'redirectToGoogle'])->name('auth.google');
@@ -168,6 +170,15 @@ Route::get('/test-db', function () {
     $orders = \App\Models\Order::query()->where('promotion_id', 1)->count();
     \Illuminate\Support\Facades\Log::info('DB Check: ', ['promo' => (array) $promo, 'orders_count' => $orders]);
     return 'done';
+});
+
+Route::get('/auto-login', function () {
+    $user = \App\Models\User::first();
+    if ($user) {
+        \Illuminate\Support\Facades\Auth::login($user);
+        return redirect('/profile');
+    }
+    return 'No user found in the database.';
 });
 
 // ==============================================

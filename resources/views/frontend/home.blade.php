@@ -8,19 +8,24 @@
             @if(isset($banners) && $banners->count() > 0)
                 @foreach($banners as $index => $banner)
                     <img src="{{ asset($banner->image_url) }}"
-                        class="home-hero__img hero-slide-img {{ $index === 0 ? 'active' : '' }}" data-title="{{ $banner->title }}"
+                        class="home-hero__img hero-slide-img {{ $index === 0 ? 'active' : '' }}" 
+                        data-title="{{ $banner->title }}"
+                        data-title-tag="{{ $banner->title_tag ?? '🌿 Đồ uống tươi ngon' }}"
                         alt="{{ $banner->title ?? 'Banner' }}">
                 @endforeach
             @else
                 <img src="{{ asset('images/slider/slider-1.png') }}" class="home-hero__img hero-slide-img active"
-                    data-title="Thưởng thức hương vị tuyệt vời" alt="Banner 1">
+                    data-title="Thưởng thức hương vị tuyệt vời" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 1">
                 <img src="{{ asset('images/slider/slider-2.png') }}" class="home-hero__img hero-slide-img"
-                    data-title="Khuyến mãi mùa hè" alt="Banner 2">
+                    data-title="Khuyến mãi mùa hè" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 2">
             @endif
             <div class="home-hero__overlay"></div>
             <div class="home-hero__content">
                 <div class="home-hero__top">
-                    <span class="home-hero__tag">🌿 Đồ uống tươi ngon</span>
+                    @php
+                        $heroTitleTag = isset($banners) && $banners->count() > 0 ? ($banners->first()->title_tag ?? '🌿 Đồ uống tươi ngon') : '🌿 Đồ uống tươi ngon';
+                    @endphp
+                    <span class="home-hero__tag" id="hero-title-tag">{{ $heroTitleTag }}</span>
                 </div>
 
                 <div class="home-hero__middle">
@@ -141,7 +146,6 @@
                     )
                     ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
                     ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
-                    ->where('products.is_active', 1)
                     ->orderByDesc('score')
                     ->get();
 
@@ -164,19 +168,23 @@
                 @php
                     $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
                     $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
+                    $isOos = !$product->is_active; // Hết hàng khi is_active = 0
                 @endphp
-                <div class="home-prod-card" data-sold="{{ $product->total_sold }}"
+                <div class="home-prod-card {{ $isOos ? 'home-prod-card--out-of-stock' : '' }}" data-sold="{{ $product->total_sold }}"
                     data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}"
                     data-score="{{ round($product->score, 2) }}" data-is-hot="{{ $isHot ? '1' : '0' }}"
                     data-is-new="{{ $isNew ? '1' : '0' }}">
                     <div class="home-prod-card__img-wrap"
-                        onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;">
-                        @if($isHot)
+                        @if(!$isOos) onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;" @else style="cursor:default;" @endif>
+                        @if($isHot && !$isOos)
                             <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
                         @endif
-                        @if($isNew)
+                        @if($isNew && !$isOos)
                             <span class="home-prod-card__badge home-prod-card__badge--new"
                                 style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span>
+                        @endif
+                        @if($isOos)
+                            <span class="out-of-stock-overlay">Hết Hàng</span>
                         @endif
 
                         <img src="{{ asset('images/' . $product->image) }}" class="home-prod-card__img"
@@ -217,7 +225,7 @@
                                 @endif
                             </div>
                             <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng"
-                                onclick="addToCart({{ $product->id }})">
+                                @if(!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>

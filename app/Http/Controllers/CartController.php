@@ -111,6 +111,11 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
 
+        // Kiểm tra sản phẩm còn hàng không
+        if (!$product->is_active) {
+            return response()->json(['success' => false, 'message' => 'Sản phẩm này đã hết hàng, không thể thêm vào giỏ hàng.']);
+        }
+
         // Tính giá dựa theo size
         $unitPrice = $product->base_price;
         if ($sizeName) {
@@ -234,6 +239,7 @@ class CartController
         $favorites = \App\Models\Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->where('favorites.user_id', Auth::id())
+            ->where('products.is_active', 1) // Chỉ thêm sản phẩm còn hàng
             ->select('products.id', 'products.base_price')
             ->get();
 
@@ -349,11 +355,27 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
+        $freeShipThreshold = 150000;
+        $user = Auth::user();
+        if ($user) {
+            switch ($user->membership_level) {
+                case 'silver':
+                    $freeShipThreshold = 120000;
+                    break;
+                case 'gold':
+                    $freeShipThreshold = 90000;
+                    break;
+                case 'diamond':
+                    $freeShipThreshold = 0;
+                    break;
+            }
+        }
+
         $now = now()->timezone('Asia/Ho_Chi_Minh');
         $timeString = $now->format('H:i:s');
-        $isClosed = ($timeString < '07:00:00' || $timeString >= '19:00:00');
+        $isClosed = ($timeString < '07:00:00' || $timeString >= '23:00:00');
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed'));
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'freeShipThreshold'));
     }
 
     public function calculateDistance(Request $request)
@@ -548,8 +570,25 @@ class CartController
         $addressId = $request->query('address_id');
         $distanceKm = floatval($request->query('distance_km', 0));
         $subtotal = floatval($request->query('subtotal', 0));
-        // Nếu đơn hàng >= 150,000 thì miễn phí ship => phụ thu thời tiết cũng = 0
-        $baseShipping = $subtotal >= 150000 ? 0 : round($distanceKm * 3000);
+        
+        $freeShipThreshold = 150000;
+        $user = Auth::user();
+        if ($user) {
+            switch ($user->membership_level) {
+                case 'silver':
+                    $freeShipThreshold = 120000;
+                    break;
+                case 'gold':
+                    $freeShipThreshold = 90000;
+                    break;
+                case 'diamond':
+                    $freeShipThreshold = 0;
+                    break;
+            }
+        }
+
+        // Nếu đơn hàng >= freeShipThreshold thì miễn phí ship => phụ thu thời tiết cũng = 0
+        $baseShipping = $subtotal >= $freeShipThreshold ? 0 : round($distanceKm * 3000);
         $userId = Auth::id();
 
         $address = \App\Models\UserAddress::query()

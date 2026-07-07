@@ -788,10 +788,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
         const weatherFee = hiddenWeatherFee ? parseFloat(hiddenWeatherFee.value) : 0;
 
-        // Free shipping for orders >= 150,000
-        const freeShip = subtotal >= 150000;
+        // Free shipping for orders >= dynamic membership threshold
+        const freeShipThreshold = priceSummaryEl && priceSummaryEl.dataset.freeshipThreshold !== undefined
+            ? parseInt(priceSummaryEl.dataset.freeshipThreshold)
+            : 150000;
+        const freeShip = subtotal >= freeShipThreshold;
 
-        // Shipping fee: 3000 VND per km (free if order >= 150,000)
+        // Shipping fee: 3000 VND per km (free if order >= threshold)
         const distanceFee = freeShip ? 0 : Math.round(distanceKm * 3000);
 
         // Calculate dynamic discount if it's percent based

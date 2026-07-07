@@ -40,8 +40,8 @@ class MomoController
         // ── 0. Kiểm tra giờ hoạt động ─────────────────────────────────────────
         $now = now()->timezone('Asia/Ho_Chi_Minh');
         $timeString = $now->format('H:i:s');
-        if ($timeString < '07:00:00' || $timeString >= '19:00:00') {
-            return redirect()->back()->with('error', 'Cửa hàng chỉ cho phép đặt hàng từ 07:00 đến 19:00. Hiện tại cửa hàng đã đóng cửa.')->withInput();
+        if ($timeString < '07:00:00' || $timeString >= '23:00:00') {
+            return redirect()->back()->with('error', 'Cửa hàng chỉ cho phép đặt hàng từ 07:00 đến 23:00. Hiện tại cửa hàng đã đóng cửa.')->withInput();
         }
 
         // ── 1. Validate ────────────────────────────────────────────────────────
@@ -93,6 +93,19 @@ class MomoController
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
+        // Kiểm tra sản phẩm hết hàng trong giỏ
+        $productIds = $cartItems->pluck('product_id')->toArray();
+        $outOfStockProducts = \App\Models\Product::query()
+            ->whereIn('id', $productIds)
+            ->where('is_active', 0)
+            ->pluck('name')
+            ->toArray();
+        if (!empty($outOfStockProducts)) {
+            $names = implode(', ', $outOfStockProducts);
+            return redirect()->back()->with('error', 'Sản phẩm đã hết hàng: ' . $names . '. Vui lòng xóa khỏi giỏ hàng trước khi đặt.');
+        }
+
+
         // ── 4. Tính tiền ───────────────────────────────────────────────────────
         $itemIds = $cartItems->pluck('id');
         $cartToppings = \App\Models\CartItemTopping::query()
@@ -106,9 +119,32 @@ class MomoController
             $subtotal += $item->unit_price * $item->quantity;
         }
 
+        // Tính phí vận chuyển và phí thời tiết dựa trên hạng thành viên:
+        // - Mới: freeship từ 150.000đ
+        // - Bạc: freeship từ 120.000đ
+        // - Vàng: freeship từ 90.000đ
+        // - Kim Cương: luôn luôn freeship
+        $freeShipThreshold = 150000;
+        $user = Auth::user();
+        if ($user) {
+            switch ($user->membership_level) {
+                case 'silver':
+                    $freeShipThreshold = 120000;
+                    break;
+                case 'gold':
+                    $freeShipThreshold = 90000;
+                    break;
+                case 'diamond':
+                    $freeShipThreshold = 0;
+                    break;
+            }
+        }
+
         $distanceKm = floatval($request->input('distance_km'));
-        $shippingFee = $subtotal >= 150000 ? 0 : round($distanceKm * 3000);
-        $weatherFee = $subtotal >= 150000 ? 0 : floatval($request->input('weather_fee', 0));
+        $shippingFee = $subtotal >= $freeShipThreshold ? 0 : round($distanceKm * 3000);
+
+        // Phí thời tiết (chỉ áp dụng nếu đơn hàng không được freeship)
+        $weatherFee = $subtotal >= $freeShipThreshold ? 0 : floatval($request->input('weather_fee', 0));
         $peakHourFee = 0;
 
         // ── 5. Xử lý coupon ────────────────────────────────────────────────────
@@ -150,6 +186,25 @@ class MomoController
                 }
             }
         }
+
+        // Chiết khấu trực tiếp theo hạng thành viên (Bạc: 2%, Vàng: 5%, Kim Cương: 10%)
+        $membershipDiscount = 0;
+        if ($user) {
+            switch ($user->membership_level) {
+                case 'silver':
+                    $membershipDiscount = round($subtotal * 0.02);
+                    break;
+                case 'gold':
+                    $membershipDiscount = round($subtotal * 0.05);
+                    break;
+                case 'diamond':
+                    $membershipDiscount = round($subtotal * 0.10);
+                    break;
+            }
+        }
+
+        // Tổng tiền chiết khấu = Giảm giá Coupon + Giảm giá hạng thành viên
+        $discountAmount += $membershipDiscount;
 
         $finalAmount = max(0, $subtotal + $shippingFee + $weatherFee + $peakHourFee - $discountAmount);
         $fullAddress = $address->specific_address . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province;

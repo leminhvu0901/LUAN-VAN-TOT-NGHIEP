@@ -9449,10 +9449,10 @@ h6>a:hover,
   padding: 0 12px;
 }
 
-.badge-vnpay {
-  background-color: #eff6ff !important;
-  color: #005baa !important;
-  border: 1px solid #dbeafe !important;
+.badge-momo {
+  background-color: #fdf2f8 !important;
+  color: #a21caf !important;
+  border: 1px solid #f5d0fe !important;
 }
 
 .badge-cod {
@@ -10064,4 +10064,807 @@ h6>a:hover,
   border: none;
   font-weight: 500;
   cursor: pointer;
+}
+
+/* Các class CSS phục vụ màn hình đăng nhập (Modal Login) */
+.l-error-alert {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.l-field-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.l-google-btn {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  background-color: white;
+  transition: all 0.2s;
+}
+
+/* Các class CSS phục vụ màn hình quên mật khẩu (Modal Forgot Password) */
+#forgot-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#forgot-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.l-forgot-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.l-forgot-icon {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+#forgot-box .l-title {
+  margin-bottom: 1rem;
+}
+
+.l-forgot-desc {
+  text-align: center;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+.l-field-error-large {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+#forgot-box .l-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+#forgot-box .l-footer {
+  margin-top: 0;
+}
+
+/* Các class CSS phục vụ màn hình xác thực OTP (Modal Verify OTP) */
+#otp-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#otp-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+#otp-modal .l-modal-wrapper {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 100%;
+  max-width: 28rem;
+  padding: 1rem;
+}
+
+#otp-box {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+#close-otp {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.otp-icon-wrap {
+  position: relative;
+  margin-bottom: 2rem;
+  margin-top: 1rem;
+}
+
+.otp-icon-bg {
+  width: 6rem;
+  height: 6rem;
+  background-color: #d1fae5;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.otp-icon-badge {
+  position: absolute;
+  bottom: 0;
+  right: 50%;
+  transform: translateX(2.5rem);
+  width: 2rem;
+  height: 2rem;
+  background-color: #1e4a38;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.otp-main-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.otp-desc {
+  text-align: center;
+  color: #4b5563;
+  font-size: 0.875rem;
+  margin-bottom: 2.5rem;
+  line-height: 1.5;
+}
+
+.otp-email {
+  color: #064e3b;
+  font-weight: 600;
+}
+
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
+}
+
+.otp-input {
+  width: 3.5rem;
+  height: 4rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  background-color: transparent;
+  transition: all 0.2s;
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: #1e4a38;
+  box-shadow: 0 0 0 1px #1e4a38;
+}
+
+.otp-resend {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.otp-timer-text {
+  font-size: 0.8125rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.otp-timer {
+  font-weight: 700;
+  color: #111827;
+}
+
+.otp-resend-btn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-decoration: none;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.otp-resend-btn.active {
+  color: #1e4a38;
+  pointer-events: auto;
+}
+
+.otp-submit {
+  width: 100%;
+  background-color: #1e4a38;
+  border: none;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.otp-submit:hover {
+  background-color: #153628;
+}
+
+.otp-error {
+  width: 100%;
+  background-color: #fee2e2;
+  color: #dc2626;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  margin: 0 auto 1rem auto;
+  text-align: center;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+/* Các class CSS phục vụ màn hình đăng ký (Modal Register) */
+#register-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#register-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.l-register-terms-group {
+  text-align: center;
+}
+
+.l-register-terms-text {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.l-register-terms-link {
+  color: #10b981;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Biểu tượng font Material Symbol dạng tô đặc (Filled) */
+.l-icon-filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Trang danh sách sản phẩm (index.blade.php) */
+.p-sidebar-toggle-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.p-sidebar-toggle-arrow {
+  transition: transform 0.2s;
+}
+
+.p-sort-bar-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.p-product-img-wrap-pointer {
+  cursor: pointer;
+}
+
+.p-product-card-wishlist {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: white;
+  border-radius: 50%;
+  padding: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.p-product-name-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.p-product-stats-layout {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.p-product-star-svg {
+  color: #f59e0b;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.p-product-stat-divider {
+  color: #cbd5e1;
+}
+
+.p-product-price-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.p-product-add-btn-size {
+  width: 32px;
+  height: 32px;
+}
+
+.p-product-grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+/* Style riêng cho trang chi tiết sản phẩm (Product Detail Show) */
+
+/* Nút dropdown Topping */
+.pd-topping-dropdown-btn {
+  border-radius: 12px;
+  padding: 14px 18px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Phần hiển thị tóm tắt danh sách Topping đã chọn */
+.pd-topping-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+/* Biểu tượng mũi tên chevron trong dropdown */
+.pd-dropdown-chevron {
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+/* Menu Dropdown chứa danh sách Topping */
+.pd-topping-dropdown-menu {
+  border-radius: 12px;
+  border: 1px solid #f3f4f6;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-top: 8px;
+}
+
+/* Từng dòng Topping li */
+.pd-topping-item-li {
+  margin-bottom: 4px;
+}
+
+/* Label bao bọc checkbox và tên topping */
+.pd-topping-item-label {
+  cursor: pointer;
+  padding: 12px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* Ô Checkbox tùy biến chọn topping */
+.pd-topping-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 0;
+  cursor: pointer;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+}
+
+/* Tên hiển thị của Topping */
+.pd-topping-label-text {
+  font-size: 15px;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Nhãn hiển thị số tiền cộng thêm của Topping */
+.pd-topping-price-badge {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+  background: #ecfdf5;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Ảnh avatar của người dùng trong phần đánh giá */
+.pd-review-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Container chứa các ảnh khách hàng đăng kèm đánh giá */
+.pd-review-images-wrap {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Từng ảnh thu nhỏ đính kèm đánh giá */
+.pd-review-image-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+/* Biểu tượng ngôi sao nhỏ hiển thị đánh giá sản phẩm tương tự */
+.pd-rel-rating-star {
+  color: #f59e0b;
+  width: 12px;
+  height: 12px;
+}
+
+/* ==========================================================================
+   GIAO DIỆN ĐẶT LẠI MẬT KHẨU (RESET PASSWORD)
+   ========================================================================== */
+
+/* Thiết lập màu nền nền nhạt cho toàn bộ trang */
+body {
+    background-color: #f9fafb;
+}
+
+/* Khung chứa giao diện đặt lại mật khẩu, căn giữa và giới hạn chiều rộng 28rem (448px) */
+.reset-container {
+    max-width: 28rem;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Phần đầu trang chứa nút quay lại và tiêu đề chính */
+.reset-header {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Nút quay lại trang chủ */
+.reset-back {
+    color: #064e3b;
+    padding: 0.5rem;
+    text-decoration: none;
+}
+
+/* Tiêu đề nằm ở thanh header */
+.reset-title {
+    flex: 1;
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #064e3b;
+    padding-right: 2rem;
+}
+
+/* Khung bao bọc icon ổ khóa lớn */
+.reset-icon-wrap {
+    position: relative;
+    margin-bottom: 2rem;
+    margin-top: 1rem;
+}
+
+/* Nền hình tròn màu xanh lá nhạt cho icon ổ khóa */
+.reset-icon-bg {
+    width: 6rem;
+    height: 6rem;
+    background-color: #d1fae5;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+/* Huy hiệu hình tròn nhỏ (dấu tích xanh) nằm đè góc icon ổ khóa */
+.reset-icon-badge {
+    position: absolute;
+    bottom: 0;
+    right: 50%;
+    transform: translateX(2.5rem);
+    width: 2rem;
+    height: 2rem;
+    background-color: #1e4a38;
+    border-radius: 9999px;
+    border: 2px solid #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tiêu đề lớn của form đặt lại mật khẩu */
+.reset-main-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+/* Đoạn mô tả yêu cầu mật khẩu bảo mật bên dưới tiêu đề */
+.reset-desc {
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.875rem;
+    margin-bottom: 2.5rem;
+    line-height: 1.5;
+    padding: 0 1rem;
+}
+
+/* Layout phần form đặt lại mật khẩu */
+.reset-form {
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Khung chứa nhãn (label) và trường nhập (input) */
+.form-group {
+    margin-bottom: 1.25rem;
+    position: relative;
+}
+
+/* Nhãn hiển thị tên trường nhập */
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+/* Định dạng ô nhập mật khẩu */
+.form-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.875rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    transition: all 0.2s;
+    background-color: white;
+}
+
+/* Hiệu ứng khi click focus vào ô nhập mật khẩu */
+.form-input:focus {
+    outline: none;
+    border-color: #1e4a38;
+    box-shadow: 0 0 0 1px #1e4a38;
+}
+
+/* Nút bấm ẩn/hiện mật khẩu (icon con mắt) nằm ở góc phải ô nhập */
+.toggle-password {
+    position: absolute;
+    right: 1rem;
+    top: 2.3rem;
+    cursor: pointer;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* Khung đệm phía trên và dưới nút gửi form */
+.reset-submit-wrap {
+    margin-top: auto;
+    padding-bottom: 2rem;
+    padding-top: 2rem;
+}
+
+/* Nút bấm xác nhận đặt lại mật khẩu */
+.reset-submit {
+    width: 100%;
+    background-color: #1e4a38;
+    border: none;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* Hiệu ứng rê chuột (hover) trên nút xác nhận */
+.reset-submit:hover {
+    background-color: #153628;
+}
+
+/* Nhãn hiển thị thông báo lỗi khi xác thực thất bại */
+.error-message {
+    color: #dc2626;
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+/* ============================================================
+   TRẠNG THÁI HẾT HÀNG (OUT-OF-STOCK)
+   ============================================================ */
+
+/* Lớp phủ "HẾT HÀNG" đè lên ảnh sản phẩm */
+.out-of-stock-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #f97316, #dc2626);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    padding: 0.45rem 1.1rem;
+    border-radius: 8px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+/* Ảnh sản phẩm bị mờ khi hết hàng */
+.home-prod-card--out-of-stock .home-prod-card__img,
+.p-product-card--out-of-stock .p-product-img-wrap img {
+    opacity: 0.45;
+    filter: grayscale(40%);
+}
+
+/* Nút thêm giỏ hàng bị vô hiệu hóa (trang chủ & danh sách) */
+.home-prod-card__add-btn:disabled,
+.p-add-btn:disabled {
+    background: #d1d5db !important;
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Nút "Thêm vào giỏ hàng" trang chi tiết khi hết hàng */
+.pd-add-cart-btn--sold-out {
+    background: #d1d5db !important;
+    color: #6b7280 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+.pd-add-cart-btn--sold-out:hover {
+    background: #d1d5db !important;
+    transform: none !important;
+}
+
+/* Các nút tăng/giảm số lượng khi hết hàng */
+.pd-qty__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Nhãn "HẾT HÀNG" trên ảnh wishlist drawer */
+.wl-item__oos-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #f97316, #dc2626);
+    color: #fff;
+    font-size: 0.45rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.wl-item__img-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+}
+.wl-item__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #f3f4f6;
+}
+.wl-item__img-wrap--oos img {
+    opacity: 0.4;
+    filter: grayscale(50%);
+}
+/* Nút giỏ hàng trong wishlist khi sản phẩm hết hàng */
+.wl-item__cart-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }

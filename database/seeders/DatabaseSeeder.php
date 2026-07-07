@@ -17,9 +17,22 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        \App\Models\User::updateOrCreate(
+            ['email' => 'admin@gmail.com'],
+            [
+                'name' => 'Admin',
+                'password' => \Illuminate\Support\Facades\Hash::make('Leminhvu9124@'),
+                'is_active' => 1,
+            ]
+        );
+
+        \App\Models\User::updateOrCreate(
+            ['email' => 'User@gmail.com'],
+            [
+                'name' => 'User',
+                'password' => \Illuminate\Support\Facades\Hash::make('Leminhvu9124@'),
+                'is_active' => 1,
+            ]
+        );
     }
 }

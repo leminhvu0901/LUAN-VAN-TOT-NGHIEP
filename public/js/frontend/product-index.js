@@ -1,96 +1,150 @@
-        function toggleFilter() {
-            const sidebar = document.querySelector('.p-sidebar');
-            if (sidebar) sidebar.classList.toggle('open');
+/**
+ * File Javascript điều khiển tương tác trên trang Danh sách sản phẩm
+ * Hỗ trợ bộ lọc động bên client (phân loại HOT/NEW, sắp xếp, lọc giá, tìm kiếm)
+ */
+
+/**
+ * Bật/tắt thanh bộ lọc bên sườn (Sidebar) trên giao diện di động
+ */
+function toggleFilter() {
+    const sidebar = document.querySelector('.p-sidebar');
+    if (sidebar) sidebar.classList.toggle('open');
+}
+
+/**
+ * Cập nhật nhãn văn bản hiển thị giá tiền và đổ màu nền động cho thanh kéo (slider)
+ * @param {string|number} val - Giá trị hiện tại của thanh kéo giá
+ */
+function updatePriceLabel(val) {
+    // Định dạng số tiền theo chuẩn Việt Nam (ví dụ: 100.000)
+    const formatted = parseInt(val).toLocaleString('vi-VN');
+    document.getElementById('price-label').textContent = '10.000đ – ' + formatted + 'đ';
+    
+    // Tính toán tỷ lệ phần trăm thanh kéo hiện tại để vẽ màu nền (xanh lá và xám)
+    const slider = document.getElementById('price-slider');
+    if (slider) {
+        const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
+        slider.style.background = `linear-gradient(to right, #10b981 0%, #10b981 ${pct}%, #d1d5db ${pct}%, #d1d5db 100%)`;
+    }
+}
+
+// Khởi chạy khi tài liệu HTML đã tải xong cấu trúc DOM
+window.addEventListener('DOMContentLoaded', () => {
+    const slider = document.getElementById('price-slider');
+    if (slider) {
+        // Đồng bộ nhãn giá trị mặc định lúc trang vừa load xong
+        updatePriceLabel(slider.value);
+    }
+});
+
+/**
+ * Xóa từ khóa tìm kiếm và thực hiện gửi biểu mẫu bộ lọc lên server
+ */
+function clearSearchAndSubmit() {
+    const searchInput = document.getElementById('filter-search');
+    if (searchInput) searchInput.value = '';
+    const navSearchInput = document.getElementById('search-input');
+    if (navSearchInput) navSearchInput.value = '';
+    // Trên màn hình máy tính (> 640px) -> tự động gửi form khi thay đổi tích chọn danh mục
+    if (window.innerWidth > 640) document.getElementById('filter-form').submit();
+}
+
+/**
+ * Gửi dữ liệu biểu mẫu lọc lên máy chủ
+ */
+function submitFilterForm() {
+    // Trên máy tính -> Tự động submit. Trên điện thoại -> Người dùng phải bấm nút Áp dụng
+    if (window.innerWidth > 640) document.getElementById('filter-form').submit();
+}
+
+// Tham chiếu các phần tử điều khiển sắp xếp và lưới sản phẩm
+const sortSelect = document.getElementById('sort-select');
+const grid = document.getElementById('product-grid');
+const pillButtons = document.querySelectorAll('#product-pill-filters .home-popular__filter-btn');
+let currentPillFilter = 'all'; // Bộ lọc tag mặc định (Tất cả)
+
+/**
+ * Thực thi sắp xếp (Sort) và lọc (Filter) sản phẩm ngay tại client
+ */
+function applySortAndFilter() {
+    if (!sortSelect || !grid) return;
+    const sortBy = sortSelect.value;
+    // Chuyển danh sách NodeList các thẻ sản phẩm thành Mảng (Array) để sắp xếp
+    const cards = Array.from(grid.querySelectorAll('.p-product-card'));
+
+    // Sắp xếp thứ tự các thẻ sản phẩm dựa vào tiêu chí được chọn
+    cards.sort((a, b) => {
+        if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0); // Bán chạy nhất
+        if (sortBy === 'price-asc') return parseFloat(a.dataset.priceVal || 0) - parseFloat(b.dataset.priceVal || 0); // Giá thấp đến cao
+        if (sortBy === 'price-desc') return parseFloat(b.dataset.priceVal || 0) - parseFloat(a.dataset.priceVal || 0); // Giá cao đến thấp
+        if (sortBy === 'newest') return parseInt(b.dataset.date || 0) - parseInt(a.dataset.date || 0); // Mới nhất
+        if (sortBy === 'rating') return parseFloat(b.dataset.ratingVal || 0) - parseFloat(a.dataset.ratingVal || 0); // Điểm sao đánh giá cao nhất
+        return 0;
+    });
+
+    let visibleCount = 0; // Đếm số sản phẩm đang hiển thị
+    
+    // Duyệt qua từng thẻ sản phẩm để sắp xếp lại vị trí DOM và ẩn/hiện theo bộ lọc tag nhanh
+    cards.forEach(card => {
+        grid.appendChild(card); // Đắp lại phần tử vào lưới theo thứ tự mới đã sort
+        
+        let isMatch = true;
+        // Kiểm tra điều kiện lọc tag nhanh
+        if (currentPillFilter === 'hot') isMatch = card.dataset.isHot === '1';
+        else if (currentPillFilter === 'new') isMatch = card.dataset.isNew === '1';
+        
+        // Ẩn hoặc hiển thị sản phẩm
+        card.style.display = isMatch ? '' : 'none';
+        if (isMatch) visibleCount++;
+
+        // Điều chỉnh nhãn (badge) hiển thị tối ưu theo kiểu sắp xếp
+        const hotBadge = card.querySelector('.home-prod-card__badge--hot');
+        const newBadge = card.querySelector('.home-prod-card__badge--new');
+        if (sortBy === 'newest') {
+            if (newBadge) { newBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; }
+            else if (hotBadge) hotBadge.style.display = '';
+        } else {
+            if (hotBadge) { hotBadge.style.display = ''; if (newBadge) newBadge.style.display = 'none'; }
+            else if (newBadge) newBadge.style.display = '';
         }
+    });
 
-        function updatePriceLabel(val) {
-            const formatted = parseInt(val).toLocaleString('vi-VN');
-            document.getElementById('price-label').textContent = '10.000đ \u2013 ' + formatted + '\u0111';
-            const slider = document.getElementById('price-slider');
-            const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
-            slider.style.background = `linear-gradient(to right, #10b981 0%, #10b981 ${pct}%, #d1d5db ${pct}%, #d1d5db 100%)`;
+    // Quản lý hiển thị thông báo rỗng khi không có sản phẩm nào khớp bộ lọc
+    let emptyMsg = document.getElementById('empty-product-msg');
+    if (visibleCount === 0) {
+        if (!emptyMsg) {
+            emptyMsg = document.createElement('div');
+            emptyMsg.id = 'empty-product-msg';
+            // Sử dụng class CSS chuẩn đã định nghĩa trong users.css thay vì viết code style inline
+            emptyMsg.className = 'p-product-grid-empty';
+            emptyMsg.textContent = 'Không tìm thấy sản phẩm nào phù hợp với bộ lọc.';
+            grid.appendChild(emptyMsg);
+        } else {
+            emptyMsg.style.display = '';
+            grid.appendChild(emptyMsg);
         }
+    } else if (emptyMsg) {
+        emptyMsg.style.display = 'none';
+    }
+}
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const slider = document.getElementById('price-slider');
-            if (slider) {
-                const formatted = parseInt(slider.value).toLocaleString('vi-VN');
-                document.getElementById('price-label').textContent = '10.000đ \u2013 ' + formatted + '\u0111';
-            }
-        });
-
-        function clearSearchAndSubmit() {
-            const searchInput = document.getElementById('filter-search');
-            if (searchInput) searchInput.value = '';
-            const navSearchInput = document.getElementById('search-input');
-            if (navSearchInput) navSearchInput.value = '';
-            if (window.innerWidth > 640) document.getElementById('filter-form').submit();
-        }
-
-        function submitFilterForm() {
-            if (window.innerWidth > 640) document.getElementById('filter-form').submit();
-        }
-
-        const sortSelect = document.getElementById('sort-select');
-        const grid = document.getElementById('product-grid');
-        const pillButtons = document.querySelectorAll('#product-pill-filters .home-popular__filter-btn');
-        let currentPillFilter = 'all';
-
-        function applySortAndFilter() {
-            if (!sortSelect || !grid) return;
-            const sortBy = sortSelect.value;
-            const cards = Array.from(grid.querySelectorAll('.p-product-card'));
-
-            cards.sort((a, b) => {
-                if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0);
-                if (sortBy === 'price-asc') return parseFloat(a.dataset.priceVal || 0) - parseFloat(b.dataset.priceVal || 0);
-                if (sortBy === 'price-desc') return parseFloat(b.dataset.priceVal || 0) - parseFloat(a.dataset.priceVal || 0);
-                if (sortBy === 'newest') return parseInt(b.dataset.date || 0) - parseInt(a.dataset.date || 0);
-                if (sortBy === 'rating') return parseFloat(b.dataset.ratingVal || 0) - parseFloat(a.dataset.ratingVal || 0);
-                return 0;
-            });
-
-            let visibleCount = 0;
-            cards.forEach(card => {
-                grid.appendChild(card);
-                let isMatch = true;
-                if (currentPillFilter === 'hot') isMatch = card.dataset.isHot === '1';
-                else if (currentPillFilter === 'new') isMatch = card.dataset.isNew === '1';
-                card.style.display = isMatch ? '' : 'none';
-                if (isMatch) visibleCount++;
-
-                const hotBadge = card.querySelector('.home-prod-card__badge--hot');
-                const newBadge = card.querySelector('.home-prod-card__badge--new');
-                if (sortBy === 'newest') {
-                    if (newBadge) { newBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; }
-                    else if (hotBadge) hotBadge.style.display = '';
-                } else {
-                    if (hotBadge) { hotBadge.style.display = ''; if (newBadge) newBadge.style.display = 'none'; }
-                    else if (newBadge) newBadge.style.display = '';
-                }
-            });
-
-            let emptyMsg = document.getElementById('empty-product-msg');
-            if (visibleCount === 0) {
-                if (!emptyMsg) {
-                    emptyMsg = document.createElement('div');
-                    emptyMsg.id = 'empty-product-msg';
-                    emptyMsg.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 3rem; color: #6b7280;';
-                    emptyMsg.textContent = 'Không tìm thấy sản phẩm nào phù hợp với bộ lọc.';
-                    grid.appendChild(emptyMsg);
-                } else { emptyMsg.style.display = ''; grid.appendChild(emptyMsg); }
-            } else if (emptyMsg) { emptyMsg.style.display = 'none'; }
-        }
-
-        if (sortSelect && grid) {
-            sortSelect.addEventListener('change', applySortAndFilter);
-            pillButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    pillButtons.forEach(b => b.classList.remove('home-popular__filter-btn--active'));
-                    this.classList.add('home-popular__filter-btn--active');
-                    currentPillFilter = this.dataset.filter;
-                    applySortAndFilter();
-                });
-            });
+// Đăng ký sự kiện lắng nghe tương tác nếu tồn tại các phần tử điều khiển trên trang
+if (sortSelect && grid) {
+    // Lắng nghe sự thay đổi của hộp chọn Sắp xếp
+    sortSelect.addEventListener('change', applySortAndFilter);
+    
+    // Gắn sự kiện click cho các nút lọc tag nhanh (Tất cả, Bán chạy, Mới nhất)
+    pillButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Gỡ bỏ class active cũ và kích hoạt màu nổi bật cho nút vừa nhấp
+            pillButtons.forEach(b => b.classList.remove('home-popular__filter-btn--active'));
+            this.classList.add('home-popular__filter-btn--active');
+            currentPillFilter = this.dataset.filter;
+            // Thực thi lọc lại danh sách sản phẩm
             applySortAndFilter();
-        }
+        });
+    });
+    
+    // Tự động chạy sắp xếp mặc định lần đầu khi tải trang
+    applySortAndFilter();
+}

@@ -13,52 +13,52 @@
         
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">grid_view</span>
-            <span>Dashboard</span>
+            <span>Tổng quan</span>
         </a>
 
         <a href="{{ route('admin.orders.index') }}" class="flex items-center gap-3 px-4 py-2.5 bg-sidebar-active text-sidebar-active-text rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px]">shopping_cart</span>
-            <span>Orders</span>
+            <span>Đơn hàng</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">inventory_2</span>
-            <span>Products</span>
+            <span>Sản phẩm</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">category</span>
-            <span>Categories</span>
+            <span>Danh mục</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">local_offer</span>
-            <span>Promotions</span>
+            <span>Khuyến mãi</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">reviews</span>
-            <span>Reviews</span>
+            <span>Đánh giá</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">group</span>
-            <span>Customers</span>
+            <span>Khách hàng</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">view_carousel</span>
-            <span>Banners</span>
+            <span>Banner</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">bar_chart</span>
-            <span>Reports</span>
+            <span>Báo cáo</span>
         </a>
 
         <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover:text-gray-600">settings</span>
-            <span>Settings</span>
+            <span>Cài đặt</span>
         </a>
 
     </div>
@@ -67,7 +67,7 @@
     <div class="p-4 border-t border-gray-100">
         <a href="#" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-danger-light text-danger rounded-lg transition-colors hover:bg-red-200 font-medium w-full">
             <span class="material-symbols-outlined text-[20px]">logout</span>
-            <span>Log Out</span>
+            <span>Đăng xuất</span>
         </a>
     </div>
 </aside>

@@ -29,7 +29,7 @@
                 <span class="material-symbols-outlined text-[#c62828] mt-0.5">schedule</span>
                 <div>
                     <span class="font-bold text-sm block">Cửa hàng hiện đã đóng cửa!</span>
-                    <span class="text-xs mt-1 block text-[#5d4037]">Giờ hoạt động của chúng tôi là từ 07:00 đến 19:00 hàng ngày. Quý khách hiện tại có thể tham khảo giỏ hàng nhưng không thể đặt hàng mới vào lúc này.</span>
+                    <span class="text-xs mt-1 block text-[#5d4037]">Giờ hoạt động của chúng tôi là từ 07:00 đến 23:00 hàng ngày. Quý khách hiện tại có thể tham khảo giỏ hàng nhưng không thể đặt hàng mới vào lúc này.</span>
                 </div>
             </div>
         @endif
@@ -352,7 +352,7 @@
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Chi tiết thanh toán</h2>
                         </div>
 
-                        <div class="space-y-3" id="price-summary" data-subtotal="{{ $subtotal }}">
+                        <div class="space-y-3" id="price-summary" data-subtotal="{{ $subtotal }}" data-freeship-threshold="{{ $freeShipThreshold }}">
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium">
                                 <span>Tạm tính (Sản phẩm)</span>
                                 <span id="summary-subtotal-text">{{ number_format($subtotal, 0, ',', '.') }}đ</span>
@@ -362,8 +362,13 @@
                                 <span id="summary-shipping-distance-text">0đ</span>
                             </div>
                             <div class="flex justify-between text-sm text-primary font-bold hidden" id="summary-free-ship-row">
-                                <span>🎉 Miễn phí giao hàng (Đơn ≥ 150.000đ)</span>
-                                
+                                <span id="summary-free-ship-text">
+                                    @if($freeShipThreshold == 0)
+                                        🎉 Miễn phí giao hàng (Ưu đãi Kim Cương)
+                                    @else
+                                        🎉 Miễn phí giao hàng (Đơn ≥ {{ number_format($freeShipThreshold, 0, ',', '.') }}đ)
+                                    @endif
+                                </span>
                             </div>
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium hidden" id="summary-weather-fee-row">
                                 <span>Phụ thu thời tiết (<span id="summary-weather-condition-val">Bình thường</span>)</span>
@@ -390,7 +395,7 @@
                         <!-- Order Action button -->
                         @if(isset($isClosed) && $isClosed)
                             <button type="button" disabled class="w-full bg-gray-300 text-gray-500 font-bold text-center py-3.5 rounded-xl cursor-not-allowed mt-6">
-                                Cửa hàng đóng cửa (07:00 - 19:00)
+                                Cửa hàng đóng cửa (07:00 - 23:00)
                             </button>
                         @elseif(!$addresses->isEmpty())
                             <button type="submit" id="order-submit-btn" class="w-full bg-primary-container text-on-primary hover:bg-[#008f00] font-bold text-center py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-98 mt-6">

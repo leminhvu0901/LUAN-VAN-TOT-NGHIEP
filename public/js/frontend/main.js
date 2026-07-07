@@ -331,9 +331,19 @@ window.updateWishlistUI = function (data) {
                 let ratingText = avgRating > 0 ? avgRating.toFixed(1) : 'Chưa có';
 
                 // Nối thẻ HTML của từng sản phẩm
+                let isOos = item.is_active == 0;
+                let imgWrapClass = isOos ? 'wl-item__img-wrap wl-item__img-wrap--oos' : 'wl-item__img-wrap';
+                let oosBadge = isOos ? '<span class="wl-item__oos-badge">Hết hàng</span>' : '';
+                let cartBtnDisabled = isOos ? 'disabled title="Sản phẩm đã hết hàng"' : 'title="Thêm vào giỏ"';
+                let cartBtnOnclick = isOos ? '' : `onclick="addToCart(${item.id})"`;
+
+                // Nối thẻ HTML của từng sản phẩm
                 html += `
                 <div class="wl-item">
-                    <img src="/images/${item.image}" alt="${item.name}" class="wl-item__img" onerror="this.src=\'/images/products/placeholder.jpg\'">
+                    <div class="${imgWrapClass}">
+                        <img src="/images/${item.image}" alt="${item.name}" onerror="this.src='/images/products/placeholder.jpg'">
+                        ${oosBadge}
+                    </div>
                     <div class="wl-item__info">
                         <p class="wl-item__name">${item.name}</p>
                         <div class="wl-item__rating">
@@ -348,7 +358,7 @@ window.updateWishlistUI = function (data) {
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <button title="Thêm vào giỏ" class="wl-item__cart-btn" onclick="addToCart(${item.id})">
+                        <button class="wl-item__cart-btn" ${cartBtnDisabled} ${cartBtnOnclick}>
                             <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
                             </svg>
@@ -403,6 +413,13 @@ window.addToCart = function (productId, quantity = 1, options = {}) {
         })
         .then(data => {
             if (!data) return;
+
+            // Thông báo khi backend từ chối (ví dụ: sản phẩm hết hàng)
+            if (data.success === false) {
+                alert(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
+                return;
+            }
+
             updateCartUI(data); // Cập nhật lại HTML giỏ hàng
 
             // Tạo hiệu ứng nẩy nẩy (Pop) trên số lượng của giỏ hàng

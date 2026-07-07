@@ -176,12 +176,67 @@ class OrderController
             'cancel_reason' => 'nullable|string|max:500'
         ]);
 
+        $newStatus = $request->input('status');
+
+        $order = \App\Models\Order::query()->where('id', $id)->first();
+        if (!$order) {
+            return redirect()->back()->with('error', 'Không tìm thấy đơn hàng!');
+        }
+
+        // Tích lũy điểm khi đơn hàng chuyển sang trạng thái Hoàn thành (completed)
+        if ($newStatus === 'completed' && $order->status !== 'completed') {
+            if ($order->user_id) {
+                $user = \App\Models\User::find($order->user_id);
+                if ($user) {
+                    // Doanh thu tính điểm = Tổng tiền trừ phí giao hàng
+                    $amountToCalculate = max(0, $order->final_amount - ($order->shipping_fee ?? 0));
+                    
+                    // Quy đổi cơ bản: Cứ mỗi 10.000đ = 1 điểm tích lũy
+                    $basePoints = floor($amountToCalculate / 10000);
+
+                    // Hệ số nhân theo hạng hiện tại của khách hàng
+                    $multiplier = 1.0;
+                    switch ($user->membership_level) {
+                        case 'silver':  $multiplier = 1.2; break;
+                        case 'gold':    $multiplier = 1.5; break;
+                        case 'diamond': $multiplier = 2.0; break;
+                    }
+
+                    // Điểm thực tế nhận được (làm tròn số nguyên)
+                    $pointsEarned = round($basePoints * $multiplier);
+
+                    if ($pointsEarned > 0) {
+                        // Cộng điểm vào tài khoản
+                        $user->increment('points', $pointsEarned);
+
+                        // Cập nhật lại hạng thành viên dựa trên tổng điểm mới
+                        $newPoints = $user->points;
+                        $newLevel = 'new';
+
+                        if ($newPoints >= 1000) {
+                            $newLevel = 'diamond';
+                        } elseif ($newPoints >= 500) {
+                            $newLevel = 'gold';
+                        } elseif ($newPoints >= 200) {
+                            $newLevel = 'silver';
+                        }
+
+                        if ($newLevel !== ($user->membership_level ?? 'new')) {
+                            $user->update([
+                                'membership_level' => $newLevel
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
         $updateData = [
-            'status' => $request->input('status'),
+            'status' => $newStatus,
             'updated_at' => now()
         ];
 
-        if ($request->input('status') === 'cancelled') {
+        if ($newStatus === 'cancelled') {
             $updateData['cancel_reason'] = $request->input('cancel_reason');
         }
 

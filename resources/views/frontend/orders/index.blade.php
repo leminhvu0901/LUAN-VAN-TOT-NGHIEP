@@ -1,38 +1,28 @@
+{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
 @extends('layouts.app')
 
+{{-- Đặt tên class CSS riêng cho thẻ body của trang quản lý đơn hàng --}}
 @section('body_class', 'profile-body')
 
-@push('scripts')
-    <script src="{{ asset('js/frontend/orders.js') }}"></script>
-    @if(session('open_order_id'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                const orderId = {{ session('open_order_id') }};
-                if(typeof toggleOrderDetails === 'function') toggleOrderDetails(orderId);
-                const el = document.getElementById('order-details-' + orderId);
-                if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 300);
-        });
-    </script>
-    @endif
-@endpush
 
 @section('content')
-<div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0">
+{{-- Khung chứa chính của trang web. Nếu có mã đơn hàng từ session (ví dụ sau khi đặt hàng/đánh giá xong), thuộc tính data-open-order-id sẽ truyền dữ liệu cho JS tự động mở chi tiết --}}
+<div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0" data-open-order-id="{{ session('open_order_id') }}">
 
-    <!-- MOBILE: TopAppBar -->
+    <!-- MOBILE: Thanh tiêu đề trên cùng dành cho thiết bị di động -->
     <header class="md:hidden fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center px-4 h-16 shadow-sm">
+        {{-- Nút quay lại trang trước đó --}}
         <a href="{{ url()->previous() }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform">
             <span class="material-symbols-outlined text-primary">arrow_back</span>
         </a>
         <h1 class="ml-2 font-headline-md text-headline-md-mobile text-primary">Đơn hàng của tôi</h1>
     </header>
 
-    <!-- DESKTOP: SideNavBar -->
+    <!-- DESKTOP: Thanh điều hướng bên trái (Sidebar) dành cho máy tính -->
     <aside class="hidden md:flex w-[280px] flex-shrink-0 bg-tertiary-fixed border-r border-outline-variant flex-col py-stack_lg">
         <div class="px-6 mb-8">
             <div class="flex items-center gap-3 mb-4">
+                {{-- Hiển thị hình đại diện (Avatar) của thành viên đăng nhập --}}
                 <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary bg-white">
                     @if(Auth::user()->avatar)
                         <img alt="User profile avatar" class="w-full h-full object-cover" src="{{ asset('images/avatars/' . Auth::user()->avatar) }}">
@@ -40,6 +30,7 @@
                         <img alt="User profile avatar" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=006e01&color=fff">
                     @endif
                 </div>
+                {{-- Tên thành viên và hạng thẻ tích lũy --}}
                 <div>
                     <h3 class="font-label-md text-label-md text-on-surface">{{ Auth::user()->name }}</h3>
                     <p class="text-xs text-on-surface-variant">
@@ -53,13 +44,16 @@
                 </div>
             </div>
         </div>
+        
+        {{-- Liên kết điều hướng của menu bên trái --}}
         <nav class="flex-1">
             <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}">
                 <span class="material-symbols-outlined">person</span>
                 Thông tin tài khoản
             </a>
+            {{-- Mục "Đơn hàng của tôi" đang được chọn (active) --}}
             <a class="bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md" href="{{ route('orders') }}">
-                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
+                <span class="material-symbols-outlined l-icon-filled">shopping_bag</span>
                 Đơn hàng của tôi
             </a>
             <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}#password">
@@ -73,9 +67,10 @@
         </nav>
     </aside>
 
-    <!-- Main Content Area -->
+    <!-- Khu vực hiển thị nội dung chính -->
     <main class="flex-1 pt-20 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg max-w-md md:max-w-full mx-auto md:mx-0 w-full relative z-10">
         <div class="w-full">
+            {{-- Hiển thị thông báo thành công từ Session (ví dụ khi hủy đơn, đánh giá thành công) --}}
             @if(session('success'))
             <div class="bg-secondary-container text-on-secondary-container border border-outline-variant px-4 py-3 rounded-xl mb-6 shadow-sm flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">check_circle</span>
@@ -83,13 +78,13 @@
             </div>
             @endif
 
-            <!-- DESKTOP: Heading -->
+            <!-- DESKTOP: Tiêu đề trang dành cho màn hình lớn -->
             <div class="hidden md:block mb-stack_lg">
                 <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Đơn hàng của tôi</h1>
                 <p class="font-body-md text-body-md text-on-surface-variant">Xem lại lịch sử các đơn hàng bạn đã đặt</p>
             </div>
 
-            <!-- Status Filter Bar -->
+            <!-- Thanh lọc đơn hàng theo trạng thái (Tất cả, Chờ xác nhận, Đang giao,...) -->
             <div class="flex gap-2 md:gap-4 mb-6 md:mb-8 overflow-x-auto pb-2 hide-scrollbar sticky md:static top-16 z-10 bg-background/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none pt-2 md:pt-0">
                 <a href="{{ route('orders') }}" class="px-5 md:px-6 py-2 {{ !$status ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Tất cả</a>
                 <a href="{{ route('orders', ['status' => 'pending']) }}" class="px-5 md:px-6 py-2 {{ $status == 'pending' ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Chờ xác nhận</a>
@@ -99,12 +94,12 @@
                 <a href="{{ route('orders', ['status' => 'cancelled']) }}" class="px-5 md:px-6 py-2 {{ $status == 'cancelled' ? 'bg-primary text-white md:shadow-sm' : 'bg-white border border-outline-variant text-on-surface-variant md:hover:border-primary md:hover:text-primary' }} rounded-full font-label-md text-xs md:text-label-md whitespace-nowrap transition-all shadow-sm md:shadow-none">Đã hủy</a>
             </div>
 
-            <!-- Orders Container -->
+            <!-- Khung chứa danh sách các đơn hàng -->
             <div class="space-y-4 md:space-y-6">
                 @forelse($orders as $order)
                 <div class="bg-white rounded-2xl md:rounded-xl border border-outline-variant p-4 md:p-6 shadow-sm md:shadow-none md:order-card-hover transition-all duration-300">
 
-                    <!-- Card Header -->
+                    <!-- Phần đầu của mỗi Thẻ Đơn hàng (Mã đơn hàng, ngày đặt, trạng thái đơn) -->
                     <div class="flex justify-between items-start mb-3 md:mb-6 border-b border-gray-100 md:border-outline-variant pb-3 md:pb-4">
                         <div>
                             <div class="flex flex-col md:flex-row md:items-center gap-0.5 md:gap-3 mb-0 md:mb-1">
@@ -122,6 +117,7 @@
                             </div>
                         </div>
 
+                        {{-- Hiển thị trạng thái đơn hàng --}}
                         @switch($order->status)
                             @case('pending')
                                 <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Chờ xác nhận</span>
@@ -141,9 +137,10 @@
                         @endswitch
                     </div>
 
-                    <!-- Card Body -->
+                    <!-- Phần thân Thẻ Đơn hàng (Hình ảnh minh họa sản phẩm, Tên món, Tổng tiền, Nút tương tác) -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between">
                         <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-0 flex-1 min-w-0">
+                            {{-- Giao diện di động: Chỉ hiển thị hình ảnh của sản phẩm đầu tiên --}}
                             <div class="md:hidden w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-outline-variant">
                                 @if($order->items->first())
                                     <img src="{{ asset('images/' . $order->items->first()->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" alt="Product" class="w-full h-full object-cover">
@@ -152,6 +149,7 @@
                                 @endif
                             </div>
 
+                            {{-- Giao diện máy tính: Xếp lớp ảnh đại diện các sản phẩm nếu có nhiều món --}}
                             <div class="hidden md:flex -space-x-3 overflow-hidden">
                                 @foreach($order->items->take(2) as $item)
                                     <img alt="{{ $item->product_name }}" class="inline-block h-16 w-16 rounded-lg ring-4 ring-white object-cover bg-surface-container-low border border-outline-variant" src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
@@ -161,6 +159,7 @@
                                 @endif
                             </div>
 
+                            {{-- Tên sản phẩm và tóm tắt thông số đơn hàng (Số lượng, size, đường, đá) --}}
                             <div class="flex-1 min-w-0">
                                 <h3 class="font-bold text-gray-900 md:text-on-surface text-base truncate">
                                     {{ $order->items->first()->product_name ?? 'Sản phẩm đồ uống' }}
@@ -183,7 +182,7 @@
                             </div>
                         </div>
 
-                        <!-- Card Footer/Actions -->
+                        <!-- Khu vực thanh toán và các nút chi tiết/mua lại của đơn hàng -->
                         <div class="flex justify-between md:justify-end items-center gap-2 md:gap-8 border-t border-gray-100 md:border-t-0 pt-3 md:pt-0 text-left md:text-right shrink-0">
                             <div>
                                 <p class="text-[10px] md:text-xs text-gray-600 md:text-on-surface-variant uppercase font-semibold md:font-bold mb-0 md:mb-1 whitespace-nowrap">Tổng cộng</p>
@@ -196,10 +195,11 @@
                         </div>
                     </div>
 
-                    <!-- Collapsible Order Details -->
+                    <!-- Phần chi tiết thông tin đơn hàng bị ẩn đi (Chỉ hiện ra khi bấm nút Chi tiết) -->
                     <div id="order-details-{{ $order->id }}" class="hidden mt-6 pt-6 border-t border-dashed border-outline-variant/60 transition-all duration-300">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                            <!-- Delivery Details -->
+                            
+                            <!-- Cột 1: Thông tin người nhận và địa chỉ giao hàng -->
                             <div class="space-y-2">
                                 <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-primary text-lg">local_shipping</span>
@@ -213,7 +213,7 @@
                                 @endif
                             </div>
 
-                            <!-- Price Details -->
+                            <!-- Cột 2: Bảng chi tiết tính toán tiền thanh toán (Tạm tính, Ship, phụ phí, giảm giá...) -->
                             <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/60">
                                 <h4 class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 mb-3 flex items-center gap-1.5">
                                     <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
@@ -254,7 +254,7 @@
                             </div>
                         </div>
 
-                        <!-- Products List -->
+                        <!-- Danh sách chi tiết từng sản phẩm đã mua cùng nút Đánh giá món ăn -->
                         <div class="mt-6 pt-4 border-t border-outline-variant/60">
                             <h4 class="font-bold text-on-surface text-sm mb-3 flex items-center gap-1.5">
                                 <span class="material-symbols-outlined text-primary text-lg">local_cafe</span>
@@ -264,9 +264,11 @@
                                 @foreach($order->items as $item)
                                     <div class="flex items-center justify-between text-xs text-on-surface-variant bg-surface-container-low p-3 rounded-xl border border-outline-variant/50">
                                         <div class="flex items-center gap-3">
+                                            {{-- Hình ảnh sản phẩm --}}
                                             <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-outline-variant">
                                                 <img src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
                                             </div>
+                                            {{-- Tên và các tùy chọn (Size, đường, đá, topping) --}}
                                             <div>
                                                 <span class="font-bold text-on-surface text-sm block">{{ $item->product_name }}</span>
                                                 <div class="flex flex-wrap gap-2 mt-1">
@@ -286,6 +288,8 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        
+                                        {{-- Số lượng, Đơn giá và nút Đánh giá/Đã đánh giá (nếu đơn hàng đã hoàn thành) --}}
                                         <div class="text-right flex flex-col items-end justify-center">
                                             <div>
                                                 <span class="text-on-surface-variant font-bold">x{{ $item->quantity }}</span>
@@ -309,6 +313,7 @@
                     </div>
                 </div>
                 @empty
+                {{-- Trạng thái danh sách rỗng (Chưa có đơn hàng nào) --}}
                 <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl md:rounded-xl border border-outline-variant p-6" id="empty-state">
                     <span class="material-symbols-outlined text-6xl text-outline-variant mb-4">shopping_cart_off</span>
                     <h3 class="text-lg md:text-xl font-bold text-on-background mb-2">Chưa có đơn hàng nào</h3>
@@ -318,7 +323,7 @@
                 @endforelse
             </div>
 
-            <!-- Pagination -->
+            <!-- Phân trang danh sách đơn hàng (Pagination) -->
             @if($orders->lastPage() > 1)
             <div class="mt-8 md:mt-12 flex justify-center items-center gap-2 pb-6 md:pb-0">
                 @if($orders->onFirstPage())
@@ -354,7 +359,7 @@
         </div>
     </main>
 
-    <!-- MOBILE: BottomNavBar -->
+    <!-- MOBILE: Thanh điều hướng phía dưới màn hình (Bottom Navigation Bar) -->
     <nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface rounded-t-xl border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-around items-center px-2 py-3 pb-safe">
         <a href="{{ url('/') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
             <span class="material-symbols-outlined">home</span>
@@ -365,7 +370,7 @@
             <span class="font-label-md text-[11px] mt-1">Sản phẩm</span>
         </a>
         <a href="{{ route('orders') }}" class="flex flex-col items-center justify-center bg-primary-container/10 text-primary-container rounded-xl px-4 py-1.5 active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+            <span class="material-symbols-outlined l-icon-filled">receipt_long</span>
             <span class="font-label-md text-[12px] font-bold mt-0.5">Đơn hàng</span>
         </a>
         <a href="{{ route('profile') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
@@ -375,3 +380,7 @@
     </nav>
 </div>
 @endsection
+{{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
+@push('scripts')
+    <script src="{{ asset('js/frontend/orders.js') }}"></script>
+@endpush

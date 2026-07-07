@@ -43,7 +43,7 @@
                         <svg class="w-5 h-5 footer-icon-custom flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span class="text-[#475569]">Giờ mở cửa: 07:00 - 19:00</span>
+                        <span class="text-[#475569]">Giờ mở cửa: 07:00 - 23:00</span>
                     </li>
                 </ul>
             </div>
@@ -127,7 +127,7 @@
             <div class="flex flex-wrap items-center gap-4 text-center md:text-left">
                 <span class="text-[#94a3b8] text-xs font-bold tracking-wider uppercase">Đối tác thanh toán</span>
                 <div class="flex items-center gap-2">
-                    <div class="footer-payment-badge badge-vnpay" title="VNPAY QR">VNPAY</div>
+                    <div class="footer-payment-badge badge-momo" title="Thanh toán qua ví MoMo">MOMO</div>
                     <div class="footer-payment-badge badge-cod" title="Thanh toán khi nhận hàng (COD)">COD</div>
                 </div>
             </div>

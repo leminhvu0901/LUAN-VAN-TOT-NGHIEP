@@ -14,12 +14,24 @@ class ProfileController
      */
     public function index()
     {
+        $userId = \Illuminate\Support\Facades\Auth::id();
         $addresses = \App\Models\UserAddress::query()
-            ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+            ->where('user_id', $userId)
             ->orderByDesc('is_default')
             ->orderByDesc('id')
             ->get();
-        return view('frontend.profile', compact('addresses'));
+
+        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn MoMo chưa thanh toán bị lỗi/hủy)
+        $ordersCount = \App\Models\Order::query()
+            ->where('user_id', $userId)
+            ->where(function ($q) {
+                $q->where('payment_method', '!=', 'momo')
+                    ->orWhereNull('payment_method')
+                    ->orWhere('payment_status', '!=', 'unpaid');
+            })
+            ->count();
+
+        return view('frontend.profile', compact('addresses', 'ordersCount'));
     }
 
     /**

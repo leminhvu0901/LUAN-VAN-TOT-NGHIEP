@@ -164,5 +164,10 @@ if (navbar) {
         if (heroTitle && sliderImgs[currentIdx].dataset.title) {
             heroTitle.innerText = sliderImgs[currentIdx].dataset.title;
         }
+        
+        var heroTitleTag = document.getElementById('hero-title-tag');
+        if (heroTitleTag && sliderImgs[currentIdx].dataset.titleTag) {
+            heroTitleTag.innerText = sliderImgs[currentIdx].dataset.titleTag;
+        }
     }, 3000);
 })();

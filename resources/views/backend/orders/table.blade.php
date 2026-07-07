@@ -62,17 +62,9 @@
                             break;
                     }
                 @endphp
-                <form action="{{ route('admin.orders.update-status', $order['id']) }}" method="POST" class="inline status-form" id="form-status-{{ $order['id'] }}">
-                    @csrf
-                    <input type="hidden" name="cancel_reason" id="reason-{{ $order['id'] }}" value="">
-                    <select name="status" onchange="handleStatusChange(this, '{{ $order['id'] }}', '{{ $order['raw_status'] }}')" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs cursor-pointer appearance-none outline-none border-none hover:opacity-80 transition-opacity {{ $badgeClass }}" style="text-align-last: center;">
-                        <option value="pending" class="text-gray-900 bg-white" {{ $order['raw_status'] == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
-                        <option value="confirmed" class="text-gray-900 bg-white" {{ $order['raw_status'] == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
-                        <option value="shipping" class="text-gray-900 bg-white" {{ $order['raw_status'] == 'shipping' ? 'selected' : '' }}>Đang giao</option>
-                        <option value="completed" class="text-gray-900 bg-white" {{ $order['raw_status'] == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
-                        <option value="cancelled" class="text-gray-900 bg-white" {{ $order['raw_status'] == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
-                    </select>
-                </form>
+                <span class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs {{ $badgeClass }}">
+                    {{ $order['status'] }}
+                </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
                 {!! nl2br(e($order['time'])) !!}
