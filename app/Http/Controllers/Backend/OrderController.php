@@ -188,6 +188,21 @@ class OrderController
         return view('backend.orders.show', compact('order', 'items'));
     }
 
+    // CAP NHAT TRANG THAI DON HANG
+    public function updateStatus(Request $request, $id)
+    {
+        $order = \App\Models\Order::findOrFail($id);
+        $oldStatus = $order->status;
+        $newStatus = $request->input('status');
+
+        if (in_array($newStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
+            $order->status = $newStatus;
+            $order->save();
+        }
+
+        return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
+    }
+
 
     //XUAT FILE EXCEL
     public function export(Request $request)
