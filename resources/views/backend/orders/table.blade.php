@@ -1,4 +1,5 @@
 <table class="w-full text-left min-w-[900px] border-collapse">
+    {{-- Tiêu đề các cột của bảng --}}
     <thead class="bg-gray-50 sticky top-0 z-10">
         <tr>
             <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 w-32">Mã đơn hàng</th>
@@ -11,6 +12,7 @@
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
+        {{-- Lặp qua từng đơn hàng để hiển thị, nếu danh sách rỗng sẽ chuyển xuống xử lý ở khối @empty --}}
         @forelse($orders as $order)
         <tr class="hover:bg-gray-50/50 transition-colors group">
             <td class="px-6 py-4 whitespace-nowrap">
@@ -24,9 +26,11 @@
                 <span class="font-bold text-gray-900">{{ $order['total'] }}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
+                {{-- Hiển thị tên phương thức thanh toán (COD, MOMO...) --}}
                 <div class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 uppercase border border-gray-200 shadow-sm">
                     {{ $order['payment_method'] }}
                 </div>
+                {{-- Hiển thị trạng thái giao dịch nếu là thanh toán online (VD: MOMO) --}}
                 @if($order['payment_method'] === 'MOMO')
                     <div class="mt-1">
                         @if($order['payment_status'] === 'paid')
@@ -42,6 +46,7 @@
                 @endif
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
+                {{-- Xác định màu sắc của nhãn (badge) trạng thái dựa vào thuộc tính status_color --}}
                 @php
                     $badgeClass = '';
                     switch ($order['status_color']) {
@@ -77,6 +82,7 @@
                 </div>
             </td>
         </tr>
+        {{-- Giao diện hiển thị khi không tìm thấy đơn hàng nào (VD: khi tìm kiếm không có kết quả hoặc CSDL trống) --}}
         @empty
         <tr>
             <td colspan="7" class="px-6 py-12 text-center">
@@ -91,7 +97,7 @@
     </tbody>
 </table>
 
-{{-- Pagination --}}
+{{-- Hiển thị các nút phân trang nếu tổng số đơn hàng vượt quá số lượng hiển thị trên 1 trang --}}
 @if($paginator->hasPages())
 <div class="px-6 py-4 border-t border-gray-100 bg-white shrink-0 ajax-pagination">
     {{ $paginator->links('pagination::tailwind') }}

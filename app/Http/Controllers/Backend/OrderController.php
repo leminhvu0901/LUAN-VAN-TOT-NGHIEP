@@ -171,6 +171,7 @@ class OrderController
     }
 
 
+    //HIEN THI CHI TIET DON HANG
     public function show($id)
     {
         $order = \App\Models\Order::query()->where('id', $id)->first();
@@ -188,7 +189,7 @@ class OrderController
     }
 
 
-//XUAT FILE 
+    //XUAT FILE EXCEL
     public function export(Request $request)
     {
         // Áp dụng cùng bộ lọc như trang index
