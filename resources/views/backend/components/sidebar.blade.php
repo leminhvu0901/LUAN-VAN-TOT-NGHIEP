@@ -2,9 +2,18 @@
 <aside id="admin-sidebar" class="w-64 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full fixed lg:static inset-y-0 left-0 z-30 transform -translate-x-full lg:translate-x-0 transition-all duration-300 ease-in-out group/sidebar">
     
     {{-- PHẦN 1: LOGO --}}
-    <div class="p-3 flex items-center justify-center border-b border-gray-100 h-[65px]">
-        <img src="{{ asset('images/logo/black1.svg') }}" alt="Happy Tea Logo" class="h-10 w-auto group-[.is-collapsed]/sidebar:hidden">
-        <span class="material-symbols-outlined text-[32px] text-green-600 hidden group-[.is-collapsed]/sidebar:block">local_cafe</span>
+    <div class="flex items-center pl-8 group-[.is-collapsed]/sidebar:px-0 group-[.is-collapsed]/sidebar:justify-center border-b border-gray-100 h-[65px]">
+        <a href="{{ route('admin.dashboard') }}" class="happy-navbar__brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" stroke-width="2"
+                stroke="#10b981" fill="none" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <circle cx="6" cy="19" r="2"></circle>
+                <circle cx="17" cy="19" r="2"></circle>
+                <path d="M17 17h-11v-14h-2"></path>
+                <path d="M6 5l14 1l-1 7h-13"></path>
+            </svg>
+            <span class="happy-navbar__brand-text group-[.is-collapsed]/sidebar:hidden"><span class="brand-happy">Happy</span></span>
+        </a>
     </div>
 
     {{-- PHẦN 2: DANH SÁCH MENU (Có thanh cuộn dọc overflow-y-auto nếu menu quá dài) --}}
