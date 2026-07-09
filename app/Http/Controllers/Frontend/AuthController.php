@@ -234,9 +234,9 @@ class AuthController
             $request->session()->regenerate();
             $request->session()->put('login_method', 'email');
 
-            // Nếu tài khoản có vai trò là quản trị viên -> đưa thẳng vào trang quản lý đơn hàng backend
+            // Nếu tài khoản có vai trò là quản trị viên -> đưa thẳng vào trang tổng quan
             if (Auth::user()->role === 'admin') {
-                return redirect()->route('admin.orders.index');
+                return redirect()->route('admin.dashboard');
             }
 
             // Người dùng thường thì quay về trang chủ
@@ -311,7 +311,7 @@ class AuthController
             
             // Phân quyền điều hướng sau khi đăng nhập Google
             if ($user->role === 'admin') {
-                return redirect()->route('admin.orders.index');
+                return redirect()->route('admin.dashboard');
             }
 
             return redirect('/');
