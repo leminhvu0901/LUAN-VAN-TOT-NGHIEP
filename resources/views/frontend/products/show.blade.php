@@ -40,7 +40,7 @@
 
                 {{-- Ảnh lớn hiển thị sản phẩm chính. Có sự kiện onerror tải ảnh placeholder nếu ảnh chính bị lỗi --}}
                 <img id="pd-main-img"
-                     src="{{ asset('images/' . $product->image) }}"
+                     src="{{ $product->image_url }}"
                      alt="{{ $product->name }}"
                      class="pd-gallery__img"
                      onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
@@ -48,11 +48,21 @@
 
             {{-- Các ảnh thu nhỏ (Thumbnails) bổ sung ở phía dưới ảnh chính --}}
             <div class="pd-gallery__thumbs" id="pd-thumbs">
-                <div class="pd-gallery__thumb is-active" onclick="switchImage(this, '{{ asset('images/' . $product->image) }}')">
-                    <img src="{{ asset('images/' . $product->image) }}"
+                <div class="pd-gallery__thumb is-active" onclick="switchImage(this, '{{ $product->image_url }}')">
+                    <img src="{{ $product->image_url }}"
                          alt="{{ $product->name }}"
                          onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
+                
+                @if($product->images)
+                    @foreach($product->images as $galleryImg)
+                        <div class="pd-gallery__thumb" onclick="switchImage(this, '{{ $galleryImg->image_url }}')">
+                            <img src="{{ $galleryImg->image_url }}"
+                                 alt="{{ $product->name }}"
+                                 onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                        </div>
+                    @endforeach
+                @endif
             </div>
         </div>
 
@@ -87,10 +97,6 @@
                 <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
             </div>
 
-            {{-- Mô tả ngắn về sản phẩm (nếu có) --}}
-            @if($product->description)
-            <p class="pd-info__desc">{{ $product->description }}</p>
-            @endif
 
             {{-- Lựa chọn Kích cỡ (Size). Gắn các thuộc tính data- để JS cộng trừ chênh lệch giá tiền khi click chọn --}}
             @if($sizes->count() > 0)
@@ -221,7 +227,7 @@
     @if($product->description)
     <div class="pd-desc-section">
         <h2 class="pd-section-title">Mô tả sản phẩm</h2>
-        <div class="pd-desc-body">
+        <div class="pd-desc-body" style="word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;">
             <p>{{ $product->description }}</p>
         </div>
     </div>
@@ -322,7 +328,7 @@
             @foreach($relatedProducts as $rel)
             <a href="{{ route('product.show', $rel->slug) }}" class="pd-rel-card">
                 <div class="pd-rel-card__img-wrap">
-                    <img src="{{ asset('images/' . $rel->image) }}" alt="{{ $rel->name }}" class="pd-rel-card__img" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                    <img src="{{ $rel->image_url }}" alt="{{ $rel->name }}" class="pd-rel-card__img" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
                 <div class="pd-rel-card__body">
                     <p class="pd-rel-card__name">{{ $rel->name }}</p>

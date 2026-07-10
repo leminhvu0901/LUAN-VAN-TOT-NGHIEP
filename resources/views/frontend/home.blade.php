@@ -187,7 +187,7 @@
                             <span class="out-of-stock-overlay">Hết Hàng</span>
                         @endif
 
-                        <img src="{{ asset('images/' . $product->image) }}" class="home-prod-card__img"
+                        <img src="{{ $product->image_url }}" class="home-prod-card__img"
                             alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
 
                         <button class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}"

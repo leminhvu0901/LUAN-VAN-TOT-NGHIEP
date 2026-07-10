@@ -10,7 +10,7 @@
             <!-- Product Info Card -->
             <div class="bg-white rounded-2xl border border-outline-variant/60 p-4 shadow-sm">
                 <div class="w-full aspect-square rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-4 border border-outline-variant/30">
-                    <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" class="w-full h-full object-cover" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
                 <h1 class="font-headline-sm text-lg font-bold text-gray-900 mb-2">{{ $product->name }}</h1>
                 <div class="flex items-center gap-2">

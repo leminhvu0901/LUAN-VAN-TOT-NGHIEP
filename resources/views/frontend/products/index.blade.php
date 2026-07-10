@@ -47,8 +47,8 @@
                             <div class="p-price-range-wrap">
                                 @php
                                     // Giá trị nhỏ nhất và lớn nhất của thanh kéo
-                                    $sliderMin = 10000;
-                                    $sliderMax = 50000;
+                                    $sliderMin = 0;
+                                    $sliderMax = 600000;
                                     // Tính toán phần trăm thanh kéo hiện tại để đổ màu nền thanh slider (màu xanh lá)
                                     $sliderPct = round((($maxPrice - $sliderMin) / ($sliderMax - $sliderMin)) * 100, 2);
                                 @endphp
@@ -58,7 +58,7 @@
                                        oninput="updatePriceLabel(this.value)"
                                        onchange="submitFilterForm();">
                                 {{-- Hiển thị khoảng giá trị hiện tại dạng văn bản --}}
-                                <div class="p-price-label" id="price-label">10.000đ – {{ number_format($maxPrice, 0, ',', '.') }}đ</div>
+                                <div class="p-price-label" id="price-label">0đ – {{ number_format($maxPrice, 0, ',', '.') }}đ</div>
                             </div>
                         </div>
 
@@ -154,7 +154,7 @@
                                  data-name="{{ $product->name }}"
                                  data-price="{{ number_format($product->base_price, 0, ',', '.') }}đ"
                                  data-category="{{ $product->category_name }}"
-                                 data-image="{{ asset('images/' . $product->image) }}"
+                                 data-image="{{ $product->image_url }}"
                                  data-slug="{{ $product->slug }}"
                                  data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
 
@@ -177,7 +177,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                 </button>
 
-                                <img src="{{ asset('images/' . $product->image) }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                             </div>
 
                             {{-- Phần thân thông tin sản phẩm (Tên, Số sao, Số lượng đã bán, Giá cả, Nút thêm giỏ hàng) --}}
