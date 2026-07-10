@@ -103,3 +103,126 @@ input[type=number] {
     @page { margin: 0; }
 }
 
+/* =============================================
+   DASHBOARD PAGE
+   ============================================= */
+
+/* Custom shadows for dashboard cards */
+.organic-shadow { 
+    box-shadow: 0px 12px 32px rgba(29, 41, 57, 0.05); 
+}
+
+/* Hide scrollbar for nav menus if needed */
+.hide-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.hide-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+/* =============================================
+   FRONTEND LOGO STYLES (Copied for Backend)
+   ============================================= */
+.happy-navbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #111827;
+}
+
+.happy-navbar__brand-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.brand-happy {
+  background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =============================================
+   MATERIALS / WAREHOUSE PAGES
+   ============================================= */
+
+/* Fade-in-up animation dùng chung cho tất cả trang materials */
+@keyframes mat-fade-in-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.mat-animate {
+    animation: mat-fade-in-up 0.35s ease both;
+}
+
+/* Stat card hover lift */
+.mat-stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mat-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Disposed page: red glow card */
+.mat-disposed-glow {
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.1), 0 4px 24px rgba(220, 38, 38, 0.08);
+}
+
+/* Modal overlay backdrop */
+.mat-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+.mat-modal-overlay.hidden {
+    display: none;
+}
+
+/* Modal panel animation */
+.mat-modal-panel {
+    animation: mat-fade-in-up 0.3s ease both;
+}
+
+/* Sort icon transition in tables */
+.mat-sort-icon {
+    transition: color 0.15s ease;
+}
+
+/* Table row hover for materials pages */
+.mat-table-row {
+    transition: background-color 0.15s ease;
+}
+
+/* Low stock badge pulse */
+.mat-pulse-dot {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* From materials.css */
+.organic-shadow {
+    box-shadow: 0px 12px 32px rgba(29, 41, 57, 0.05);
+}
+.disposed-card-glow {
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.1), 0 4px 24px rgba(220, 38, 38, 0.08);
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease both;
+}
+.stat-card {
+    transition: all 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-2px);
+}

@@ -1,13 +1,4 @@
-{{-- ===== COMPONENTS: NAVBAR =====
-File này là component thanh điều hướng dùng chung cho toàn bộ trang web.
-Được nhúng vào layout chính qua: @include('components.navbar')
---}}
 
-{{-- ===== KHỐI PHP: Lấy dữ liệu cho navbar =====
-Chạy trước khi render HTML để chuẩn bị:
-- Danh sách sản phẩm yêu thích (hiển thị trong wishlist drawer)
-- Số lượng sản phẩm trong giỏ hàng (hiển thị badge trên icon giỏ)
---}}
 @php
     // Mặc định: danh sách rỗng & số giỏ = 0 (dành cho khách chưa đăng nhập)
     $favoriteProducts = collect();
