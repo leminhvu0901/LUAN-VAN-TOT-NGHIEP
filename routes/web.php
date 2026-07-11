@@ -206,8 +206,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\OrderController::class, 'updateStatus'])->name('orders.status.update');
 
-   
-    
+    // QUẢN LÝ SẢN PHẨM
+    Route::resource('products', App\Http\Controllers\Backend\ProductController::class)->except(['show']);
+    Route::delete('products/gallery/{id}', [App\Http\Controllers\Backend\ProductController::class, 'deleteGalleryImage'])->name('products.gallery.destroy');
+
 
     // QUẢN LÝ KHO
     //danh mục gốc
@@ -221,7 +223,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
- // Trang Sắp hết hạn 
+    // Trang Sắp hết hạn 
     Route::get('materials/expiring', [App\Http\Controllers\Backend\MaterialController::class, 'expiring'])->name('materials.expiring');
 
     // Trang Lịch Sử Xuất Hủy (

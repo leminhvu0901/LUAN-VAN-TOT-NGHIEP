@@ -23,4 +23,22 @@ class Product extends Model
     {
         return $this->hasMany(ProductSize::class, 'product_id');
     }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class, 'product_id')->orderBy('display_order');
+    }
+
+    public function getImageUrlAttribute()
+    {
+        if (empty($this->image)) {
+            return asset('images/products/placeholder.jpg');
+        }
+
+        if (str_starts_with($this->image, 'storage/')) {
+            return asset($this->image);
+        }
+
+        return asset('images/' . $this->image);
+    }
 }

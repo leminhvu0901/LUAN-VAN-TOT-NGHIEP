@@ -137,7 +137,7 @@ class ProductController
         if (!is_array($categoryIds)) {
             $categoryIds = empty($categoryIds) ? [] : [$categoryIds];
         }
-        $maxPrice = $request->input('max_price', 50000); // Giá tối đa mặc định là 600,000đ
+        $maxPrice = $request->input('max_price', 600000); // Giá tối đa mặc định là 600,000đ
         $minRating = $request->input('rating');
 
         // Xử lý chuẩn hóa từ khóa tìm kiếm (chuyển chữ thường, bỏ khoảng trắng thừa)

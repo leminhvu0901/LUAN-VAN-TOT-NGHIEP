@@ -18,7 +18,7 @@ function toggleFilter() {
 function updatePriceLabel(val) {
     // Định dạng số tiền theo chuẩn Việt Nam (ví dụ: 100.000)
     const formatted = parseInt(val).toLocaleString('vi-VN');
-    document.getElementById('price-label').textContent = '10.000đ – ' + formatted + 'đ';
+    document.getElementById('price-label').textContent = '0đ – ' + formatted + 'đ';
     
     // Tính toán tỷ lệ phần trăm thanh kéo hiện tại để vẽ màu nền (xanh lá và xám)
     const slider = document.getElementById('price-slider');

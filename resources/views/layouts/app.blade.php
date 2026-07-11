@@ -8,7 +8,7 @@
 
     {{-- @include: Nạp nội dung từ file resources/views/components/head.blade.php vào đây (thường chứa các thẻ meta,
     link CSS) --}}
-    @include('components.head')
+    @include('frontend.components.head')
 </head>
 
 {{-- @yield('body_class'): Cho phép trang con tự thêm class CSS riêng vào thẻ body (vd: class 'home-page' cho trang chủ)
@@ -17,7 +17,7 @@
 <body class="@yield('body_class')">
 
     {{-- Nạp thanh điều hướng phía trên (Header/Navbar) - hiển thị chung cho mọi trang --}}
-    @include('components.navbar')
+    @include('frontend.components.navbar')
 
     {{-- Phần thân chính của trang web --}}
     <main>
@@ -27,7 +27,7 @@
     </main>
 
     {{-- Nạp chân trang (Footer) - hiển thị chung ở cuối mọi trang --}}
-    @include('components.footer')
+    @include('frontend.components.footer')
 
     {{-- ===== MODALS XÁC THỰC ===== --}}
     {{-- Các file này chứa mã HTML của các hộp thoại (popup) bị ẩn đi. Chúng chỉ hiện lên khi JavaScript kích hoạt. Nạp

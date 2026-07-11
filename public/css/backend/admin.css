@@ -226,3 +226,9 @@ input[type=number] {
 .stat-card:hover {
     transform: translateY(-2px);
 }
+
+/* From products.css */
+.glass-effect {
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+}
