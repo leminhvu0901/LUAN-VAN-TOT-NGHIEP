@@ -46,9 +46,16 @@
                                 break;
                         }
                     @endphp
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $badgeClass }}">
-                        {{ $statusText }}
-                    </span>
+                    <form action="{{ route('admin.orders.status.update', $order->id) }}" method="POST" class="inline-flex items-center gap-2 m-0">
+                        @csrf
+                        <select name="status" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg shadow-sm focus:border-primary focus:ring-primary bg-white text-gray-700 py-1.5 pl-3 pr-8 font-medium">
+                            <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                            <option value="confirmed" {{ $order->status == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
+                            <option value="shipping" {{ $order->status == 'shipping' ? 'selected' : '' }}>Đang giao</option>
+                            <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
+                            <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
+                        </select>
+                    </form>
                 </div>
                 {{-- Hiển thị ngày giờ đặt hàng --}}
                 <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:

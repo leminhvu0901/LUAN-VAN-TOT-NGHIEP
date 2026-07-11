@@ -77,10 +77,16 @@
                                 break;
                         }
                     @endphp
-                    <span
-                        class="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs {{ $badgeClass }}">
-                        {{ $order['status'] }}
-                    </span>
+                    <form action="{{ route('admin.orders.status.update', $order['id']) }}" method="POST" class="m-0">
+                        @csrf
+                        <select name="status" onchange="this.form.submit()" class="text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
+                            <option value="pending" {{ $order['status'] == 'Chờ xác nhận' ? 'selected' : '' }}>Chờ xác nhận</option>
+                            <option value="confirmed" {{ $order['status'] == 'Đã xác nhận' ? 'selected' : '' }}>Đã xác nhận</option>
+                            <option value="shipping" {{ $order['status'] == 'Đang giao' ? 'selected' : '' }}>Đang giao</option>
+                            <option value="completed" {{ $order['status'] == 'Hoàn thành' ? 'selected' : '' }}>Hoàn thành</option>
+                            <option value="cancelled" {{ $order['status'] == 'Đã hủy' ? 'selected' : '' }}>Đã hủy</option>
+                        </select>
+                    </form>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     {!! nl2br(e($order['time'])) !!}

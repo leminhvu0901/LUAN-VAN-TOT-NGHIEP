@@ -191,16 +191,66 @@ class OrderController
     // CAP NHAT TRANG THAI DON HANG
     public function updateStatus(Request $request, $id)
     {
-        $order = \App\Models\Order::findOrFail($id);
+        $order     = \App\Models\Order::findOrFail($id);
         $oldStatus = $order->status;
         $newStatus = $request->input('status');
 
         if (in_array($newStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
             $order->status = $newStatus;
             $order->save();
+
+            // Cộng điểm tích lũy khi đơn chuyển sang "Hoàn thành" (chỉ 1 lần)
+            if ($newStatus === 'completed' && $oldStatus !== 'completed' && $order->user_id) {
+                $user = \App\Models\User::find($order->user_id);
+                if ($user) {
+                    $user->awardPoints($order->final_amount);
+                }
+            }
         }
 
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
+    }
+
+    /**
+     * Cộng điểm tích lũy và nâng hạng thành viên sau khi đơn hoàn thành.
+     *
+     * Tỷ lệ: 1 điểm = 1.000 VNĐ (dựa trên final_amount – số tiền thực trả)
+     * Ngưỡng hạng:
+     *   - new     :     0 –   499 điểm
+     *   - silver  :   500 – 1.999 điểm
+     *   - gold    : 2.000 – 4.999 điểm
+     *   - diamond : ≥ 5.000 điểm
+     */
+    private function awardLoyaltyPoints(\App\Models\Order $order): void
+    {
+        $user = \App\Models\User::find($order->user_id);
+        if (!$user) return;
+
+        // 1 điểm = 1.000 VNĐ, làm tròn xuống
+        $earnedPoints = (int) floor($order->final_amount / 1000);
+        if ($earnedPoints <= 0) return;
+
+        $newPoints = (int) ($user->points ?? 0) + $earnedPoints;
+
+        // Xác định hạng thành viên theo tổng điểm tích lũy
+        if ($newPoints >= 5000) {
+            $newLevel = 'diamond';
+        } elseif ($newPoints >= 2000) {
+            $newLevel = 'gold';
+        } elseif ($newPoints >= 500) {
+            $newLevel = 'silver';
+        } else {
+            $newLevel = 'new';
+        }
+
+        $user->points          = $newPoints;
+        $user->membership_level = $newLevel;
+        $user->save();
+
+        \Illuminate\Support\Facades\Log::info(
+            "[Points] Order #{$order->order_code} completed. User #{$user->id} ({$user->name}): "
+            . "+{$earnedPoints} điểm → tổng {$newPoints} điểm | Hạng: {$newLevel}"
+        );
     }
 
 
