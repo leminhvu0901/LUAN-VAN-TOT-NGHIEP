@@ -7,14 +7,12 @@ function loadTableData(url = null) {
     if (!url) {
         const formData = new FormData(form);
         const params   = new URLSearchParams(formData);
+        
         url = form.action + '?' + params.toString();
     }
 
     // Cập nhật URL trên thanh địa chỉ
     window.history.pushState({}, '', url);
-
-    // Đồng bộ href nút Xuất báo cáo
-    updateExportLink(url);
 
     loader.classList.remove('hidden');
     loader.classList.add('flex');
@@ -22,16 +20,29 @@ function loadTableData(url = null) {
     fetch(url, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
-            'Accept'           : 'text/html'
+            'Accept'           : 'application/json'
         }   
     })
-    .then(res  => res.text())
-    .then(html => {
-        const wrapper   = tableContainer.querySelector('.overflow-x-auto');
-        wrapper.innerHTML = html;
+    .then(res  => {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            return res.json();
+        } else {
+            return res.text().then(text => { return { table_html: text }; });
+        }
+    })
+    .then(data => {
+        if (data.table_html) {
+            const wrapper   = tableContainer.querySelector('.overflow-x-auto');
+            wrapper.innerHTML = data.table_html;
+            attachPaginationListeners();
+        }
+        if (data.stats_html) {
+            const statsContainer = document.getElementById('stats-container');
+            if (statsContainer) statsContainer.innerHTML = data.stats_html;
+        }
         loader.classList.add('hidden');
         loader.classList.remove('flex');
-        attachPaginationListeners();
     })
     .catch(err => {
         console.error(err);
@@ -58,19 +69,7 @@ function attachPaginationListeners() {
     });
 }
 
-// Cập nhật đường link tải (export)
-function updateExportLink(currentUrl) {
-    try {
-        const parsed = new URL(currentUrl, window.location.origin);
-        parsed.pathname = parsed.pathname.replace(/\/orders(\/?)?$/, '/orders/export');
-        if (!parsed.pathname.includes('/export')) {
-            parsed.pathname = parsed.pathname.replace(/\/$/, '') + '/export';
-        }
-        const btn = document.getElementById('export-btn');
-        if (btn) btn.href = parsed.toString();
-    } catch (e) { /* ignore */ }
-}
-
+// Cập nhật đường link tải (export) - function removed as export button is removed
 
 // Khởi tạo các sự kiện khi DOM đã được tải hoàn tất
 document.addEventListener('DOMContentLoaded', function () {
@@ -82,6 +81,13 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('search-input').addEventListener('input', handleLiveSearch);
     document.getElementById('date-from-input').addEventListener('change', handleLiveSearch);
     document.getElementById('date-to-input').addEventListener('change', handleLiveSearch);
+    
+    // Select events for auto-filtering
+    const statusSelect = form.querySelector('select[name="status"]');
+    if (statusSelect) statusSelect.addEventListener('change', handleLiveSearch);
+    
+    const sortSelect = form.querySelector('select[name="sort"]');
+    if (sortSelect) sortSelect.addEventListener('change', handleLiveSearch);
 
     // Prevent native form submit (Enter key)
     form.addEventListener('submit', function (e) {
@@ -91,42 +97,4 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial pagination attach
     attachPaginationListeners();
-
-    // -- Xử lý chuyển Tab bằng AJAX (Lọc đơn hàng theo trạng thái) --
-    const tabLinks = document.querySelectorAll('.custom-scrollbar a');
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function (e) {
-            // Ngăn chặn hành động tải lại trang mặc định của thẻ <a>
-            e.preventDefault();
-
-            // 1. Cập nhật giao diện (CSS): Gỡ bỏ style "đang chọn" (active) ở tất cả các tab
-            tabLinks.forEach(t => {
-                t.classList.remove('font-semibold', 'text-primary', 'border-primary', 'bg-emerald-50/30');
-                t.classList.add('font-medium', 'text-gray-500', 'border-transparent');
-            });
-            // Thêm style "đang chọn" (active) vào tab vừa được click
-            this.classList.remove('font-medium', 'text-gray-500', 'border-transparent');
-            this.classList.add('font-semibold', 'text-primary', 'border-primary', 'bg-emerald-50/30');
-
-            // 2. Đồng bộ trạng thái (status) vào trong form tìm kiếm hiện tại
-            const url    = new URL(this.href);
-            const status = url.searchParams.get('status') || '';
-            let statusInput = form.querySelector('input[name="status"]');
-            // Nếu form chưa có input này, tự động tạo mới một thẻ <input type="hidden"> và gắn vào form
-            if (!statusInput) {
-                statusInput      = document.createElement('input');
-                statusInput.type = 'hidden';
-                statusInput.name = 'status';
-                form.appendChild(statusInput);
-            }
-            // Gán giá trị trạng thái (status) mới cho input ẩn
-            statusInput.value = status;
-
-            // 3. Gọi hàm loadTableData() để gửi request AJAX tải lại dữ liệu bảng kèm theo form (chứa filter + status mới)
-            loadTableData();
-        });
-    });
-
-    // Sync export link on page load
-    updateExportLink(window.location.href);
 });

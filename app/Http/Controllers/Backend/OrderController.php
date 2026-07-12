@@ -14,78 +14,24 @@ class OrderController
     //TRANG CHU
     public function index(Request $request)
     {
-        $today     = Carbon::today();
-        $yesterday = Carbon::yesterday();
         $currentStatus = $request->query('status');
 
-        // ── Đơn trong ngày ──────────────────────────────────────
-        $todayOrdersCount     = \App\Models\Order::query()->whereDate('created_at', $today)->count();
-        $yesterdayOrdersCount = \App\Models\Order::query()->whereDate('created_at', $yesterday)->count();
-
-        // ── Doanh thu ngày (đơn hoàn thành) ─────────────────────
-        $todayRevenue     = \App\Models\Order::query()->whereDate('created_at', $today)->where('status', 'completed')->sum('final_amount');
-        $yesterdayRevenue = \App\Models\Order::query()->whereDate('created_at', $yesterday)->where('status', 'completed')->sum('final_amount');
-
-        // ── Đơn chờ xử lý ───────────────────────────────────────
+        // ── Thống kê đơn giản ──────────────────────────────────────
+        $totalOrdersCount = \App\Models\Order::query()->count();
+        $totalRevenue     = \App\Models\Order::query()->where('status', 'completed')->sum('final_amount');
         $pendingOrdersCount = \App\Models\Order::query()->where('status', 'pending')->count();
-
-        // ── Đơn hủy tháng này vs tháng trước ────────────────────
-        $now           = Carbon::now();
-        $currentMonth  = $now->month;
-        $currentYear   = $now->year;
-        $lastMonth     = $now->copy()->subMonth();
-
-        $cancelledOrdersCount = \App\Models\Order::query()
-            ->whereMonth('created_at', $currentMonth)
-            ->whereYear('created_at',  $currentYear)
-            ->where('status', 'cancelled')
-            ->count();
-
-        $lastMonthCancelledCount = \App\Models\Order::query()
-            ->whereMonth('created_at', $lastMonth->month)
-            ->whereYear('created_at',  $lastMonth->year)
-            ->where('status', 'cancelled')
-            ->count();
-
-        // ── Helper: tính % thay đổi ──────────────────────────────
-        $pct = function (int|float $current, int|float $previous): string {
-            if ($previous == 0) {
-                return $current > 0 ? '+100%' : '0%';
-            }
-            $diff = round((($current - $previous) / $previous) * 100, 1);
-            return ($diff >= 0 ? '+' : '') . $diff . '%';
-        };
-
-        // ── Trend labels ─────────────────────────────────────────
-        $ordersTrend   = $pct($todayOrdersCount, $yesterdayOrdersCount)   . ' so với hôm qua';
-        $revenueTrend  = $pct($todayRevenue,     $yesterdayRevenue)        . ' so với hôm qua';
-        $cancelTrend   = $pct($cancelledOrdersCount, $lastMonthCancelledCount) . ' so với tháng trước';
+        $cancelledOrdersCount = \App\Models\Order::query()->where('status', 'cancelled')->count();
 
         $stats = [
-            'today_orders' => [
-                'value'  => $todayOrdersCount,
-                'trend'  => $ordersTrend,
-                'is_up'  => $todayOrdersCount >= $yesterdayOrdersCount,
-            ],
-            'today_revenue' => [
-                'value'  => number_format($todayRevenue, 0, ',', '.') . 'đ',
-                'trend'  => $revenueTrend,
-                'is_up'  => $todayRevenue >= $yesterdayRevenue,
-            ],
-            'pending_orders' => [
-                'value'  => $pendingOrdersCount,
-                'trend'  => $pendingOrdersCount > 0 ? 'Cần phê duyệt gấp' : 'Không có đơn chờ',
-                'is_up'  => null,
-            ],
-            'cancelled_orders' => [
-                'value'  => $cancelledOrdersCount,
-                'trend'  => $cancelTrend,
-                'is_up'  => $cancelledOrdersCount <= $lastMonthCancelledCount, // ít hủy hơn = tốt
-            ],
+            'total_orders' => $totalOrdersCount,
+            'total_revenue' => $totalRevenue,
+            'pending_orders' => $pendingOrdersCount,
+            'cancelled_orders' => $cancelledOrdersCount,
         ];
 
         // Pagination and real data
-        $ordersQuery = \App\Models\Order::query()->orderBy('created_at', 'desc');
+        $sortOrder = $request->input('sort', 'desc') === 'asc' ? 'asc' : 'desc';
+        $ordersQuery = \App\Models\Order::query()->orderBy('created_at', $sortOrder);
         
         if ($currentStatus && in_array($currentStatus, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'])) {
             $ordersQuery->where('status', $currentStatus);
@@ -164,7 +110,10 @@ class OrderController
         }
 
         if ($request->ajax() || $request->has('ajax')) {
-            return view('backend.orders.table', compact('orders', 'paginator', 'currentStatus'))->render();
+            return response()->json([
+                'table_html' => view('backend.orders.partials.table', compact('orders', 'paginator', 'currentStatus'))->render(),
+                'stats_html' => view('backend.orders.partials.stats', compact('stats'))->render(),
+            ]);
         }
 
         return view('backend.orders.index', compact('stats', 'orders', 'paginator', 'currentStatus'));

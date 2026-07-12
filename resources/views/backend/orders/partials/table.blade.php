@@ -92,8 +92,7 @@
                     {!! nl2br(e($order['time'])) !!}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
-                    <div
-                        class="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div class="flex items-center justify-center gap-2">
                         <a href="{{ route('admin.orders.show', $order['id']) }}"
                             class="text-primary hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md transition-colors"
                             title="Xem chi tiết">
