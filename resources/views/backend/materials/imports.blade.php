@@ -3,34 +3,34 @@
 @section('title', 'Lịch sử Nhập Kho')
 
 @section('content')
-    <div class="p-6">
-        <div class="mb-6 flex items-center justify-between">
-            <div class="flex items-center gap-4">
+    <div class="p-4 sm:p-6">
+        <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3 sm:gap-4">
                 <a href="{{ route('admin.materials.index') }}"
-                    class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors">
+                    class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-gray-900 transition-colors">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Chi tiết vật tư: {{ $material->name }}</h2>
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Chi tiết vật tư: {{ $material->name }}</h2>
                     <p class="text-gray-500 text-sm mt-1">Tồn kho hiện tại: <span
                             class="font-bold text-gray-900">{{ number_format($material->current_stock, 0, ',', '.') }}
                             {{ $material->unit }}</span> | Giá vốn TB:
                         {{ number_format($material->unit_price, 0, ',', '.') }}đ</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex gap-2 w-full md:w-auto">
                 <button
                     onclick="editMaterial({{ $material->id }}, '{{ $material->name }}', '{{ $material->unit }}', {{ $material->unit_price }})"
-                    class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-emerald-600 transition-colors flex items-center gap-2">
+                    class="flex-1 md:flex-none justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-emerald-600 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <span class="material-symbols-outlined text-[20px]">edit</span> Sửa thông tin
                 </button>
                 <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST"
                     onsubmit="return confirm('Bạn có chắc chắn muốn xóa toàn bộ vật tư này?');"
-                    class="inline-block m-0 p-0">
+                    class="inline-block m-0 p-0 flex-1 md:flex-none">
                     @csrf
                     @method('DELETE')
                     <button type="submit"
-                        class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center gap-2">
+                        class="w-full justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center gap-2 whitespace-nowrap">
                         <span class="material-symbols-outlined text-[20px]">delete</span> Xóa vật tư
                     </button>
                 </form>
@@ -90,7 +90,7 @@
                     </div>
                     <div class="mt-4 flex justify-end">
                         <button type="submit"
-                            class="px-6 py-2.5 bg-primary text-white rounded-lg font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2">
+                            class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
                             <span class="material-symbols-outlined text-[20px]">add_box</span> Lưu phiếu nhập
                         </button>
                     </div>
@@ -281,7 +281,7 @@
     <!-- Phần 3: Hộp thoại (Modal) Xóa/Hủy một phần hoặc toàn bộ Lô hàng (Bị ẩn mặc định) -->
     <div id="modal-dispose-batch"
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
             <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 class="font-bold text-lg text-gray-900">Hủy Hàng Từ Lô <span id="dispose-batch-id"
                         class="text-blue-600"></span></h3>
@@ -321,7 +321,7 @@
 
     <!-- Phần 4: Hộp thoại (Modal) Sửa thông tin Vật tư cơ bản (Bị ẩn mặc định) -->
     <div id="modal-edit" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
             <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 class="font-bold text-lg text-gray-900">Sửa Thông Tin Vật Tư</h3>
                 <button onclick="document.getElementById('modal-edit').classList.add('hidden')"
@@ -363,7 +363,7 @@
 
     <!-- Modal Sửa Phiếu Nhập -->
     <div id="modal-edit-import" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
             <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 class="font-bold text-lg text-gray-900">Sửa Phiếu Nhập Lô <span id="edit-import-id-text" class="text-blue-600"></span></h3>
                 <button onclick="document.getElementById('modal-edit-import').classList.add('hidden')"

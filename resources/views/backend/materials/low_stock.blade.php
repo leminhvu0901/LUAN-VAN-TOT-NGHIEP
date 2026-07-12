@@ -3,28 +3,28 @@
 @section('title', 'Vật Tư Dưới Mức Tồn Tối Thiểu')
 
 @section('content')
-<div class="p-6 sm:p-8 space-y-6 mat-animate">
+<div class="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 mat-animate">
 
     {{-- ===== HEADER ===== --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-1.5 text-sm text-gray-400 mb-2">
+            <div class="flex items-center flex-wrap gap-1.5 text-sm text-gray-400 mb-2">
                 <a href="{{ route('admin.dashboard') }}" class="hover:text-gray-600 transition-colors">Dashboard</a>
                 <span class="material-symbols-outlined text-[14px]">chevron_right</span>
                 <a href="{{ route('admin.materials.index') }}" class="hover:text-gray-600 transition-colors">Quản lý Kho</a>
                 <span class="material-symbols-outlined text-[14px]">chevron_right</span>
                 <span class="text-gray-700 font-medium">Vật Tư Dưới Mức Tồn Tối Thiểu</span>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2.5">
-                <span class="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-red-100 text-red-600">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-start sm:items-center gap-2.5">
+                <span class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-red-100 to-red-200 text-red-600 shadow-inner border border-red-50 flex-shrink-0">
                     <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1">warning</span>
                 </span>
-                Vật Tư Dưới Mức Tồn Tối Thiểu
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Vật Tư Dưới Mức Tồn Tối Thiểu</span>
             </h1>
-            <p class="text-sm text-gray-500 mt-1 ml-[52px]">Các vật tư có tồn kho dưới <span class="font-semibold text-red-600">5 đơn vị</span> — cần nhập kho sớm.</p>
+            <p class="text-sm text-gray-500 mt-2 sm:mt-1 sm:ml-[58px]">Các vật tư có tồn kho dưới <span class="font-semibold text-red-600">5 đơn vị</span> — cần nhập kho sớm.</p>
         </div>
         <a href="{{ route('admin.materials.index') }}"
-            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all self-start md:self-auto">
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white/80 backdrop-blur-md border border-gray-200/80 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:shadow hover:-translate-y-0.5 transition-all duration-300 w-full md:w-auto">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             Quay lại Kho
         </a>
@@ -32,32 +32,34 @@
 
     {{-- ===== STAT CARDS ===== --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="mat-stat-card bg-red-50 rounded-2xl organic-shadow p-5 border border-red-100 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+        <div class="mat-stat-card group bg-gradient-to-br from-red-50 to-red-100/50 rounded-2xl p-5 border border-red-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
+            <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-red-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">warning</span>
+            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-red-100 flex items-center justify-center text-red-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
                 <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1">warning</span>
             </div>
-            <div>
-                <p class="text-xs font-semibold text-red-500 uppercase tracking-wide">Tổng vật tư cảnh báo</p>
-                <p class="text-3xl font-bold text-red-700">{{ $lowStockMaterials->count() }}</p>
+            <div class="z-10">
+                <p class="text-xs font-semibold text-red-500 uppercase tracking-wider">Tổng vật tư cảnh báo</p>
+                <p class="text-3xl font-extrabold text-red-700 tracking-tight">{{ $lowStockMaterials->count() }}</p>
             </div>
         </div>
-        <div class="mat-stat-card bg-white rounded-2xl organic-shadow p-5 border border-gray-100 flex items-center gap-4 sm:col-span-2">
-            <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 flex-shrink-0">
+        <div class="mat-stat-card group bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-2xl p-5 border border-orange-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 sm:col-span-2 relative overflow-hidden">
+            <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-orange-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">info</span>
+            <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-orange-100 flex items-center justify-center text-orange-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
                 <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1">info</span>
             </div>
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ngưỡng cảnh báo</p>
+            <div class="z-10">
+                <p class="text-xs font-semibold text-orange-600 uppercase tracking-wider">Ngưỡng cảnh báo</p>
                 <p class="text-xl font-bold text-gray-800">Dưới 5 đơn vị tồn kho</p>
-                <p class="text-xs text-gray-400 mt-0.5">Bao gồm cả vật tư hết hàng (= 0)</p>
+                <p class="text-xs text-gray-500 mt-0.5">Bao gồm cả vật tư hết hàng (= 0)</p>
             </div>
         </div>
     </div>
 
     {{-- ===== TABLE CARD ===== --}}
-    <div class="bg-white rounded-2xl organic-shadow border border-gray-100 overflow-hidden flex flex-col">
+    <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100/80 overflow-hidden flex flex-col">
 
         {{-- ===== TOOLBAR ===== --}}
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/70">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 backdrop-blur-sm">
             <div class="flex flex-col gap-3">
 
                 {{-- Row 1: Title + Search --}}
@@ -71,11 +73,11 @@
                     </div>
 
                     {{-- Search --}}
-                    <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm group focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100 transition-all">
+                    <div class="flex items-center gap-2 bg-white border border-gray-200 hover:border-red-300 rounded-xl px-3 py-2 shadow-sm group focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10 transition-all duration-300 w-full sm:w-auto">
                         <span class="material-symbols-outlined text-gray-400 text-[18px] group-focus-within:text-red-500 transition-colors">search</span>
                         <input type="text" id="search-low-stock" onkeyup="filterSimpleTable('search-low-stock')"
                             placeholder="Tìm mã, tên vật tư..."
-                            class="text-sm text-gray-600 bg-transparent border-none p-0 focus:ring-0 outline-none w-44 sm:w-52">
+                            class="text-sm text-gray-700 bg-transparent border-none p-0 focus:ring-0 outline-none w-full sm:w-60 placeholder-gray-400">
                     </div>
                 </div>
 
@@ -97,42 +99,42 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50" id="table-body">
                     @forelse($lowStockMaterials as $item)
-                        <tr class="hover:bg-red-50/30 transition-colors">
-                            <td class="px-6 py-4 text-sm text-gray-500 font-semibold">
-                                VT-{{ str_pad($item->id, 2, '0', STR_PAD_LEFT) }}
+                        <tr class="hover:bg-red-50/40 transition-colors duration-200 group">
+                            <td class="px-6 py-4 text-sm text-gray-500 font-medium">
+                                <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-bold font-mono">VT-{{ str_pad($item->id, 2, '0', STR_PAD_LEFT) }}</span>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                                        <span class="material-symbols-outlined text-red-500 text-[16px]" style="font-variation-settings:'FILL' 1">warning</span>
+                                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-50 to-red-100 border border-red-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                        <span class="material-symbols-outlined text-red-500 text-[18px]" style="font-variation-settings:'FILL' 1">warning</span>
                                     </div>
-                                    <span class="font-semibold text-sm text-gray-900">{{ $item->name }}</span>
+                                    <span class="font-bold text-sm text-gray-900">{{ $item->name }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <span class="text-sm font-bold {{ $item->current_stock == 0 ? 'text-red-600' : 'text-orange-600' }}">
+                                <span class="text-sm font-black {{ $item->current_stock == 0 ? 'text-red-600' : 'text-orange-600' }} drop-shadow-sm">
                                     {{ $item->current_stock }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600 font-medium">{{ $item->unit }}</td>
                             <td class="px-6 py-4">
                                 @if($item->current_stock == 0)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-bold">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 mat-pulse-dot"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 text-xs font-bold shadow-sm">
+                                        <span class="w-2 h-2 rounded-full bg-red-500 mat-pulse-dot shadow-sm shadow-red-500/50"></span>
                                         Hết hàng
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-100 text-orange-700 text-xs font-bold">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-orange-700 text-xs font-bold shadow-sm">
+                                        <span class="w-2 h-2 rounded-full bg-orange-500 shadow-sm shadow-orange-500/50"></span>
                                         Sắp hết
                                     </span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <a href="{{ route('admin.materials.imports', $item->id) }}"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors text-xs font-bold">
-                                    <span class="material-symbols-outlined text-[16px]">add</span>
-                                    Nhập thêm
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all duration-300 text-xs font-bold">
+                                    <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                                    Nhập ngay
                                 </a>
                             </td>
                         </tr>

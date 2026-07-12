@@ -4,18 +4,17 @@
 
 @section('content')
 
-
-    <div class="p-6 space-y-6">
+    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
         <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
-        <div class="flex justify-between items-end mb-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
-                <h2 class="text-3xl font-bold text-gray-900">Quản lý Kho Vật Tư</h2>
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Kho Vật Tư</h2>
                 <p class="text-gray-500 text-sm mt-1">Theo dõi, cập nhật và quản lý tồn kho nguyên liệu chi tiết.</p>
             </div>
-            <div class="flex gap-4">
+            <div class="flex gap-4 w-full sm:w-auto">
 
                 <button onclick="document.getElementById('modal-add').classList.remove('hidden')"
-                    class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all">
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all w-full sm:w-auto">
                     <span class="material-symbols-outlined">add</span>
                     Thêm vật tư mới
                 </button>
@@ -145,27 +144,27 @@
 
         <!-- Phần 3: Thanh Tìm kiếm và Lọc dữ liệu -->
         <div
-            class="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6">
+            class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6">
             <form action="{{ route('admin.materials.index') }}" method="GET"
-                class="flex flex-wrap gap-4 items-center w-full md:w-auto">
-                <div class="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 w-64 relative">
+                class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full xl:w-auto">
+                <div class="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-64 relative">
                     <span class="material-symbols-outlined text-gray-400">search</span>
                     <input type="text" name="search" value="{{ request('search') }}"
                         class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-4 w-full outline-none"
                         placeholder="Tìm kiếm vật tư...">
                 </div>
                 <button type="submit"
-                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm rounded-lg transition-colors">
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto">
                     Lọc
                 </button>
                 @if(request('search'))
                     <a href="{{ route('admin.materials.index') }}"
-                        class="px-4 py-2 text-gray-500 hover:text-red-500 font-medium text-sm rounded-lg transition-colors">
+                        class="px-4 py-2 text-gray-500 hover:text-red-500 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto">
                         Xóa lọc
                     </a>
                 @endif
             </form>
-            <div class="text-sm font-medium text-gray-500">
+            <div class="text-sm font-medium text-gray-500 w-full xl:w-auto text-right">
                 Hiển thị {{ $materials->count() }} / {{ $totalItems }} vật tư
             </div>
         </div>
@@ -176,22 +175,19 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th
-                                class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                 Mã VT</th>
-                            <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Tên vật tư
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Tên vật tư
                             </th>
-                            <th
-                                class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                 Tồn kho</th>
-                            <th
-                                class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                 Đơn vị</th>
-                            <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider w-48">Cảnh báo
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Cảnh báo
                             </th>
-                            <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Trạng thái
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Trạng thái
                             </th>
-                            <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">
+                            <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">
                                 Hành động</th>
                         </tr>
                     </thead>
@@ -232,9 +228,9 @@
                                 }
                             @endphp
                             <tr class="hover:bg-gray-50 transition-colors group">
-                                <td class="px-6 py-4 font-semibold text-sm text-gray-500 whitespace-nowrap">
+                                <td class="px-4 py-3 font-semibold text-sm text-gray-500 whitespace-nowrap">
                                     VT-{{ str_pad($material->id, 2, '0', STR_PAD_LEFT) }}</td>
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
@@ -246,19 +242,19 @@
                                     </div>
                                 </td>
                                 <td
-                                    class="px-6 py-4 font-semibold text-sm {{ $material->current_stock < 5 ? 'text-red-600' : 'text-gray-900' }} whitespace-nowrap">
+                                    class="px-4 py-3 font-semibold text-sm {{ $material->current_stock < 5 ? 'text-red-600' : 'text-gray-900' }} whitespace-nowrap">
                                     {{ $material->current_stock }}
                                 </td>
-                                <td class="px-6 py-4 font-semibold text-sm text-gray-900 whitespace-nowrap">
+                                <td class="px-4 py-3 font-semibold text-sm text-gray-900 whitespace-nowrap">
                                     {{ $material->unit }}
                                 </td>
 
-                                <td class="px-6 py-4">
-                                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden min-w-[100px]">
                                         <div class="{{ $barColor }} h-full rounded-full" style="width: {{ $barWidth }}%"></div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     <span
                                         class="inline-flex items-center gap-1 px-2 py-1 {{ $statusColor }} rounded-lg font-medium text-xs">
                                         <span
@@ -266,7 +262,7 @@
                                         {{ $status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
                                     <div class="flex justify-center">
                                         <a href="{{ route('admin.materials.imports', $material->id) }}"
                                             class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs font-bold whitespace-nowrap">
@@ -278,7 +274,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-gray-500 font-medium">Không tìm thấy vật tư
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500 font-medium">Không tìm thấy vật tư
                                     nào.</td>
                             </tr>
                         @endforelse
@@ -297,7 +293,7 @@
 
     <!-- Phan 5: Modal Them Vat tu moi -->
     <div id="modal-add" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden mat-modal-panel">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden mat-modal-panel">
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 class="font-bold text-lg text-gray-900">Thêm Vật Tư Mới</h3>
                 <button onclick="closeModal('modal-add')" class="text-gray-400 hover:text-gray-600">
