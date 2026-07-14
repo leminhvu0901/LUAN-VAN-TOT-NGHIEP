@@ -64,7 +64,7 @@
                     </div>
                 @endif
 
-                @if($errors->any())
+                @if($errors->any() && !old('_form_context'))
                     <div class="mb-4 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-medium">
                         <ul class="list-disc pl-5 space-y-1">
                             @foreach($errors->all() as $error)
@@ -81,10 +81,11 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập
                                 ({{ $material->unit }})</label>
-                            <input type="number" step="1" id="create-import-quantity" name="quantity" required min="1" max="99999999"
+                            <input type="number" step="1" id="create-import-quantity" name="quantity" required min="1" max="1000"
                                 value="{{ old('quantity') }}" data-unit-price="{{ $material->unit_price }}"
                                 class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                                 placeholder="0">
+                            <p id="create-import-quantity-error" data-error-for="create-import-quantity" class="hidden mt-1 text-xs font-medium text-red-600"></p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Tổng tiền thanh toán (VNĐ)</label>
@@ -356,9 +357,9 @@
                         <input type="text" id="edit-name" name="name" required minlength="2"
                             data-max-length="50" data-field-label="Tên vật tư" aria-describedby="edit-name-error"
                             value="{{ old('_form_context') === 'material-edit' ? old('name') : '' }}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            class="w-full px-4 py-2 border {{ $errors->has('name') && old('_form_context') === 'material-edit' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all">
                         <p id="edit-name-error" data-error-for="edit-name"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('name') && old('_form_context') === 'material-edit' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('name') && old('_form_context') === 'material-edit' ? $errors->first('name') : '' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Đơn vị (Kg, Bao, Lốc, Cuộn,
@@ -368,9 +369,9 @@
                             aria-describedby="edit-unit-error"
                             value="{{ old('_form_context') === 'material-edit' ? old('unit') : '' }}"
                             {{ $imports->isNotEmpty() ? 'readonly' : '' }}
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all {{ $imports->isNotEmpty() ? 'bg-gray-100' : '' }}">
+                            class="w-full px-4 py-2 border {{ $errors->has('unit') && old('_form_context') === 'material-edit' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all {{ $imports->isNotEmpty() ? 'bg-gray-100' : '' }}">
                         <p id="edit-unit-error" data-error-for="edit-unit"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('unit') && old('_form_context') === 'material-edit' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('unit') && old('_form_context') === 'material-edit' ? $errors->first('unit') : '' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Giá vốn dự kiến (VNĐ / Đơn vị)</label>
@@ -380,9 +381,9 @@
                             aria-describedby="edit-formatted-price-error"
                             value="{{ old('_form_context') === 'material-edit' && old('unit_price') !== null ? number_format((float) old('unit_price'), 0, ',', '.') : '' }}"
                             {{ $imports->isNotEmpty() ? 'readonly' : '' }}
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all {{ $imports->isNotEmpty() ? 'bg-gray-100' : '' }}">
+                            class="w-full px-4 py-2 border {{ $errors->has('unit_price') && old('_form_context') === 'material-edit' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all {{ $imports->isNotEmpty() ? 'bg-gray-100' : '' }}">
                         <p id="edit-formatted-price-error" data-error-for="edit-formatted-price"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('unit_price') && old('_form_context') === 'material-edit' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('unit_price') && old('_form_context') === 'material-edit' ? $errors->first('unit_price') : '' }}</p>
                         <input type="hidden" id="edit-price" name="unit_price" value="{{ old('_form_context') === 'material-edit' ? old('unit_price') : '' }}">
                     </div>
                 </div>
@@ -416,11 +417,12 @@
                 <input type="hidden" name="_min_expiration_date" id="import-edit-min-expiration" value="{{ old('_min_expiration_date') }}">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng nhập ({{ $material->unit }})</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng nhập ({{ $material->unit }}) </label>
                         <input type="number" id="edit-import-quantity" name="quantity" required
-                            min="{{ old('_form_context') === 'import-edit' ? max(1, (int) old('_min_quantity')) : 1 }}" max="99999999" step="1"
+                            min="{{ old('_form_context') === 'import-edit' ? max(1, (int) old('_min_quantity')) : 1 }}" max="1000" step="1"
                             value="{{ old('_form_context') === 'import-edit' ? old('quantity') : '' }}"
                             class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                        <p id="edit-import-quantity-error" data-error-for="edit-import-quantity" class="hidden mt-1 text-xs font-medium text-red-600"></p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Tổng tiền thanh toán (VNĐ)</label>

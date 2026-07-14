@@ -93,8 +93,8 @@
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </a>
                             <button type="button"
-                                onclick="deleteReview({{ $review->id }})"
-                                class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa đánh giá">
+                                data-id="{{ $review->id }}"
+                                class="js-delete-review p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa đánh giá">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                         </div>

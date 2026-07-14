@@ -36,66 +36,7 @@
             </div>
         </div>
 
-        @if(session('success') || $errors->any())
-            @push('scripts')
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        if (typeof Swal !== 'undefined') {
-                            @if(session('success'))
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Thành công!',
-                                    text: '{{ session('success') }}',
-                                    timer: 2000,
-                                    showConfirmButton: false,
-                                    width: '320px',
-                                    padding: '1rem',
-                                    customClass: {
-                                        popup: 'rounded-xl shadow-xl border border-gray-100',
-                                        title: 'text-base font-bold text-gray-800',
-                                        htmlContainer: 'text-sm text-gray-500 mt-1',
-                                        icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                                    }
-                                });
-                            @endif
-                            @if($errors->any())
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Lỗi',
-                                    html: `<ul class="text-left text-sm text-gray-600 list-disc pl-5 space-y-1">
-                                                @foreach($errors->all() as $error)
-                                                    <li>{{ $error }}</li>
-                                                @endforeach</ul>`,
-                                    width: '320px',
-                                    padding: '1rem',
-                                    confirmButtonText: 'Đóng',
-                                    buttonsStyling: false,
-                                    customClass: {
-                                        popup: 'rounded-xl shadow-xl border border-gray-100',
-                                        title: 'text-base font-bold text-gray-800',
-                                        confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                                        icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                                        actions: 'mt-3 w-full flex justify-center'
-                                    }
-                                });
-                            @endif
-                            }
-                    });
-                </script>
-            @endpush
-        @endif
-
         <!-- Thống kê -->
-        <style>
-            .hide-scrollbar::-webkit-scrollbar {
-                display: none;
-            }
-
-            .hide-scrollbar {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-        </style>
 
         <div
             class="flex overflow-x-auto sm:grid sm:grid-cols-3 gap-3 sm:gap-4 pb-2 sm:pb-0 snap-x snap-mandatory hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -148,6 +89,11 @@
             </div>
         </div>
 
+        <!-- Form ẩn dùng để xóa nhiều -->
+        <form id="bulk-delete-form" action="{{ route('admin.reviews.bulk_delete') }}" method="POST" style="display: none;">
+            @csrf
+        </form>
+
         <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
         <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 mt-4 sm:mt-0">
             <form action="{{ route('admin.reviews.index') }}" method="GET" id="filter-form"
@@ -191,20 +137,16 @@
                 </div>
 
                 <a href="{{ route('admin.reviews.index') }}" id="btn-clear-filter"
-                    class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto ml-auto"
+                    class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
                     style="display: {{ (request('search') || (request('rating') && request('rating') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">
                     Xóa lọc
                 </a>
 
-                <!-- Nút xóa nhiều (cùng hàng, bên phải) -->
-                <div id="bulk-delete-container" style="display:none;">
-                    <form id="bulk-delete-form" action="{{ route('admin.reviews.bulk_delete') }}" method="POST">
-                        @csrf
-                    </form>
-                    <button onclick="submitBulkDelete()"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-100 hover:border-red-300 transition-all">
-                        <span class="material-symbols-outlined text-[17px]">delete</span>
-                        (<span id="selected-count">0</span>)
+                <!-- Nút xóa nhiều (cùng hàng, bên trái) -->
+                <div id="bulk-delete-container" style="display:none;" class="w-full sm:w-auto">
+                    <button type="button" class="js-bulk-delete flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all w-full sm:w-auto">
+                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
+                        Xóa <span id="selected-count" class="mx-1">0</span> đánh giá
                     </button>
                 </div>
             </form>

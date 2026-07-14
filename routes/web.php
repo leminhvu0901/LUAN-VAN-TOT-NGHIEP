@@ -12,8 +12,7 @@ Route::get('/', function () {
     // Truy vấn lấy danh mục sản phẩm (categories) kèm theo số lượng sản phẩm của từng danh mục
     $categories = \App\Models\Category::query()
         ->leftJoin('products', function ($join) { // Kết nối bảng products
-            $join->on('categories.id', '=', 'products.category_id') // Điều kiện: id danh mục = category_id của sản phẩm
-                ->where('products.is_active', 1); // Chỉ đếm các sản phẩm đang được bán
+            $join->on('categories.id', '=', 'products.category_id'); // Điều kiện: id danh mục = category_id của sản phẩm
         })
         ->select('categories.id', 'categories.name', \Illuminate\Support\Facades\DB::raw('COUNT(products.id) as product_count')) // Đếm tổng số sản phẩm
         ->where('categories.is_active', 1) // Chỉ lấy các danh mục đang mở
@@ -182,6 +181,11 @@ Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCa
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
     // Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Backend\DashboardController::class, 'index'])->name('dashboard');
+
+    // QUẢN LÝ KHÁCH HÀNG
+    Route::post('customers/bulk-delete', [App\Http\Controllers\Backend\CustomerController::class, 'bulkDelete'])->name('customers.bulk_delete');
+    Route::post('customers/{id}/toggle-status', [App\Http\Controllers\Backend\CustomerController::class, 'toggleStatus'])->name('customers.toggle_status');
+    Route::resource('customers', App\Http\Controllers\Backend\CustomerController::class);
 
     // Xem danh sách toàn bộ đơn hàng của quán
     Route::get('/orders', [App\Http\Controllers\Backend\SecureOrderController::class, 'index'])->name('orders.index');

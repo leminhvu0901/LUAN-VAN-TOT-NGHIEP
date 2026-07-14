@@ -89,16 +89,13 @@ class SecureOrderController
     public function destroy($id)
     {
         $order = Order::findOrFail($id);
-        if ($order->status !== 'cancelled') {
-            return back()->withErrors(['delete' => 'Chỉ có thể lưu trữ đơn hàng đã hủy.']);
-        }
         $order->delete();
-        return back()->with('success', 'Đã lưu trữ đơn hàng; dữ liệu tài chính vẫn được bảo toàn.');
+        return back()->with('success', 'Đã xóa đơn hàng thành công!');
     }
 
     public function bulkDelete(Request $request)
     {
-        $query = Order::query()->where('status', 'cancelled');
+        $query = Order::query();
         if ($request->input('delete_all_pages') === '1') {
             if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
             if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
@@ -116,8 +113,8 @@ class SecureOrderController
 
         $count = $query->count();
         $query->delete();
-        if ($count === 0) return back()->withErrors(['delete' => 'Không có đơn đã hủy nào đủ điều kiện lưu trữ.']);
-        return back()->with('success', "Đã lưu trữ {$count} đơn hàng đã hủy.");
+        if ($count === 0) return back()->withErrors(['delete' => 'Không có đơn hàng nào được chọn.']);
+        return back()->with('success', "Đã xóa {$count} đơn hàng thành công.");
     }
 
     public function export(Request $request)

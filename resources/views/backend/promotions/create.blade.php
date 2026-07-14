@@ -268,5 +268,6 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/backend/promotions/form.js') }}"></script>
+<script src="{{ asset('js/backend/promotions/form-common.js') }}"></script>
+<script src="{{ asset('js/backend/promotions/create.js') }}"></script>
 @endpush

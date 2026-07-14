@@ -62,7 +62,7 @@
         </a>
 
         {{-- Menu Khách hàng --}}
-        <a href="#" title="Khách hàng" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
+        <a href="{{ route('admin.customers.index') }}" title="Khách hàng" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.customers.*') ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
             <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">group</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Khách hàng</span>
         </a>

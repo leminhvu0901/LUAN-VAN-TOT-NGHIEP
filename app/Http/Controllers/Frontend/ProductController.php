@@ -33,7 +33,6 @@ class ProductController
             // Join với bảng phụ gom nhóm tổng số lượng đã bán từ các chi tiết đơn hàng
             ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
             ->where('categories.is_active', 1)
-            ->where('products.is_active', 1)
             ->where('products.slug', $slug)
             ->first();
 
@@ -87,7 +86,7 @@ class ProductController
             ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o2"), 'products.id', '=', 'o2.product_id')
             ->where('products.category_id', $product->category_id)
             ->where('products.id', '!=', $product->id)
-            ->where('products.is_active', 1)
+            ->orderByDesc('products.is_active')
             ->orderByDesc('total_sold')
             ->limit(4)
             ->get();
@@ -175,8 +174,7 @@ class ProductController
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin(DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
             ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
-            ->where('categories.is_active', 1)
-            ->where('products.is_active', 1);
+            ->where('categories.is_active', 1);
 
         // Lọc theo danh mục sản phẩm được tích chọn (nếu có)
         if (!empty($categoryIds)) {
@@ -198,8 +196,8 @@ class ProductController
             $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
         }
 
-        // Thực thi lấy toàn bộ kết quả sản phẩm và mặc định sắp xếp theo độ bán chạy (total_sold)
-        $products = $query->orderByDesc('total_sold')->get();
+        // Thực thi lấy toàn bộ kết quả sản phẩm và mặc định sắp xếp theo trạng thái (còn hàng trước, hết hàng sau) và độ bán chạy (total_sold)
+        $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')->get();
 
         // 3. Lấy danh sách ID các sản phẩm đã được người dùng hiện tại yêu thích (để hiển thị nút thả tim)
         $favoriteProductIds = [];

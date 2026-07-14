@@ -445,7 +445,7 @@ class MaterialController
         ]);
 
         return $request->validate([
-            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999'],
+            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999.99'],
             'total_price' => ['required', 'numeric', 'min:1', 'max:9999999999.99'],
             'note' => ['nullable', 'string', 'max:255'],
             'expiration_date' => ['nullable', 'date_format:Y-m-d', 'after:' . $importDate],
@@ -454,7 +454,7 @@ class MaterialController
             'quantity.numeric' => 'Số lượng nhập phải là số hợp lệ.',
             'quantity.decimal' => 'Số lượng nhập chỉ được có tối đa 2 chữ số thập phân.',
             'quantity.min' => 'Số lượng nhập phải từ 1 trở lên.',
-            'quantity.max' => 'Số lượng nhập vượt quá giới hạn cho phép.',
+            'quantity.max' => 'Số lượng nhập phải bé hơn 1000.',
             'total_price.required' => 'Vui lòng nhập tổng tiền thanh toán.',
             'total_price.numeric' => 'Tổng tiền thanh toán phải là số.',
             'total_price.min' => 'Tổng tiền thanh toán phải lớn hơn 0.',

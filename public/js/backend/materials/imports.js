@@ -20,6 +20,13 @@
 
             createImportQuantity.addEventListener("input", function () {
                 const quantity = Number(this.value) || 0;
+                
+                if (quantity >= 1000) {
+                    MaterialsCommon.setFieldError(this, "Số lượng nhập phải bé hơn 1000.", false);
+                } else {
+                    MaterialsCommon.setFieldError(this, "", false);
+                }
+
                 const total = Math.round(quantity * unitPrice);
 
                 if (total > 0) {
@@ -29,6 +36,18 @@
                     formattedTotalPrice.value = "";
                     formattedTotalPrice.dataset.lastValidDigits = "";
                     MaterialsCommon.setFieldError(formattedTotalPrice);
+                }
+            });
+        }
+
+        const editImportQuantity = document.getElementById("edit-import-quantity");
+        if (editImportQuantity) {
+            editImportQuantity.addEventListener("input", function () {
+                const quantity = Number(this.value) || 0;
+                if (quantity >= 1000) {
+                    MaterialsCommon.setFieldError(this, "Số lượng nhập phải bé hơn 1000.", false);
+                } else {
+                    MaterialsCommon.setFieldError(this, "", false);
                 }
             });
         }

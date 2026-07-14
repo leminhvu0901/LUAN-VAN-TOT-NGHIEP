@@ -138,8 +138,8 @@
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </a>
                             <button type="button"
-                                onclick="deletePromotion({{ $promo->id }}, '{{ $promo->code }}')"
-                                class="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa">
+                                data-id="{{ $promo->id }}" data-code="{{ $promo->code }}"
+                                class="js-delete-promotion p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa">
                                 <span class="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                         </div>

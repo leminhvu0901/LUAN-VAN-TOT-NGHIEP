@@ -48,6 +48,9 @@
     {{-- File Javascript xử lý hiệu ứng đóng/mở Sidebar --}}
     <script src="{{ asset('js/backend/layout.js') }}"></script>
 
+    {{-- Global Flash Messages Script --}}
+    @include('backend.partials.flash_messages')
+
     {{-- Khe hở @stack('scripts'): Cho phép các trang con đẩy thêm mã JS của riêng chúng vào đây --}}
     @stack('scripts')
 </body>

@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Phân trang bằng AJAX
     tableContainer.addEventListener('click', function (e) {
-        const pageLink = e.target.closest('.pagination-container a');
+        const pageLink = e.target.closest('.ajax-pagination a');
         if (pageLink) {
             e.preventDefault();
             fetchCategories(pageLink.href);

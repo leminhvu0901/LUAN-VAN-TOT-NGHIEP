@@ -109,7 +109,7 @@
                             title="Xem chi tiết">
                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                         </a>
-                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="js-order-delete-form m-0 inline-block">
+                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="js-order-delete-form m-0 inline-block" onsubmit="return confirmDeleteOrder(event, this)">
                             @csrf
                             @method('DELETE')
                             <button type="submit"

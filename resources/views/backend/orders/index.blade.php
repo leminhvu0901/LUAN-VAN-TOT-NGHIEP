@@ -63,9 +63,9 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
-                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-1.5 sm:py-2 bg-red-50 text-red-600 border border-red-200 font-medium text-sm rounded-lg hover:bg-red-100 transition-colors organic-shadow" title="Xóa đã chọn">
-                        <span class="material-symbols-outlined text-[20px]">delete</span>
-                        <span id="selected-count"></span>
+                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all" title="Xóa đã chọn">
+                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
+                        Xóa <span id="selected-count" class="mx-1">0</span> đơn hàng
                     </button>
                     <a href="{{ route('admin.orders.index') }}"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow">

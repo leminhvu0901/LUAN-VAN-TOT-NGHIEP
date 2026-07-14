@@ -145,57 +145,23 @@ document.addEventListener('DOMContentLoaded', function () {
     // Bulk Delete
     // =====================
     window.submitBulkDelete = function () {
-        const count = window.selectedReviewIds.size;
-        if (count === 0) return;
+        const ids = Array.from(window.selectedReviewIds);
+        if (ids.length === 0) return;
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Xóa nhiều đánh giá?',
-                text: `Bạn chuẩn bị xóa ${count} đánh giá đã chọn. Hành động này không thể hoàn tác.`,
-                icon: 'warning',
-                width: '320px',
-                padding: '1rem',
-                showCancelButton: true,
-                confirmButtonText: 'Xóa ngay',
-                cancelButtonText: 'Hủy',
-                reverseButtons: true,
-                buttonsStyling: false,
-                customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-base font-bold text-gray-800',
-                    htmlContainer: 'text-sm text-gray-500 mt-1',
-                    confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2',
-                    cancelButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2',
-                    icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                    actions: 'mt-3 w-full flex justify-center'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    executeBulkDelete();
-                }
-            });
-        } else {
-            if (confirm(`Xóa ${count} đánh giá đã chọn?`)) {
-                executeBulkDelete();
+        window.AdminAlert.confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đánh giá đã chọn?`, function() {
+            const form = document.getElementById('bulk-delete-form');
+            if (form) {
+                // Tạo một input ẩn để chứa danh sách ID
+                let idsInput = document.createElement('input');
+                idsInput.type = 'hidden';
+                idsInput.name = 'review_ids[]';
+                idsInput.value = JSON.stringify(ids);
+                form.appendChild(idsInput);
+                
+                form.submit();
             }
-        }
+        }, 'Xác nhận xóa hàng loạt?');
     };
-
-    // Tạo form dữ liệu và submit để xóa hàng loạt theo các id đã chọn
-    function executeBulkDelete() {
-        const form = document.getElementById('bulk-delete-form');
-        form.querySelectorAll('input[name="review_ids[]"]').forEach(el => el.remove());
-
-        window.selectedReviewIds.forEach(id => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'review_ids[]';
-            input.value = id;
-            form.appendChild(input);
-        });
-
-        form.submit();
-    }
 });
 
 /**
@@ -239,26 +205,10 @@ window.toggleVisibility = function (id) {
                     }
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error', title: 'Lỗi',
-                        text: 'Cập nhật trạng thái thất bại!',
-                        width: '320px', padding: '1rem',
-                        confirmButtonText: 'Đóng', buttonsStyling: false,
-                        customClass: {
-                            popup: 'rounded-xl shadow-xl border border-gray-100',
-                            title: 'text-base font-bold text-gray-800',
-                            confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                            actions: 'mt-3 w-full flex justify-center'
-                        }
-                    });
-                } else {
-                    alert('Cập nhật trạng thái thất bại!');
-                }
+                window.AdminAlert.error('Cập nhật trạng thái thất bại!', 'Lỗi');
             }
         })
-        .catch(() => alert('Có lỗi xảy ra khi cập nhật trạng thái.'))
+        .catch(() => window.AdminAlert.error('Có lỗi xảy ra khi cập nhật trạng thái.', 'Lỗi'))
         .finally(() => {
             if (btn) {
                 btn.style.opacity = '1';
@@ -268,41 +218,13 @@ window.toggleVisibility = function (id) {
 }
 
 /**
- * Xóa đánh giá bằng SweetAlert2
+ * Xóa đánh giá bằng AdminAlert
  */
-// Hiển thị hộp thoại xác nhận (SweetAlert2) trước khi gọi xóa
+// Hiển thị hộp thoại xác nhận (AdminAlert) trước khi gọi xóa
 window.deleteReview = function (id) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Xóa đánh giá?',
-            html: `Bạn có chắc muốn xóa đánh giá này?<br><span class="text-xs text-gray-400">Hành động này không thể hoàn tác.</span>`,
-            icon: 'warning',
-            width: '320px',
-            padding: '1rem',
-            showCancelButton: true,
-            confirmButtonText: 'Xóa ngay',
-            cancelButtonText: 'Hủy',
-            reverseButtons: true,
-            buttonsStyling: false,
-            customClass: {
-                popup: 'rounded-xl shadow-xl border border-gray-100',
-                title: 'text-base font-bold text-gray-800',
-                htmlContainer: 'text-sm text-gray-500 mt-1',
-                confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2',
-                cancelButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2',
-                icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                actions: 'mt-3 w-full flex justify-center'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                doDelete(id);
-            }
-        });
-    } else {
-        if (confirm('Xóa đánh giá này?')) {
-            doDelete(id);
-        }
-    }
+    window.AdminAlert.confirm('Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.', function() {
+        doDelete(id);
+    }, 'Xác nhận xóa?');
 }
 
 // Thực hiện gọi API xóa một đánh giá, cập nhật UI (ẩn/loại bỏ row) và thông báo
@@ -330,59 +252,12 @@ function doDelete(id) {
                     setTimeout(() => row.remove(), 300);
                 }
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Đã xóa!',
-                        text: data.message,
-                        timer: 1800,
-                        showConfirmButton: false,
-                        width: '320px',
-                        padding: '1rem',
-                        customClass: {
-                            popup: 'rounded-xl shadow-xl border border-gray-100',
-                            title: 'text-base font-bold text-gray-800',
-                            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                        }
-                    });
-                }
+                window.AdminAlert.success(data.message, 'Đã xóa!');
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error', title: 'Thất bại',
-                        text: 'Xóa thất bại. Vui lòng thử lại.',
-                        width: '320px', padding: '1rem',
-                        confirmButtonText: 'Đóng', buttonsStyling: false,
-                        customClass: {
-                            popup: 'rounded-xl shadow-xl border border-gray-100',
-                            title: 'text-base font-bold text-gray-800',
-                            confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                            actions: 'mt-3 w-full flex justify-center'
-                        }
-                    });
-                } else {
-                    alert('Xóa thất bại. Vui lòng thử lại.');
-                }
+                window.AdminAlert.error('Xóa thất bại. Vui lòng thử lại.', 'Thất bại');
             }
         })
         .catch(() => {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error', title: 'Lỗi',
-                    text: 'Có lỗi xảy ra khi xóa. Vui lòng thử lại.',
-                    width: '320px', padding: '1rem',
-                    confirmButtonText: 'Đóng', buttonsStyling: false,
-                    customClass: {
-                        popup: 'rounded-xl shadow-xl border border-gray-100',
-                        title: 'text-base font-bold text-gray-800',
-                        confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                        icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                        actions: 'mt-3 w-full flex justify-center'
-                    }
-                });
-            } else {
-                alert('Có lỗi xảy ra khi xóa. Vui lòng thử lại.');
-            }
+            window.AdminAlert.error('Có lỗi xảy ra khi xóa. Vui lòng thử lại.', 'Lỗi');
         });
 }

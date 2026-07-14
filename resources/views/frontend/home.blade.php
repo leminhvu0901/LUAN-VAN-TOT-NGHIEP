@@ -148,6 +148,7 @@
                     ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
                     ->join('categories', 'products.category_id', '=', 'categories.id')
                     ->where('categories.is_active', 1)
+                    ->orderByDesc('products.is_active')
                     ->orderByDesc('score')
                     ->get();
 

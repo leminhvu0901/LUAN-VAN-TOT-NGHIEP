@@ -125,21 +125,20 @@
 
                 <!-- xoa loc -->
                 <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
-                    class="px-4 py-2 text-gray-500 hover:text-red-500 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
+                    class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
                     style="display: {{ (request('search') || (request('type') && request('type') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">
                     Xóa lọc
                 </a>
 
                 <!-- Nút xóa nhiều (ngay sát dropdown) -->
-                <div id="bulk-delete-container" style="display:none;">
+                <div id="bulk-delete-container" style="display:none;" class="w-full sm:w-auto">
                     <form id="bulk-delete-form" action="{{ route('admin.promotions.bulk_delete') }}" method="POST">
                         @csrf
                         <input type="hidden" name="total_promotions_count" id="total-promotions-count" value="0">
                     </form>
-                    <button onclick="submitBulkDelete()"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-100 hover:border-red-300 transition-all">
-                        <span class="material-symbols-outlined text-[17px]">delete</span>
-                        (<span id="selected-count">0</span>)
+                    <button type="button" class="js-bulk-delete flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all w-full sm:w-auto">
+                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
+                        Xóa <span id="selected-count" class="mx-1">0</span> khuyến mãi
                     </button>
                 </div>
             </form>

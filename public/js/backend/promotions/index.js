@@ -422,3 +422,29 @@ function doDelete(id) {
             }
         });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tableContainer = document.getElementById('table-container');
+    if (tableContainer) {
+        tableContainer.addEventListener('click', function(e) {
+            const deleteBtn = e.target.closest('.js-delete-promotion');
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                const code = deleteBtn.dataset.code;
+                if (typeof deletePromotion === 'function') {
+                    deletePromotion(id, code);
+                }
+            }
+        });
+    }
+
+    const bulkDeleteBtn = document.querySelector('.js-bulk-delete');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof window.submitBulkDelete === 'function') {
+                window.submitBulkDelete();
+            }
+        });
+    }
+});

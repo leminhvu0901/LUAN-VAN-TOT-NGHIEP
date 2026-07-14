@@ -23,53 +23,13 @@
     @if(session('success') || $errors->any())
         @push('scripts')
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                if (typeof Swal !== 'undefined') {
-                    @if(session('success'))
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Thành công!',
-                            text: '{{ session('success') }}',
-                            timer: 2000,
-                            showConfirmButton: false,
-                            width: '320px',
-                            padding: '1rem',
-                            customClass: {
-                                popup: 'rounded-xl shadow-xl border border-gray-100',
-                                title: 'text-base font-bold text-gray-800',
-                                htmlContainer: 'text-sm text-gray-500 mt-1',
-                                icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                            }
-                        });
-                    @endif
-
-                    @if($errors->any())
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Lỗi',
-                            html: `
-                                <ul class="text-left text-sm text-gray-600 list-disc pl-5 space-y-1">
-                                    @foreach($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            `,
-                            width: '320px',
-                            padding: '1rem',
-                            confirmButtonText: 'Đóng',
-                            buttonsStyling: false,
-                            customClass: {
-                                popup: 'rounded-xl shadow-xl border border-gray-100',
-                                title: 'text-base font-bold text-gray-800',
-                                htmlContainer: 'mt-1',
-                                confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                                icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                                actions: 'mt-3 w-full flex justify-center'
-                            }
-                        });
-                    @endif
-                }
-            });
+            @if(session('success'))
+                window.flashSuccessMessage = {!! json_encode(session('success')) !!};
+            @endif
+            @if($errors->any())
+                window.flashErrorMessages = {!! json_encode($errors->all()) !!};
+                window.flashErrorTitle = 'Lỗi';
+            @endif
         </script>
         @endpush
     @endif
@@ -173,5 +133,6 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/backend/categories/common.js') }}"></script>
 <script src="{{ asset('js/backend/categories/index.js') }}"></script>
 @endpush

@@ -68,6 +68,13 @@ class ReviewController
                 break;
         }
 
+        // Nếu yêu cầu chỉ lấy ID để phục vụ "Chọn tất cả" toàn bộ DB
+        if ($request->input('fetch_all_ids') == 1) {
+            return response()->json([
+                'ids' => (clone $query)->pluck('id')
+            ]);
+        }
+
         // Phân trang kết quả và giữ các param query string để điều hướng
         $reviews = $query->paginate(10)->appends($request->all());
 

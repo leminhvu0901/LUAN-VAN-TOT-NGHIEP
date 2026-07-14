@@ -113,17 +113,7 @@
                                 @endforeach
                             </div>
                         </div>
-                        <div>
-                            <h3 class="text-sm font-bold text-gray-800">Định lượng nguyên liệu cho một sản phẩm</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-64 overflow-y-auto">
-                                @foreach($materials as $material)
-                                <label class="grid grid-cols-[1fr_120px] items-center gap-2 text-sm">
-                                    <span>{{ $material->name }} ({{ $material->unit }})</span>
-                                    <input type="number" name="materials[{{ $material->id }}]" value="{{ old('materials.' . $material->id) }}" min="0.001" max="99999999" step="0.001" placeholder="Số lượng" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                </label>
-                                @endforeach
-                            </div>
-                        </div>
+
                     </div>
                     <div class="flex items-center mt-2 pt-4 border-t border-gray-100">
                         <label class="flex items-center gap-2 cursor-pointer">

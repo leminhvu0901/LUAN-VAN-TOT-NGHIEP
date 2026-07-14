@@ -86,9 +86,13 @@
                                 <span class="material-symbols-outlined text-[18px] text-gray-400">chat</span>
                                 Nhận xét của khách
                             </label>
-                            <textarea name="comment" rows="4"
+                            <textarea id="review-comment" name="comment" rows="4" maxlength="200"
                                 placeholder="Viết nhận xét..."
                                 class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white">{{ old('comment') }}</textarea>
+                            <div class="flex justify-between items-center mt-1">
+                                <p id="comment-error" class="text-xs text-red-500 hidden animate-fade-in-up">Nội dung nhận xét tối đa 200 ký tự!</p>
+                                <p id="comment-counter" class="text-xs text-gray-400 ml-auto">0/200</p>
+                            </div>
                         </div>
                         
                         <hr class="border-gray-100">
@@ -163,84 +167,6 @@
 @endsection
 
 @push('scripts')
-<script>
-    // Accumulate selected files
-    let accumulatedFiles = new DataTransfer();
-
-    document.getElementById('new-images-input').addEventListener('change', function(e) {
-        const previewContainer = document.getElementById('new-images-preview');
-        const files = Array.from(e.target.files);
-        
-        // Cảnh báo nếu chọn quá 5 ảnh
-        if (accumulatedFiles.files.length + files.length > 5) {
-            alert('Bạn chỉ được chọn tối đa 5 ảnh.');
-            e.target.value = ''; // Reset input for current selection
-            return;
-        }
-
-        files.forEach(file => {
-            if (!file.type.startsWith('image/')) return;
-            
-            // Add file to accumulated list
-            accumulatedFiles.items.add(file);
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Remove hidden class if first image
-                previewContainer.classList.remove('empty:hidden');
-
-                const imgWrapper = document.createElement('div');
-                imgWrapper.className = 'relative group w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm animate-fade-in-up';
-                // Lấy index của file vừa được thêm vào
-                const fileIndex = accumulatedFiles.files.length - 1;
-                imgWrapper.dataset.index = fileIndex;
-                
-                imgWrapper.innerHTML = `
-                    <img src="${e.target.result}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button type="button" class="btn-remove-new-img p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" title="Xóa ảnh này">
-                            <span class="material-symbols-outlined text-[16px]">delete</span>
-                        </button>
-                    </div>
-                `;
-                
-                previewContainer.appendChild(imgWrapper);
-            }
-            reader.readAsDataURL(file);
-        });
-
-        // Update the file input to contain all accumulated files
-        document.getElementById('new-images-input').files = accumulatedFiles.files;
-    });
-
-    // Handle removing new images from preview
-    document.getElementById('new-images-preview').addEventListener('click', function(e) {
-        const removeBtn = e.target.closest('.btn-remove-new-img');
-        if (removeBtn) {
-            const wrapper = removeBtn.closest('.relative');
-            const indexToRemove = parseInt(wrapper.dataset.index);
-            
-            // Remove from DataTransfer
-            const newAccumulatedFiles = new DataTransfer();
-            for (let i = 0; i < accumulatedFiles.files.length; i++) {
-                if (i !== indexToRemove) {
-                    newAccumulatedFiles.items.add(accumulatedFiles.files[i]);
-                }
-            }
-            accumulatedFiles = newAccumulatedFiles;
-            
-            // Update input
-            document.getElementById('new-images-input').files = accumulatedFiles.files;
-            
-            // Remove from UI
-            wrapper.remove();
-            
-            // Update indices of remaining wrappers
-            const wrappers = document.getElementById('new-images-preview').children;
-            for (let i = 0; i < wrappers.length; i++) {
-                wrappers[i].dataset.index = i;
-            }
-        }
-    });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/backend/reviews/create.js') }}?v={{ time() }}"></script>
 @endpush

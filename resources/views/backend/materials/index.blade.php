@@ -27,7 +27,7 @@
             </div>
         @endif
 
-        @if($errors->any())
+        @if($errors->any() && !old('_form_context'))
             <div class="mb-4 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-medium">
                 <ul class="list-disc pl-5 space-y-1">
                     @foreach($errors->all() as $error)
@@ -183,9 +183,9 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
-                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-1.5 sm:py-2 bg-red-50 text-red-600 border border-red-200 font-medium text-sm rounded-lg hover:bg-red-100 transition-colors organic-shadow" title="Xóa đã chọn">
-                        <span class="material-symbols-outlined text-[20px]">delete</span>
-                        <span id="selected-count"></span>
+                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all" title="Xóa đã chọn">
+                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
+                        Xóa <span id="selected-count" class="mx-1">0</span> vật tư
                     </button>
                     <a href="{{ route('admin.materials.index') }}" id="btn-clear-filter"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
@@ -234,9 +234,9 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Tên vật tư</label>
                         <input type="text" id="add-material-name" name="name" required minlength="2" value="{{ old('name') }}"
                             data-max-length="50" data-field-label="Tên vật tư" aria-describedby="add-material-name-error"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            class="w-full px-4 py-2 border {{ $errors->has('name') && old('_form_context') === 'material-add' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all">
                         <p id="add-material-name-error" data-error-for="add-material-name"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('name') && old('_form_context') === 'material-add' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('name') && old('_form_context') === 'material-add' ? $errors->first('name') : '' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Đơn vị (Kg, Bao, Lốc, Cuộn,
@@ -244,9 +244,9 @@
                         <input type="text" id="add-material-unit" name="unit" required value="{{ old('unit') }}"
                             data-material-unit data-max-length="20" data-field-label="Đơn vị" inputmode="text"
                             aria-describedby="add-material-unit-error"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            class="w-full px-4 py-2 border {{ $errors->has('unit') && old('_form_context') === 'material-add' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all">
                         <p id="add-material-unit-error" data-error-for="add-material-unit"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('unit') && old('_form_context') === 'material-add' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('unit') && old('_form_context') === 'material-add' ? $errors->first('unit') : '' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Giá vốn dự kiến (VNĐ / Đơn vị)</label>
@@ -255,9 +255,9 @@
                             data-number-message="Giá vốn dự kiến chỉ được nhập số."
                             aria-describedby="add-formatted-price-error"
                             value="{{ old('unit_price') !== null ? number_format((float) old('unit_price'), 0, ',', '.') : '' }}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" placeholder="Ví dụ: 100,000">
+                            class="w-full px-4 py-2 border {{ $errors->has('unit_price') && old('_form_context') === 'material-add' ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500' }} rounded-xl outline-none transition-all" placeholder="Ví dụ: 100,000">
                         <p id="add-formatted-price-error" data-error-for="add-formatted-price"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('unit_price') && old('_form_context') === 'material-add' ? '' : 'hidden' }} mt-1 text-xs font-medium text-red-600" aria-live="polite">{{ $errors->has('unit_price') && old('_form_context') === 'material-add' ? $errors->first('unit_price') : '' }}</p>
                         <input type="hidden" id="add-raw-price" name="unit_price" value="{{ old('unit_price') }}">
                     </div>
                 </div>
