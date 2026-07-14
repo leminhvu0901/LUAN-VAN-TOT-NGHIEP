@@ -16,6 +16,11 @@ class Category extends Model
     // Cho phép thêm mới hoặc sửa đổi hàng loạt dữ liệu trên tất cả các cột của bảng categories
     protected $guarded = [];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'display_order' => 'integer',
+    ];
+
     /**
      * Mối quan hệ Một - Nhiều (Has Many): Một danh mục sản phẩm sẽ chứa nhiều sản phẩm (Products) khác nhau.
      * Liên kết từ khóa chính 'id' của bảng categories sang khóa ngoại 'category_id' trong bảng products.

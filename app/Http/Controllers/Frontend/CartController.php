@@ -2,13 +2,30 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\CartItemTopping;
+use App\Models\Product;
+use App\Models\ProductSize;
+use App\Models\Topping;
+use App\Models\UserAddress;
+use App\Services\CartPricingService;
+use App\Services\ShippingQuoteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CartController
 {
+    public function __construct(
+        private readonly CartPricingService $cartPricing,
+        private readonly ShippingQuoteService $shippingQuote,
+    ) {}
+
     private function getCartIdentifier()
     {
         if (Auth::check()) {
@@ -42,9 +59,25 @@ class CartController
         return $cart;
     }
 
+    private function findCart(): ?Cart
+    {
+        $identifier = $this->getCartIdentifier();
+        return Cart::query()->where(key($identifier), current($identifier))->first();
+    }
+
     public function getCartData()
     {
-        $cart = $this->getOrCreateCart();
+        $cart = $this->findCart();
+
+        if (!$cart) {
+            return response()->json([
+                'success' => true,
+                'items' => [],
+                'count' => 0,
+                'total' => 0,
+                'formatted_total' => '0đ',
+            ]);
+        }
 
         $items = \App\Models\CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
@@ -77,9 +110,19 @@ class CartController
 
     public function add(Request $request)
     {
-        $productId = $request->input('product_id');
-        $quantity = $request->input('quantity', 1);
-        $sizeName = $request->input('size_name');
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
+            'size_name' => ['nullable', 'string', 'max:50'],
+            'sugar_level' => ['nullable', 'string', 'max:20'],
+            'ice_level' => ['nullable', 'string', 'max:20'],
+            'toppings' => ['sometimes', 'array', 'max:20'],
+            'toppings.*' => ['integer', 'distinct', 'exists:toppings,id'],
+        ]);
+
+        $productId = (int) $validated['product_id'];
+        $quantity = (int) ($validated['quantity'] ?? 1);
+        $sizeName = $validated['size_name'] ?? null;
         if (empty($sizeName)) {
             $defaultSize = \App\Models\ProductSize::query()
                 ->where('product_id', $productId)
@@ -100,11 +143,7 @@ class CartController
             $iceLevel = 'normal';
         }
 
-        $toppingIds = $request->input('toppings', []);
-
-        if (!$productId) {
-            return response()->json(['success' => false, 'message' => 'Product ID is missing']);
-        }
+        $toppingIds = array_values(array_unique($validated['toppings'] ?? []));
 
         $product = \App\Models\Product::query()->where('id', $productId)->first();
         if (!$product) {
@@ -115,6 +154,9 @@ class CartController
         if (!$product->is_active) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này đã hết hàng, không thể thêm vào giỏ hàng.']);
         }
+        if (!$product->hasSufficientMaterials($quantity)) {
+            return response()->json(['success' => false, 'message' => 'Sản phẩm tạm hết nguyên liệu còn hạn sử dụng.'], 422);
+        }
 
         // Tính giá dựa theo size
         $unitPrice = $product->base_price;
@@ -123,15 +165,24 @@ class CartController
                 ->where('product_id', $productId)
                 ->where('size_name', $sizeName)
                 ->first();
-            if ($sizeRecord) {
-                $unitPrice += $sizeRecord->price_adjustment;
+            if (!$sizeRecord) {
+                return response()->json(['success' => false, 'message' => 'Kích thước không hợp lệ cho sản phẩm này.'], 422);
             }
+            $unitPrice += $sizeRecord->price_adjustment;
         }
 
         // Tính giá dựa theo topping
         $tops = [];
         if (!empty($toppingIds)) {
-            $tops = \App\Models\Topping::query()->whereIn('id', $toppingIds)->get();
+            $tops = \App\Models\Topping::query()
+                ->join('product_toppings', 'product_toppings.topping_id', '=', 'toppings.id')
+                ->where('product_toppings.product_id', $productId)
+                ->where('toppings.is_available', 1)
+                ->whereIn('toppings.id', $toppingIds)
+                ->select('toppings.*')->get();
+            if ($tops->count() !== count($toppingIds)) {
+                return response()->json(['success' => false, 'message' => 'Topping không hợp lệ cho sản phẩm này.'], 422);
+            }
             foreach ($tops as $t) {
                 $unitPrice += $t->price;
             }
@@ -170,7 +221,7 @@ class CartController
             \App\Models\CartItem::query()
                 ->where('id', $existingItem->id)
                 ->update([
-                    'quantity' => $existingItem->quantity + $quantity,
+                    'quantity' => min(99, $existingItem->quantity + $quantity),
                     'updated_at' => now()
                 ]);
         } else {
@@ -204,10 +255,14 @@ class CartController
 
     public function remove(Request $request)
     {
-        $itemId = $request->input('item_id');
+        $validated = $request->validate(['item_id' => ['required', 'integer']]);
+        $cart = $this->findCart();
 
-        if ($itemId) {
-            \App\Models\CartItem::query()->where('id', $itemId)->delete();
+        if ($cart) {
+            \App\Models\CartItem::query()
+                ->where('id', $validated['item_id'])
+                ->where('cart_id', $cart->id)
+                ->delete();
         }
 
         return $this->getCartData();
@@ -215,14 +270,18 @@ class CartController
 
     public function update(Request $request)
     {
-        $itemId = $request->input('item_id');
-        $quantity = $request->input('quantity');
+        $validated = $request->validate([
+            'item_id' => ['required', 'integer'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:99'],
+        ]);
+        $cart = $this->findCart();
 
-        if ($itemId && $quantity > 0) {
+        if ($cart) {
             \App\Models\CartItem::query()
-                ->where('id', $itemId)
+                ->where('id', $validated['item_id'])
+                ->where('cart_id', $cart->id)
                 ->update([
-                    'quantity' => $quantity,
+                    'quantity' => $validated['quantity'],
                     'updated_at' => now()
                 ]);
         }
@@ -326,27 +385,17 @@ class CartController
 
         $items = collect();
         $subtotal = 0;
-
         if ($cart) {
-            $items = \App\Models\CartItem::query()
-                ->join('products', 'cart_items.product_id', '=', 'products.id')
-                ->where('cart_items.cart_id', $cart->id)
-                ->select('cart_items.*', 'products.name', 'products.image')
-                ->orderBy('cart_items.created_at', 'desc')
-                ->get();
-
-            if ($items->isNotEmpty()) {
-                $itemIds = $items->pluck('id');
-                $itemToppings = \App\Models\CartItemTopping::query()
-                    ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
-                    ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
-                    ->select('cart_item_toppings.cart_item_id', 'toppings.name', 'toppings.price')
-                    ->get();
-
+            try {
+                $items = $this->cartPricing->pricedItems($cart);
                 foreach ($items as $item) {
-                    $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
-                    $subtotal += $item->unit_price * $item->quantity;
+                    $item->name = $item->product->name;
+                    $item->image = $item->product->image;
+                    $item->toppings = $item->calculated_toppings;
                 }
+                $subtotal = $this->cartPricing->subtotal($items);
+            } catch (ValidationException $exception) {
+                return redirect('/')->withErrors($exception->errors());
             }
         }
 
@@ -375,7 +424,10 @@ class CartController
         $timeString = $now->format('H:i:s');
         $isClosed = ($timeString < '07:00:00' || $timeString >= '23:00:00');
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'freeShipThreshold'));
+        $checkoutToken = (string) Str::uuid();
+        session(['checkout_token' => $checkoutToken]);
+
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'freeShipThreshold', 'checkoutToken'));
     }
 
     public function calculateDistance(Request $request)
@@ -405,7 +457,7 @@ class CartController
                     'headers' => [
                         'User-Agent' => 'CoffeeDeliveryApp/1.0 (contact@example.com)'
                     ],
-                    'verify' => false
+                    'timeout' => 8
                 ]);
                 $geoData = json_decode($geoRes->getBody()->getContents(), true);
                 if (!empty($geoData) && isset($geoData[0]['lat']) && isset($geoData[0]['lon'])) {
@@ -447,7 +499,7 @@ class CartController
                             $destCoords
                         ]
                     ],
-                    'verify' => false
+                    'timeout' => 8
                 ]);
 
                 $data = json_decode($response->getBody()->getContents(), true);
@@ -496,45 +548,17 @@ class CartController
     {
         $code = strtoupper(trim($request->input('coupon_code')));
         $subtotal = floatval($request->input('subtotal', 0));
-        $userId = Auth::id();
-
         $coupon = \App\Models\Promotion::query()->where('code', $code)->first();
 
         if (!$coupon) {
             return response()->json(['valid' => false, 'message' => 'Mã giảm giá không tồn tại.']);
         }
 
-        if (!$coupon->is_active) {
-            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã ngừng hoạt động.']);
-        }
+        $user = Auth::check() ? Auth::user() : null;
+        $validity = $coupon->checkValidity($user, $subtotal);
 
-        if ($coupon->end_at && now() > $coupon->end_at) {
-            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã hết hạn.']);
-        }
-
-        if ($coupon->start_at && now() < $coupon->start_at) {
-            return response()->json(['valid' => false, 'message' => 'Mã giảm giá chưa đến thời gian áp dụng.']);
-        }
-
-        if ($coupon->min_order_amount && $subtotal < $coupon->min_order_amount) {
-            return response()->json(['valid' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($coupon->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.']);
-        }
-
-        if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
-            return response()->json(['valid' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.']);
-        }
-
-        // Check if user already used this coupon
-        if ($userId) {
-            $hasUsed = \App\Models\Order::query()
-                ->where('promotion_id', $coupon->id)
-                ->where('user_id', $userId)
-                ->where('status', '!=', 'cancelled')
-                ->exists();
-
-            if ($hasUsed) {
-                return response()->json(['valid' => false, 'message' => 'Bạn đã sử dụng mã giảm giá này rồi.']);
-            }
+        if (!$validity['valid']) {
+            return response()->json(['valid' => false, 'message' => $validity['message']]);
         }
 
         // Calculate discount
@@ -618,7 +642,6 @@ class CartController
             $url = "https://api.open-meteo.com/v1/forecast?latitude={$lat}&longitude={$lon}&current=weather_code";
 
             $response = $client->get($url, [
-                'verify' => false,
                 'timeout' => 5
             ]);
 

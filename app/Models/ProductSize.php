@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductSize extends Model
 {
+    public $timestamps = false;
     protected $table = 'product_sizes';
     protected $guarded = [];
 

@@ -13,7 +13,7 @@
             </div>
         </div>
         {{-- Khu vực các thẻ thống kê nhanh hiển thị ở đầu trang --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+        <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 shrink-0">
             @include('backend.orders.partials.stats')
         </div>
 
@@ -63,6 +63,10 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
+                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-1.5 sm:py-2 bg-red-50 text-red-600 border border-red-200 font-medium text-sm rounded-lg hover:bg-red-100 transition-colors organic-shadow" title="Xóa đã chọn">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                        <span id="selected-count"></span>
+                    </button>
                     <a href="{{ route('admin.orders.index') }}"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow">
                         <span class="material-symbols-outlined text-[20px]">filter_alt_off</span>
@@ -90,10 +94,15 @@
 
     </div>
 
-
+    <!-- Form ẩn để xóa nhiều -->
+    <form id="bulk-delete-form" method="POST" action="{{ route('admin.orders.bulk_delete') }}" class="hidden">
+        @csrf
+    </form>
 
     @push('scripts')
-        <script src="{{ asset('js/backend/orders-index.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="{{ asset('js/backend/orders/index.js') }}"></script>
+
     @endpush
 
 @endsection

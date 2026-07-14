@@ -35,8 +35,8 @@
                 <!-- Left Column: Image -->
                 <div class="lg:col-span-1">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Hình ảnh sản phẩm</label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64" onclick="document.getElementById('image-upload').click()">
-                        <input type="file" id="image-upload" name="image" class="hidden" accept="image/*" onchange="previewImage(event)">
+                    <div class="js-image-upload-trigger border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64">
+                        <input type="file" id="image-upload" name="image" class="hidden" accept="image/*">
                         
                         <div id="image-placeholder" class="flex flex-col items-center">
                             <span class="material-symbols-outlined text-5xl text-gray-400 mb-3 group-hover:text-emerald-500 transition-colors">cloud_upload</span>
@@ -86,11 +86,45 @@
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Bộ sưu tập ảnh (Ảnh phụ)</label>
-                        <input type="file" id="gallery-input" name="gallery[]" multiple accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" onchange="previewGallery(event)">
+                        <input type="file" id="gallery-input" name="gallery[]" multiple accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                         <p class="text-xs text-gray-500 mt-1">Tối đa 5 ảnh phụ.</p>
                         <div id="gallery-preview-container" class="flex flex-wrap gap-2 mt-3"></div>
                     </div>
                     
+                    <div class="border-t border-gray-100 pt-5 space-y-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Kích thước và giá cộng thêm</h3>
+                            <div id="product-sizes" class="space-y-2 mt-2">
+                                @foreach(old('size_names', ['']) as $index => $sizeName)
+                                <div class="product-size-row grid grid-cols-[1fr_1fr_40px] gap-2">
+                                    <input name="size_names[]" value="{{ $sizeName }}" maxlength="50" placeholder="Tên size" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <input name="size_price_adjustments[]" type="number" min="0" max="50000000" step="1000" value="{{ old('size_price_adjustments.' . $index, 0) }}" placeholder="Giá cộng thêm" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước"><span class="material-symbols-outlined">delete</span></button>
+                                </div>
+                                @endforeach
+                            </div>
+                            <button type="button" id="add-product-size" class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">add</span>Thêm kích thước</button>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Topping áp dụng</h3>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                @foreach($toppings as $topping)
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="topping_ids[]" value="{{ $topping->id }}" {{ in_array($topping->id, old('topping_ids', [])) ? 'checked' : '' }}>{{ $topping->name }}</label>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Định lượng nguyên liệu cho một sản phẩm</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-64 overflow-y-auto">
+                                @foreach($materials as $material)
+                                <label class="grid grid-cols-[1fr_120px] items-center gap-2 text-sm">
+                                    <span>{{ $material->name }} ({{ $material->unit }})</span>
+                                    <input type="number" name="materials[{{ $material->id }}]" value="{{ old('materials.' . $material->id) }}" min="0.001" max="99999999" step="0.001" placeholder="Số lượng" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                     <div class="flex items-center mt-2 pt-4 border-t border-gray-100">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} class="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500">
@@ -113,5 +147,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/backend/products/form-common.js') }}"></script>
 <script src="{{ asset('js/backend/products/create.js') }}"></script>
 @endpush

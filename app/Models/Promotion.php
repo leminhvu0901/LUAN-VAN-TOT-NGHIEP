@@ -6,11 +6,134 @@ use Illuminate\Database\Eloquent\Model;
 
 class Promotion extends Model
 {
+    // Bảng tương ứng trong CSDL
     protected $table = 'promotions';
+
+    // Cho phép mass assignment (gán hàng loạt) cho tất cả các cột
     protected $guarded = [];
 
+    // Tự động ép kiểu dữ liệu khi lấy từ CSDL ra
+    protected $casts = [
+        'is_recurring' => 'boolean', // Ép kiểu cột is_recurring thành boolean (true/false)
+        'recurring_days' => 'array',   // Ép kiểu cột recurring_days thành mảng (Lưu JSON trong DB)
+    ];
+
+    /**
+     * Quan hệ 1-N với bảng Order.
+     * Một mã khuyến mãi có thể được áp dụng cho nhiều đơn hàng.
+     */
     public function orders()
     {
         return $this->hasMany(Order::class, 'promotion_id');
+    }
+
+
+    // KIỂM TRA MÃ GIẢM GIÁ CÓ HỢP LỆ KHÔNG
+    public function checkValidity($user, $subtotal)
+    {
+        // 1. KIỂM TRA TRẠNG THÁI CHUNG 
+        // Nếu admin đã tắt mã này (is_active = 0) thì báo lỗi ngay
+        if (!$this->is_active) {
+            return ['valid' => false, 'message' => 'Mã giảm giá đã ngừng hoạt động.'];
+        }
+
+        // 2. KIỂM TRA THỜI GIAN ÁP DỤNG
+        if ($this->is_recurring) {
+            // TRƯỜNG HỢP A: Mã giảm giá lặp lại theo khung giờ/thứ trong tuần (Happy Hour)
+            $nowStr = now()->format('H:i:s'); 
+            $currentDay = now()->dayOfWeekIso; 
+
+            // Kiểm tra xem hôm nay có nằm trong những ngày cho phép không
+            if (is_array($this->recurring_days) && count($this->recurring_days) > 0) {
+                if (!in_array($currentDay, $this->recurring_days)) {
+                    // Chuyển mảng số thành chữ (VD: [1, 2] -> T2, T3) để thông báo cho khách
+                    $days = [1 => 'T2', 2 => 'T3', 3 => 'T4', 4 => 'T5', 5 => 'T6', 6 => 'T7', 7 => 'CN'];
+                    $dayLabels = array_map(function ($d) use ($days) {
+                        return $days[$d] ?? '';
+                    }, $this->recurring_days);
+                    return ['valid' => false, 'message' => 'Mã này chỉ áp dụng vào ' . implode(', ', $dayLabels) . '.'];
+                }
+            }
+
+            // Kiểm tra xem đã đến giờ bắt đầu chưa
+            if ($this->recurring_start_time && $nowStr < $this->recurring_start_time) {
+                return ['valid' => false, 'message' => 'Mã này chỉ áp dụng từ ' . \Carbon\Carbon::parse($this->recurring_start_time)->format('H:i') . '.'];
+            }
+
+            // Kiểm tra xem đã quá khung giờ kết thúc chưa
+            if ($this->recurring_end_time && $nowStr > $this->recurring_end_time) {
+                return ['valid' => false, 'message' => 'Mã này đã hết khung giờ áp dụng hôm nay (' . \Carbon\Carbon::parse($this->recurring_end_time)->format('H:i') . ').'];
+            }
+        } else {
+            // TRƯỜNG HỢP B: Mã giảm giá áp dụng theo ngày cố định (Cổ điển)
+
+            // Nếu đã vượt qua ngày giờ kết thúc (end_at)
+            if ($this->end_at && now() > $this->end_at) {
+                return ['valid' => false, 'message' => 'Mã giảm giá đã hết hạn.'];
+            }
+
+            // Nếu chưa đến ngày giờ bắt đầu (start_at)
+            if ($this->start_at && now() < $this->start_at) {
+                return ['valid' => false, 'message' => 'Mã giảm giá chưa đến thời gian áp dụng.'];
+            }
+        }
+
+        // 3. KIỂM TRA ĐIỀU KIỆN ĐƠN TỐI THIỂU
+        // Nếu đơn hàng chưa đủ giá trị tối thiểu (min_order_amount)
+        if ($this->min_order_amount && $subtotal < $this->min_order_amount) {
+            return ['valid' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($this->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.'];
+        }
+
+        // 4. KIỂM TRA GIỚI HẠN TỔNG SỐ LƯỢT DÙNG TRÊN TOÀN HỆ THỐNG
+        // Nếu mã có set usage_limit và số lượt đã dùng (used_count) vượt mức
+        if ($this->usage_limit && $this->used_count >= $this->usage_limit) {
+            return ['valid' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.'];
+        }
+
+        // 5. KIỂM TRA ĐIỀU KIỆN HẠNG THÀNH VIÊN
+        if ($this->apply_for && $this->apply_for !== 'all') {
+            // Yêu cầu phải đăng nhập nếu mã này đòi hỏi hạng thành viên cụ thể
+            if (!$user) {
+                return ['valid' => false, 'message' => 'Vui lòng đăng nhập để sử dụng mã ưu đãi này.'];
+            }
+
+            // Quy đổi hạng thành viên ra các mức số (1 -> 4) để so sánh cấp độ
+            $levels = ['new' => 1, 'silver' => 2, 'gold' => 3, 'diamond' => 4];
+
+            // Mức của user hiện tại
+            $userLevel = $levels[$user->membership_level ?? 'new'] ?? 1;
+            // Mức mà mã khuyến mãi yêu cầu
+            $requiredLevel = $levels[$this->apply_for] ?? 1;
+
+            // Chặn nếu hạng user thấp hơn hạng quy định của mã
+            if ($userLevel < $requiredLevel) {
+                $levelNames = [
+                    'new' => 'Mới',
+                    'silver' => 'Bạc',
+                    'gold' => 'Vàng',
+                    'diamond' => 'Kim cương'
+                ];
+                $requiredName = $levelNames[$this->apply_for] ?? 'Cao cấp';
+                return ['valid' => false, 'message' => "Mã giảm giá này chỉ dành cho hạng thành viên {$requiredName} trở lên."];
+            }
+        }
+
+        // 6. KIỂM TRA MỖI NGƯỜI CHỈ ĐƯỢC DÙNG 1 LẦN
+        // Đếm xem trong bảng `orders` user này đã có đơn hàng nào xài mã này mà chưa bị huỷ không
+        if ($user) {
+            $hasUsed = Order::query()
+                ->where('promotion_id', $this->id)
+                ->where('user_id', $user->id)
+                ->where('status', '!=', 'cancelled')
+                ->exists();
+
+            // Nếu đã từng dùng rồi thì không cho dùng lại
+            if ($hasUsed) {
+                return ['valid' => false, 'message' => 'Bạn đã sử dụng mã giảm giá này rồi.'];
+            }
+        }
+
+        // NẾU VƯỢT QUA TẤT CẢ CÁC BÀI KIỂM TRA -> MÃ HỢP LỆ (PASS)
+        return ['valid' => true, 'message' => 'Mã giảm giá hợp lệ.'];
     }
 }

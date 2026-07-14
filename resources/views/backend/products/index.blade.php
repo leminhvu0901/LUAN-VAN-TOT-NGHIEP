@@ -96,10 +96,10 @@
         class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6">
         <form action="{{ route('admin.products.index') }}" method="GET" id="filter-form"
             class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full xl:w-auto">
-            <div class="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-64 relative">
-                <span class="material-symbols-outlined text-gray-400">search</span>
+            <div class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:flex-1 xl:max-w-[280px] relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+                <span class="material-symbols-outlined text-gray-400 text-[20px]">search</span>
                 <input type="text" name="search" value="{{ request('search') }}"
-                    class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-4 w-full outline-none"
+                    class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
                     placeholder="Tìm tên sản phẩm, SKU...">
             </div>
 
@@ -122,27 +122,45 @@
                 <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Giá: Cao đến thấp</option>
             </select>
 
-            <a href="{{ route('admin.products.index') }}" id="btn-clear-filter"
-                class="px-4 py-2 text-gray-500 hover:text-red-500 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
-                style="display: {{ (request('search') || (request('category_id') && request('category_id') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">
-                Xóa lọc
-            </a>
+            <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
+                <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-1.5 sm:py-2 bg-red-50 text-red-600 border border-red-200 font-medium text-sm rounded-lg hover:bg-red-100 transition-colors organic-shadow" title="Xóa đã chọn">
+                    <span class="material-symbols-outlined text-[20px]">delete</span>
+                    <span id="selected-count"></span>
+                </button>
+                <a href="{{ route('admin.products.index') }}" id="btn-clear-filter"
+                    class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
+                    style="display: {{ (request('search') || (request('category_id') && request('category_id') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
+                    <span class="material-symbols-outlined text-[20px]">filter_alt_off</span>
+                    Xóa lọc
+                </a>
+            </div>
         </form>
-        <div class="text-sm font-medium text-gray-500 w-full xl:w-auto text-right" id="display-count">
-            Hiển thị {{ $products->count() }} / {{ $products->total() }} sản phẩm
-        </div>
+        <input type="hidden" id="total-products-count" value="{{ $products->total() }}">
     </div>
 
     <!-- Phần 4: Bảng danh sách Sản phẩm -->
-    <div class="bg-white rounded-2xl organic-shadow overflow-hidden border border-gray-100" id="table-container">
-        @include('backend.products.partials.table', ['products' => $products])
+    <div class="bg-white rounded-2xl organic-shadow border border-gray-100 overflow-hidden flex flex-col flex-1 min-h-[500px]">
+        <div id="table-container" class="flex-1 flex flex-col min-h-0 relative">
+            {{-- Biểu tượng Loading hiển thị lên khi đang gửi request AJAX --}}
+            <div id="table-loader" class="absolute inset-0 bg-white/60 z-20 hidden items-center justify-center">
+                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+
+            <div id="products-table-wrapper" class="flex-1 overflow-x-auto custom-scrollbar relative">
+                @include('backend.products.partials.table', ['products' => $products])
+            </div>
+        </div>
     </div>
 
+    <!-- Form ẩn để xóa nhiều -->
+    <form id="bulk-delete-form" method="POST" action="{{ route('admin.products.bulk_delete') }}" class="hidden">
+        @csrf
+    </form>
 </div>
 
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/backend/products/index.js') }}"></script>
 @endpush
-

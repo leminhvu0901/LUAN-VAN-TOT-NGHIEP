@@ -3,6 +3,10 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(event) {
+        const toggle = event.target.closest('[data-toggle-order]');
+        if (toggle) window.toggleOrderDetails(toggle.dataset.toggleOrder);
+    });
     // 1. Kiểm tra xem Backend có chỉ định tự động mở chi tiết một đơn hàng cụ thể nào không (qua thuộc tính data-open-order-id)
     const mainContainer = document.querySelector('[data-open-order-id]');
     if (mainContainer) {

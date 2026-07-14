@@ -130,7 +130,7 @@ class DashboardController
 
         // 1. Các chỉ số nhỏ bổ sung (Đếm số lượng Đơn chờ xác nhận, Đơn đang xử lý, Sản phẩm đang ẩn)
         $pendingProcessingOrders = Order::where('status', 'pending')->count();
-        $processingOrders = Order::where('status', 'processing')->count();
+        $processingOrders = Order::where('status', 'confirmed')->count();
         $hiddenProductsCount = Product::where('is_active', 0)->count();
 
         // 4. Thống kê tỷ lệ Phương thức thanh toán (Dùng cho Biểu đồ Donut 1)

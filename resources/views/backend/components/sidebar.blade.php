@@ -44,20 +44,20 @@
         </a>
 
         {{-- Menu Danh mục --}}
-        <a href="#" title="Danh mục" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
-            <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">category</span>
+        <a href="{{ route('admin.categories.index') }}" title="Danh mục" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.categories.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.categories.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">category</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Danh mục</span>
         </a>
 
         {{-- Menu Khuyến mãi --}}
-        <a href="#" title="Khuyến mãi" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
-            <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">local_offer</span>
+        <a href="{{ route('admin.promotions.index') }}" title="Khuyến mãi" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.promotions.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.promotions.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">local_offer</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Khuyến mãi</span>
         </a>
 
         {{-- Menu Đánh giá --}}
-        <a href="#" title="Đánh giá" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
-            <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">reviews</span>
+        <a href="{{ route('admin.reviews.index') }}" title="Đánh giá" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.reviews.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.reviews.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">reviews</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Đánh giá</span>
         </a>
 

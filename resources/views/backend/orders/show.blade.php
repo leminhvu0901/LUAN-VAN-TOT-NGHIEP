@@ -18,53 +18,14 @@
                     {{-- Mã đơn hàng --}}
                     <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Đơn hàng <span
                             class="text-primary">{{ $order->order_code ?? ('#HPY-' . $order->id) }}</span></h1>
-
-                    {{-- Xử lý màu sắc và text cho huy hiệu trạng thái (Status Badge) --}}
-                    @php
-                        $badgeClass = 'bg-gray-100 text-gray-600';
-                        $statusText = 'Không xác định';
-                        switch ($order->status) {
-                            case 'pending':
-                                $badgeClass = 'bg-amber-100 text-amber-700';
-                                $statusText = 'Chờ xác nhận';
-                                break;
-                            case 'confirmed':
-                                $badgeClass = 'bg-blue-100 text-blue-700';
-                                $statusText = 'Đã xác nhận';
-                                break;
-                            case 'shipping':
-                                $badgeClass = 'bg-indigo-100 text-indigo-700';
-                                $statusText = 'Đang giao';
-                                break;
-                            case 'completed':
-                                $badgeClass = 'bg-emerald-100 text-emerald-700';
-                                $statusText = 'Hoàn thành';
-                                break;
-                            case 'cancelled':
-                                $badgeClass = 'bg-red-100 text-red-700';
-                                $statusText = 'Đã hủy';
-                                break;
-                        }
-                    @endphp
-                    <form action="{{ route('admin.orders.status.update', $order->id) }}" method="POST" class="inline-flex items-center gap-2 m-0">
-                        @csrf
-                        <select name="status" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg shadow-sm focus:border-primary focus:ring-primary bg-white text-gray-700 py-1.5 pl-3 pr-8 font-medium">
-                            <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
-                            <option value="confirmed" {{ $order->status == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
-                            <option value="shipping" {{ $order->status == 'shipping' ? 'selected' : '' }}>Đang giao</option>
-                            <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Hoàn thành</option>
-                            <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
-                        </select>
-                    </form>
                 </div>
                 {{-- Hiển thị ngày giờ đặt hàng --}}
                 <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
             <div class="flex items-center gap-3">
-                {{-- Nút in hóa đơn: Sử dụng window.print() của Javascript. Lớp 'print:hidden' để ẩn chính nút này khi in
-                --}}
-                <button onclick="window.print()"
+                {{-- Nút in hóa đơn: Lớp 'print:hidden' để ẩn chính nút này khi in --}}
+                <button id="order-print-btn" type="button"
                     class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors print:hidden">
                     <span class="material-symbols-outlined text-[20px]">print</span>
                     In hóa đơn
@@ -104,7 +65,7 @@
                                     @if($item->product_image)
                                         <img src="{{ asset('images/' . $item->product_image) }}" alt="{{ $item->product_name }}"
                                             class="w-full h-full object-cover"
-                                            onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                                            data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center text-gray-300">
                                             <span class="material-symbols-outlined text-3xl">local_cafe</span>
@@ -258,5 +219,9 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script src="{{ asset('js/backend/orders/show.js') }}"></script>
+    @endpush
 
 @endsection

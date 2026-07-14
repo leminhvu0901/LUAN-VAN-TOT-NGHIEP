@@ -189,8 +189,11 @@
                                 <p class="text-base md:text-xl font-bold md:font-extrabold text-primary whitespace-nowrap">{{ number_format($order->final_amount, 0, ',', '.') }}đ</p>
                             </div>
                             <div class="flex gap-2 md:gap-3 shrink-0">
-                                <button onclick="toggleOrderDetails({{ $order->id }})" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
-                                <button class="hidden md:inline-block px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
+                                <button type="button" data-toggle-order="{{ $order->id }}" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
+                                <form method="POST" action="{{ route('orders.reorder', $order) }}" class="hidden md:inline-block">
+                                    @csrf
+                                    <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
+                                </form>
                             </div>
                         </div>
                     </div>

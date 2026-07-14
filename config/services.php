@@ -41,4 +41,15 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL', 'http://127.0.0.1:8000/auth/google/callback'),
     ],
 
+    'momo' => [
+        'partner_code' => env('MOMO_PARTNER_CODE'),
+        'access_key' => env('MOMO_ACCESS_KEY'),
+        'secret_key' => env('MOMO_SECRET_KEY'),
+        'endpoint' => env('MOMO_ENDPOINT', 'https://test-payment.momo.vn/v2/gateway/api/create'),
+    ],
+
+    'openroute' => [
+        'key' => env('OPENROUTE_SERVICE_API_KEY'),
+    ],
+
 ];

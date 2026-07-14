@@ -31,7 +31,9 @@ class ProductController
             // Join với bảng phụ gom nhóm điểm đánh giá theo sản phẩm (chỉ lấy đánh giá được phép hiển thị)
             ->leftJoin(DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
             // Join với bảng phụ gom nhóm tổng số lượng đã bán từ các chi tiết đơn hàng
-            ->leftJoin(DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
+            ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
+            ->where('categories.is_active', 1)
+            ->where('products.is_active', 1)
             ->where('products.slug', $slug)
             ->first();
 
@@ -82,7 +84,7 @@ class ProductController
                 DB::raw('COALESCE(o2.total_sold, 0) as total_sold')
             )
             ->leftJoin(DB::raw('(SELECT product_id, AVG(rating) as avg_rating FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r2'), 'products.id', '=', 'r2.product_id')
-            ->leftJoin(DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o2'), 'products.id', '=', 'o2.product_id')
+            ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o2"), 'products.id', '=', 'o2.product_id')
             ->where('products.category_id', $product->category_id)
             ->where('products.id', '!=', $product->id)
             ->where('products.is_active', 1)
@@ -102,7 +104,11 @@ class ProductController
         // 8. Xác định xem sản phẩm này có phải là Bán chạy (Bestseller) hay không
         // Lấy danh sách ID của top 6 sản phẩm bán ra với số lượng nhiều nhất
         $top6HotProductIds = \App\Models\OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->where('orders.status', 'completed')
+            ->where('orders.payment_status', 'paid')
+            ->whereNull('orders.deleted_at')
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
             ->limit(6)
@@ -168,7 +174,9 @@ class ProductController
             )
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->leftJoin(DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
-            ->leftJoin(DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id');
+            ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
+            ->where('categories.is_active', 1)
+            ->where('products.is_active', 1);
 
         // Lọc theo danh mục sản phẩm được tích chọn (nếu có)
         if (!empty($categoryIds)) {
@@ -204,7 +212,11 @@ class ProductController
 
         // 4. Lấy danh sách ID của top 6 sản phẩm bán chạy nhất hệ thống
         $top6HotProductIds = \App\Models\OrderItem::query()
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
+            ->where('orders.status', 'completed')
+            ->where('orders.payment_status', 'paid')
+            ->whereNull('orders.deleted_at')
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
             ->limit(6)

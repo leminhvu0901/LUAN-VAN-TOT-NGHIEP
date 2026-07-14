@@ -29,6 +29,32 @@ class Product extends Model
         return $this->hasMany(ProductImage::class, 'product_id')->orderBy('display_order');
     }
 
+    public function materials()
+    {
+        return $this->belongsToMany(Material::class, 'product_materials')
+            ->withPivot('quantity_used')->withTimestamps();
+    }
+
+    public function toppings()
+    {
+        return $this->belongsToMany(Topping::class, 'product_toppings');
+    }
+
+    public function hasSufficientMaterials(float $quantity = 1): bool
+    {
+        $recipes = $this->materials()->where('materials.is_active', true)->get();
+        if ($recipes->isEmpty()) return true;
+
+        foreach ($recipes as $material) {
+            $available = $material->imports()->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)
+                ->where(function ($query) {
+                    $query->whereNull('expiration_date')->orWhereDate('expiration_date', '>=', today());
+                })->sum('remaining_quantity');
+            if ((float) $available + 0.0001 < (float) $material->pivot->quantity_used * $quantity) return false;
+        }
+        return true;
+    }
+
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {

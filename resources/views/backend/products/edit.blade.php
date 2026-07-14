@@ -36,8 +36,8 @@
                 <!-- Left Column: Image -->
                 <div class="lg:col-span-1">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Hình ảnh sản phẩm</label>
-                    <div class="border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64" onclick="document.getElementById('image-upload').click()">
-                        <input type="file" id="image-upload" name="image" class="hidden" accept="image/*" onchange="previewImage(event)">
+                    <div class="js-image-upload-trigger border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64">
+                        <input type="file" id="image-upload" name="image" class="hidden" accept="image/*">
                         
                         @php
                             $imageUrl = '';
@@ -112,7 +112,7 @@
                             @foreach($product->images as $galleryImg)
                                 <div class="relative group gallery-item" id="gallery-item-{{ $galleryImg->id }}">
                                     <img src="{{ $galleryImg->image_url }}" class="w-20 h-20 object-cover rounded-lg border border-gray-200" alt="Gallery image">
-                                    <button type="button" onclick="deleteGalleryImage({{ $galleryImg->id }})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none" title="Xóa ảnh này">
+                                    <button type="button" class="js-delete-gallery-image absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600 focus:outline-none" data-gallery-image-id="{{ $galleryImg->id }}" title="Xóa ảnh này">
                                         <span class="material-symbols-outlined text-[14px] leading-none">close</span>
                                     </button>
                                 </div>
@@ -120,11 +120,52 @@
                         </div>
                         @endif
 
-                        <input type="file" id="gallery-input" name="gallery[]" multiple accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" onchange="previewGallery(event)">
+                        <input type="file" id="gallery-input" name="gallery[]" multiple accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                         <p class="text-xs text-gray-500 mt-1">Tối đa 5 ảnh phụ tổng cộng.</p>
                         <div id="gallery-preview-container" class="flex flex-wrap gap-2 mt-3"></div>
                     </div>
                     
+                    @php
+                        $oldSizeNames = old('size_names', $product->sizes->pluck('size_name')->all());
+                        $oldSizePrices = old('size_price_adjustments', $product->sizes->pluck('price_adjustment')->all());
+                        if (count($oldSizeNames) === 0) $oldSizeNames = [''];
+                        $selectedToppings = old('topping_ids', $product->toppings->pluck('id')->all());
+                    @endphp
+                    <div class="border-t border-gray-100 pt-5 space-y-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Kích thước và giá cộng thêm</h3>
+                            <div id="product-sizes" class="space-y-2 mt-2">
+                                @foreach($oldSizeNames as $index => $sizeName)
+                                <div class="product-size-row grid grid-cols-[1fr_1fr_40px] gap-2">
+                                    <input name="size_names[]" value="{{ $sizeName }}" maxlength="50" placeholder="Tên size" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <input name="size_price_adjustments[]" type="number" min="0" max="50000000" step="1000" value="{{ $oldSizePrices[$index] ?? 0 }}" placeholder="Giá cộng thêm" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                    <button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước"><span class="material-symbols-outlined">delete</span></button>
+                                </div>
+                                @endforeach
+                            </div>
+                            <button type="button" id="add-product-size" class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">add</span>Thêm kích thước</button>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Topping áp dụng</h3>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                @foreach($toppings as $topping)
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="topping_ids[]" value="{{ $topping->id }}" {{ in_array($topping->id, $selectedToppings) ? 'checked' : '' }}>{{ $topping->name }}</label>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-800">Định lượng nguyên liệu cho một sản phẩm</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-64 overflow-y-auto">
+                                @foreach($materials as $material)
+                                @php $recipe = $product->materials->firstWhere('id', $material->id); @endphp
+                                <label class="grid grid-cols-[1fr_120px] items-center gap-2 text-sm">
+                                    <span>{{ $material->name }} ({{ $material->unit }})</span>
+                                    <input type="number" name="materials[{{ $material->id }}]" value="{{ old('materials.' . $material->id, $recipe?->pivot?->quantity_used) }}" min="0.001" max="99999999" step="0.001" placeholder="Số lượng" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                     <div class="flex items-center mt-2 pt-4 border-t border-gray-100">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="is_active" value="1" {{ old('is_active', $product->is_active) ? 'checked' : '' }} class="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500">
@@ -147,5 +188,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('js/backend/products/form-common.js') }}"></script>
 <script src="{{ asset('js/backend/products/edit.js') }}"></script>
 @endpush

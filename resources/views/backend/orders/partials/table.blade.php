@@ -2,6 +2,9 @@
     {{-- Tiêu đề các cột của bảng --}}
     <thead class="bg-gray-50 sticky top-0 z-10">
         <tr>
+            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 w-10 text-center">
+                <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary shadow-sm focus:ring-primary cursor-pointer">
+            </th>
             <th
                 class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 w-32">
                 Mã đơn hàng</th>
@@ -24,6 +27,9 @@
         {{-- Lặp qua từng đơn hàng để hiển thị, nếu danh sách rỗng sẽ chuyển xuống xử lý ở khối @empty --}}
         @forelse($orders as $order)
             <tr class="hover:bg-gray-50/50 transition-colors group">
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <input type="checkbox" name="order_ids[]" value="{{ $order['id'] }}" class="order-checkbox rounded border-gray-300 text-primary shadow-sm focus:ring-primary cursor-pointer">
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="font-bold text-primary">{{ $order['code'] }}</span>
                 </td>
@@ -79,12 +85,17 @@
                     @endphp
                     <form action="{{ route('admin.orders.status.update', $order['id']) }}" method="POST" class="m-0">
                         @csrf
-                        <select name="status" onchange="this.form.submit()" class="text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
-                            <option value="pending" {{ $order['status'] == 'Chờ xác nhận' ? 'selected' : '' }}>Chờ xác nhận</option>
-                            <option value="confirmed" {{ $order['status'] == 'Đã xác nhận' ? 'selected' : '' }}>Đã xác nhận</option>
-                            <option value="shipping" {{ $order['status'] == 'Đang giao' ? 'selected' : '' }}>Đang giao</option>
-                            <option value="completed" {{ $order['status'] == 'Hoàn thành' ? 'selected' : '' }}>Hoàn thành</option>
-                            <option value="cancelled" {{ $order['status'] == 'Đã hủy' ? 'selected' : '' }}>Đã hủy</option>
+                        @php
+                            $nextStatuses = ['pending' => ['confirmed', 'cancelled'], 'confirmed' => ['shipping', 'cancelled'], 'shipping' => ['completed', 'cancelled'], 'completed' => [], 'cancelled' => []];
+                            $allowedStatuses = array_merge([$order['raw_status']], $nextStatuses[$order['raw_status']] ?? []);
+                            if ($order['payment_status'] === 'paid') $allowedStatuses = array_values(array_diff($allowedStatuses, ['cancelled']));
+                        @endphp
+                        <select name="status" data-current-status="{{ $order['raw_status'] }}" class="js-order-status-select text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
+                            <option value="pending" {{ $order['raw_status'] === 'pending' ? 'selected' : '' }} {{ !in_array('pending', $allowedStatuses) ? 'disabled' : '' }}>Chờ xác nhận</option>
+                            <option value="confirmed" {{ $order['raw_status'] === 'confirmed' ? 'selected' : '' }} {{ !in_array('confirmed', $allowedStatuses) ? 'disabled' : '' }}>Đã xác nhận</option>
+                            <option value="shipping" {{ $order['raw_status'] === 'shipping' ? 'selected' : '' }} {{ !in_array('shipping', $allowedStatuses) ? 'disabled' : '' }}>Đang giao</option>
+                            <option value="completed" {{ $order['raw_status'] === 'completed' ? 'selected' : '' }} {{ !in_array('completed', $allowedStatuses) ? 'disabled' : '' }}>Hoàn thành</option>
+                            <option value="cancelled" {{ $order['raw_status'] === 'cancelled' ? 'selected' : '' }} {{ !in_array('cancelled', $allowedStatuses) ? 'disabled' : '' }}>Đã hủy</option>
                         </select>
                     </form>
                 </td>
@@ -98,6 +109,15 @@
                             title="Xem chi tiết">
                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                         </a>
+                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="js-order-delete-form m-0 inline-block">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"
+                                title="Xóa đơn hàng">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </form>
                     </div>
                 </td>
             </tr>
@@ -122,3 +142,4 @@
         {{ $paginator->links('pagination::tailwind') }}
     </div>
 @endif
+<input type="hidden" id="total-orders-count" value="{{ $paginator->total() }}">

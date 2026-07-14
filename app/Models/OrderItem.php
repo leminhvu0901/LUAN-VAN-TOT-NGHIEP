@@ -10,11 +10,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 class OrderItem extends Model
 {
+    public $timestamps = false;
     // Tên bảng dữ liệu được quản lý bởi model này
     protected $table = 'order_items';
     
     // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng order_items
     protected $guarded = [];
+
+    protected $casts = [
+        'options' => 'array',
+    ];
 
     /**
      * Mối quan hệ Nhiều - Một (Belongs To): Một dòng chi tiết đơn hàng sẽ thuộc về một đơn hàng (Order) duy nhất.

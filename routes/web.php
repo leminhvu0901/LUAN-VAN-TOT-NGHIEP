@@ -99,7 +99,8 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Lịch sử mua hàng & Đánh giá ---
     // Xem danh sách đơn hàng đã đặt
-    Route::get('/orders', [App\Http\Controllers\Frontend\OrderController::class, 'index'])->name('orders');
+    Route::get('/orders', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'index'])->name('orders');
+    Route::post('/orders/{order}/reorder', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'reorder'])->name('orders.reorder');
 
     // Hiện giao diện đánh giá (Review) 1 sản phẩm nằm trong 1 đơn hàng cụ thể
     Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'create'])->name('review.create');
@@ -140,7 +141,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])->name('checkout');
     // Nút "Đặt hàng" (Phương thức COD), lưu đơn hàng vào Database
-    Route::post('/checkout', [App\Http\Controllers\Frontend\OrderController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'store'])->name('checkout.store');
 
     // Các đường dẫn phụ trợ (API) gọi ngầm qua AJAX:
     // Tính khoảng cách km giao hàng
@@ -156,10 +157,10 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Thanh toán qua ví điện tử MoMo ---
     // Gửi yêu cầu trừ tiền sang máy chủ MoMo
-    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\MomoController::class, 'createPayment'])->name('momo.pay');
+    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\SecureMomoController::class, 'createPayment'])->name('momo.pay');
 
     // Sau khi quét mã MoMo xong, khách bị đá ngược về route này để xem màn hình "Thanh toán thành công"
-    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
+    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\SecureMomoController::class, 'handleReturn'])->name('momo.return');
 });
 
 // ==============================================
@@ -167,27 +168,13 @@ Route::middleware(['auth'])->group(function () {
 // ==============================================
 
 // IPN của MoMo (Server-to-Server). MoMo gọi ngầm vào đường dẫn này để báo cáo kết quả giao dịch. BẮT BUỘC PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)!
-Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
+Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\SecureMomoController::class, 'handleIpn'])->name('momo.ipn');
 
 // API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
 
 // Route hỗ trợ dev test nhanh kết nối Database
-Route::get('/test-db', function () {
-    $promo = \App\Models\Promotion::query()->where('id', 1)->first();
-    $orders = \App\Models\Order::query()->where('promotion_id', 1)->count();
-    \Illuminate\Support\Facades\Log::info('DB Check: ', ['promo' => (array) $promo, 'orders_count' => $orders]);
-    return 'done';
-});
-
-Route::get('/auto-login', function () {
-    $user = \App\Models\User::first();
-    if ($user) {
-        \Illuminate\Support\Facades\Auth::login($user);
-        return redirect('/profile');
-    }
-    return 'No user found in the database.';
-});
+// Development-only authentication and database routes were intentionally removed.
 
 
 //4. ADMIN & QUẢN TRỊ VIÊN
@@ -197,21 +184,39 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('/dashboard', [App\Http\Controllers\Backend\DashboardController::class, 'index'])->name('dashboard');
 
     // Xem danh sách toàn bộ đơn hàng của quán
-    Route::get('/orders', [App\Http\Controllers\Backend\OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders', [App\Http\Controllers\Backend\SecureOrderController::class, 'index'])->name('orders.index');
 
     // Xuất báo cáo đơn hàng ra file Excel/CSV
-    Route::get('/orders/export', [App\Http\Controllers\Backend\OrderController::class, 'export'])->name('orders.export');
+    Route::get('/orders/export', [App\Http\Controllers\Backend\SecureOrderController::class, 'export'])->name('orders.export');
 
     // Xem chi tiết đơn hàng 
-    Route::get('/orders/{id}', [App\Http\Controllers\Backend\OrderController::class, 'show'])->name('orders.show');
-    Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\OrderController::class, 'updateStatus'])->name('orders.status.update');
+    Route::get('/orders/{id}', [App\Http\Controllers\Backend\SecureOrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\SecureOrderController::class, 'updateStatus'])->name('orders.status.update');
+    Route::delete('/orders/{id}', [App\Http\Controllers\Backend\SecureOrderController::class, 'destroy'])->name('orders.destroy');
+    Route::post('/orders/bulk-delete', [App\Http\Controllers\Backend\SecureOrderController::class, 'bulkDelete'])->name('orders.bulk_delete');
 
     // QUẢN LÝ SẢN PHẨM
-    Route::resource('products', App\Http\Controllers\Backend\ProductController::class)->except(['show']);
-    Route::delete('products/gallery/{id}', [App\Http\Controllers\Backend\ProductController::class, 'deleteGalleryImage'])->name('products.gallery.destroy');
+    Route::post('products/bulk-delete', [App\Http\Controllers\Backend\HardenedProductController::class, 'bulkDelete'])->name('products.bulk_delete');
+    Route::resource('products', App\Http\Controllers\Backend\HardenedProductController::class)->except(['show']);
+    Route::delete('products/gallery/{id}', [App\Http\Controllers\Backend\HardenedProductController::class, 'deleteGalleryImage'])->name('products.gallery.destroy');
+
+    // QUẢN LÝ KHUYẾN MÃI
+    Route::post('promotions/bulk-delete', [App\Http\Controllers\Backend\PromotionController::class, 'bulkDelete'])->name('promotions.bulk_delete');
+    Route::resource('promotions', App\Http\Controllers\Backend\PromotionController::class)->except(['show']);
+
+    // QUẢN LÝ ĐÁNH GIÁ
+    Route::post('reviews/bulk-delete', [App\Http\Controllers\Backend\ReviewController::class, 'bulkDelete'])->name('reviews.bulk_delete');
+    Route::resource('reviews', App\Http\Controllers\Backend\ReviewController::class)->except(['show']);
+    Route::post('reviews/{id}/toggle-visibility', [App\Http\Controllers\Backend\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle_visibility');
+    Route::delete('reviews/{id}/image', [App\Http\Controllers\Backend\ReviewController::class, 'deleteImage'])->name('reviews.delete_image');
+
+    // QUẢN LÝ DANH MỤC
+    Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
+    Route::resource('categories', App\Http\Controllers\Backend\CategoryController::class)->except(['show']);
 
 
     // QUẢN LÝ KHO
+    Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');
     //danh mục gốc
     Route::resource('materials', App\Http\Controllers\Backend\MaterialController::class)->except(['create', 'edit', 'show']);
 
@@ -223,18 +228,4 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
-    // Trang Sắp hết hạn 
-    Route::get('materials/expiring', [App\Http\Controllers\Backend\MaterialController::class, 'expiring'])->name('materials.expiring');
-
-    // Trang Lịch Sử Xuất Hủy (
-    Route::get('materials/disposed', [App\Http\Controllers\Backend\MaterialController::class, 'disposed'])->name('materials.disposed');
-
-    // Trang Vật tư dưới mức tồn tối thiểu 
-    Route::get('materials/low-stock', [App\Http\Controllers\Backend\MaterialController::class, 'lowStock'])->name('materials.low_stock');
-
-    // Trang Lô hàng đã hết hạn 
-    Route::get('materials/expired', [App\Http\Controllers\Backend\MaterialController::class, 'expired'])->name('materials.expired');
-
-    // Trang Giá trị kho
-    Route::get('materials/inventory-value', [App\Http\Controllers\Backend\MaterialController::class, 'inventoryValue'])->name('materials.inventory_value');
 });

@@ -1,0 +1,158 @@
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-100">
+            <tr>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap w-10 text-center">
+                    <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary shadow-sm focus:ring-primary cursor-pointer">
+                </th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Mã VT</th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Tên vật tư
+                </th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Tồn kho</th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Đơn vị</th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Cảnh báo
+                </th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Trạng thái
+                </th>
+                <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center whitespace-nowrap">
+                    Hành động</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            @forelse($materials as $material)
+                @php
+                    $isDeleteBlocked = ($material->active_lots_count ?? 0) > 0;
+                    $statuses = [];
+                    $barColor = 'bg-emerald-500';
+                    $barWidth = min(100, max(5, ($material->current_stock / 100) * 100));
+
+                    if ($material->current_stock == 0) {
+                        $statuses[] = ['text' => 'Cần nhập gấp', 'color' => 'bg-red-100 text-red-700', 'dot' => 'bg-red-500 animate-pulse'];
+                        $barColor = 'bg-red-500';
+                    } else {
+                        if ($material->current_stock < 5) {
+                            $barColor = 'bg-orange-500';
+                        }
+                        
+                        // Xét từng lô hàng còn tồn kho
+                        foreach ($material->imports->where('remaining_quantity', '>', 0) as $lot) {
+                            if ($lot->expiration_date) {
+                                $days = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($lot->expiration_date)->startOfDay(), false);
+                                if ($days < 0) {
+                                    $statuses[] = ['text' => "Lô (LOT-{$lot->id}) đã hết hạn", 'color' => 'bg-red-100 text-red-700 font-bold', 'dot' => 'bg-red-500 animate-pulse'];
+                                } elseif ($days <= 30) {
+                                    $statuses[] = ['text' => "Lô (LOT-{$lot->id}) sắp hết hạn ({$days} ngày)", 'color' => 'bg-amber-100 text-amber-700 font-bold', 'dot' => 'bg-amber-500 animate-pulse'];
+                                }
+                            }
+                            
+                            if ($lot->remaining_quantity < 5) {
+                                $statuses[] = ['text' => "Lô (LOT-{$lot->id}) sắp hết hàng ({$lot->remaining_quantity})", 'color' => 'bg-orange-100 text-orange-700', 'dot' => 'bg-orange-500'];
+                            }
+                        }
+
+                        // Nếu không có lô nào gặp vấn đề (hoặc không có lô nào)
+                        if (empty($statuses)) {
+                            if ($material->current_stock < 5) {
+                                $statuses[] = ['text' => 'Sắp hết', 'color' => 'bg-orange-100 text-orange-700', 'dot' => 'bg-orange-500'];
+                            } else {
+                                $statuses[] = ['text' => 'Còn hàng', 'color' => 'bg-emerald-100 text-emerald-700', 'dot' => 'bg-emerald-500'];
+                            }
+                        }
+                        // Hiển thị thêm trạng thái nếu có lịch sử thu hồi
+                        if (isset($material->disposed_count) && $material->disposed_count > 0) {
+                            $statuses[] = ['text' => "Đã thu hồi ({$material->disposed_count} lần)", 'color' => 'bg-gray-100 text-gray-700 font-medium', 'dot' => 'bg-gray-500'];
+                        }
+                    }
+                @endphp
+                <tr class="hover:bg-gray-50 transition-colors group">
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                        <input type="checkbox" name="material_ids[]" value="{{ $material->id }}"
+                            class="material-checkbox rounded border-gray-300 text-primary shadow-sm focus:ring-primary {{ $isDeleteBlocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' }}"
+                            title="{{ $isDeleteBlocked ? 'Không thể chọn xóa vì vật tư vẫn còn lô hàng trong kho' : 'Chọn vật tư' }}"
+                            {{ $isDeleteBlocked ? 'disabled' : '' }}>
+                    </td>
+                    <td class="px-4 py-3 font-semibold text-sm text-gray-500 whitespace-nowrap">
+                        VT-{{ str_pad($material->id, 2, '0', STR_PAD_LEFT) }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-emerald-600">
+                                    {{ str_contains(strtolower($material->name), 'ly') || str_contains(strtolower($material->name), 'nắp') ? 'local_cafe' : (str_contains(strtolower($material->name), 'trà') || str_contains(strtolower($material->name), 'cà phê') ? 'eco' : 'bubble_chart') }}
+                                </span>
+                            </div>
+                            <span class="font-semibold text-sm text-gray-900">{{ $material->name }}</span>
+                        </div>
+                    </td>
+                    <td
+                        class="px-4 py-3 font-semibold text-sm {{ $material->current_stock < 5 ? 'text-red-600' : 'text-gray-900' }} whitespace-nowrap">
+                        {{ $material->current_stock }}
+                    </td>
+                    <td class="px-4 py-3 font-semibold text-sm text-gray-900 whitespace-nowrap">
+                        {{ $material->unit }}
+                    </td>
+
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden min-w-[100px]">
+                            <div class="{{ $barColor }} h-full rounded-full" style="width: {{ $barWidth }}%"></div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="flex flex-col gap-1 items-start">
+                            @foreach($statuses as $statusItem)
+                                <span class="inline-flex items-center gap-1 px-2 py-1 {{ $statusItem['color'] }} rounded-lg font-medium text-xs">
+                                    <span class="w-2 h-2 rounded-full {{ $statusItem['dot'] }}"></span>
+                                    {{ $statusItem['text'] }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap">
+                        <div class="flex justify-center gap-1.5">
+                            <a href="{{ route('admin.materials.imports', $material->id) }}"
+                                class="text-primary hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md transition-colors inline-block"
+                                title="Xem chi tiết">
+                                <span class="material-symbols-outlined text-[18px]">visibility</span>
+                            </a>
+                            @if($isDeleteBlocked)
+                                <button type="button" disabled
+                                    class="p-1.5 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed"
+                                    title="Không thể xóa vì vật tư vẫn còn {{ $material->active_lots_count }} lô hàng trong kho">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            @else
+                                <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="8" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                            <p class="text-gray-500 text-lg font-medium">Không tìm thấy vật tư nào</p>
+                            <p class="text-gray-400 text-sm mt-1">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+@if(method_exists($materials, 'hasPages') && $materials->hasPages())
+    <div class="px-6 py-4 border-t border-gray-100 ajax-pagination">
+        {{ $materials->links() }}
+    </div>
+@endif
+
+<input type="hidden" id="total-materials-count" value="{{ $deletableMaterialsCount ?? (method_exists($materials, 'total') ? $materials->total() : count($materials)) }}">

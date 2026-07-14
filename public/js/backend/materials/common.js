@@ -1,148 +1,297 @@
-// ============================================================
-//  Hàm hỗ trợ: Loại bỏ dấu tiếng Việt để tìm kiếm chính xác hơn
-//  (Ví dụ: "Đường" sẽ thành "Duong", giúp gõ không dấu vẫn ra kết quả)
-// ============================================================
-function removeAccents(str) {
-    if(!str) return '';
-    // Chuẩn hóa chuỗi và dùng RegEx để xóa các ký tự dấu, đổi đ/Đ thành d/D
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
-}
+(function () {
+    "use strict";
 
-//  Hàm sắp xếp các dòng trong bảng.
-var _sortState = { col: -1, asc: true }; // Lưu trạng thái hiện tại đang sắp xếp cột nào và chiều nào (tăng/giảm)
-var _attrMap = ['sort-name', 'sort-qty', 'sort-value', 'sort-date', 'sort-exp']; // Danh sách các thuộc tính tương ứng với từng cột
+    const swalConfig = {
+        icon: "warning",
+        width: "320px",
+        padding: "1rem",
+        showCancelButton: true,
+        confirmButtonText: "Xóa ngay",
+        cancelButtonText: "Hủy",
+        reverseButtons: true,
+        customClass: {
+            popup: "rounded-xl shadow-xl border border-gray-100",
+            title: "text-base font-bold text-gray-800",
+            htmlContainer: "text-sm text-gray-500 mt-1",
+            confirmButton:
+                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2",
+            cancelButton:
+                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2",
+            icon: "transform scale-[0.6] -mt-3 -mb-2",
+            actions: "mt-3 w-full flex justify-center",
+        },
+        buttonsStyling: false,
+    };
 
-function sortTable(colIndex) {
-    var tbody = document.getElementById('table-body');
-    if (!tbody) return;
+    function openModal(id) {
+        document.getElementById(id)?.classList.remove("hidden");
+    }
 
-    // Chỉ lấy các dòng dữ liệu (tránh lấy nhầm dòng thông báo)
-    var rows = Array.from(tbody.querySelectorAll('tr[data-sort-name]'));
+    function closeModal(id) {
+        document.getElementById(id)?.classList.add("hidden");
+    }
 
-    // Nếu ấn lại vào cột đang được sắp xếp thì đổi chiều (tăng thành giảm, giảm thành tăng)
-    _sortState.asc = (_sortState.col === colIndex) ? !_sortState.asc : true;
-    _sortState.col = colIndex;
+    function getFieldErrorElement(input) {
+        if (!input?.id) return null;
 
-    // Cập nhật icon mũi tên trên tiêu đề cột
-    for (var i = 0; i < _attrMap.length; i++) {
-        var icon = document.getElementById('sort-icon-' + i);
-        if (!icon) continue;
-        if (i === colIndex) {
-            icon.textContent = _sortState.asc ? 'arrow_upward' : 'arrow_downward';
-            icon.className = 'material-symbols-outlined text-[14px] text-red-500';
+        return document.querySelector(`[data-error-for="${input.id}"]`);
+    }
+
+    function setFieldError(input, message = "", blockSubmission = true) {
+        if (!input) return;
+
+        const hasError = message !== "";
+        const errorElement = getFieldErrorElement(input);
+
+        input.setCustomValidity(blockSubmission ? message : "");
+        input.setAttribute("aria-invalid", hasError ? "true" : "false");
+        input.classList.toggle("border-red-500", hasError);
+        input.classList.toggle("focus:border-red-500", hasError);
+        input.classList.toggle("focus:ring-red-500", hasError);
+        input.style.borderColor = hasError ? "#ef4444" : "";
+
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.toggle("hidden", !hasError);
+        }
+    }
+
+    function getProposedValue(input, insertedText) {
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+
+        return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
+    }
+
+    function guardInsertedContent(input, getValidationMessage) {
+        input.addEventListener("beforeinput", function (event) {
+            if (
+                event.isComposing ||
+                typeof event.inputType !== "string" ||
+                !event.inputType.startsWith("insert") ||
+                typeof event.data !== "string"
+            ) {
+                return;
+            }
+
+            const message = getValidationMessage(getProposedValue(this, event.data));
+            if (!message) return;
+
+            event.preventDefault();
+            setFieldError(this, message, false);
+        });
+
+        input.addEventListener("paste", function (event) {
+            const pastedText = event.clipboardData?.getData("text");
+            if (typeof pastedText !== "string") return;
+
+            const message = getValidationMessage(getProposedValue(this, pastedText));
+            if (!message) return;
+
+            event.preventDefault();
+            setFieldError(this, message, false);
+        });
+    }
+
+    function getTextValidationMessage(input, value) {
+        const valueLength = Array.from(value).length;
+        const maxLength = Number(input.dataset.maxLength);
+        const fieldLabel = input.dataset.fieldLabel || "Nội dung";
+
+        if (input.matches("[data-material-unit]") && value !== "") {
+            const allowedExistingValue = input.dataset.allowedExistingValue;
+            const isUnchangedExistingValue =
+                allowedExistingValue !== undefined && value === allowedExistingValue;
+
+            if (!isUnchangedExistingValue && /\p{N}/u.test(value)) {
+                return "Đơn vị không được nhập số.";
+            }
+
+            if (
+                !isUnchangedExistingValue &&
+                !/^[\p{L}\p{M}\s.\/-]+$/u.test(value)
+            ) {
+                return "Đơn vị không được nhập ký tự đặc biệt.";
+            }
+        }
+
+        if (Number.isFinite(maxLength) && valueLength > maxLength) {
+            return `${fieldLabel} không được nhập quá ${maxLength} ký tự.`;
+        }
+
+        return "";
+    }
+
+    function getSanitizedTextValue(input, value) {
+        let sanitizedValue = value;
+        const allowedExistingValue = input.dataset.allowedExistingValue;
+
+        if (
+            input.matches("[data-material-unit]") &&
+            (allowedExistingValue === undefined || value !== allowedExistingValue)
+        ) {
+            sanitizedValue = sanitizedValue
+                .replace(/\p{N}/gu, "")
+                .replace(/[^\p{L}\p{M}\s.\/-]/gu, "");
+        }
+
+        const maxLength = Number(input.dataset.maxLength);
+        if (Number.isFinite(maxLength)) {
+            sanitizedValue = Array.from(sanitizedValue).slice(0, maxLength).join("");
+        }
+
+        return sanitizedValue;
+    }
+
+    function validateTextInput(input) {
+        if (!input) return true;
+
+        const message = getTextValidationMessage(input, input.value);
+        setFieldError(input, message);
+
+        if (!message) input.dataset.lastValidValue = input.value;
+
+        return message === "";
+    }
+
+    function bindTextValidation(root = document) {
+        root.querySelectorAll("[data-max-length], [data-material-unit]").forEach((input) => {
+            if (input.dataset.textValidationBound === "true") return;
+
+            input.dataset.textValidationBound = "true";
+            guardInsertedContent(input, (value) => getTextValidationMessage(input, value));
+
+            function handleTextInput(event) {
+                if (event?.isComposing) return;
+
+                const message = getTextValidationMessage(input, input.value);
+                if (message) {
+                    input.value = input.dataset.lastValidValue ?? "";
+                    setFieldError(input, message, false);
+                    return;
+                }
+
+                input.dataset.lastValidValue = input.value;
+                setFieldError(input);
+            }
+
+            input.addEventListener("input", handleTextInput);
+            input.addEventListener("compositionend", handleTextInput);
+
+            const initialMessage = getTextValidationMessage(input, input.value);
+            if (initialMessage) {
+                input.value = getSanitizedTextValue(input, input.value);
+                input.dataset.lastValidValue = input.value;
+                setFieldError(input, initialMessage, false);
+            } else {
+                input.dataset.lastValidValue = input.value;
+            }
+        });
+    }
+
+    function syncCurrencyValue(formattedInput, rawInput, value) {
+        const numericValue = Number(value) || 0;
+        rawInput.value = numericValue;
+        formattedInput.value = new Intl.NumberFormat("vi-VN").format(numericValue);
+        formattedInput.dataset.lastValidDigits = String(numericValue);
+        setFieldError(formattedInput);
+    }
+
+    function getCurrencyValidation(input, value) {
+        if (/[^\d.,\s]/u.test(value)) {
+            return {
+                digits: value.replace(/\D/g, ""),
+                message: input.dataset.numberMessage || "Chỉ được nhập số.",
+            };
+        }
+
+        const digits = value.replace(/\D/g, "");
+        const maxValue = Number(input.dataset.maxValue);
+        const exceedsMaximum =
+            Number.isFinite(maxValue) && digits !== "" && Number(digits) > maxValue;
+
+        return {
+            digits,
+            message: exceedsMaximum
+                ? input.dataset.maxMessage || "Giá trị vượt quá giới hạn cho phép."
+                : "",
+        };
+    }
+
+    function bindCurrencyInput(formattedInput, rawInput) {
+        if (!formattedInput || !rawInput || formattedInput.dataset.currencyBound === "true") return;
+
+        function setCurrencyValue(digits) {
+            rawInput.value = digits;
+            formattedInput.value =
+                digits === "" ? "" : new Intl.NumberFormat("vi-VN").format(digits);
+            formattedInput.dataset.lastValidDigits = digits;
+        }
+
+        function handleCurrencyInput(event) {
+            if (event?.isComposing) return;
+
+            const validation = getCurrencyValidation(formattedInput, formattedInput.value);
+            if (validation.message) {
+                setCurrencyValue(formattedInput.dataset.lastValidDigits ?? "");
+                setFieldError(formattedInput, validation.message, false);
+                return;
+            }
+
+            setCurrencyValue(validation.digits);
+            setFieldError(formattedInput);
+        }
+
+        formattedInput.dataset.currencyBound = "true";
+        guardInsertedContent(
+            formattedInput,
+            (value) => getCurrencyValidation(formattedInput, value).message,
+        );
+        formattedInput.addEventListener("input", handleCurrencyInput);
+        formattedInput.addEventListener("compositionend", handleCurrencyInput);
+
+        const initialValidation = getCurrencyValidation(formattedInput, formattedInput.value);
+        if (initialValidation.message) {
+            setCurrencyValue("");
+            setFieldError(formattedInput, initialValidation.message, false);
         } else {
-            icon.textContent = 'unfold_more';
-            icon.className = 'material-symbols-outlined text-[14px] text-gray-300';
+            setCurrencyValue(initialValidation.digits);
         }
     }
 
-    // Thuật toán sắp xếp mảng các dòng (rows)
-    rows.sort(function (a, b) {
-        var attr = _attrMap[colIndex];
-        var vA = a.getAttribute('data-' + attr) || '';
-        var vB = b.getAttribute('data-' + attr) || '';
-
-        // Các cột số lượng, giá trị, ngày tháng (cột số 1 trở lên) -> so sánh theo toán học (trừ nhau)
-        if (colIndex >= 1) {
-            vA = parseFloat(vA) || 0;
-            vB = parseFloat(vB) || 0;
-            return _sortState.asc ? vA - vB : vB - vA;
+    function confirmAction(title, text) {
+        if (typeof Swal !== "undefined") {
+            return Swal.fire({ ...swalConfig, title, text }).then((result) => result.isConfirmed);
         }
-        // Cột chữ (tên vật tư) -> so sánh theo bảng chữ cái tiếng Việt
-        return _sortState.asc ? vA.localeCompare(vB, 'vi') : vB.localeCompare(vA, 'vi');
-    });
 
-    // Đẩy các dòng đã sắp xếp trở lại vào trong bảng (tbody)
-    rows.forEach(function (row) { tbody.appendChild(row); });
-}
+        return Promise.resolve(window.confirm(text));
+    }
 
-//  Hàm bật/tắt (hiện/ẩn) các hộp thoại popup chung.
-function openModal(id) {
-    var el = document.getElementById(id);
-    if (el) el.classList.remove('hidden');
-}
-function closeModal(id) {
-    var el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-}
+    document.addEventListener("DOMContentLoaded", function () {
+        bindTextValidation();
 
-// ============================================================
-//  Hàm tính toán lại "Tổng số mặt hàng" và "Tổng giá trị" dùng chung cho các bảng có tính năng check chọn.
-// ============================================================
-document.addEventListener('DOMContentLoaded', function() {
-    var checkAll = document.getElementById('check-all');
-    if (checkAll) {
-        checkAll.addEventListener('change', function() {
-            var isChecked = this.checked;
-            // Chỉ chọn những dòng đang hiển thị
-            var visibleCheckboxes = Array.from(document.querySelectorAll('.row-checkbox')).filter(cb => cb.closest('tr').style.display !== 'none');
-            visibleCheckboxes.forEach(function(cb) {
-                cb.checked = isChecked;
-            });
-            if (typeof calculateSelected === 'function') {
-                calculateSelected();
+        document.addEventListener("click", function (event) {
+            const openButton = event.target.closest("[data-open-modal]");
+            if (openButton) {
+                openModal(openButton.dataset.openModal);
+                return;
+            }
+
+            const closeButton = event.target.closest("[data-close-modal]");
+            if (closeButton) {
+                closeModal(closeButton.dataset.closeModal);
             }
         });
-    }
-});
-
-function calculateSelected() {
-    var table = document.querySelector('table[data-total-id]');
-    if (!table) return;
-
-    var totalId = table.getAttribute('data-total-id');
-    var highlightClass = table.getAttribute('data-highlight') || 'bg-gray-50';
-
-    var checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    var allVisibleCheckboxes = Array.from(document.querySelectorAll('.row-checkbox')).filter(cb => cb.closest('tr').style.display !== 'none');
-    
-    var totalValue = 0;
-    var count = 0;
-    
-    if (checkboxes.length > 0) {
-        checkboxes.forEach(function(cb) {
-            var row = cb.closest('tr');
-            if (row.style.display !== 'none') {
-                var val = parseFloat(row.getAttribute('data-value') || 0);
-                totalValue += val;
-                count++;
-                row.classList.add(highlightClass);
-            }
-        });
-        
-        var lblCount = document.getElementById('label-count-suffix');
-        if(lblCount) lblCount.textContent = '(đã chọn)';
-        var lblVal = document.getElementById('label-val-suffix');
-        if(lblVal) lblVal.textContent = '(đã chọn)';
-        
-        var checkAll = document.getElementById('check-all');
-        if (checkAll) {
-            checkAll.checked = (checkboxes.length === allVisibleCheckboxes.length && allVisibleCheckboxes.length > 0);
-        }
-    } else {
-        allVisibleCheckboxes.forEach(function(cb) {
-            var row = cb.closest('tr');
-            var val = parseFloat(row.getAttribute('data-value') || 0);
-            totalValue += val;
-            count++;
-        });
-        
-        var lblCount = document.getElementById('label-count-suffix');
-        if(lblCount) lblCount.textContent = '(theo bộ lọc)';
-        var lblVal = document.getElementById('label-val-suffix');
-        if(lblVal) lblVal.textContent = '(theo bộ lọc)';
-        
-        var checkAll = document.getElementById('check-all');
-        if (checkAll) checkAll.checked = false;
-    }
-    
-    document.querySelectorAll('.row-checkbox:not(:checked)').forEach(function(cb) {
-        cb.closest('tr').classList.remove(highlightClass);
     });
 
-    var elVal = document.getElementById(totalId);
-    if (elVal) elVal.textContent = new Intl.NumberFormat('vi-VN').format(totalValue) + 'đ';
-
-    var statCount = document.getElementById('stat-count');
-    if (statCount) statCount.textContent = count;
-}
+    window.MaterialsCommon = {
+        bindCurrencyInput,
+        bindTextValidation,
+        closeModal,
+        confirmAction,
+        openModal,
+        setFieldError,
+        syncCurrencyValue,
+        validateTextInput,
+    };
+})();

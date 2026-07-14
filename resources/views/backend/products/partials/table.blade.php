@@ -2,6 +2,9 @@
             <table class="w-full text-left border-collapse">
                 <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
+                        <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap w-10 text-center">
+                            <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary shadow-sm focus:ring-primary cursor-pointer">
+                        </th>
                         <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Mã SP (SKU)</th>
                         <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Sản phẩm</th>
                         <th class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap">Danh mục</th>
@@ -13,6 +16,9 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($products as $product)
                         <tr class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                <input type="checkbox" name="product_ids[]" value="{{ $product->id }}" class="product-checkbox rounded border-gray-300 text-primary shadow-sm focus:ring-primary cursor-pointer">
+                            </td>
                             <td class="px-4 py-3 text-sm font-bold text-gray-700 whitespace-nowrap">
                                 {{ $product->sku }}
                             </td>
@@ -57,7 +63,7 @@
                                         class="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors group/btn" title="Sửa">
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </a>
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này?');">
+                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form inline-block m-0 p-0">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">
@@ -69,10 +75,11 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center gap-3 text-gray-400">
-                                    <span class="material-symbols-outlined text-5xl">inventory_2</span>
-                                    <span class="font-medium">Không tìm thấy sản phẩm nào.</span>
+                            <td colspan="7" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                                    <p class="text-gray-500 text-lg font-medium">Không tìm thấy sản phẩm nào</p>
+                                    <p class="text-gray-400 text-sm mt-1">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
                                 </div>
                             </td>
                         </tr>
@@ -82,7 +89,7 @@
         </div>
         
         @if($products->hasPages())
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 pagination-container">
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 ajax-pagination">
             {{ $products->links() }}
         </div>
         @endif

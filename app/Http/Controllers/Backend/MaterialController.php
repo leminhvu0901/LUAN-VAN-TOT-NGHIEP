@@ -5,67 +5,101 @@ namespace App\Http\Controllers\Backend;
 use Illuminate\Http\Request;
 use App\Models\Material;
 use App\Models\MaterialImport;
+use App\Services\InventoryService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class MaterialController
 {
+    private const MAX_UNIT_PRICE = 999999999;
+
+    public function __construct(private readonly InventoryService $inventory) {}
+
     // 1. Lấy danh sách Vật tư & Tính toán thống kê hiển thị ở trang chủ kho
     public function index(Request $request)
     {
         $query = Material::with([
             'imports' => function ($q) {
-                $q->whereNotNull('expiration_date');
+                $q->where('remaining_quantity', '>', 0);
             }
-        ])->withCount('imports')->latest();
+        ])->withCount([
+            'imports as active_lots_count' => function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->where('remaining_quantity', '>', 0);
+            },
+            'imports as disposed_count' => function ($q) {
+                $q->where('quantity', '<', 0);
+            }
+        ]);
 
-        if ($request->has('search') && $request->search != '') {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        $this->applyMaterialFilters($query, $request);
+
+        $deletableMaterialsQuery = Material::query();
+        $this->applyMaterialFilters($deletableMaterialsQuery, $request);
+        $deletableMaterialsCount = $deletableMaterialsQuery
+            ->whereDoesntHave('imports', function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->where('remaining_quantity', '>', 0);
+            })
+            ->count();
+
+        // 3. Sắp xếp
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'oldest':
+                    $query->orderBy('created_at', 'asc');
+                    break;
+                case 'stock_asc':
+                    $query->orderBy('current_stock', 'asc');
+                    break;
+                case 'stock_desc':
+                    $query->orderBy('current_stock', 'desc');
+                    break;
+                default: // newest
+                    $query->orderBy('created_at', 'desc');
+                    break;
+            }
+        } else {
+            $query->latest();
         }
-        $materials = $query->get();
 
+        $materials = $query->paginate(10)->withQueryString();
+
+        // Thống kê cho 6 thẻ (chỉ tính 1 lần không phụ thuộc bộ lọc tìm kiếm)
         $totalItems = Material::count();
-        $lowStockMaterials = Material::where('current_stock', '<', 5)->get(); // arbitrary threshold
-        $lowStockItems = $lowStockMaterials->count();
-        $totalValue = Material::all()->sum(function ($item) {
-            return $item->current_stock * $item->unit_price;
-        });
+        $lowStockItems = Material::where('current_stock', '<', 5)->where('current_stock', '>', 0)->count();
+        $outOfStockItems = Material::where('current_stock', 0)->count();
 
-        $expiringBatches = MaterialImport::with('material')
-            ->whereBetween('expiration_date', [now(), now()->addDays(30)])
-            ->where('remaining_quantity', '>', 0)
-            ->get();
-        $expiringItems = $expiringBatches->count();
+        $expiringItems = MaterialImport::whereBetween('expiration_date', [now(), now()->addDays(30)])
+                                       ->where('remaining_quantity', '>', 0)->count();
+        $expiredItems = MaterialImport::where('expiration_date', '<', today())
+                                      ->where('remaining_quantity', '>', 0)->count();
 
-        $expiredBatches = MaterialImport::with('material')
-            ->whereNotNull('expiration_date')
-            ->where('expiration_date', '<', today())
-            ->where('remaining_quantity', '>', 0)
-            ->get();
+        $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)->count();
+        $disposedValue = abs(MaterialImport::where('quantity', '<', 0)->sum('total_price'));
 
-        $expiredValue = $expiredBatches->sum(function ($batch) {
-            $unitPrice = $batch->quantity > 0 ? ($batch->total_price / $batch->quantity) : 0;
-            return $batch->remaining_quantity * $unitPrice;
-        });
+        $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price'));
 
-        $disposedBatches = MaterialImport::with('material')
-            ->where('quantity', '<', 0)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        if ($request->ajax()) {
+            $html = view('backend.materials.partials.table', compact('materials', 'deletableMaterialsCount'))->render();
+            return response()->json([
+                'html' => $html,
+            ]);
+        }
 
-        $disposedValue = abs($disposedBatches->sum('total_price'));
-
-        return view('backend.materials.index', compact('materials', 'totalItems', 'lowStockItems', 'lowStockMaterials', 'totalValue', 'expiringItems', 'expiringBatches', 'expiredBatches', 'expiredValue', 'disposedBatches', 'disposedValue'));
+        return view('backend.materials.index', compact(
+            'materials', 'deletableMaterialsCount', 'totalItems', 'lowStockItems', 'outOfStockItems', 'expiringItems', 'expiredItems', 'disposedBatchesCount', 'totalValue', 'disposedValue'
+        ));
     }
 
     // 2. Lưu Vật tư mới vào Database (khi bấm nút Thêm vật tư)
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:materials,name',
-            'unit' => 'required|string|max:50',
-            'unit_price' => 'required|numeric|min:0',
-        ]);
+        $request->merge(['_form_context' => 'material-add']);
+        $validated = $this->validateMaterialData($request);
 
-        Material::create($request->all());
+        Material::create($validated);
 
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được thêm thành công!');
     }
@@ -73,13 +107,27 @@ class MaterialController
     // 3. Cập nhật thông tin Vật tư (Tên, Đơn vị, Giá vốn)
     public function update(Request $request, Material $material)
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:materials,name,' . $material->id,
-            'unit' => 'required|string|max:50',
-            'unit_price' => 'required|numeric|min:0',
+        $request->merge([
+            '_form_context' => 'material-edit',
+            '_form_action' => route('admin.materials.update', $material),
         ]);
+        $validated = $this->validateMaterialData($request, $material);
+        $hasImports = $material->imports()->exists();
+        $isUsedByProducts = $material->products()->exists();
 
-        $material->update($request->all());
+        if (($hasImports || $isUsedByProducts) && $validated['unit'] !== $material->unit) {
+            throw ValidationException::withMessages([
+                'unit' => 'Không thể đổi đơn vị vì vật tư đã có phiếu nhập hoặc đang được dùng trong công thức sản phẩm.',
+            ]);
+        }
+
+        if ($hasImports && (float) $validated['unit_price'] !== (float) $material->unit_price) {
+            throw ValidationException::withMessages([
+                'unit_price' => 'Giá vốn của vật tư đã có phiếu nhập được hệ thống tính tự động, không thể sửa thủ công.',
+            ]);
+        }
+
+        $material->update($validated);
 
         return redirect()->route('admin.materials.index')->with('success', 'Thông tin vật tư đã được cập nhật!');
     }
@@ -87,8 +135,45 @@ class MaterialController
     // 4. Xóa hẳn Vật tư ra khỏi hệ thống
     public function destroy(Material $material)
     {
+        $blockReason = $this->getMaterialDeleteBlockReason($material);
+        if ($blockReason !== null) {
+            return redirect()->back()->withErrors(['delete' => $blockReason]);
+        }
+
         $material->delete();
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
+    }
+
+    // Xóa nhiều vật tư
+    public function bulkDelete(Request $request)
+    {
+        if ($request->input('delete_all_pages') == '1') {
+            $validated = $request->validate([
+                'excluded_material_ids' => ['sometimes', 'array'],
+                'excluded_material_ids.*' => ['integer'],
+            ]);
+
+            // Xóa tất cả các trang theo bộ lọc hiện tại
+            $query = Material::query();
+
+            $this->applyMaterialFilters($query, $request);
+
+            $excludedMaterialIds = $validated['excluded_material_ids'] ?? [];
+            if ($excludedMaterialIds !== []) {
+                $query->whereNotIn('id', $excludedMaterialIds);
+            }
+
+            return $this->deleteMaterialCollection($query->get());
+        } else {
+            // Chỉ xóa các vật tư được chọn
+            $request->validate([
+                'material_ids' => 'required|array',
+                'material_ids.*' => 'exists:materials,id'
+            ]);
+
+            $materials = Material::whereIn('id', $request->material_ids)->get();
+            return $this->deleteMaterialCollection($materials);
+        }
     }
 
     // --- Imports ---
@@ -97,44 +182,61 @@ class MaterialController
     public function imports(Material $material)
     {
         $imports = $material->imports()->latest()->get();
-        return view('backend.materials.imports', compact('material', 'imports'));
+        $activeLotsCount = $imports
+            ->where('quantity', '>', 0)
+            ->where('remaining_quantity', '>', 0)
+            ->count();
+
+        return view('backend.materials.imports', compact('material', 'imports', 'activeLotsCount'));
     }
 
     // 6. Tạo Phiếu Nhập Kho Mới (Cộng dồn số lượng và tính lại Giá vốn Trung bình)
     public function storeImport(Request $request, Material $material)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'note' => 'nullable|string|max:255',
-            'expiration_date' => 'nullable|date|after_or_equal:today'
-        ], [
-            'expiration_date.after_or_equal' => 'Hạn sử dụng không được nhỏ hơn hoặc bằng ngày nhập (hôm nay).',
-            'quantity.integer' => 'Số lượng nhập phải là số nguyên (không chứa phần thập phân).',
-            'quantity.min' => 'Số lượng nhập phải từ 1 trở lên.',
-            'total_price.min' => 'Tổng tiền thanh toán không được âm.'
-        ]);
+        $request->merge(['_form_context' => 'import-create']);
+        $validated = $this->validateImportData($request, today()->toDateString());
 
-        MaterialImport::create([
-            'material_id' => $material->id,
-            'quantity' => $request->quantity,
-            'remaining_quantity' => $request->quantity,
-            'total_price' => $request->total_price,
-            'note' => $request->note,
-            'expiration_date' => $request->expiration_date
-        ]);
+        DB::transaction(function () use ($material, $validated) {
+            $lockedMaterial = Material::query()->lockForUpdate()->findOrFail($material->id);
+            $quantity = (float) $validated['quantity'];
+            $totalPrice = (float) $validated['total_price'];
 
-        // Update average unit price and current stock
-        $totalOldValue = $material->current_stock * $material->unit_price;
-        $totalNewValue = $totalOldValue + $request->total_price;
-        $newStock = $material->current_stock + $request->quantity;
+            $lot = MaterialImport::create([
+                'material_id' => $lockedMaterial->id,
+                'quantity' => $quantity,
+                'remaining_quantity' => $quantity,
+                'total_price' => $totalPrice,
+                'note' => $validated['note'] ?? null,
+                'expiration_date' => $validated['expiration_date'] ?? null,
+            ]);
 
-        $newAvgPrice = $newStock > 0 ? ($totalNewValue / $newStock) : $material->unit_price;
+            if (Schema::hasTable('inventory_movements')) DB::table('inventory_movements')->insert([
+                'material_id' => $lockedMaterial->id,
+                'material_import_id' => $lot->id,
+                'order_id' => null,
+                'type' => 'import',
+                'quantity' => $quantity,
+                'unit_cost' => $totalPrice / $quantity,
+                'note' => $validated['note'] ?? 'Nhập kho',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        $material->update([
-            'current_stock' => $newStock,
-            'unit_price' => $newAvgPrice,
-        ]);
+            $totalOldValue = (float) $lockedMaterial->current_stock * (float) $lockedMaterial->unit_price;
+            $newStock = (float) $lockedMaterial->current_stock + $quantity;
+            $newAvgPrice = ($totalOldValue + $totalPrice) / $newStock;
+
+            if ($newAvgPrice > self::MAX_UNIT_PRICE) {
+                throw ValidationException::withMessages([
+                    'total_price' => 'Phiếu nhập làm giá vốn bình quân vượt quá 999.999.999 đồng/đơn vị.',
+                ]);
+            }
+
+            $lockedMaterial->update([
+                'current_stock' => $newStock,
+                'unit_price' => $newAvgPrice,
+            ]);
+        });
 
         return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
@@ -142,210 +244,313 @@ class MaterialController
     // 6.1. Sửa Phiếu Nhập Kho (Tính toán lại Tồn kho và Giá vốn)
     public function updateImport(Request $request, MaterialImport $import)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'note' => 'nullable|string|max:255',
-            'expiration_date' => 'nullable|date'
-        ], [
-            'quantity.integer' => 'Số lượng nhập phải là số nguyên (không chứa phần thập phân).',
-            'quantity.min' => 'Số lượng nhập phải từ 1 trở lên.',
-            'total_price.min' => 'Tổng tiền thanh toán không được âm.'
+        $request->merge([
+            '_form_context' => 'import-edit',
+            '_form_action' => route('admin.materials.imports.update', $import),
+            '_import_id' => $import->id,
+            '_min_quantity' => max((float) $import->quantity - (float) $import->remaining_quantity, 0),
+            '_min_expiration_date' => $import->created_at->copy()->addDay()->toDateString(),
         ]);
 
-        $material = Material::findOrFail($import->material_id);
-
-        $oldQuantity = $import->quantity;
-        $oldTotalPrice = $import->total_price;
-        $consumed = $oldQuantity - $import->remaining_quantity;
-
-        if ($request->quantity < $consumed) {
-            return redirect()->back()->with('error', "Số lượng mới không được nhỏ hơn số lượng đã tiêu thụ ($consumed).");
+        if ((float) $import->quantity <= 0) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Chỉ phiếu nhập kho mới được phép chỉnh sửa.',
+            ]);
         }
 
-        // Revert old import
-        $revertedStock = $material->current_stock - $oldQuantity;
-        $revertedValue = ($material->current_stock * $material->unit_price) - $oldTotalPrice;
+        $validated = $this->validateImportData($request, $import->created_at->toDateString());
 
-        // Apply new import
-        $newStock = $revertedStock + $request->quantity;
-        $newTotalValue = $revertedValue + $request->total_price;
-        $newAvgPrice = $newStock > 0 ? ($newTotalValue / $newStock) : $material->unit_price;
+        DB::transaction(function () use ($import, $validated) {
+            $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
+            $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
 
-        $material->update([
-            'current_stock' => $newStock,
-            'unit_price' => $newAvgPrice,
-        ]);
+            if ((float) $lockedImport->quantity <= 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Chỉ phiếu nhập kho mới được phép chỉnh sửa.',
+                ]);
+            }
 
-        $import->update([
-            'quantity' => $request->quantity,
-            'remaining_quantity' => $request->quantity - $consumed,
-            'total_price' => $request->total_price,
-            'note' => $request->note,
-            'expiration_date' => $request->expiration_date
-        ]);
+            $oldQuantity = (float) $lockedImport->quantity;
+            $oldTotalPrice = (float) $lockedImport->total_price;
+            $oldRemainingQuantity = (float) $lockedImport->remaining_quantity;
+            $consumed = max($oldQuantity - $oldRemainingQuantity, 0);
+            $newQuantity = (float) $validated['quantity'];
+            $newTotalPrice = (float) $validated['total_price'];
+
+            if ($newQuantity < $consumed) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Số lượng mới không được nhỏ hơn số lượng đã tiêu thụ ({$consumed}).",
+                ]);
+            }
+
+            $newRemainingQuantity = $newQuantity - $consumed;
+            $newStock = (float) $material->current_stock - $oldRemainingQuantity + $newRemainingQuantity;
+            if ($newStock < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Số lượng mới làm tồn kho bị âm, vui lòng kiểm tra lại.',
+                ]);
+            }
+
+            $currentInventoryValue = (float) $material->current_stock * (float) $material->unit_price;
+            $oldRemainingValue = $oldRemainingQuantity * ($oldTotalPrice / $oldQuantity);
+            $newRemainingValue = $newRemainingQuantity * ($newTotalPrice / $newQuantity);
+            $newInventoryValue = max($currentInventoryValue - $oldRemainingValue + $newRemainingValue, 0);
+            $newAvgPrice = $newStock > 0 ? $newInventoryValue / $newStock : 0;
+
+            if ($newAvgPrice > self::MAX_UNIT_PRICE) {
+                throw ValidationException::withMessages([
+                    'total_price' => 'Thay đổi này làm giá vốn bình quân vượt quá 999.999.999 đồng/đơn vị.',
+                ]);
+            }
+
+            $material->update([
+                'current_stock' => $newStock,
+                'unit_price' => $newAvgPrice,
+            ]);
+
+            $lockedImport->update([
+                'quantity' => $newQuantity,
+                'remaining_quantity' => $newRemainingQuantity,
+                'total_price' => $newTotalPrice,
+                'note' => $validated['note'] ?? null,
+                'expiration_date' => $validated['expiration_date'] ?? null,
+            ]);
+        });
 
         return redirect()->back()->with('success', 'Đã cập nhật phiếu nhập kho thành công!');
-    }
-
-    // 7. Tạo Phiếu Xuất Kho (Tính năng này đang tạm ẩn, dự kiến dành cho Giao diện Nhân viên pha chế)
-    // Nguyên tắc: Xuất kho sẽ tự động trừ lùi số lượng vào các lô hàng cũ nhất (FIFO - Nhập trước Xuất trước)
-    public function storeExport(Request $request, Material $material)
-    {
-        $request->validate([
-            'quantity' => 'required|integer|min:1|max:' . $material->current_stock,
-            'note' => 'required|string|max:255',
-        ], [
-            'quantity.integer' => 'Số lượng xuất phải là số nguyên (không chứa phần thập phân).',
-            'quantity.min' => 'Số lượng xuất phải từ 1 trở lên.',
-            'quantity.max' => 'Số lượng xuất không được vượt quá tồn kho hiện tại (' . $material->current_stock . ').',
-            'note.required' => 'Vui lòng nhập lý do/ghi chú xuất kho.'
-        ]);
-
-        $exportQty = $request->quantity;
-        $exportValue = $exportQty * $material->unit_price;
-
-        MaterialImport::create([
-            'material_id' => $material->id,
-            'quantity' => -$exportQty,
-            'total_price' => -$exportValue,
-            'note' => 'Xuất/Hủy: ' . $request->note,
-            'expiration_date' => null
-        ]);
-
-        $material->update([
-            'current_stock' => $material->current_stock - $exportQty,
-            // unit_price remains unchanged when exporting
-        ]);
-
-        // Trừ FIFO trong các lô nhập kho
-        $imports = MaterialImport::where('material_id', $material->id)
-            ->where('remaining_quantity', '>', 0)
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        $remainingToDeduct = $exportQty;
-        foreach ($imports as $import) {
-            if ($remainingToDeduct <= 0)
-                break;
-
-            if ($import->remaining_quantity <= $remainingToDeduct) {
-                $remainingToDeduct -= $import->remaining_quantity;
-                $import->remaining_quantity = 0;
-                $import->save();
-            } else {
-                $import->remaining_quantity -= $remainingToDeduct;
-                $import->save();
-                $remainingToDeduct = 0;
-            }
-        }
-
-        return redirect()->route('admin.materials.index')->with('success', 'Đã xuất hủy kho thành công!');
     }
 
     // 8. Hủy bỏ một phần/toàn bộ số lượng của MỘT LÔ HÀNG cụ thể (VD: Lô bị hỏng, hết hạn)
     public function disposeBatch(Request $request, MaterialImport $import)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:1|max:' . $import->remaining_quantity,
+        $request->merge([
+            '_form_context' => 'dispose-batch',
+            '_form_action' => route('admin.materials.imports.dispose_batch', $import),
+            '_lot_id' => $import->id,
+            '_unit' => $import->material?->unit,
+            '_max_quantity' => $import->remaining_quantity,
+            'note' => trim((string) $request->input('note')),
+        ]);
+
+        $validated = $request->validate([
+            'quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999',
             'note' => 'required|string|max:255',
         ], [
-            'quantity.integer' => 'Số lượng hủy phải là số nguyên (không chứa phần thập phân).',
+            'quantity.numeric' => 'Số lượng hủy phải là số hợp lệ.',
+            'quantity.decimal' => 'Số lượng hủy chỉ được có tối đa 2 chữ số thập phân.',
             'quantity.min' => 'Số lượng hủy phải từ 1 trở lên.',
-            'quantity.max' => 'Số lượng hủy không được vượt quá số lượng tồn của lô này (' . $import->remaining_quantity . ').',
+            'quantity.max' => 'Số lượng hủy vượt quá giới hạn cho phép.',
             'note.required' => 'Vui lòng nhập lý do hủy lô hàng.'
         ]);
 
-        $disposeQty = $request->quantity;
-        $unitPrice = $import->quantity != 0 ? abs($import->total_price / $import->quantity) : 0;
-        $disposeValue = $disposeQty * $unitPrice;
-        $material = Material::findOrFail($import->material_id);
+        DB::transaction(function () use ($import, $validated) {
+            $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
+            $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
+            $disposeQty = (float) $validated['quantity'];
+            $remainingQuantity = (float) $lockedImport->remaining_quantity;
 
-        // Deduct from batch
-        $import->remaining_quantity -= $disposeQty;
-        $import->save();
+            if ((float) $lockedImport->quantity <= 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Chỉ có thể hủy hàng từ một phiếu nhập kho.',
+                ]);
+            }
 
-        // Log the disposal
-        MaterialImport::create([
-            'material_id' => $material->id,
-            'quantity' => -$disposeQty,
-            'remaining_quantity' => 0,
-            'total_price' => -$disposeValue,
-            'note' => 'Hủy từ lô LOT-' . $import->id . ': ' . $request->note,
-            'expiration_date' => $import->expiration_date
-        ]);
+            if ($disposeQty > $remainingQuantity || $disposeQty > (float) $material->current_stock) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Số lượng hủy không được vượt quá số lượng còn lại của lô ({$remainingQuantity}).",
+                ]);
+            }
 
-        // Deduct from total stock
-        $material->update([
-            'current_stock' => $material->current_stock - $disposeQty,
-        ]);
+            $unitPrice = abs((float) $lockedImport->total_price / (float) $lockedImport->quantity);
+            $disposeValue = $disposeQty * $unitPrice;
+
+            $lockedImport->update([
+                'remaining_quantity' => $remainingQuantity - $disposeQty,
+            ]);
+
+            MaterialImport::create([
+                'material_id' => $material->id,
+                'quantity' => -$disposeQty,
+                'remaining_quantity' => 0,
+                'total_price' => -$disposeValue,
+                'note' => 'Hủy từ lô LOT-' . $lockedImport->id . ': ' . $validated['note'],
+                'expiration_date' => $lockedImport->expiration_date,
+            ]);
+
+            $material->update([
+                'current_stock' => (float) $material->current_stock - $disposeQty,
+            ]);
+
+            if (Schema::hasTable('inventory_movements')) DB::table('inventory_movements')->insert([
+                'material_id' => $material->id,
+                'material_import_id' => $lockedImport->id,
+                'order_id' => null,
+                'type' => 'dispose',
+                'quantity' => -$disposeQty,
+                'unit_cost' => $unitPrice,
+                'note' => $validated['note'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->inventory->recalculateMaterialCost($material->id);
+        });
 
         return redirect()->back()->with('success', 'Đã xuất hủy từ lô hàng thành công!');
     }
 
-    // 9. Trang danh sách lô hàng sắp hết hạn
-    public function expiring()
+    private function validateMaterialData(Request $request, ?Material $material = null): array
     {
-        $expiringBatches = MaterialImport::whereNotNull('expiration_date')
-            ->where('expiration_date', '<=', now()->addDays(30))
-            ->where('expiration_date', '>=', now())
-            ->where('remaining_quantity', '>', 0)
-            ->orderBy('expiration_date', 'asc')
-            ->get();
+        $request->merge([
+            'name' => preg_replace('/\s+/u', ' ', trim((string) $request->input('name'))),
+            'unit' => preg_replace('/\s+/u', ' ', trim((string) $request->input('unit'))),
+        ]);
 
-        return view('backend.materials.expiring', compact('expiringBatches'));
+        $uniqueNameRule = 'unique:materials,name';
+        if ($material !== null) {
+            $uniqueNameRule .= ',' . $material->id;
+        }
+
+        $unitCharacterRule = function (string $attribute, mixed $value, $fail) use ($material) {
+            if ($material !== null && $value === $material->unit) {
+                return;
+            }
+
+            if (!preg_match('/^[\p{L}\p{M}\s\.\/-]+$/u', (string) $value)) {
+                $fail('Đơn vị chỉ được chứa chữ cái, khoảng trắng, dấu chấm, gạch ngang hoặc dấu /. Không được nhập số.');
+            }
+        };
+
+        return $request->validate([
+            'name' => ['required', 'string', 'min:2', 'max:50', $uniqueNameRule],
+            'unit' => ['required', 'string', 'max:20', $unitCharacterRule],
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:' . self::MAX_UNIT_PRICE],
+        ], [
+            'name.required' => 'Vui lòng nhập tên vật tư.',
+            'name.min' => 'Tên vật tư phải có ít nhất 2 ký tự.',
+            'name.max' => 'Tên vật tư không được vượt quá 50 ký tự.',
+            'name.unique' => 'Tên vật tư đã tồn tại trong hệ thống.',
+            'unit.required' => 'Vui lòng nhập đơn vị tính.',
+            'unit.max' => 'Đơn vị tính không được vượt quá 20 ký tự.',
+            'unit_price.required' => 'Vui lòng nhập giá vốn dự kiến.',
+            'unit_price.numeric' => 'Giá vốn dự kiến phải là số.',
+            'unit_price.min' => 'Giá vốn dự kiến không được âm.',
+            'unit_price.max' => 'Giá vốn dự kiến phải nhỏ hơn 1 tỷ đồng.',
+        ]);
     }
 
-    // 10. Trang lịch sử xuất hủy 
-    public function disposed()
+    private function validateImportData(Request $request, string $importDate): array
     {
-        $disposedBatches = MaterialImport::with('material')
-            ->where('quantity', '<', 0)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $request->merge([
+            'note' => $request->filled('note') ? trim((string) $request->input('note')) : null,
+        ]);
 
-        $disposedValue = abs($disposedBatches->sum('total_price'));
-
-        return view('backend.materials.disposed', compact('disposedBatches', 'disposedValue'));
+        return $request->validate([
+            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999'],
+            'total_price' => ['required', 'numeric', 'min:1', 'max:9999999999.99'],
+            'note' => ['nullable', 'string', 'max:255'],
+            'expiration_date' => ['nullable', 'date_format:Y-m-d', 'after:' . $importDate],
+        ], [
+            'quantity.required' => 'Vui lòng nhập số lượng.',
+            'quantity.numeric' => 'Số lượng nhập phải là số hợp lệ.',
+            'quantity.decimal' => 'Số lượng nhập chỉ được có tối đa 2 chữ số thập phân.',
+            'quantity.min' => 'Số lượng nhập phải từ 1 trở lên.',
+            'quantity.max' => 'Số lượng nhập vượt quá giới hạn cho phép.',
+            'total_price.required' => 'Vui lòng nhập tổng tiền thanh toán.',
+            'total_price.numeric' => 'Tổng tiền thanh toán phải là số.',
+            'total_price.min' => 'Tổng tiền thanh toán phải lớn hơn 0.',
+            'total_price.max' => 'Tổng tiền thanh toán vượt quá giới hạn cho phép.',
+            'expiration_date.date_format' => 'Hạn sử dụng không đúng định dạng ngày.',
+            'expiration_date.after' => 'Hạn sử dụng phải sau ngày nhập kho.',
+            'note.max' => 'Ghi chú không được vượt quá 255 ký tự.',
+        ]);
     }
 
-    // 11. Trang vật tư dưới mức tồn tối thiểu 
-    public function lowStock()
+    private function getMaterialDeleteBlockReason(Material $material): ?string
     {
-        $lowStockMaterials = Material::where('current_stock', '<', 5)->orderBy('current_stock', 'asc')->get();
+        $activeLotsCount = $material->imports()->count();
 
-        return view('backend.materials.low_stock', compact('lowStockMaterials'));
+        if ($activeLotsCount > 0) {
+            return "Không thể xóa vật tư vì vẫn còn {$activeLotsCount} lô/lịch sử kho.";
+        }
+
+        if (DB::table('product_materials')->where('material_id', $material->id)->exists()) {
+            return 'Không thể xóa vật tư vì đang được dùng trong định lượng sản phẩm.';
+        }
+
+        return null;
     }
 
-    // 12. Trang lô hàng đã hết hạn 
-    public function expired()
+    private function applyMaterialFilters($query, Request $request): void
     {
-        $expiredBatches = MaterialImport::with('material')
-            ->whereNotNull('expiration_date')
-            ->where('expiration_date', '<', today())
-            ->where('remaining_quantity', '>', 0)
-            ->orderBy('expiration_date', 'asc')
-            ->get();
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $materialId = preg_replace('/^VT[-\s]*0*/iu', '', $search);
 
-        $expiredValue = $expiredBatches->sum(function ($batch) {
-            $unitPrice = $batch->quantity > 0 ? ($batch->total_price / $batch->quantity) : 0;
-            return $batch->remaining_quantity * $unitPrice;
-        });
+            $query->where(function ($subQuery) use ($search, $materialId) {
+                $subQuery->where('name', 'like', '%' . $search . '%');
 
-        return view('backend.materials.expired', compact('expiredBatches', 'expiredValue'));
+                if ($materialId !== '' && ctype_digit($materialId)) {
+                    $subQuery->orWhere('id', (int) $materialId);
+                }
+            });
+        }
+
+        $status = $request->input('status');
+        if (!$status || $status === 'all') {
+            return;
+        }
+
+        if ($status === 'low_stock') {
+            $query->where('current_stock', '<', 5)->where('current_stock', '>', 0);
+        } elseif ($status === 'out_of_stock') {
+            $query->where('current_stock', 0);
+        } elseif ($status === 'expiring') {
+            $query->whereHas('imports', function ($subQuery) {
+                $subQuery->whereNotNull('expiration_date')
+                    ->where('remaining_quantity', '>', 0)
+                    ->whereBetween('expiration_date', [today(), today()->addDays(30)]);
+            });
+        } elseif ($status === 'expired') {
+            $query->whereHas('imports', function ($subQuery) {
+                $subQuery->whereNotNull('expiration_date')
+                    ->where('remaining_quantity', '>', 0)
+                    ->where('expiration_date', '<', today());
+            });
+        } elseif ($status === 'disposed') {
+            $query->whereHas('imports', function ($subQuery) {
+                $subQuery->where('quantity', '<', 0);
+            });
+        }
     }
 
-    // 13. Trang Giá trị kho
-    public function inventoryValue()
+    private function deleteMaterialCollection($materials)
     {
-        $materials = Material::where('current_stock', '>', 0)
-            ->orderBy('name', 'asc')
-            ->get();
+        $deletedCount = 0;
+        $blockedCount = 0;
 
-        $totalValue = $materials->sum(function ($item) {
-            return $item->current_stock * $item->unit_price;
-        });
+        foreach ($materials as $material) {
+            if ($this->getMaterialDeleteBlockReason($material) !== null) {
+                $blockedCount++;
+                continue;
+            }
 
-        return view('backend.materials.inventory_value', compact('materials', 'totalValue'));
+            $material->delete();
+            $deletedCount++;
+        }
+
+        $response = redirect()->back();
+
+        if ($deletedCount > 0) {
+            $response->with('success', "Đã xóa {$deletedCount} vật tư.");
+        }
+
+        if ($blockedCount > 0) {
+            $response->withErrors([
+                'delete' => "Có {$blockedCount} vật tư không thể xóa vì vẫn còn lô hàng trong kho.",
+            ]);
+        }
+
+        return $response;
     }
+
 }

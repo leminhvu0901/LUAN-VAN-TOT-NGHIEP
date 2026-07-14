@@ -38,8 +38,9 @@
               data-cod-url="{{ route('checkout.store') }}"
               data-momo-url="{{ route('momo.pay') }}">
             @csrf
-            <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
-            <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
+            <input type="hidden" name="idempotency_key" value="{{ $checkoutToken }}">
+            <input type="hidden" id="hidden_distance_km" value="2.5">
+            <input type="hidden" id="hidden_weather_fee" value="0">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Left: Shipping Address & Method & Payment (2 columns on desktop) -->

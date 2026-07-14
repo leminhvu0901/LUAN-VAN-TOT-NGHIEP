@@ -146,6 +146,8 @@
                     )
                     ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
                     ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
+                    ->join('categories', 'products.category_id', '=', 'categories.id')
+                    ->where('categories.is_active', 1)
                     ->orderByDesc('score')
                     ->get();
 
