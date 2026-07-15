@@ -9,33 +9,17 @@ window.selectedProductIds = new Set();
 window.excludedProductIds = new Set();
 window.isGlobalProductSelectAll = false;
 
-const swalConfig = {
-    icon: "warning",
-    width: "320px",
-    padding: "1rem",
-    showCancelButton: true,
-    confirmButtonText: "Xóa ngay",
-    cancelButtonText: "Hủy",
-    reverseButtons: true,
-    customClass: {
-        popup: "rounded-xl shadow-xl border border-gray-100",
-        title: "text-base font-bold text-gray-800",
-        htmlContainer: "text-sm text-gray-500 mt-1",
-        confirmButton:
-            "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2",
-        cancelButton:
-            "px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2",
-        icon: "transform scale-[0.6] -mt-3 -mb-2",
-        actions: "mt-3 w-full flex justify-center",
-    },
-    buttonsStyling: false,
-};
 
 function setLoaderVisible(isVisible) {
-    if (!loader) return;
+    if (!tableWrapper) return;
 
-    loader.classList.toggle("hidden", !isVisible);
-    loader.classList.toggle("flex", isVisible);
+    if (isVisible) {
+        tableWrapper.style.opacity = '0.5';
+        tableWrapper.style.pointerEvents = 'none';
+    } else {
+        tableWrapper.style.opacity = '1';
+        tableWrapper.style.pointerEvents = 'auto';
+    }
 }
 
 function fetchProducts(urlStr = null) {
@@ -91,6 +75,7 @@ function updateClearFilterButton(url) {
 
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+    const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
     const selectedCountSpan = document.getElementById("selected-count");
     const count = getSelectedProductCount();
 
@@ -103,9 +88,17 @@ function updateBulkDeleteButton() {
     if (count > 0) {
         bulkDeleteBtn.classList.remove("hidden");
         bulkDeleteBtn.classList.add("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.remove("hidden");
+            bulkDeselectBtn.classList.add("flex");
+        }
     } else {
         bulkDeleteBtn.classList.add("hidden");
         bulkDeleteBtn.classList.remove("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.add("hidden");
+            bulkDeselectBtn.classList.remove("flex");
+        }
     }
 }
 
@@ -138,8 +131,8 @@ function syncProductCheckboxes() {
             : window.selectedProductIds.has(checkbox.value);
     });
 
-    const selectAll = document.getElementById("selectAll");
-    if (selectAll) {
+    const selectAllCheckboxes = document.querySelectorAll(".js-select-all");
+    selectAllCheckboxes.forEach(selectAll => {
         if (window.isGlobalProductSelectAll) {
             selectAll.checked = window.excludedProductIds.size === 0;
             selectAll.indeterminate = window.excludedProductIds.size > 0;
@@ -149,7 +142,7 @@ function syncProductCheckboxes() {
                 document.querySelectorAll(".product-checkbox:checked").length === checkboxes.length;
             selectAll.indeterminate = false;
         }
-    }
+    });
 
     updateBulkDeleteButton();
 }
@@ -198,49 +191,62 @@ function submitBulkDelete() {
         ? `Bạn chuẩn bị xóa TẤT CẢ ${count} sản phẩm trùng khớp với bộ lọc (bao gồm các trang khác).`
         : `Bạn chuẩn bị xóa ${count} sản phẩm đã chọn.`;
 
-    if (typeof Swal !== "undefined") {
-        Swal.fire({
-            ...swalConfig,
-            title: titleText,
-            text: messageText,
-        }).then((result) => {
-            if (result.isConfirmed) {
-                executeBulkDelete();
-            }
-        });
-    } else if (confirm(messageText)) {
+    window.AdminAlert.confirm(messageText, function () {
         executeBulkDelete();
-    }
+    }, window.isGlobalProductSelectAll ? "Xác nhận xóa tất cả?" : "Xác nhận xóa nhiều?");
 }
 
 function executeBulkDelete() {
     const bulkDeleteForm = document.getElementById("bulk-delete-form");
     if (!bulkDeleteForm) return;
 
-    bulkDeleteForm
-        .querySelectorAll('input:not([name="_token"])')
-        .forEach((element) => element.remove());
+    const formData = new FormData();
+    formData.append("_token", document.querySelector('meta[name="csrf-token"]').content);
+
 
     if (window.isGlobalProductSelectAll) {
-        appendHiddenInput(bulkDeleteForm, "delete_all_pages", "1");
-
+        formData.append("delete_all_pages", "1");
         const urlParams = new URLSearchParams(window.location.search);
         for (const [key, value] of urlParams.entries()) {
             if (key !== "page" && value !== "") {
-                appendHiddenInput(bulkDeleteForm, key, value);
+                formData.append(key, value);
             }
         }
-
         window.excludedProductIds.forEach((id) => {
-            appendHiddenInput(bulkDeleteForm, "excluded_product_ids[]", id);
+            formData.append("excluded_product_ids[]", id);
         });
     } else {
         window.selectedProductIds.forEach((id) => {
-            appendHiddenInput(bulkDeleteForm, "product_ids[]", id);
+            formData.append("product_ids[]", id);
         });
     }
 
-    bulkDeleteForm.submit();
+    setLoaderVisible(true);
+    window.pendingScrollY = window.scrollY;
+
+    fetch(bulkDeleteForm.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                window.AdminAlert.success(data.message);
+                resetProductSelection();
+                fetchProducts(window.location.href);
+            } else {
+                window.AdminAlert.error(data.message || "Có lỗi xảy ra khi xóa.");
+                setLoaderVisible(false);
+            }
+        })
+        .catch((error) => {
+            console.error("Bulk delete error:", error);
+            setLoaderVisible(false);
+        });
 }
 
 function appendHiddenInput(form, name, value) {
@@ -254,21 +260,43 @@ function appendHiddenInput(form, name, value) {
 function confirmDeleteProduct(event, formElement) {
     event.preventDefault();
 
-    if (typeof Swal !== "undefined") {
-        Swal.fire({
-            ...swalConfig,
-            title: "Xác nhận xóa sản phẩm?",
-            text: "Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                formElement.submit();
-            }
-        });
-    } else if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-        formElement.submit();
-    }
+    window.AdminAlert.confirm(
+        "Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
+        function () { executeSingleDelete(formElement); },
+        "Xác nhận xóa sản phẩm?"
+    );
 
     return false;
+}
+
+function executeSingleDelete(formElement) {
+    const formData = new FormData(formElement);
+    setLoaderVisible(true);
+    window.pendingScrollY = window.scrollY;
+
+    fetch(formElement.action, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                window.AdminAlert.success(data.message);
+                resetProductSelection();
+                fetchProducts(window.location.href);
+            } else {
+                window.AdminAlert.error(data.message || "Có lỗi xảy ra khi xóa.");
+                setLoaderVisible(false);
+            }
+        })
+        .catch((error) => {
+            console.error("Delete error:", error);
+            setLoaderVisible(false);
+        });
 }
 
 function initProductFilters() {
@@ -319,7 +347,7 @@ function initProductTableEvents() {
     });
 
     tableContainer.addEventListener("change", function (event) {
-        if (event.target.id === "selectAll") {
+        if (event.target.classList.contains("js-select-all")) {
             handleSelectAll(event.target.checked);
             return;
         }
@@ -336,7 +364,13 @@ function initProductTableEvents() {
         }
     });
 
-    document.addEventListener("tableDataLoaded", syncProductCheckboxes);
+    document.addEventListener("tableDataLoaded", () => {
+        if (window.pendingScrollY !== undefined) {
+            window.scrollTo({ top: window.pendingScrollY, behavior: 'instant' });
+            window.pendingScrollY = undefined;
+        }
+        syncProductCheckboxes();
+    });
 
     const observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {

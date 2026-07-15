@@ -101,5 +101,24 @@
         });
     }
 
-    window.ProductForm = { init: function () { initSizes(); initImages(); initPrice(); initGalleryDelete(); } };
+    function initCategorySelect() {
+        const categorySelects = document.querySelectorAll('.product-category-select');
+        if (categorySelects.length > 0 && typeof Choices !== 'undefined') {
+            categorySelects.forEach(select => {
+                if (!select.dataset.choicesInitialized) {
+                    new Choices(select, {
+                        searchEnabled: true,
+                        shouldSort: false,
+                        itemSelectText: '',
+                        searchPlaceholderValue: 'Tìm danh mục...',
+                        noResultsText: 'Không tìm thấy danh mục',
+                        noChoicesText: 'Không còn lựa chọn',
+                    });
+                    select.dataset.choicesInitialized = 'true';
+                }
+            });
+        }
+    }
+
+    window.ProductForm = { init: function () { initSizes(); initImages(); initPrice(); initGalleryDelete(); initCategorySelect(); } };
 })();

@@ -133,14 +133,20 @@ class MaterialController
     }
 
     // 4. Xóa hẳn Vật tư ra khỏi hệ thống
-    public function destroy(Material $material)
+    public function destroy(Material $material, Request $request)
     {
         $blockReason = $this->getMaterialDeleteBlockReason($material);
         if ($blockReason !== null) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $blockReason]);
+            }
             return redirect()->back()->withErrors(['delete' => $blockReason]);
         }
 
         $material->delete();
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Vật tư đã được xóa!']);
+        }
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
     }
 
@@ -163,7 +169,7 @@ class MaterialController
                 $query->whereNotIn('id', $excludedMaterialIds);
             }
 
-            return $this->deleteMaterialCollection($query->get());
+            return $this->deleteMaterialCollection($query->get(), $request);
         } else {
             // Chỉ xóa các vật tư được chọn
             $request->validate([
@@ -172,7 +178,7 @@ class MaterialController
             ]);
 
             $materials = Material::whereIn('id', $request->material_ids)->get();
-            return $this->deleteMaterialCollection($materials);
+            return $this->deleteMaterialCollection($materials, $request);
         }
     }
 
@@ -523,7 +529,7 @@ class MaterialController
         }
     }
 
-    private function deleteMaterialCollection($materials)
+    private function deleteMaterialCollection($materials, Request $request = null)
     {
         $deletedCount = 0;
         $blockedCount = 0;
@@ -545,9 +551,20 @@ class MaterialController
         }
 
         if ($blockedCount > 0) {
+            $msg = "Có {$blockedCount} vật tư không thể xóa vì vẫn còn lô hàng trong kho.";
+            if ($request && $request->ajax()) {
+                if ($deletedCount > 0) {
+                    return response()->json(['success' => true, 'message' => "Đã xóa {$deletedCount} vật tư. " . $msg]);
+                }
+                return response()->json(['success' => false, 'message' => $msg]);
+            }
             $response->withErrors([
-                'delete' => "Có {$blockedCount} vật tư không thể xóa vì vẫn còn lô hàng trong kho.",
+                'delete' => $msg,
             ]);
+        } else {
+            if ($request && $request->ajax()) {
+                return response()->json(['success' => true, 'message' => "Đã xóa {$deletedCount} vật tư."]);
+            }
         }
 
         return $response;

@@ -21,9 +21,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Cập nhật thanh địa chỉ trình duyệt
         window.history.pushState({}, '', url);
 
-        // Hiển thị trạng thái mờ (loading)
-        tableContainer.style.opacity = '0.5';
-        tableContainer.style.pointerEvents = 'none';
+        const loader = document.getElementById('table-loader');
+        if (loader) {
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+        } else {
+            tableContainer.style.opacity = '0.5';
+            tableContainer.style.pointerEvents = 'none';
+        }
 
         fetch(url, {
             headers: {
@@ -33,8 +38,27 @@ document.addEventListener('DOMContentLoaded', function () {
         })
             .then(response => response.json())
             .then(data => {
+                if (data.total !== undefined) {
+                    const totalStat = document.getElementById('total-categories-stat');
+                    if (totalStat) totalStat.innerText = data.total;
+                }
+                if (data.active !== undefined) {
+                    const activeStat = document.getElementById('active-categories-stat');
+                    if (activeStat) activeStat.innerText = data.active;
+                }
+                if (data.inactive !== undefined) {
+                    const inactiveStat = document.getElementById('inactive-categories-stat');
+                    if (inactiveStat) inactiveStat.innerText = data.inactive;
+                }
+                
                 if (data.html) {
-                    tableContainer.innerHTML = data.html;
+                    const tableWrapper = document.getElementById("categories-table-wrapper");
+                    if (tableWrapper) {
+                        tableWrapper.innerHTML = data.html;
+                    } else {
+                        tableContainer.innerHTML = data.html;
+                    }
+                    document.dispatchEvent(new Event("tableDataLoaded"));
                 }
 
                 // Hiện / Ẩn nút Xóa lọc
@@ -49,6 +73,10 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Lỗi khi tải dữ liệu danh mục:', error))
             .finally(() => {
+                if (loader) {
+                    loader.classList.add('hidden');
+                    loader.classList.remove('flex');
+                }
                 tableContainer.style.opacity = '1';
                 tableContainer.style.pointerEvents = 'auto';
             });
@@ -83,70 +111,69 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Phân trang bằng AJAX
+    // Phân trang và Xóa bằng AJAX
     tableContainer.addEventListener('click', function (e) {
         const pageLink = e.target.closest('.ajax-pagination a');
         if (pageLink) {
             e.preventDefault();
             fetchCategories(pageLink.href);
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.delete-category-btn');
+        if (deleteBtn) {
+            e.preventDefault();
+            const id = deleteBtn.dataset.id;
+            const url = deleteBtn.dataset.url;
+            
+            // Tìm tên danh mục từ row
+            let name = 'danh mục này';
+            const row = deleteBtn.closest('tr') || deleteBtn.closest('.bg-white.p-4.rounded-2xl');
+            if (row) {
+                const nameEl = row.querySelector('.font-bold');
+                if (nameEl) name = nameEl.innerText.trim();
+            }
+
+            deleteCategoryAjax(id, name, url);
         }
     });
+
+    window.fetchCategories = fetchCategories;
 });
 
-/**
- * Xóa danh mục bằng SweetAlert2
- */
-function deleteCategory(id, name) {
-    const confirmMsg = `Bạn có chắc chắn muốn xóa danh mục "${name}"?\nHành động này không thể hoàn tác.`;
-
-    if (typeof Swal !== 'undefined') {
-        let config = window.swalConfig || {
-            icon: 'warning',
-            width: '320px',
-            padding: '1rem',
-            showCancelButton: true,
-            confirmButtonText: 'Xóa ngay',
-            cancelButtonText: 'Hủy',
-            reverseButtons: true,
-            customClass: {
-                popup: 'rounded-xl shadow-xl border border-gray-100',
-                title: 'text-base font-bold text-gray-800',
-                htmlContainer: 'text-sm text-gray-500 mt-1',
-                confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2',
-                cancelButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2',
-                icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                actions: 'mt-3 w-full flex justify-center'
-            },
-            buttonsStyling: false
-        };
-
-        Swal.fire({
-            ...config,
-            title: 'Xóa danh mục?',
-            html: `Bạn có chắc muốn xóa danh mục <strong class="font-bold">${name}</strong>?<br>Hành động này không thể hoàn tác.`
-        }).then((result) => {
-            if (result.isConfirmed) {
-                doDelete(id);
-            }
-        });
-    } else {
-        if (confirm(confirmMsg)) {
-            doDelete(id);
-        }
-    }
+function deleteCategoryAjax(id, name, url) {
+    window.AdminAlert.confirm(
+        `Bạn có chắc muốn xóa danh mục "${name}"? Hành động này không thể hoàn tác.`,
+        function () { doDeleteAjax(id, url); },
+        'Xóa danh mục?'
+    );
 }
 
-function doDelete(id) {
+window.resetCategorySelection = function() {
+    window.isGlobalSelectAll = false;
+    if (window.selectedCategoryIds) window.selectedCategoryIds.clear();
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    const bulkDeselectBtn = document.getElementById('bulk-deselect-btn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.classList.add('hidden');
+        bulkDeleteBtn.classList.remove('flex');
+    }
+    if (bulkDeselectBtn) {
+        bulkDeselectBtn.classList.add('hidden');
+        bulkDeselectBtn.classList.remove('flex');
+    }
+};
+
+function doDeleteAjax(id, url) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
         || document.querySelector('input[name="_token"]')?.value
         || '';
 
-    const deleteUrl = window.location.origin + '/admin/categories/' + id;
-
-    fetch(deleteUrl, {
+    fetch(url, {
         method: 'DELETE',
         headers: {
             'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
             'Content-Type': 'application/json',
         }
@@ -163,69 +190,14 @@ function doDelete(id) {
                     setTimeout(() => row.remove(), 300);
                 }
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Đã xóa!',
-                        text: data.message,
-                        timer: 1800,
-                        showConfirmButton: false,
-                        width: '320px',
-                        padding: '1rem',
-                        customClass: {
-                            popup: 'rounded-xl shadow-xl border border-gray-100',
-                            title: 'text-base font-bold text-gray-800',
-                            htmlContainer: 'text-sm text-gray-500 mt-1',
-                            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                        }
-                    });
-                }
+                if (window.resetCategorySelection) window.resetCategorySelection();
+                window.AdminAlert.success(data.message, 'Đã xóa!');
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Không thể xóa',
-                        text: data.message,
-                        width: '320px',
-                        padding: '1rem',
-                        confirmButtonText: 'Đóng',
-                        buttonsStyling: false,
-                        customClass: {
-                            popup: 'rounded-xl shadow-xl border border-gray-100',
-                            title: 'text-base font-bold text-gray-800',
-                            htmlContainer: 'text-sm text-gray-500 mt-1',
-                            confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                            actions: 'mt-3 w-full flex justify-center'
-                        }
-                    });
-                } else {
-                    alert(data.message || 'Xóa thất bại. Vui lòng thử lại.');
-                }
+                window.AdminAlert.error(data.message, 'Không thể xóa');
             }
         })
         .catch(() => {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi',
-                    text: 'Có lỗi xảy ra khi xóa. Vui lòng thử lại.',
-                    width: '320px',
-                    padding: '1rem',
-                    confirmButtonText: 'Đóng',
-                    buttonsStyling: false,
-                    customClass: {
-                        popup: 'rounded-xl shadow-xl border border-gray-100',
-                        title: 'text-base font-bold text-gray-800',
-                        htmlContainer: 'text-sm text-gray-500 mt-1',
-                        confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                        icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                        actions: 'mt-3 w-full flex justify-center'
-                    }
-                });
-            } else {
-                alert('Có lỗi xảy ra khi xóa. Vui lòng thử lại.');
-            }
+            window.AdminAlert.error('Có lỗi xảy ra khi xóa. Vui lòng thử lại.');
         });
 }
 
@@ -241,7 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectedCategoryIds = new Set();
 
     function updateBulkDeleteButton() {
-        const isSelectAll = document.getElementById('selectAll') ? document.getElementById('selectAll').checked : false;
+        const selectAllEls = document.querySelectorAll('.js-select-all');
+        const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
         let countText = window.selectedCategoryIds.size;
         
         if (window.isGlobalSelectAll) {
@@ -249,27 +222,41 @@ document.addEventListener('DOMContentLoaded', function() {
             if (totalInput) countText = totalInput.value;
         }
 
+        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const bulkDeselectBtn = document.getElementById('bulk-deselect-btn');
+
         if (countText > 0) {
             if(selectedCountSpan) selectedCountSpan.textContent = countText;
-            if(bulkDeleteContainer) {
-                bulkDeleteContainer.style.display = 'block';
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.classList.remove('hidden');
+                bulkDeleteBtn.classList.add('flex');
+            }
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.classList.remove('hidden');
+                bulkDeselectBtn.classList.add('flex');
             }
         } else {
-            if(bulkDeleteContainer) {
-                bulkDeleteContainer.style.display = 'none';
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.classList.add('hidden');
+                bulkDeleteBtn.classList.remove('flex');
+            }
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.classList.add('hidden');
+                bulkDeselectBtn.classList.remove('flex');
             }
         }
     }
 
     if(tableContainer) {
         tableContainer.addEventListener('change', function(e) {
-            if (e.target.id === 'selectAll') {
+            if (e.target.classList.contains('js-select-all')) {
                 const isChecked = e.target.checked;
                 window.isGlobalSelectAll = isChecked;
+                document.querySelectorAll('.js-select-all').forEach(el => el.checked = isChecked);
                 if (!isChecked) {
                     window.selectedCategoryIds.clear();
                 }
-                document.querySelectorAll('.row-checkbox').forEach(cb => {
+                document.querySelectorAll('.row-checkbox:not(:disabled)').forEach(cb => {
                     cb.checked = isChecked;
                     if (isChecked) window.selectedCategoryIds.add(cb.value);
                 });
@@ -281,10 +268,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.selectedCategoryIds.delete(e.target.value);
                     window.isGlobalSelectAll = false;
                 }
-                const allCheckboxes = document.querySelectorAll('.row-checkbox');
-                const allChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
-                const selectAllEl = document.getElementById('selectAll');
-                if(selectAllEl) selectAllEl.checked = allChecked;
+                const allCheckboxes = document.querySelectorAll('.row-checkbox:not(:disabled)');
+                const allChecked = allCheckboxes.length > 0 && document.querySelectorAll('.row-checkbox:not(:disabled):checked').length === allCheckboxes.length;
+                document.querySelectorAll('.js-select-all').forEach(el => el.checked = allChecked);
                 updateBulkDeleteButton();
             }
         });
@@ -295,8 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList') {
                 if (window.isGlobalSelectAll) {
-                    const selectAll = document.getElementById('selectAll');
-                    if (selectAll) selectAll.checked = true;
+                    document.querySelectorAll('.js-select-all').forEach(el => el.checked = true);
                     
                     document.querySelectorAll('.row-checkbox').forEach(cb => {
                         cb.checked = true;
@@ -311,8 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const allCheckboxes = document.querySelectorAll('.row-checkbox');
                     if (allCheckboxes.length > 0) {
                         const allChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
-                        const selectAll = document.getElementById('selectAll');
-                        if (selectAll) selectAll.checked = allChecked;
+                        document.querySelectorAll('.js-select-all').forEach(el => el.checked = allChecked);
                     }
                 }
                 updateBulkDeleteButton();
@@ -324,91 +308,80 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(tableContainer, { childList: true, subtree: true });
     }
 
-    window.swalConfig = {
-        icon: 'warning',
-        width: '320px',
-        padding: '1rem',
-        showCancelButton: true,
-        confirmButtonText: 'Xóa ngay',
-        cancelButtonText: 'Hủy',
-        reverseButtons: true,
-        customClass: {
-            popup: 'rounded-xl shadow-xl border border-gray-100',
-            title: 'text-base font-bold text-gray-800',
-            htmlContainer: 'text-sm text-gray-500 mt-1',
-            confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2',
-            cancelButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2',
-            icon: 'transform scale-[0.6] -mt-3 -mb-2',
-            actions: 'mt-3 w-full flex justify-center'
-        },
-        buttonsStyling: false
-    };
 
     window.submitBulkDelete = function() {
-        const isSelectAll = document.getElementById('selectAll') ? document.getElementById('selectAll').checked : false;
-        
+        const selectAllEls = document.querySelectorAll('.js-select-all');
+        const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
+
         let titleText = 'Xác nhận xóa nhiều?';
         let messageText = `Bạn chuẩn bị xóa ${window.selectedCategoryIds.size} danh mục đã chọn.`;
-        
+
         if (isSelectAll) {
             titleText = 'Xác nhận xóa tất cả?';
             let countText = window.selectedCategoryIds.size;
             const totalInput = document.getElementById('total-categories-count');
-            if (totalInput) {
-                countText = totalInput.value;
-            }
+            if (totalInput) countText = totalInput.value;
             messageText = `Bạn chuẩn bị xóa TẤT CẢ ${countText} danh mục trùng khớp với bộ lọc.`;
         }
-        
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                ...window.swalConfig,
-                title: titleText,
-                text: messageText
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    executeBulkDelete(isSelectAll);
-                }
-            });
-        } else {
-            if (confirm(messageText)) {
-                executeBulkDelete(isSelectAll);
-            }
-        }
+
+        window.AdminAlert.confirm(messageText, function () {
+            executeBulkDelete(isSelectAll);
+        }, titleText);
     };
 
-    function executeBulkDelete(isSelectAll) {
-        const form = document.getElementById('bulk-delete-form');
-        
-        form.querySelectorAll('input:not([name="_token"])').forEach(el => el.remove());
 
+    const submitBtn = document.getElementById('bulk-delete-btn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', window.submitBulkDelete);
+    }
+
+    function executeBulkDelete(isSelectAll) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content 
+            || document.querySelector('input[name="_token"]')?.value || '';
+        
+        const form = document.getElementById('bulk-delete-form');
+        const deleteUrl = form.action;
+
+        let data = {};
         if (isSelectAll) {
-            const inputAll = document.createElement('input');
-            inputAll.type = 'hidden';
-            inputAll.name = 'delete_all_pages';
-            inputAll.value = '1';
-            form.appendChild(inputAll);
-            
+            data.delete_all_pages = '1';
             const urlParams = new URLSearchParams(window.location.search);
             for (const [key, value] of urlParams.entries()) {
                 if (key !== 'page' && value !== '') {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    form.appendChild(input);
+                    data[key] = value;
                 }
             }
         } else {
-            window.selectedCategoryIds.forEach(id => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'category_ids[]';
-                input.value = id;
-                form.appendChild(input);
-            });
+            data.category_ids = Array.from(window.selectedCategoryIds);
         }
 
-        form.submit();
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if (resData.success) {
+                window.AdminAlert.success(resData.message, 'Đã xóa!');
+                resetCategorySelection();
+                if (typeof window.fetchCategories === 'function') {
+                    window.fetchCategories();
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                window.AdminAlert.error(resData.message || 'Có lỗi xảy ra.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            window.AdminAlert.error('Lỗi kết nối.');
+        });
     }
 });

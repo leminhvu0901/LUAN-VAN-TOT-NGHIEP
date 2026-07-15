@@ -1,10 +1,126 @@
 @if ($customers->count() > 0)
-    <div class="overflow-x-auto w-full">
+    <!-- Giao diện Mobile (Card view) -->
+    <div class="block md:hidden space-y-4 p-4">
+        <div class="flex items-center justify-between mb-2">
+            <label class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer">
+                <input type="checkbox" id="selectAll-mobile" class="js-select-all rounded border-gray-300 text-emerald-500 focus:ring-emerald-400">
+                <span>Chọn tất cả</span>
+            </label>
+        </div>
+
+        @foreach($customers as $customer)
+            <div class="bg-white p-4 rounded-2xl organic-shadow border border-gray-100 flex flex-col gap-3 relative group" id="customer-card-{{ $customer->id }}">
+                <!-- Header: Avatar + Checkbox -->
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-3">
+                        @php
+                            if ($customer->avatar) {
+                                $avatarUrl = str_starts_with($customer->avatar, 'http') ? $customer->avatar : asset('images/avatars/' . $customer->avatar);
+                            } else {
+                                $avatarUrl = 'https://ui-avatars.com/api/?name='.urlencode($customer->name).'&background=random';
+                            }
+                        @endphp
+                        <img src="{{ $avatarUrl }}" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($customer->name) }}&background=random'" alt="{{ $customer->name }}" class="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm">
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-base font-bold text-gray-900 truncate">{{ $customer->name }}</span>
+                            <span class="text-xs text-gray-500">{{ $customer->created_at->format('d/m/Y') }}</span>
+                        </div>
+                    </div>
+                    <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
+                </div>
+
+                <!-- Thông tin liên hệ -->
+                <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 mt-1 flex flex-col gap-1.5">
+                    <div class="flex items-center gap-2 text-sm text-gray-700 overflow-hidden">
+                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">mail</span>
+                        <span class="truncate" style="overflow-wrap: anywhere; word-break: break-word;">{{ $customer->email }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">call</span>
+                        <span>{{ $customer->phone ?? 'Chưa cập nhật' }}</span>
+                    </div>
+                </div>
+
+                <!-- Hạng & Điểm -->
+                <div class="flex items-center justify-between mt-1 px-1">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Hạng</span>
+                        @php
+                            $badgeClass = '';
+                            $badgeName = '';
+                            switch ($customer->membership_level) {
+                                case 'diamond':
+                                    $badgeClass = 'bg-blue-100 text-blue-700 border-blue-200';
+                                    $badgeName = 'Kim Cương';
+                                    break;
+                                case 'gold':
+                                    $badgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                    $badgeName = 'Vàng';
+                                    break;
+                                case 'silver':
+                                    $badgeClass = 'bg-gray-200 text-gray-700 border-gray-300';
+                                    $badgeName = 'Bạc';
+                                    break;
+                                case 'new':
+                                default:
+                                    $badgeClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                    $badgeName = 'Mới';
+                                    break;
+                            }
+                        @endphp
+                        <span class="inline-flex justify-center items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border {{ $badgeClass }}">
+                            {{ $badgeName }}
+                        </span>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Điểm tích lũy</span>
+                        <span class="text-sm font-semibold text-gray-800">{{ number_format($customer->points ?? 0) }} đ</span>
+                    </div>
+                </div>
+
+                <hr class="border-gray-100 border-dashed my-1">
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col gap-1">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $customer->id }}" {{ $customer->is_active ? 'checked' : '' }}>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                        </label>
+                        <span class="text-[10px] font-semibold {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-mobile-{{ $customer->id }}">
+                            {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <a href="{{ route('admin.customers.show', $customer->id) }}"
+                            class="px-3 py-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xem">
+                            <span class="material-symbols-outlined text-[16px]">visibility</span>
+                            Xem
+                        </a>
+                        <a href="{{ route('admin.customers.edit', $customer->id) }}"
+                            class="px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Sửa">
+                            <span class="material-symbols-outlined text-[16px]">edit</span>
+                            Sửa
+                        </a>
+                        <button type="button"
+                            onclick="deleteCustomer({{ $customer->id }});"
+                            class="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xóa">
+                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            Xóa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <!-- Giao diện Desktop (Table view) -->
+    <div class="hidden md:block overflow-x-auto w-full">
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-gray-50 border-b border-gray-100">
                     <th class="w-12 px-4 py-4 text-center">
-                        <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer">
+                        <input type="checkbox" id="selectAll" class="js-select-all rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer">
                     </th>
                     <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Khách hàng</th>
                     <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Liên hệ</th>
@@ -18,7 +134,7 @@
                     <tr class="hover:bg-gray-50/50 transition-colors group">
                         <!-- Checkbox -->
                         <td class="px-4 py-4 text-center">
-                            <input type="checkbox" class="row-checkbox rounded border-gray-300 text-indigo-500 focus:ring-indigo-400 cursor-pointer" value="{{ $customer->id }}">
+                            <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
                         </td>
 
                         <!-- Thông tin khách hàng -->
@@ -33,7 +149,7 @@
                                 @endphp
                                 <img src="{{ $avatarUrl }}" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($customer->name) }}&background=random'" alt="{{ $customer->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ $customer->name }}</p>
+                                    <p class="text-sm font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{{ $customer->name }}</p>
                                     <p class="text-xs text-gray-500 mt-0.5">Ngày tham gia: {{ $customer->created_at->format('d/m/Y') }}</p>
                                 </div>
                             </div>
@@ -73,7 +189,7 @@
                                         break;
                                     case 'new':
                                     default:
-                                        $badgeClass = 'bg-green-100 text-green-700 border-green-200';
+                                        $badgeClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
                                         $badgeName = 'Mới';
                                         break;
                                 }
@@ -90,7 +206,7 @@
                                 <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $customer->id }}" {{ $customer->is_active ? 'checked' : '' }}>
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
                             </label>
-                            <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-{{ $customer->id }}">
+                            <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-{{ $customer->id }}" {!! !$customer->is_active && $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
                                 {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
                             </p>
                         </td>
@@ -104,7 +220,7 @@
                                     <span class="material-symbols-outlined text-[20px]">visibility</span>
                                 </a>
                                 <a href="{{ route('admin.customers.edit', $customer->id) }}" 
-                                    class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                                    class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                     title="Chỉnh sửa">
                                     <span class="material-symbols-outlined text-[20px]">edit</span>
                                 </a>
@@ -127,12 +243,12 @@
     </div>
 
     <!-- Phân trang -->
-    <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+    <div class="pagination-container px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
         {{ $customers->links('pagination::tailwind') }}
     </div>
 
 @else
-    <div class="p-12 text-center">
+    <div class="p-12 text-center bg-white rounded-b-2xl">
         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
             <span class="material-symbols-outlined text-4xl text-gray-400">group_off</span>
         </div>

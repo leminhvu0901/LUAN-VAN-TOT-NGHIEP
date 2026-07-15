@@ -11,12 +11,19 @@
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Kho Vật Tư</h2>
                 <p class="text-gray-500 text-sm mt-1">Theo dõi, cập nhật và quản lý tồn kho nguyên liệu chi tiết.</p>
             </div>
-            <div class="flex gap-4 w-full sm:w-auto">
-
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                <button type="button" id="bulk-deselect-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
+                </button>
+                <button type="button" id="bulk-delete-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100" title="Xóa đã chọn">
+                    <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                    <span class="font-semibold whitespace-nowrap">Xóa <span id="selected-count" class="mx-1 text-red-700 font-bold">0</span> vật tư</span>
+                </button>
                 <button type="button" data-open-modal="modal-add"
-                    class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all w-full sm:w-auto">
-                    <span class="material-symbols-outlined">add</span>
-                    Thêm vật tư mới
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all w-full sm:w-auto mt-1 sm:mt-0">
+                    <span class="material-symbols-outlined shrink-0">add</span>
+                    <span class="whitespace-nowrap">Thêm vật tư mới</span>
                 </button>
             </div>
         </div>
@@ -153,19 +160,27 @@
         </div>
 
         <!-- Phần 3: Thanh Tìm kiếm và Lọc dữ liệu -->
-        <div class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6">
-            <form action="{{ route('admin.materials.index') }}" method="GET" id="filter-form"
-                class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full xl:w-auto">
+        <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 flex flex-col gap-4">
+            <div class="flex items-center justify-between xl:hidden">
+                <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
+                <button type="button" onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
+                </button>
+            </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center flex-1 w-full xl:w-auto">
-                    <div class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:flex-1 xl:max-w-[280px] relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px]">search</span>
-                        <input type="text" name="search" id="search-input" value="{{ request('search') }}"
-                            class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
-                            placeholder="Tìm kiếm vật tư...">
-                    </div>
+            <div id="filter-wrapper" class="hidden xl:flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full transition-all">
+                <form action="{{ route('admin.materials.index') }}" method="GET" id="filter-form"
+                    class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full xl:w-auto flex-1">
+                    
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center flex-1 w-full xl:w-auto">
+                        <div class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:flex-1 xl:max-w-[280px] relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+                            <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                            <input type="text" name="search" id="search-input" value="{{ request('search') }}"
+                                class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none text-gray-700"
+                                placeholder="Tìm kiếm vật tư...">
+                        </div>
 
-                    <select name="status" id="status-select" class="px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto shrink-0 transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                    <select name="status" id="status-select" data-width-class="w-full sm:w-[180px]" class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto shrink-0 transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                         <option value="all">Tất cả trạng thái</option>
                         <option value="low_stock" {{ request('status') == 'low_stock' ? 'selected' : '' }}>Sắp hết hàng</option>
                         <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Hết hàng</option>
@@ -174,7 +189,7 @@
                         <option value="disposed" {{ request('status') == 'disposed' ? 'selected' : '' }}>Đã thu hồi</option>
                     </select>
 
-                    <select name="sort" id="sort-select" class="px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto shrink-0 transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                    <select name="sort" id="sort-select" data-width-class="w-full sm:w-[210px]" class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto shrink-0 transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                         <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Mới nhất</option>
                         <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
                         <option value="stock_asc" {{ request('sort') == 'stock_asc' ? 'selected' : '' }}>Tồn kho: Thấp đến cao</option>
@@ -183,27 +198,22 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
-                    <button type="button" id="bulk-delete-btn" class="hidden flex-1 xl:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all" title="Xóa đã chọn">
-                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
-                        Xóa <span id="selected-count" class="mx-1">0</span> vật tư
-                    </button>
                     <a href="{{ route('admin.materials.index') }}" id="btn-clear-filter"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
                         style="display: {{ (request('search') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
-                        <span class="material-symbols-outlined text-[20px]">filter_alt_off</span>
-                        Xóa lọc
+                        <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
+                        <span class="whitespace-nowrap font-medium">Xóa lọc</span>
                     </a>
                 </div>
             </form>
         </div>
 
-        <div class="bg-white rounded-2xl organic-shadow overflow-hidden border border-gray-100 flex flex-col flex-1 min-h-[500px]">
-            <div id="table-container-wrapper" class="flex-1 flex flex-col min-h-0 relative">
+        <div class="bg-white rounded-2xl organic-shadow overflow-hidden border border-gray-100 flex flex-col h-[calc(100vh-230px)] min-h-[500px] w-full">
+            <div id="table-container-wrapper" class="flex-1 flex flex-col min-h-0 relative w-full">
                 {{-- Biểu tượng Loading --}}
-                <div id="table-loader" class="absolute inset-0 bg-white/60 z-20 hidden items-center justify-center">
-                    <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <div id="table-loader" class="absolute inset-0 bg-white/50 z-20 hidden items-center justify-center transition-all duration-300">
                 </div>
-                <div id="table-container" class="flex-1 overflow-x-auto relative">
+                <div id="table-container" class="flex-1 flex flex-col min-h-0 relative w-full">
                     @include('backend.materials.partials.table', ['materials' => $materials])
                 </div>
             </div>
@@ -261,12 +271,11 @@
                         <input type="hidden" id="add-raw-price" name="unit_price" value="{{ old('unit_price') }}">
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" data-close-modal="modal-add"
-                        class="px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">Hủy</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
                     <button type="submit"
-                        class="px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Lưu
-                        vật tư</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Lưu vật tư</button>
                 </div>
             </form>
         </div>
@@ -280,7 +289,6 @@
 @endsection
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('js/backend/materials/common.js') }}"></script>
     <script src="{{ asset('js/backend/materials/index.js') }}"></script>
 @endpush

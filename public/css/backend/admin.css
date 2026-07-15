@@ -17,19 +17,23 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
 .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
 ::-webkit-scrollbar-track {
-    background: #f1f1f1; 
+    background: #f1f1f1;
 }
+
 ::-webkit-scrollbar-thumb {
-    background: #c1c1c1; 
+    background: #c1c1c1;
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8; 
+    background: #a8a8a8;
 }
 
 /* Specific Custom Scrollbar (Used in Tables & Tabs) */
@@ -37,14 +41,17 @@ body {
     height: 6px;
     width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
@@ -79,9 +86,11 @@ body.page-pos #main-content-inner {
 .product-card {
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
 .product-card:hover {
     transform: translateY(-2px);
 }
+
 .product-card:active {
     transform: scale(0.97);
 }
@@ -92,6 +101,7 @@ input[type=number]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
+
 input[type=number] {
     -moz-appearance: textfield;
 }
@@ -101,15 +111,22 @@ input[type=number] {
     body {
         background: white !important;
     }
+
     .print\:hidden {
         display: none !important;
     }
+
     /* Hide sidebar and header if any */
-    .sidebar, header, #admin-sidebar {
+    .sidebar,
+    header,
+    #admin-sidebar {
         display: none !important;
     }
+
     /* Adjust margins */
-    @page { margin: 0; }
+    @page {
+        margin: 0;
+    }
 }
 
 /* =============================================
@@ -117,41 +134,42 @@ input[type=number] {
    ============================================= */
 
 /* Custom shadows for dashboard cards */
-.organic-shadow { 
-    box-shadow: 0px 12px 32px rgba(29, 41, 57, 0.05); 
+.organic-shadow {
+    box-shadow: 0px 12px 32px rgba(29, 41, 57, 0.05);
 }
 
 /* Hide scrollbar for nav menus if needed */
-.hide-scrollbar::-webkit-scrollbar { 
-    display: none; 
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
 }
-.hide-scrollbar { 
-    -ms-overflow-style: none; 
-    scrollbar-width: none; 
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* =============================================
    FRONTEND LOGO STYLES (Copied for Backend)
    ============================================= */
 .happy-navbar__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #111827;
 }
 
 .happy-navbar__brand-text {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
 .brand-happy {
-  background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+    background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* =============================================
@@ -160,9 +178,17 @@ input[type=number] {
 
 /* Fade-in-up animation dùng chung cho tất cả trang materials */
 @keyframes mat-fade-in-up {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
+
 .mat-animate {
     animation: mat-fade-in-up 0.35s ease both;
 }
@@ -171,6 +197,7 @@ input[type=number] {
 .mat-stat-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .mat-stat-card:hover {
     transform: translateY(-2px);
 }
@@ -191,6 +218,7 @@ input[type=number] {
     justify-content: center;
     z-index: 50;
 }
+
 .mat-modal-overlay.hidden {
     display: none;
 }
@@ -219,19 +247,31 @@ input[type=number] {
 .organic-shadow {
     box-shadow: 0px 12px 32px rgba(29, 41, 57, 0.05);
 }
+
 .disposed-card-glow {
     box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.1), 0 4px 24px rgba(220, 38, 38, 0.08);
 }
+
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
+
 .animate-fade-in-up {
     animation: fadeInUp 0.4s ease both;
 }
+
 .stat-card {
     transition: all 0.2s ease;
 }
+
 .stat-card:hover {
     transform: translateY(-2px);
 }
@@ -240,4 +280,496 @@ input[type=number] {
 .glass-effect {
     backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.8);
+}
+
+/* =============================================
+   CUSTOM SELECT ON MOBILE (Prevent Native Zoom/Overflow)
+   ============================================= */
+select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1em;
+    padding-right: 2.5rem !important;
+    /* Dành khoảng trống cho mũi tên */
+}
+
+@media (max-width: 767px) {
+
+    select,
+    .form-select,
+    select.px-3,
+    select.sm\:py-2 {
+        font-size: 14px !important;
+        height: 42px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* ========================================================= */
+/* MODULE ORDERS (orders-page) */
+/* ========================================================= */
+.orders-page .badge-status {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.orders-page .badge-pending {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+/* yellow/amber */
+.orders-page .badge-confirmed {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+/* blue */
+.orders-page .badge-shipping {
+    background-color: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+/* orange */
+.orders-page .badge-completed {
+    background-color: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+/* green */
+.orders-page .badge-cancelled {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* red */
+
+.orders-page .badge-pay-unpaid {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+/* red light */
+.orders-page .badge-pay-paid {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+/* green */
+.orders-page .badge-pay-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+/* yellow */
+.orders-page .badge-pay-refunded {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+
+/* gray */
+
+@media (max-width: 1023px) {
+    .orders-page .mobile-card {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #f3f4f6;
+        border-radius: 1rem;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        gap: 0.75rem;
+        width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .orders-page .mobile-card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .orders-page .mobile-card-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+
+    .orders-page .mobile-card-value {
+        font-size: 0.875rem;
+        color: #111827;
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .orders-page .mobile-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .orders-page .mobile-card-actions button,
+    .orders-page .mobile-card-actions a {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ========================================================= */
+/* FLATPICKR ORDERS DATE PICKER OVERRIDES */
+/* ========================================================= */
+.orders-page .flatpickr-calendar {
+    font-family: inherit;
+    font-size: 14px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+}
+
+.orders-page .flatpickr-day {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.orders-page .flatpickr-day.selected,
+.orders-page .flatpickr-day.startRange,
+.orders-page .flatpickr-day.endRange,
+.orders-page .flatpickr-day.selected.inRange,
+.orders-page .flatpickr-day.startRange.inRange,
+.orders-page .flatpickr-day.endRange.inRange,
+.orders-page .flatpickr-day.selected:focus,
+.orders-page .flatpickr-day.startRange:focus,
+.orders-page .flatpickr-day.endRange:focus,
+.orders-page .flatpickr-day.selected:hover,
+.orders-page .flatpickr-day.startRange:hover,
+.orders-page .flatpickr-day.endRange:hover,
+.orders-page .flatpickr-day.selected.prevMonthDay,
+.orders-page .flatpickr-day.startRange.prevMonthDay,
+.orders-page .flatpickr-day.endRange.prevMonthDay,
+.orders-page .flatpickr-day.selected.nextMonthDay,
+.orders-page .flatpickr-day.startRange.nextMonthDay,
+.orders-page .flatpickr-day.endRange.nextMonthDay {
+    background: #10b981;
+    /* Tailwind emerald-500 */
+    border-color: #10b981;
+}
+
+@media (max-width: 480px) {
+    .orders-page .flatpickr-calendar {
+        width: calc(100vw - 2rem) !important;
+        max-width: 380px;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+}
+
+/* ========================================================= */
+/* MODULE PRODUCTS (products-page) */
+/* ========================================================= */
+.products-page .badge-status {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+.products-page .badge-active {
+    background-color: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+/* emerald */
+.products-page .badge-inactive {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+
+/* gray */
+.products-page .badge-warning {
+    background-color: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+/* amber */
+.products-page .badge-danger {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* red */
+
+@media (max-width: 1023px) {
+    .products-page .mobile-card {
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #f3f4f6;
+        border-radius: 1rem;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        gap: 0.75rem;
+        width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .products-page .mobile-card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .products-page .mobile-card-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+
+    .products-page .mobile-card-value {
+        font-size: 0.875rem;
+        color: #111827;
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .products-page .mobile-card-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .products-page .mobile-card-actions button,
+    .products-page .mobile-card-actions a {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .products-page .product-image-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 0.75rem;
+        object-fit: cover;
+    }
+}
+
+/* ========================================================= */
+/* CHOICES.JS OVERRIDES FOR PRODUCT FORM */
+/* ========================================================= */
+.products-page .choices {
+    margin-bottom: 0;
+}
+
+.products-page .choices__inner {
+    background-color: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.375rem 1rem 0.375rem 0.75rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #374151;
+    transition: all 0.2s;
+}
+
+.products-page .is-open .choices__inner {
+    border-radius: 0.75rem;
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.products-page .choices[data-type*="select-one"] .choices__inner {
+    padding-bottom: 0.375rem;
+}
+
+.products-page .choices__list--dropdown {
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    margin-top: 4px;
+    z-index: 50;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.products-page .choices__list--dropdown .choices__item {
+    font-size: 0.875rem;
+    padding: 0.625rem 1rem;
+    color: #374151;
+}
+
+.products-page .choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: #ecfdf5;
+    color: #047857;
+}
+
+.products-page .choices__input {
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+}
+
+/* =============================================
+   PAGINATION STABILITY & FIXED HEIGHT ON DESKTOP
+   ============================================= */
+@media (min-width: 1024px) {
+    .promotions-page #table-container {
+        height: 700px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .reviews-page #table-container {
+        height: 820px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .customers-page #table-container {
+        height: 820px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .promotions-page #table-container > div:not(.pagination-container),
+    .reviews-page #table-container > div:not(.pagination-container),
+    .customers-page #table-container > div:not(.pagination-container) {
+        flex-grow: 1 !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* =============================================
+   REVIEWS PAGE CUSTOM SELECT OPTIMIZATION
+   ============================================= */
+.reviews-page .custom-select-container button,
+.promotions-page .custom-select-container button {
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+    border-radius: 0.75rem !important;
+    /* rounded-xl */
+    min-height: 42px !important;
+}
+
+/* =============================================
+   FLATPICKR RESPONSIVE CALENDAR OVERRIDES
+   ============================================= */
+.flatpickr-calendar {
+    border-radius: 1rem !important;
+    border: 1px solid #f1f5f9 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+    font-family: 'Be Vietnam Pro', 'Inter', sans-serif !important;
+}
+.flatpickr-months .flatpickr-month {
+    background: transparent !important;
+    color: #1e293b !important;
+    fill: #1e293b !important;
+}
+.flatpickr-current-month .numInputWrapper span.arrowUp:after {
+    border-bottom-color: #1e293b !important;
+}
+.flatpickr-current-month .numInputWrapper span.arrowDown:after {
+    border-top-color: #1e293b !important;
+}
+.flatpickr-day.selected, 
+.flatpickr-day.startRange, 
+.flatpickr-day.endRange, 
+.flatpickr-day.selected.inRange, 
+.flatpickr-day.startRange.inRange, 
+.flatpickr-day.endRange.inRange, 
+.flatpickr-day.selected:focus, 
+.flatpickr-day.startRange:focus, 
+.flatpickr-day.endRange:focus, 
+.flatpickr-day.selected:hover, 
+.flatpickr-day.startRange:hover, 
+.flatpickr-day.endRange:hover, 
+.flatpickr-day.selected.prevMonthDay, 
+.flatpickr-day.startRange.prevMonthDay, 
+.flatpickr-day.endRange.prevMonthDay, 
+.flatpickr-day.selected.nextMonthDay, 
+.flatpickr-day.startRange.nextMonthDay, 
+.flatpickr-day.endRange.nextMonthDay {
+    background: #10b981 !important; /* Emerald-500 matching theme */
+    border-color: #10b981 !important;
+    color: #fff !important;
+}
+@media (max-width: 480px) {
+    .flatpickr-calendar {
+        width: 290px !important;
+        max-width: 290px !important;
+    }
+    .flatpickr-innerContainer, .flatpickr-days {
+        width: 290px !important;
+    }
+    .dayContainer {
+        width: 290px !important;
+        min-width: 290px !important;
+        max-width: 290px !important;
+    }
+    .flatpickr-day {
+        max-width: 38px !important;
+        height: 38px !important;
+        line-height: 38px !important;
+    }
+    .flatpickr-time {
+        width: 290px !important;
+    }
+}
+
+/* =============================================
+   MATERIALS IMPORTS RESPONSIVE LAYOUT
+   ============================================= */
+.material-imports-page .organic-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+.material-imports-page .break-word {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
 }

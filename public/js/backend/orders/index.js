@@ -44,8 +44,13 @@ function loadTableData(url = null) {
         })
         .then((data) => {
             if (data.table_html) {
-                const wrapper = tableContainer.querySelector(".overflow-x-auto");
-                wrapper.innerHTML = data.table_html;
+                const tableWrapper = document.getElementById("orders-table-wrapper");
+                if (tableWrapper) {
+                    tableWrapper.innerHTML = data.table_html;
+                } else {
+                    tableContainer.innerHTML = data.table_html;
+                }
+                
                 attachPaginationListeners();
                 document.dispatchEvent(new Event("tableDataLoaded"));
             }
@@ -73,17 +78,12 @@ function handleLiveSearch() {
 }
 
 function attachPaginationListeners() {
-    const wrapper = tableContainer.querySelector(".overflow-x-auto");
-    wrapper.querySelectorAll(".ajax-pagination a").forEach((link) => {
-        link.addEventListener("click", function (e) {
-            e.preventDefault();
-            loadTableData(this.href);
-        });
-    });
+    // Không cần nữa vì đã dùng event delegation ở dưới
 }
 
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+    const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
     const selectedCountSpan = document.getElementById("selected-count");
 
     if (!bulkDeleteBtn || !selectedCountSpan) return;
@@ -99,38 +99,25 @@ function updateBulkDeleteButton() {
         selectedCountSpan.textContent = `(${countText})`;
         bulkDeleteBtn.classList.remove("hidden");
         bulkDeleteBtn.classList.add("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.remove("hidden");
+            bulkDeselectBtn.classList.add("flex");
+        }
     } else {
         bulkDeleteBtn.classList.add("hidden");
         bulkDeleteBtn.classList.remove("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.add("hidden");
+            bulkDeselectBtn.classList.remove("flex");
+        }
     }
 }
 
-const swalConfig = {
-    icon: "warning",
-    width: "320px",
-    padding: "1rem",
-    showCancelButton: true,
-    confirmButtonText: "Xóa ngay",
-    cancelButtonText: "Hủy",
-    reverseButtons: true,
-    customClass: {
-        popup: "rounded-xl shadow-xl border border-gray-100",
-        title: "text-base font-bold text-gray-800",
-        htmlContainer: "text-sm text-gray-500 mt-1",
-        confirmButton:
-            "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2",
-        cancelButton:
-            "px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2",
-        icon: "transform scale-[0.6] -mt-3 -mb-2",
-        actions: "mt-3 w-full flex justify-center",
-    },
-    buttonsStyling: false,
-};
+
 
 function submitBulkDelete() {
-    const isSelectAll = document.getElementById("selectAll")
-        ? document.getElementById("selectAll").checked
-        : false;
+    const selectAllEls = document.querySelectorAll(".js-select-all");
+    const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
 
     let titleText = "Xác nhận xóa nhiều?";
     let messageText = `Bạn chuẩn bị xóa ${window.selectedOrderIds.size} đơn hàng đã chọn.`;
@@ -145,19 +132,9 @@ function submitBulkDelete() {
         messageText = `Bạn chuẩn bị xóa TẤT CẢ ${countText} đơn hàng trùng khớp với bộ lọc (bao gồm các trang khác).`;
     }
 
-    if (typeof Swal !== "undefined") {
-        Swal.fire({
-            ...swalConfig,
-            title: titleText,
-            text: messageText,
-        }).then((result) => {
-            if (result.isConfirmed) {
-                executeBulkDelete(isSelectAll);
-            }
-        });
-    } else if (confirm(messageText)) {
+    window.AdminAlert.confirm(messageText, function () {
         executeBulkDelete(isSelectAll);
-    }
+    }, titleText);
 }
 
 function executeBulkDelete(isSelectAll) {
@@ -204,24 +181,57 @@ function executeBulkDelete(isSelectAll) {
     bulkDeleteForm.submit();
 }
 
-function confirmDeleteOrder(event, formElement) {
-    event.preventDefault();
+function deleteOrderAjax(btn) {
+    window.AdminAlert.confirm(
+        "Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
+        function () { executeDeleteOrderAjax(btn); },
+        "Xác nhận xóa đơn hàng?"
+    );
+}
 
-    if (typeof Swal !== "undefined") {
-        Swal.fire({
-            ...swalConfig,
-            title: "Xác nhận xóa đơn hàng?",
-            text: "Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                formElement.submit();
+function executeDeleteOrderAjax(btn) {
+    const url = btn.dataset.url;
+    const orderId = btn.dataset.id;
+    const currentScrollY = window.scrollY;
+
+    fetch(url, {
+        method: "DELETE",
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.AdminAlert.success(data.message || "Xóa đơn hàng thành công!");
+
+                document.querySelectorAll(`[data-order-id="${orderId}"]`).forEach(el => el.remove());
+
+                const remainingCards = document.querySelectorAll('.mobile-card').length;
+                const remainingRows = document.querySelectorAll('tbody tr[data-order-id]').length;
+
+                if (remainingCards === 0 && remainingRows === 0) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    let page = parseInt(urlParams.get('page')) || 1;
+                    if (page > 1) {
+                        urlParams.set('page', page - 1);
+                        window.history.replaceState({}, "", `${window.location.pathname}?${urlParams.toString()}`);
+                    }
+                }
+
+                resetOrderSelection();
+                window.pendingScrollY = currentScrollY;
+                loadTableData(window.location.href);
+            } else {
+                window.AdminAlert.error(data.message || "Có lỗi xảy ra, không thể xóa đơn hàng!");
             }
+        })
+        .catch(err => {
+            console.error(err);
+            window.AdminAlert.error("Có lỗi xảy ra khi xóa đơn hàng! Vui lòng thử lại.");
         });
-    } else if (confirm("Bạn có chắc chắn muốn xóa đơn hàng này?")) {
-        formElement.submit();
-    }
-
-    return false;
 }
 
 function initSearchAndFilters() {
@@ -230,8 +240,25 @@ function initSearchAndFilters() {
     loader = document.getElementById("table-loader");
 
     document.getElementById("search-input").addEventListener("input", handleLiveSearch);
-    document.getElementById("date-from-input").addEventListener("change", handleLiveSearch);
-    document.getElementById("date-to-input").addEventListener("change", handleLiveSearch);
+
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr(".orders-date-picker", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true,
+            disableMobile: true,
+            locale: "vn",
+            monthSelectorType: "static",
+            appendTo: document.querySelector('.orders-page') || document.body,
+            onChange: function () {
+                handleLiveSearch();
+            }
+        });
+    } else {
+        document.getElementById("date-from-input").addEventListener("change", handleLiveSearch);
+        document.getElementById("date-to-input").addEventListener("change", handleLiveSearch);
+    }
 
     const statusSelect = form.querySelector('select[name="status"]');
     if (statusSelect) statusSelect.addEventListener("change", handleLiveSearch);
@@ -254,16 +281,32 @@ function initTableEvents() {
     window.selectedOrderIds = new Set();
     window.excludedOrderIds = new Set();
     window.submitBulkDelete = submitBulkDelete;
-    window.confirmDeleteOrder = confirmDeleteOrder;
+    window.deleteOrderAjax = deleteOrderAjax;
 
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener("click", submitBulkDelete);
     }
+    
+    // Thêm event delegation cho phân trang (giống hệt trang products)
+    if (tableContainer) {
+        tableContainer.addEventListener("click", function (event) {
+            const pageLink = event.target.closest(".ajax-pagination a, .pagination-container a");
+            if (pageLink) {
+                event.preventDefault();
+                loadTableData(pageLink.href);
+            }
+        });
+    }
 
     tableContainer.addEventListener("change", function (e) {
-        if (e.target.id === "selectAll") {
+        if (e.target.classList.contains("js-select-all")) {
             const isChecked = e.target.checked;
             window.isGlobalSelectAll = isChecked;
+
+            // Sync all select all checkboxes
+            document.querySelectorAll(".js-select-all").forEach(cb => {
+                if (cb !== e.target) cb.checked = isChecked;
+            });
 
             if (!isChecked) {
                 window.selectedOrderIds.clear();
@@ -296,8 +339,7 @@ function initTableEvents() {
             const allCheckboxes = document.querySelectorAll(".order-checkbox");
             const allChecked =
                 document.querySelectorAll(".order-checkbox:checked").length === allCheckboxes.length;
-            const selectAll = document.getElementById("selectAll");
-            if (selectAll) selectAll.checked = allChecked;
+            document.querySelectorAll(".js-select-all").forEach(cb => cb.checked = allChecked);
 
             updateBulkDeleteButton();
             return;
@@ -332,17 +374,22 @@ function initTableEvents() {
         }
     });
 
-    tableContainer.addEventListener("submit", function (e) {
-        const deleteForm = e.target.closest(".js-order-delete-form");
-        if (deleteForm) {
-            confirmDeleteOrder(e, deleteForm);
+    tableContainer.addEventListener("click", function (e) {
+        const deleteBtn = e.target.closest(".delete-order-btn");
+        if (deleteBtn) {
+            e.preventDefault();
+            deleteOrderAjax(deleteBtn);
         }
     });
 
     document.addEventListener("tableDataLoaded", function () {
+        if (window.pendingScrollY !== undefined) {
+            window.scrollTo({ top: window.pendingScrollY, behavior: 'instant' });
+            window.pendingScrollY = undefined;
+        }
+
         if (window.isGlobalSelectAll) {
-            const selectAll = document.getElementById("selectAll");
-            if (selectAll) selectAll.checked = true;
+            document.querySelectorAll(".js-select-all").forEach(cb => cb.checked = true);
 
             document.querySelectorAll(".order-checkbox").forEach((cb) => {
                 cb.checked = true;
@@ -359,12 +406,12 @@ function initTableEvents() {
             if (allCheckboxes.length > 0) {
                 const allChecked =
                     document.querySelectorAll(".order-checkbox:checked").length === allCheckboxes.length;
-                const selectAll = document.getElementById("selectAll");
-                if (selectAll) selectAll.checked = allChecked;
+                document.querySelectorAll(".js-select-all").forEach(cb => cb.checked = allChecked);
             }
         }
 
         updateBulkDeleteButton();
+        initOrderStatusCustomDropdowns();
     });
 
     const observer = new MutationObserver(function (mutations) {
@@ -377,9 +424,103 @@ function initTableEvents() {
     observer.observe(tableContainer, { childList: true, subtree: true });
 }
 
+function initOrderStatusCustomDropdowns() {
+    const selects = document.querySelectorAll('.order-status-select:not(.custom-dropdown-initialized)');
+    selects.forEach(select => {
+        select.classList.add('custom-dropdown-initialized');
+        select.classList.add('sr-only');
+
+        select.parentElement.classList.add('relative');
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-order-status-dropdown w-full lg:w-auto relative inline-block';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        let btnClasses = select.className.replace('order-status-select', '').replace('js-order-status-select', '').replace('sr-only', '').replace('custom-dropdown-initialized', '').trim();
+        btn.className = btnClasses + ' flex items-center justify-between gap-1 w-full text-left';
+
+        const selectedOption = select.options[select.selectedIndex];
+        btn.innerHTML = `<span class="status-text">${selectedOption.text}</span><span class="material-symbols-outlined text-[16px]">expand_more</span>`;
+
+        const menu = document.createElement('div');
+        menu.className = 'status-options-menu hidden absolute left-0 w-full lg:min-w-[160px] lg:w-auto mt-1 bg-white border border-gray-200 rounded-lg organic-shadow z-50 max-h-[220px] overflow-y-auto py-1 shadow-xl text-left';
+
+        Array.from(select.options).forEach(opt => {
+            const item = document.createElement('div');
+            let bgClass = '';
+            let textClass = 'text-gray-700';
+            let activeBgClass = '';
+            if (opt.value === 'pending') { bgClass = 'hover:bg-yellow-50'; activeBgClass = 'bg-yellow-50'; textClass = 'text-yellow-700'; }
+            if (opt.value === 'confirmed') { bgClass = 'hover:bg-blue-50'; activeBgClass = 'bg-blue-50'; textClass = 'text-blue-700'; }
+            if (opt.value === 'shipping') { bgClass = 'hover:bg-orange-50'; activeBgClass = 'bg-orange-50'; textClass = 'text-orange-700'; }
+            if (opt.value === 'completed') { bgClass = 'hover:bg-emerald-50'; activeBgClass = 'bg-emerald-50'; textClass = 'text-emerald-700'; }
+            if (opt.value === 'cancelled') { bgClass = 'hover:bg-red-50'; activeBgClass = 'bg-red-50'; textClass = 'text-red-700'; }
+
+            const isSelected = opt.value === select.dataset.currentStatus;
+            const extraClasses = isSelected ? `font-bold ${activeBgClass}` : 'font-medium';
+
+            item.className = `px-3 py-3 lg:py-2 text-sm transition-colors ${bgClass} ${textClass} ${extraClasses}`;
+
+            if (opt.disabled) {
+                item.className += ' opacity-50 cursor-not-allowed';
+            } else {
+                item.className += ' cursor-pointer';
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    select.value = opt.value;
+                    menu.classList.add('hidden');
+                    btn.querySelector('.status-text').textContent = opt.text;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+            item.textContent = opt.text;
+            menu.appendChild(item);
+        });
+
+        select.addEventListener('change', () => {
+            btn.querySelector('.status-text').textContent = select.options[select.selectedIndex].text;
+        });
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.status-options-menu').forEach(m => {
+                if (m !== menu) m.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+
+            if (!menu.classList.contains('hidden')) {
+                const rect = btn.getBoundingClientRect();
+                if (window.innerHeight - rect.bottom < 250) {
+                    menu.classList.remove('top-full', 'mt-1');
+                    menu.classList.add('bottom-full', 'mb-1');
+                } else {
+                    menu.classList.add('top-full', 'mt-1');
+                    menu.classList.remove('bottom-full', 'mb-1');
+                }
+            }
+        });
+
+        wrapper.appendChild(btn);
+        wrapper.appendChild(menu);
+        select.parentNode.insertBefore(wrapper, select);
+    });
+}
+
+document.addEventListener('click', () => {
+    document.querySelectorAll('.status-options-menu').forEach(m => m.classList.add('hidden'));
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.status-options-menu').forEach(m => m.classList.add('hidden'));
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     initSearchAndFilters();
     initTableEvents();
+    initOrderStatusCustomDropdowns();
 });
 
 window.addEventListener("popstate", function () {

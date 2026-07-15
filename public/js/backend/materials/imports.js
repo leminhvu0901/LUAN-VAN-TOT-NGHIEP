@@ -15,6 +15,34 @@
         MaterialsCommon.bindCurrencyInput(formattedTotalPrice, rawTotalPrice);
         MaterialsCommon.bindCurrencyInput(editFormattedPrice, editRawPrice);
 
+        // Initialize flatpickr on date inputs
+        if (typeof flatpickr !== 'undefined') {
+            const createExpirationInput = document.getElementById("create-expiration-date");
+            if (createExpirationInput) {
+                flatpickr(createExpirationInput, {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "d/m/Y",
+                    locale: "vn",
+                    disableMobile: true,
+                    monthSelectorType: "static",
+                    minDate: createExpirationInput.dataset.minDate || ""
+                });
+            }
+
+            const editExpirationInput = document.getElementById("edit-import-expiration-date");
+            if (editExpirationInput) {
+                flatpickr(editExpirationInput, {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "d/m/Y",
+                    locale: "vn",
+                    disableMobile: true,
+                    monthSelectorType: "static"
+                });
+            }
+        }
+
         if (createImportQuantity && formattedTotalPrice && rawTotalPrice) {
             const unitPrice = Number(createImportQuantity.dataset.unitPrice) || 0;
 
@@ -129,8 +157,13 @@
                 }
                 if (priceInput) priceInput.value = editImportButton.dataset.totalPrice;
                 if (expirationInput) {
-                    expirationInput.value = editImportButton.dataset.expirationDate || "";
-                    expirationInput.min = editImportButton.dataset.minExpirationDate || "";
+                    if (expirationInput._flatpickr) {
+                        expirationInput._flatpickr.setDate(editImportButton.dataset.expirationDate || "");
+                        expirationInput._flatpickr.set('minDate', editImportButton.dataset.minExpirationDate || "");
+                    } else {
+                        expirationInput.value = editImportButton.dataset.expirationDate || "";
+                        expirationInput.min = editImportButton.dataset.minExpirationDate || "";
+                    }
                 }
                 if (noteInput) {
                     noteInput.value = editImportButton.dataset.note || "";

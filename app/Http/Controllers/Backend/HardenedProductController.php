@@ -116,14 +116,20 @@ class HardenedProductController
         return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
-    public function destroy(Product $product)
+    public function destroy(Product $product, Request $request)
     {
         if (DB::table('order_items')->where('product_id', $product->id)->exists()) {
             $product->update(['is_active' => false]);
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']);
+            }
             return back()->withErrors(['delete' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']);
         }
         $files = $this->deleteProduct($product);
         $this->deleteFiles($files);
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Xóa sản phẩm thành công!']);
+        }
         return back()->with('success', 'Xóa sản phẩm thành công!');
     }
 
@@ -158,6 +164,9 @@ class HardenedProductController
         $this->deleteFiles($files);
         $message = "Đã xóa {$deleted} sản phẩm.";
         if ($blockedIds->isNotEmpty()) $message .= " {$blockedIds->count()} sản phẩm có lịch sử đơn hàng đã được ngừng kinh doanh.";
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
         return back()->with('success', $message);
     }
 

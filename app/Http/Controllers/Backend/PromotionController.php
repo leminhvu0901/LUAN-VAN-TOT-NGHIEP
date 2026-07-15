@@ -67,6 +67,13 @@ class PromotionController
                 break;
         }
 
+        // Lấy tất cả IDs trước khi thực hiện paginate nếu được yêu cầu
+        if ($request->ajax() && $request->input('fetch_all_ids') == '1') {
+            return response()->json([
+                'ids' => $query->pluck('id')->toArray()
+            ]);
+        }
+
         $promotions = $query->paginate(10)->withQueryString();
 
         // Thống kê tổng quan cho 3 thẻ số liệu ở đầu trang
@@ -90,6 +97,11 @@ class PromotionController
                 // JS đang đọc data.total để cập nhật input ẩn phục vụ xoá hàng loạt
                 'total' => $promotions->total(),
                 'count_text' => 'Hiển thị ' . $promotions->count() . ' / ' . $promotions->total() . ' khuyến mãi',
+                'stats' => [
+                    'total' => number_format($totalPromotions),
+                    'active' => number_format($activePromotions),
+                    'expired' => number_format($expiredPromotions),
+                ]
             ]);
         }
 
@@ -279,6 +291,13 @@ class PromotionController
                 $promo->delete();
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Đã xóa {$deletedCount} khuyến mãi thành công!"
+                ]);
+            }
+
             return redirect()->route('admin.promotions.index')
                 ->with('success', "Đã xóa {$deletedCount} khuyến mãi thành công!");
         }
@@ -286,13 +305,26 @@ class PromotionController
         // Chế độ xoá các ID người dùng tick chọn
         $ids = $request->input('promotion_ids', []);
         if (empty($ids)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vui lòng chọn ít nhất một khuyến mãi.'
+                ], 400);
+            }
             return redirect()->route('admin.promotions.index')
                 ->with('error', 'Vui lòng chọn ít nhất một khuyến mãi.');
         }
 
         $count = Promotion::whereIn('id', $ids)->count();
-            // Đếm trước để hiển thị đúng số bản ghi đã xoá
+        // Đếm trước để hiển thị đúng số bản ghi đã xoá
         Promotion::whereIn('id', $ids)->delete();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Đã xóa {$count} khuyến mãi thành công!"
+            ]);
+        }
 
         return redirect()->route('admin.promotions.index')
             ->with('success', "Đã xóa {$count} khuyến mãi thành công!");

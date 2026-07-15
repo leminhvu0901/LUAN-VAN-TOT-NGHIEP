@@ -3,10 +3,13 @@
 @section('title', 'Chỉnh sửa Đánh giá')
 
 @section('content')
+<div class="reviews-page">
 <div class="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
     <!-- Header -->
     <div class="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-4">
-        <a href="{{ route('admin.reviews.index') }}" class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors shrink-0">
+        <a href="{{ route('admin.reviews.index') }}"
+            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors shrink-0">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
         </a>
         <div class="min-w-0">
@@ -56,7 +59,7 @@
                                 <span class="material-symbols-outlined text-[18px] text-amber-500" style="font-variation-settings: 'FILL' 1;">star</span>
                                 Số sao đánh giá <span class="text-red-500">*</span>
                             </label>
-                            <select name="rating" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer">
+                            <select name="rating" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
                                 <option value="5" {{ old('rating', $review->rating) == '5' ? 'selected' : '' }}>5 Sao (Rất Tốt)</option>
                                 <option value="4" {{ old('rating', $review->rating) == '4' ? 'selected' : '' }}>4 Sao (Tốt)</option>
                                 <option value="3" {{ old('rating', $review->rating) == '3' ? 'selected' : '' }}>3 Sao (Bình thường)</option>
@@ -154,14 +157,16 @@
                 </div>
 
                 <!-- Nút Lưu -->
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
-                        class="w-full px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 organic-shadow transition-all flex items-center justify-center gap-2">
+                        class="w-full sm:flex-1 px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 organic-shadow transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">save</span>
-                        Cập nhật đánh giá
+                        Lưu
                     </button>
                     <a href="{{ route('admin.reviews.index') }}"
-                        class="w-full px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200">
+                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-200">
+                        <span class="material-symbols-outlined text-[20px]">cancel</span>
                         Hủy
                     </a>
                 </div>
@@ -169,9 +174,9 @@
         </div>
     </form>
 </div>
+</div>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/backend/reviews/edit.js') }}?v={{ time() }}"></script>
 @endpush

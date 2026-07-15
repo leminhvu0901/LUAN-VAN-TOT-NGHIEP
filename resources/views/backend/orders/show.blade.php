@@ -3,7 +3,7 @@
 @section('title', 'Chi tiết Đơn hàng ' . $order->order_code)
 
 @section('content')
-    <div class="flex flex-col gap-6 h-full pb-4">
+    <div class="flex flex-col gap-6 h-full pb-4 orders-page">
 
         {{-- PHẦN 1: HEADER (Tiêu đề, Trạng thái đơn, Nút in) --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -11,7 +11,9 @@
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách đơn hàng --}}
                     <a href="{{ route('admin.orders.index') }}"
-                        class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
+                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                        title="Quay lại">
                         <span class="material-symbols-outlined text-[20px]">arrow_back</span>
                     </a>
 
@@ -23,10 +25,10 @@
                 <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
                 {{-- Nút in hóa đơn: Lớp 'print:hidden' để ẩn chính nút này khi in --}}
                 <button id="order-print-btn" type="button"
-                    class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors print:hidden">
+                    class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 w-full sm:w-auto rounded-lg hover:bg-gray-50 font-medium transition-colors print:hidden">
                     <span class="material-symbols-outlined text-[20px]">print</span>
                     In hóa đơn
                 </button>
@@ -74,9 +76,9 @@
                                 </div>
 
                                 {{-- Thông tin món: Tên, Size, Topping, Đơn giá, Số lượng --}}
-                                <div class="flex-1 flex flex-col justify-between">
-                                    <div class="flex justify-between items-start">
-                                        <div>
+                                <div class="flex-1 flex flex-col justify-between overflow-hidden">
+                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                        <div class="break-words overflow-wrap-anywhere">
                                             <h4 class="font-bold text-gray-900">{{ $item->product_name }}</h4>
                                             <div class="text-sm text-gray-500 mt-1">
                                                 <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Size
@@ -86,13 +88,14 @@
                                                 <p class="text-xs text-gray-500 mt-1">+ Topping: {{ $item->toppings }}</p>
                                             @endif
                                         </div>
-                                        <div class="text-right">
+                                        <div class="text-left sm:text-right shrink-0">
                                             <span
                                                 class="font-bold text-gray-900">{{ number_format($item->unit_price, 0, ',', '.') }}đ</span>
-                                            <p class="text-sm text-gray-500">x{{ $item->quantity }}</p>
+                                            <span class="text-sm text-gray-500 ml-2 sm:ml-0 sm:block">x{{ $item->quantity }}</span>
                                         </div>
                                     </div>
-                                    <div class="text-right mt-2">
+                                    <div class="text-right mt-2 border-t border-gray-50 pt-2 sm:border-none sm:pt-0">
+                                        <span class="text-gray-500 text-xs sm:hidden mr-1">Thành tiền:</span>
                                         <span
                                             class="font-bold text-primary">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
                                     </div>

@@ -272,4 +272,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // === FLAT PICKER INITIALIZATION ===
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr(".promotion-date-picker", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i:S", // Định dạng chuẩn gửi lên Laravel
+            altInput: true,
+            altFormat: "d/m/Y H:i", // Định dạng hiển thị thân thiện
+            locale: "vn",
+            disableMobile: true, // Ép dùng giao diện flatpickr trên điện thoại thay vì native picker
+            time_24hr: true
+        });
+    }
 });

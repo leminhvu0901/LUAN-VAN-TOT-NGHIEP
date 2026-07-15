@@ -12,7 +12,7 @@ class CategoryController
      */
     public function index(Request $request)
     {
-        $query = Category::query();
+        $query = Category::query()->withCount('products');
 
         // 1. Tìm kiếm theo tên
         if ($request->filled('search')) {
@@ -59,6 +59,9 @@ class CategoryController
             $html = view('backend.categories.partials.table', compact('categories'))->render();
             return response()->json([
                 'html' => $html,
+                'total' => $totalCategories,
+                'active' => $activeCategories,
+                'inactive' => $inactiveCategories
             ]);
         }
 
@@ -197,6 +200,9 @@ class CategoryController
                 $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
             return redirect()->back()->with('success', $msg);
         } else {
             $request->validate([
@@ -222,6 +228,9 @@ class CategoryController
                 $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
             return redirect()->back()->with('success', $msg);
         }
     }

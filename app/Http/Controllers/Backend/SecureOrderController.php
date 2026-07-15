@@ -86,10 +86,18 @@ class SecureOrderController
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id);
         $order->delete();
+        
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã xóa đơn hàng thành công!'
+            ]);
+        }
+        
         return back()->with('success', 'Đã xóa đơn hàng thành công!');
     }
 

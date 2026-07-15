@@ -71,7 +71,7 @@ class ReviewController
         // Nếu yêu cầu chỉ lấy ID để phục vụ "Chọn tất cả" toàn bộ DB
         if ($request->input('fetch_all_ids') == 1) {
             return response()->json([
-                'ids' => (clone $query)->pluck('id')
+                'ids' => (clone $query)->pluck('id')->toArray()
             ]);
         }
 
@@ -86,7 +86,12 @@ class ReviewController
         // Nếu là AJAX (ví dụ: lọc không reload toàn trang) trả partial HTML
         if ($request->ajax()) {
             return response()->json([
-                'html' => view('backend.reviews.partials.table', compact('reviews'))->render()
+                'html' => view('backend.reviews.partials.table', compact('reviews'))->render(),
+                'stats' => [
+                    'total' => number_format($totalReviews),
+                    'active' => number_format($activeReviews),
+                    'hidden' => number_format($hiddenReviews)
+                ]
             ]);
         }
 
@@ -107,7 +112,12 @@ class ReviewController
             return response()->json([
                 'success' => true,
                 'message' => 'Trạng thái đánh giá đã được cập nhật!',
-                'new_status' => $review->is_visible
+                'new_status' => $review->is_visible,
+                'stats' => [
+                    'total' => number_format(Review::count()),
+                    'active' => number_format(Review::where('is_visible', 1)->count()),
+                    'hidden' => number_format(Review::where('is_visible', 0)->count())
+                ]
             ]);
         }
 
@@ -147,9 +157,9 @@ class ReviewController
                 }
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
-                    $filename = 'reviews/review_' . time() . '_' . uniqid() . '.' . $ext;
-                    $file->move(public_path('images'), $filename);
-                    $images[] = $filename;
+                    $filename = 'review_' . time() . '_' . uniqid() . '.' . $ext;
+                    $file->move(public_path('images/reviews'), $filename);
+                    $images[] = 'reviews/' . $filename;
                 }
             }
         }
@@ -215,9 +225,9 @@ class ReviewController
 
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
-                    $imageName = 'reviews/' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
-                    $file->move(public_path('images'), $imageName);
-                    $images[] = $imageName;
+                    $filename = 'review_' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
+                    $file->move(public_path('images/reviews'), $filename);
+                    $images[] = 'reviews/' . $filename;
                     $currentCount++;
                 }
             }
@@ -295,13 +305,27 @@ class ReviewController
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('review_ids', []);
+        
         if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vui lòng chọn ít nhất một đánh giá.'
+                ]);
+            }
             return redirect()->route('admin.reviews.index')
                 ->with('error', 'Vui lòng chọn ít nhất một đánh giá.');
         }
 
         $count = Review::whereIn('id', $ids)->count();
         Review::whereIn('id', $ids)->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Đã xóa {$count} đánh giá thành công!"
+            ]);
+        }
 
         return redirect()->route('admin.reviews.index')
             ->with('success', "Đã xóa {$count} đánh giá thành công!");

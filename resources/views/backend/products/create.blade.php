@@ -5,10 +5,12 @@
 
 
 @section('content')
-<div class="p-6 space-y-6">
+<div class="p-4 sm:p-6 space-y-4 sm:space-y-6 products-page">
     <!-- Header -->
     <div class="flex items-center gap-4 mb-4">
-        <a href="{{ route('admin.products.index') }}" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+        <a href="{{ route('admin.products.index') }}"
+            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </a>
         <div>
@@ -59,7 +61,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Danh mục <span class="text-red-500">*</span></label>
-                            <select name="category_id" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm bg-white">
+                            <select name="category_id" required class="product-category-select w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm bg-white">
                                 <option value="">-- Chọn danh mục --</option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
@@ -88,7 +90,7 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Bộ sưu tập ảnh (Ảnh phụ)</label>
                         <input type="file" id="gallery-input" name="gallery[]" multiple accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
                         <p class="text-xs text-gray-500 mt-1">Tối đa 5 ảnh phụ.</p>
-                        <div id="gallery-preview-container" class="flex flex-wrap gap-2 mt-3"></div>
+                        <div id="gallery-preview-container" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mt-3"></div>
                     </div>
                     
                     <div class="border-t border-gray-100 pt-5 space-y-4">
@@ -96,7 +98,7 @@
                             <h3 class="text-sm font-bold text-gray-800">Kích thước và giá cộng thêm</h3>
                             <div id="product-sizes" class="space-y-2 mt-2">
                                 @foreach(old('size_names', ['']) as $index => $sizeName)
-                                <div class="product-size-row grid grid-cols-[1fr_1fr_40px] gap-2">
+                                <div class="product-topping-row grid grid-cols-1 sm:grid-cols-[1fr_1fr_40px] gap-2">
                                     <input name="size_names[]" value="{{ $sizeName }}" maxlength="50" placeholder="Tên size" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                                     <input name="size_price_adjustments[]" type="number" min="0" max="50000000" step="1000" value="{{ old('size_price_adjustments.' . $index, 0) }}" placeholder="Giá cộng thêm" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                                     <button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước"><span class="material-symbols-outlined">delete</span></button>
@@ -107,7 +109,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-bold text-gray-800">Topping áp dụng</h3>
-                            <div class="grid grid-cols-2 gap-2 mt-2">
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                                 @foreach($toppings as $topping)
                                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="topping_ids[]" value="{{ $topping->id }}" {{ in_array($topping->id, old('topping_ids', [])) ? 'checked' : '' }}>{{ $topping->name }}</label>
                                 @endforeach
@@ -124,9 +126,13 @@
                 </div>
             </div>
             
-            <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <a href="{{ route('admin.products.index') }}" class="px-6 py-2.5 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">Hủy</a>
-                <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center gap-2">
+            <div class="mt-8 flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
+                <a href="{{ route('admin.products.index') }}"
+                    onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-center">
+                    Hủy bỏ
+                </a>
+                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm text-center flex items-center justify-center gap-2">
                     <span class="material-symbols-outlined text-[20px]">save</span>
                     Lưu sản phẩm
                 </button>
@@ -137,7 +143,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="{{ asset('js/backend/products/form-common.js') }}"></script>
-<script src="{{ asset('js/backend/products/create.js') }}"></script>
+<script src="{{ asset('js/backend/products/form-common.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('js/backend/products/create.js') }}?v={{ time() }}"></script>
 @endpush

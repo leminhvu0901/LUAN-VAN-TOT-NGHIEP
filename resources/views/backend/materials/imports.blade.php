@@ -3,16 +3,11 @@
 @section('title', 'Lịch sử Nhập Kho')
 
 @section('content')
-    <div id="materials-imports-page" class="p-4 sm:p-6">
+    <div id="materials-imports-page" class="material-imports-page p-4 sm:p-6">
         <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="flex items-start sm:items-center gap-3 sm:gap-4">
-                @php
-                    $backUrl = url()->previous();
-                    if ($backUrl == url()->current() || !str_contains($backUrl, 'admin/materials')) {
-                        $backUrl = route('admin.materials.index');
-                    }
-                @endphp
-                <a href="{{ $backUrl }}"
+                <a href="{{ route('admin.materials.index') }}"
+                    onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
                     class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-gray-900 transition-colors">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>
@@ -77,7 +72,7 @@
                 <form action="{{ route('admin.materials.imports.store', $material->id) }}" method="POST" id="form-create-import">
                     @csrf
                     <input type="hidden" name="_form_context" value="import-create">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng nhập
                                 ({{ $material->unit }})</label>
@@ -102,9 +97,10 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Hạn sử dụng (Tùy chọn)</label>
-                            <input type="date" name="expiration_date" min="{{ now()->addDay()->format('Y-m-d') }}"
+                            <input type="text" name="expiration_date" id="create-expiration-date" data-min-date="{{ now()->addDay()->format('Y-m-d') }}"
                                 value="{{ old('expiration_date') }}"
-                                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-gray-700">
+                                class="flatpickr-date w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-gray-700"
+                                placeholder="Chọn ngày...">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú (Tùy chọn)</label>
@@ -134,14 +130,117 @@
                 $xuatHuy = $imports->where('quantity', '<', 0);
             @endphp
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-                <div class="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                    <h3 class="font-bold text-gray-900"><span
-                            class="material-symbols-outlined align-middle mr-1 text-emerald-600">login</span>Lịch sử Nhập
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
+                <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
+                    <h3 class="font-bold text-gray-900 flex items-center"><span
+                            class="material-symbols-outlined align-middle mr-1.5 text-emerald-600">login</span>Lịch sử Nhập
                         kho</h3>
-                    <span class="text-sm font-medium text-gray-500">{{ $nhapKho->count() }} phiếu nhập</span>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $nhapKho->count() }} phiếu nhập</span>
                 </div>
-                <div class="overflow-x-auto">
+                <!-- Giao diện Mobile (Card view) -->
+                <div class="block lg:hidden space-y-4 px-1 py-2">
+                    @forelse($nhapKho as $import)
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 relative hover:shadow-md transition-shadow" id="import-card-{{ $import->id }}">
+                            <!-- Header: Lot ID + Time -->
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    <span class="text-sm font-extrabold text-gray-900">Lô: LOT-{{ $import->id }}</span>
+                                </div>
+                                <span class="text-xs text-gray-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                                    {{ $import->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+
+                            <!-- Info Grid -->
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">SL ban đầu</p>
+                                    <p class="font-bold text-emerald-600 mt-0.5">+{{ number_format($import->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                </div>
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tồn lô hiện tại</p>
+                                    <p class="font-bold text-blue-600 mt-0.5">{{ number_format($import->remaining_quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Đơn giá</p>
+                                    <p class="font-semibold text-gray-700 mt-0.5">{{ $import->quantity != 0 ? number_format(abs($import->total_price / $import->quantity), 0, ',', '.') : 0 }}đ/{{ $material->unit }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tổng thanh toán</p>
+                                    <p class="font-bold text-gray-900 mt-0.5">{{ number_format($import->total_price, 0, ',', '.') }}đ</p>
+                                </div>
+                            </div>
+
+                            <!-- Expiry date & remaining days -->
+                            @if($import->expiration_date)
+                                @php
+                                    $daysDiffImport = now()->startOfDay()->diffInDays($import->expiration_date->startOfDay(), false);
+                                @endphp
+                                <div class="bg-amber-50/30 border border-amber-100/40 p-3 rounded-xl text-xs space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-500 font-medium">Hạn sử dụng:</span>
+                                        <span class="font-bold {{ $import->remaining_quantity == 0 ? 'text-gray-400' : ($daysDiffImport < 0 ? 'text-gray-400 line-through' : ($daysDiffImport <= 30 ? 'text-red-500 font-bold' : 'text-gray-700')) }}">
+                                            {{ $import->expiration_date->format('d/m/Y') }}
+                                        </span>
+                                    </div>
+                                    @if($import->remaining_quantity > 0)
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-500 font-medium">Trạng thái hạn:</span>
+                                            @if($daysDiffImport < 0)
+                                                <span class="text-[10px] text-red-500 font-extrabold bg-red-50 px-2 py-0.5 rounded-full">Đã hết hạn</span>
+                                            @else
+                                                <span class="font-bold px-2 py-0.5 rounded-full text-[11px] {{ $daysDiffImport <= 15 ? 'text-red-700 bg-red-50' : 'text-emerald-700 bg-emerald-50' }}">
+                                                    Còn {{ $daysDiffImport }} ngày
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
+                            <!-- Note -->
+                            @if($import->note)
+                                <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
+                                    Ghi chú: {{ $import->note }}
+                                </div>
+                            @endif
+
+                            <!-- Action Buttons -->
+                            <div class="flex gap-2.5 pt-1">
+                                @if($import->quantity > 0)
+                                    <button type="button" title="Sửa thông tin phiếu nhập"
+                                        class="js-edit-import flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-blue-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                        data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.update', $import) }}"
+                                        data-quantity="{{ $import->quantity }}" data-total-price="{{ $import->total_price }}"
+                                        data-expiration-date="{{ $import->expiration_date ? $import->expiration_date->format('Y-m-d') : '' }}"
+                                        data-note="{{ $import->note ?? '' }}"
+                                        data-consumed="{{ max($import->quantity - $import->remaining_quantity, 0) }}"
+                                        data-min-expiration-date="{{ $import->created_at->copy()->addDay()->format('Y-m-d') }}">
+                                        <span class="material-symbols-outlined text-[16px]">edit</span> Sửa
+                                    </button>
+                                @endif
+                                @if($import->remaining_quantity > 0)
+                                    <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
+                                        class="js-dispose-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                        data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
+                                        data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                        <span class="material-symbols-outlined text-[16px]">delete_sweep</span> Hủy lô
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu nhập kho.</span>
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Giao diện Desktop (Table view) -->
+                <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
                         <tr>
@@ -241,14 +340,58 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div class="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                    <h3 class="font-bold text-gray-900"><span
-                            class="material-symbols-outlined align-middle mr-1 text-red-600">logout</span>Lịch sử Thu hồi
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
+                <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
+                    <h3 class="font-bold text-gray-900 flex items-center"><span
+                            class="material-symbols-outlined align-middle mr-1.5 text-red-600">logout</span>Lịch sử Thu hồi
                         kho</h3>
-                    <span class="text-sm font-medium text-gray-500">{{ $xuatHuy->count() }} phiếu thu hồi</span>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu thu hồi</span>
                 </div>
-                <div class="overflow-x-auto">
+                <!-- Giao diện Mobile (Card view) -->
+                <div class="block lg:hidden space-y-4 px-1 py-2">
+                    @forelse($xuatHuy as $export)
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
+                            <!-- Header: Export ID + Time -->
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                    <span class="text-sm font-extrabold text-red-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="text-xs text-gray-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                                    {{ $export->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+
+                            <!-- Info Grid -->
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
+                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng thu hồi</p>
+                                    <p class="font-bold text-red-600 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                </div>
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị thu hồi</p>
+                                    <p class="font-bold text-gray-900 mt-0.5">{{ number_format($export->total_price, 0, ',', '.') }}đ</p>
+                                </div>
+                            </div>
+
+                            <!-- Note -->
+                            @if($export->note)
+                                <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
+                                    Lý do: {{ $export->note }}
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu thu hồi kho.</span>
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Giao diện Desktop (Table view) -->
+                <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
                             <tr>
@@ -325,11 +468,11 @@
                             class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" data-close-modal="modal-dispose-batch"
-                        class="px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">Hủy</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
                     <button type="submit"
-                        class="px-5 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 organic-shadow transition-all">Xác
+                        class="w-full sm:w-auto text-center px-5 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 organic-shadow transition-all">Xác
                         nhận Hủy Lô</button>
                 </div>
             </form>
@@ -387,11 +530,11 @@
                         <input type="hidden" id="edit-price" name="unit_price" value="{{ old('_form_context') === 'material-edit' ? old('unit_price') : '' }}">
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" data-close-modal="modal-edit"
-                        class="px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">Hủy</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
                     <button type="submit"
-                        class="px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Cập
+                        class="w-full sm:w-auto text-center px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Cập
                         nhật</button>
                 </div>
             </form>
@@ -432,10 +575,10 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Hạn sử dụng (Tùy chọn)</label>
-                        <input type="date" id="edit-import-expiration-date" name="expiration_date"
-                            min="{{ old('_form_context') === 'import-edit' ? old('_min_expiration_date') : '' }}"
+                        <input type="text" id="edit-import-expiration-date" name="expiration_date"
                             value="{{ old('_form_context') === 'import-edit' ? old('expiration_date') : '' }}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                            class="flatpickr-date w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                            placeholder="Chọn ngày...">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Ghi chú (Tùy chọn)</label>
@@ -447,11 +590,11 @@
                             class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" data-close-modal="modal-edit-import"
-                        class="px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">Hủy</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
                     <button type="submit"
-                        class="px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Lưu thay đổi</button>
+                        class="w-full sm:w-auto text-center px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all">Lưu thay đổi</button>
                 </div>
             </form>
         </div>
@@ -460,7 +603,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/backend/materials/common.js') }}"></script>
 <script src="{{ asset('js/backend/materials/imports.js') }}"></script>
 @endpush

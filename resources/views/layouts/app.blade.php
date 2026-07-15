@@ -60,38 +60,21 @@
     @stack('scripts')
 
     @if (Auth::check() && Auth::user()->is_active == 0)
+        <link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}">
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                Swal.fire({
-                    title: '<span style="font-size: 18px; color: #1f2937; font-weight: bold;">Tài khoản bị khóa</span>',
-                    html: '<p style="color:#6b7280; font-size: 13px; line-height: 1.4; margin-top: 5px;">Tài khoản của bạn đã bị khóa tạm thời. Bạn không thể thao tác trên hệ thống.<br><br>Vui lòng liên hệ Admin để được hỗ trợ.</p>',
-                    icon: 'warning',
-                    iconColor: '#ef4444',
-                    width: '320px',
-                    padding: '1.25rem',
-                    showCancelButton: true,
-                    confirmButtonText: 'Liên hệ Zalo',
-                    cancelButtonText: 'Đăng xuất',
-                    confirmButtonColor: '#2563eb', // Blue
-                    cancelButtonColor: '#9ca3af', // Gray
-                    reverseButtons: true, // Đảo ngược vị trí nút để nút chính (Liên hệ) nằm bên phải
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showCloseButton: false,
-                    backdrop: `rgba(15, 23, 42, 0.8)`
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.open('https://zalo.me/0388359330', '_blank');
-                        setTimeout(() => {
-                            window.location.href = '/logout';
-                        }, 500);
-                    } else if (result.dismiss === Swal.DismissReason.cancel) {
-                        window.location.href = '/logout';
-                    }
-                });
-            });
-        </script>
+        
+        {{-- Đẩy dữ liệu an toàn từ PHP sang JS --}}
+        @php
+            $lockedUserData = [
+                'name' => Auth::user()->name,
+                'email' => Auth::user()->email,
+                'reason' => Auth::user()->lock_reason
+            ];
+        @endphp
+        <script>window.lockedUserData = @json($lockedUserData);</script>
+        
+        {{-- Chạy logic giao diện --}}
+        <script src="{{ asset('js/frontend/locked-account.js') }}"></script>
     @endif
 
 </body>

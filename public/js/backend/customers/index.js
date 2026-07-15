@@ -85,24 +85,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ---------------------------------------------------------
+    // =========================================================
     // 2. XỬ LÝ CHECK ALL VÀ CẬP NHẬT GIAO DIỆN NÚT XÓA NHIỀU
-    // ---------------------------------------------------------
-    const checkAllBtn = document.getElementById('selectAll');
+    // =========================================================
     const bulkDeleteContainer = document.getElementById('bulk-delete-container');
     const selectedCountSpan = document.getElementById('selected-count');
+    const deselectBtn = document.getElementById('bulk-deselect-btn');
 
     window.selectedCustomerIds = new Set();
 
     function updateBulkDeleteUI() {
-        if (!bulkDeleteContainer) return;
         const count = window.selectedCustomerIds.size;
         
-        if (count > 0) {
-            bulkDeleteContainer.style.display = 'inline-block';
-            if (selectedCountSpan) selectedCountSpan.textContent = count;
-        } else {
-            bulkDeleteContainer.style.display = 'none';
+        if (bulkDeleteContainer) {
+            if (count > 0) {
+                bulkDeleteContainer.classList.remove('hidden');
+                bulkDeleteContainer.style.display = '';
+            } else {
+                bulkDeleteContainer.classList.add('hidden');
+                bulkDeleteContainer.style.display = 'none';
+            }
+        }
+        if (deselectBtn) {
+            if (count > 0) {
+                deselectBtn.classList.remove('hidden');
+            } else {
+                deselectBtn.classList.add('hidden');
+            }
+        }
+        if (selectedCountSpan) {
+            selectedCountSpan.textContent = count;
         }
     }
 
@@ -112,14 +124,17 @@ document.addEventListener('DOMContentLoaded', function () {
         allCheckboxes.forEach(cb => {
             cb.checked = window.selectedCustomerIds.has(cb.value);
         });
-        if (checkAllBtn && allCheckboxes.length > 0) {
-            checkAllBtn.checked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+        const selectAllEls = document.querySelectorAll('.js-select-all');
+        if (selectAllEls.length > 0 && allCheckboxes.length > 0) {
+            const isAllChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+            selectAllEls.forEach(el => el.checked = isAllChecked);
         }
     }
 
     document.addEventListener('change', function (e) {
-        if (e.target && e.target.id === 'selectAll') {
+        if (e.target && e.target.classList.contains('js-select-all')) {
             const checked = e.target.checked;
+            document.querySelectorAll('.js-select-all').forEach(el => el.checked = checked);
             if (checked) {
                 // Fetch tất cả ID
                 const url = new URL(filterForm.action);
@@ -160,8 +175,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.target.checked) window.selectedCustomerIds.add(e.target.value);
             else window.selectedCustomerIds.delete(e.target.value);
             const allCheckboxes = document.querySelectorAll('.row-checkbox');
-            if (checkAllBtn) {
-                checkAllBtn.checked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+            const selectAllEls = document.querySelectorAll('.js-select-all');
+            if (selectAllEls.length > 0) {
+                const isAllChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+                selectAllEls.forEach(el => el.checked = isAllChecked);
             }
             updateBulkDeleteUI();
         }
@@ -220,50 +237,93 @@ document.addEventListener('DOMContentLoaded', function () {
             const statusTextId = `status-text-${customerId}`;
             const statusTextEl = document.getElementById(statusTextId);
 
-            // Tạm thời disable checkbox trong lúc gọi API
-            checkbox.disabled = true;
+            const performToggle = (lockReason = null) => {
+                // Tạm thời disable checkbox trong lúc gọi API
+                checkbox.disabled = true;
 
-            fetch(`/admin/customers/${customerId}/toggle-status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ is_active: isActive })
-            })
-            .then(response => response.json())
-            .then(data => {
-                checkbox.disabled = false;
-                
-                if (data.success) {
-                    window.AdminAlert.success(data.message, 'Thành công!');
+                fetch(`/admin/customers/${customerId}/toggle-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]').value,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ is_active: isActive, lock_reason: lockReason })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    checkbox.disabled = false;
+                    
+                    if (data.success) {
+                        window.AdminAlert.success(data.message, 'Thành công!');
 
-                    // Cập nhật lại chữ "Hoạt động" / "Bị khóa"
-                    if (statusTextEl) {
-                        if (isActive) {
-                            statusTextEl.textContent = 'Hoạt động';
-                            statusTextEl.classList.remove('text-rose-500');
-                            statusTextEl.classList.add('text-emerald-600');
-                        } else {
-                            statusTextEl.textContent = 'Bị khóa';
-                            statusTextEl.classList.remove('text-emerald-600');
-                            statusTextEl.classList.add('text-rose-500');
+                        // Cập nhật lại chữ "Hoạt động" / "Bị khóa"
+                        if (statusTextEl) {
+                            if (isActive) {
+                                statusTextEl.textContent = 'Hoạt động';
+                                statusTextEl.classList.remove('text-rose-500');
+                                statusTextEl.classList.add('text-emerald-600');
+                                statusTextEl.removeAttribute('title');
+                            } else {
+                                statusTextEl.textContent = 'Bị khóa';
+                                statusTextEl.classList.remove('text-emerald-600');
+                                statusTextEl.classList.add('text-rose-500');
+                                if (lockReason) {
+                                    statusTextEl.setAttribute('title', `Lý do: ${lockReason}`);
+                                }
+                            }
                         }
+                    } else {
+                        checkbox.checked = !isActive;
+                        window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
                     }
-                } else {
+                })
+                .catch(error => {
+                    checkbox.disabled = false;
                     checkbox.checked = !isActive;
-                    window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
+                    console.error('Error:', error);
+                    window.AdminAlert.error('Không thể kết nối đến máy chủ.', 'Lỗi!');
+                });
+            };
+
+            if (isActive === 0) {
+                // Prompt cho lý do khóa tài khoản
+                if (window.AdminAlert && window.AdminAlert.prompt) {
+                    window.AdminAlert.prompt(
+                        'Khóa tài khoản?',
+                        'Vui lòng nhập lý do khóa tài khoản này:',
+                        'Nhập lý do (ví dụ: Vi phạm chính sách)...',
+                        function(reason, isConfirmed) {
+                            if (isConfirmed && reason) {
+                                performToggle(reason);
+                            } else {
+                                checkbox.checked = true; // Revert
+                            }
+                        },
+                        'Vui lòng nhập lý do khóa tài khoản!',
+                        'Khóa tài khoản'
+                    );
+                } else {
+                    const reason = prompt("Vui lòng nhập lý do khóa tài khoản:");
+                    if (reason !== null && reason.trim() !== "") {
+                        performToggle(reason.trim());
+                    } else {
+                        checkbox.checked = true; // Revert
+                    }
                 }
-            })
-            .catch(error => {
-                checkbox.disabled = false;
-                checkbox.checked = !isActive;
-                console.error('Error:', error);
-                window.AdminAlert.error('Không thể kết nối đến máy chủ.', 'Lỗi!');
-            });
+            } else {
+                performToggle();
+            }
         }
     });
+
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+            window.selectedCustomerIds.clear();
+            document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false);
+            updateBulkDeleteUI();
+        });
+    }
 });
 
 window.deleteCustomer = function(id) {
@@ -284,6 +344,7 @@ window.deleteCustomer = function(id) {
             .then(data => {
                 if (data.success) {
                     window.AdminAlert.success(data.message, 'Thành công!');
+                    if (window.selectedCustomerIds) window.selectedCustomerIds.clear();
                     // Kích hoạt load lại bảng mà không giật trang
                     const select = document.querySelector('#filter-form select');
                     if (select) select.dispatchEvent(new Event('change'));

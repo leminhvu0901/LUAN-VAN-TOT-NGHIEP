@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Cấu hình Title động: Sẽ lấy giá trị từ trang con nếu có khai báo @section('title'), nếu không có sẽ lấy chuỗi
     mặc định 'Admin Dashboard...' --}}
@@ -20,6 +21,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{{ asset('js/backend/tailwind-config.js') }}"></script>
     <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     @stack('styles')
 </head>
 
@@ -47,6 +50,12 @@
 
     {{-- File Javascript xử lý hiệu ứng đóng/mở Sidebar --}}
     <script src="{{ asset('js/backend/layout.js') }}"></script>
+
+    {{-- Thư viện bên thứ 3 --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
     {{-- Global Flash Messages Script --}}
     @include('backend.partials.flash_messages')

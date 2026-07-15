@@ -3,10 +3,13 @@
 @section('title', 'Chỉnh sửa Khuyến mãi')
 
 @section('content')
+<div class="promotions-page">
 <div class="p-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center gap-4 mb-4">
-        <a href="{{ route('admin.promotions.index') }}" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+        <a href="{{ route('admin.promotions.index') }}"
+            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </a>
         <div>
@@ -60,7 +63,7 @@
                         <!-- Loại khuyến mãi -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Loại khuyến mãi <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 gap-3" id="type-selector">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="type-selector">
                                 <label class="flex items-center gap-3 border-2 {{ old('type', $promotion->type) == 'percent' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white' }} rounded-xl p-4 cursor-pointer transition-all hover:border-gray-300" id="type-percent-label">
                                     <input type="radio" name="type" value="percent" class="hidden" {{ old('type', $promotion->type) == 'percent' ? 'checked' : '' }}>
                                     <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 flex-shrink-0">
@@ -147,7 +150,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Áp dụng cho hạng thành viên</label>
-                            <select name="apply_for" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm appearance-none bg-white">
+                            <select name="apply_for" class="custom-select-init w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm appearance-none bg-white" data-width-class="w-full">
                                 <option value="all" {{ old('apply_for', $promotion->apply_for) == 'all' ? 'selected' : '' }}>Tất cả các hạng</option>
                                 <option value="new" {{ old('apply_for', $promotion->apply_for) == 'new' ? 'selected' : '' }}>Mới (New)</option>
                                 <option value="silver" {{ old('apply_for', $promotion->apply_for) == 'silver' ? 'selected' : '' }}>Bạc (Silver)</option>
@@ -212,15 +215,17 @@
                     <div id="fixed_time_wrapper" class="space-y-4 {{ old('is_recurring', $promotion->is_recurring) ? 'hidden' : '' }}">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày bắt đầu</label>
-                            <input type="datetime-local" name="start_at"
-                                value="{{ old('start_at', $promotion->start_at ? \Carbon\Carbon::parse($promotion->start_at)->format('Y-m-d\TH:i') : '') }}"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                            <input type="text" name="start_at" id="start_at"
+                                value="{{ old('start_at', $promotion->start_at ? \Carbon\Carbon::parse($promotion->start_at)->format('Y-m-d H:i:s') : '') }}"
+                                placeholder="Chọn ngày & giờ bắt đầu"
+                                class="promotion-date-picker w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm bg-white cursor-pointer">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày kết thúc</label>
-                            <input type="datetime-local" name="end_at"
-                                value="{{ old('end_at', $promotion->end_at ? \Carbon\Carbon::parse($promotion->end_at)->format('Y-m-d\TH:i') : '') }}"
-                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                            <input type="text" name="end_at" id="end_at"
+                                value="{{ old('end_at', $promotion->end_at ? \Carbon\Carbon::parse($promotion->end_at)->format('Y-m-d H:i:s') : '') }}"
+                                placeholder="Chọn ngày & giờ kết thúc"
+                                class="promotion-date-picker w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm bg-white cursor-pointer">
                             <p class="text-xs text-gray-400 mt-1">Để trống = không có ngày hết hạn.</p>
                         </div>
                     </div>
@@ -229,7 +234,7 @@
                     <div id="recurring_time_wrapper" class="space-y-4 {{ old('is_recurring', $promotion->is_recurring) ? '' : 'hidden' }}">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Lặp lại vào các ngày</label>
-                            <div class="grid grid-cols-4 gap-2">
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                 @php 
                                     $days = [1=>'T2', 2=>'T3', 3=>'T4', 4=>'T5', 5=>'T6', 6=>'T7', 7=>'CN']; 
                                     $selectedDays = old('recurring_days', is_array($promotion->recurring_days) ? $promotion->recurring_days : []);
@@ -282,20 +287,23 @@
                 </div>
 
                 <!-- Nút Lưu -->
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
-                        class="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
+                        class="w-full sm:flex-1 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">save</span>
-                        Cập nhật khuyến mãi
+                        Cập nhật
                     </button>
                     <a href="{{ route('admin.promotions.index') }}"
-                        class="w-full px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200">
+                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">cancel</span>
                         Hủy
                     </a>
                 </div>
             </div>
         </div>
     </form>
+</div>
 </div>
 @endsection
 

@@ -11,6 +11,7 @@
         const sortSelect = document.getElementById("sort-select");
         const clearFilterButton = document.getElementById("btn-clear-filter");
         const bulkDeleteButton = document.getElementById("bulk-delete-btn");
+        const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
         const selectedCount = document.getElementById("selected-count");
         const bulkDeleteForm = document.getElementById("bulk-delete-form");
 
@@ -30,9 +31,14 @@
         );
 
         function setLoaderVisible(visible) {
-            if (!loader) return;
-            loader.classList.toggle("hidden", !visible);
-            loader.classList.toggle("flex", visible);
+            if (!tableContainer) return;
+            if (visible) {
+                tableContainer.style.opacity = '0.5';
+                tableContainer.style.pointerEvents = 'none';
+            } else {
+                tableContainer.style.opacity = '1';
+                tableContainer.style.pointerEvents = 'auto';
+            }
         }
 
         function getTotalCount() {
@@ -60,6 +66,10 @@
 
             bulkDeleteButton.classList.toggle("hidden", count === 0);
             bulkDeleteButton.classList.toggle("flex", count > 0);
+            if (bulkDeselectBtn) {
+                bulkDeselectBtn.classList.toggle("hidden", count === 0);
+                bulkDeselectBtn.classList.toggle("flex", count > 0);
+            }
         }
 
         function syncCheckboxes() {
@@ -73,16 +83,18 @@
                     : state.selectedIds.has(checkbox.value);
             });
 
-            const selectAll = tableContainer.querySelector("#selectAll");
-            if (selectAll) {
-                if (state.globalSelectAll) {
-                    selectAll.checked = state.excludedIds.size === 0;
-                    selectAll.indeterminate = state.excludedIds.size > 0;
-                } else {
-                    selectAll.checked =
-                        rowCheckboxes.length > 0 && rowCheckboxes.every((checkbox) => checkbox.checked);
-                    selectAll.indeterminate = false;
-                }
+            const selectAllEls = tableContainer.querySelectorAll(".js-select-all");
+            if (selectAllEls.length > 0) {
+                selectAllEls.forEach((selectAll) => {
+                    if (state.globalSelectAll) {
+                        selectAll.checked = state.excludedIds.size === 0;
+                        selectAll.indeterminate = state.excludedIds.size > 0;
+                    } else {
+                        selectAll.checked =
+                            rowCheckboxes.length > 0 && rowCheckboxes.every((checkbox) => checkbox.checked);
+                        selectAll.indeterminate = false;
+                    }
+                });
             }
 
             updateBulkDeleteButton();
@@ -102,8 +114,16 @@
 
         function syncFilterFormFromUrl(url) {
             if (searchInput) searchInput.value = url.searchParams.get("search") || "";
-            if (statusSelect) statusSelect.value = url.searchParams.get("status") || "all";
-            if (sortSelect) sortSelect.value = url.searchParams.get("sort") || "newest";
+            if (statusSelect) {
+                statusSelect.value = url.searchParams.get("status") || "all";
+                // Trigger change to update custom UI if it exists
+                statusSelect.dispatchEvent(new Event('change'));
+            }
+            if (sortSelect) {
+                sortSelect.value = url.searchParams.get("sort") || "newest";
+                // Trigger change to update custom UI if it exists
+                sortSelect.dispatchEvent(new Event('change'));
+            }
         }
 
         function updateClearFilterButton() {
@@ -140,6 +160,7 @@
                 tableContainer.innerHTML = data.html;
                 syncCheckboxes();
                 updateClearFilterButton();
+                document.dispatchEvent(new Event("tableDataLoaded"));
 
                 if (pushHistory) window.history.pushState({}, "", targetUrl);
             } catch (error) {
@@ -162,31 +183,66 @@
             form.appendChild(input);
         }
 
-        function executeBulkDelete() {
+        async function executeBulkDelete() {
             if (!bulkDeleteForm) return;
 
-            bulkDeleteForm
-                .querySelectorAll('input:not([name="_token"])')
-                .forEach((input) => input.remove());
+            const url = bulkDeleteForm.action;
+            const formData = new FormData(bulkDeleteForm);
+
+            // Xóa các input cũ
+            bulkDeleteForm.querySelectorAll('input:not([name="_token"])').forEach(input => input.remove());
 
             if (state.globalSelectAll) {
-                appendHiddenInput(bulkDeleteForm, "delete_all_pages", "1");
-
+                formData.append("delete_all_pages", "1");
                 const params = new URLSearchParams(window.location.search);
                 for (const [key, value] of params.entries()) {
-                    if (key !== "page" && value !== "") appendHiddenInput(bulkDeleteForm, key, value);
+                    if (key !== "page" && value !== "") formData.append(key, value);
                 }
-
-                state.excludedIds.forEach((id) => {
-                    appendHiddenInput(bulkDeleteForm, "excluded_material_ids[]", id);
-                });
+                state.excludedIds.forEach((id) => formData.append("excluded_material_ids[]", id));
             } else {
-                state.selectedIds.forEach((id) => {
-                    appendHiddenInput(bulkDeleteForm, "material_ids[]", id);
-                });
+                state.selectedIds.forEach((id) => formData.append("material_ids[]", id));
             }
+            
+            const currentScrollY = window.scrollY;
 
-            bulkDeleteForm.submit();
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json",
+                    },
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                    window.pendingScrollY = currentScrollY;
+                    resetSelection();
+                    loadTableData();
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Không thể xóa',
+                            text: data.message
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi khi xóa hàng loạt:", error);
+            }
         }
 
         async function submitBulkDelete() {
@@ -221,12 +277,19 @@
             event.preventDefault();
             filterForm.reset();
             if (searchInput) searchInput.value = "";
-            if (statusSelect) statusSelect.value = "all";
-            if (sortSelect) sortSelect.value = "newest";
+            if (statusSelect) {
+                statusSelect.value = "all";
+                statusSelect.dispatchEvent(new Event('change'));
+            }
+            if (sortSelect) {
+                sortSelect.value = "newest";
+                sortSelect.dispatchEvent(new Event('change'));
+            }
             loadTableData();
         });
 
         bulkDeleteButton?.addEventListener("click", submitBulkDelete);
+        bulkDeselectBtn?.addEventListener("click", resetSelection);
 
         tableContainer.addEventListener("click", function (event) {
             const paginationLink = event.target.closest(".ajax-pagination a");
@@ -237,7 +300,7 @@
         });
 
         tableContainer.addEventListener("change", function (event) {
-            if (event.target.id === "selectAll") {
+            if (event.target.classList.contains("js-select-all")) {
                 state.globalSelectAll = event.target.checked;
                 state.selectedIds.clear();
                 state.excludedIds.clear();
@@ -268,13 +331,57 @@
                 "Xác nhận xóa vật tư?",
                 "Vật tư này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
             );
-            if (confirmed) deleteForm.submit();
+            
+            if (confirmed) {
+                if (deleteForm.dataset.ajax === "true") {
+                    const currentScrollY = window.scrollY;
+                    const url = deleteForm.action;
+                    
+                    try {
+                        const response = await fetch(url, {
+                            method: "POST", // Vì Laravel dùng DELETE qua method spoofing _method=DELETE
+                            body: new FormData(deleteForm),
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                                "Accept": "application/json"
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            window.pendingScrollY = currentScrollY;
+                            loadTableData();
+                        } else {
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Lỗi',
+                                    text: data.message
+                                });
+                            } else {
+                                alert(data.message);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi xóa vật tư:", error);
+                    }
+                } else {
+                    deleteForm.submit();
+                }
+            }
         });
 
         window.addEventListener("popstate", function () {
             const url = new URL(window.location.href);
             syncFilterFormFromUrl(url);
             loadTableData(url, { pushHistory: false });
+        });
+
+        document.addEventListener("tableDataLoaded", function () {
+            if (window.pendingScrollY !== undefined) {
+                window.scrollTo({ top: window.pendingScrollY, behavior: 'instant' });
+                window.pendingScrollY = undefined;
+            }
         });
 
         updateClearFilterButton();

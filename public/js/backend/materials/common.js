@@ -1,28 +1,6 @@
 (function () {
     "use strict";
 
-    const swalConfig = {
-        icon: "warning",
-        width: "320px",
-        padding: "1rem",
-        showCancelButton: true,
-        confirmButtonText: "Xóa ngay",
-        cancelButtonText: "Hủy",
-        reverseButtons: true,
-        customClass: {
-            popup: "rounded-xl shadow-xl border border-gray-100",
-            title: "text-base font-bold text-gray-800",
-            htmlContainer: "text-sm text-gray-500 mt-1",
-            confirmButton:
-                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm border-none outline-none ml-2",
-            cancelButton:
-                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all border-none outline-none mr-2",
-            icon: "transform scale-[0.6] -mt-3 -mb-2",
-            actions: "mt-3 w-full flex justify-center",
-        },
-        buttonsStyling: false,
-    };
-
     function openModal(id) {
         document.getElementById(id)?.classList.remove("hidden");
     }
@@ -260,11 +238,9 @@
     }
 
     function confirmAction(title, text) {
-        if (typeof Swal !== "undefined") {
-            return Swal.fire({ ...swalConfig, title, text }).then((result) => result.isConfirmed);
-        }
-
-        return Promise.resolve(window.confirm(text));
+        return new Promise(function (resolve) {
+            window.AdminAlert.confirm(text, function () { resolve(true); }, title);
+        });
     }
 
     document.addEventListener("DOMContentLoaded", function () {

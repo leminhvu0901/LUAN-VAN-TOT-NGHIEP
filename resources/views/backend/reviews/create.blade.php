@@ -3,6 +3,7 @@
 @section('title', 'Thêm Đánh giá mới')
 
 @section('content')
+<div class="reviews-page">
 <div class="p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
     <!-- Header -->
     <div class="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-4">
@@ -45,7 +46,7 @@
                                 <span class="material-symbols-outlined text-[18px] text-gray-400">person</span>
                                 Khách hàng <span class="text-red-500">*</span>
                             </label>
-                            <select name="user_id" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer">
+                            <select name="user_id" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
                                 @foreach($users as $user)
                                     <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }} ({{ $user->email }})</option>
                                 @endforeach
@@ -58,7 +59,7 @@
                                 <span class="material-symbols-outlined text-[18px] text-gray-400">inventory_2</span>
                                 Sản phẩm đánh giá <span class="text-red-500">*</span>
                             </label>
-                            <select name="product_id" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer">
+                            <select name="product_id" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
                                 @foreach($products as $product)
                                     <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
                                 @endforeach
@@ -71,7 +72,7 @@
                                 <span class="material-symbols-outlined text-[18px] text-amber-500" style="font-variation-settings: 'FILL' 1;">star</span>
                                 Số sao đánh giá <span class="text-red-500">*</span>
                             </label>
-                            <select name="rating" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer">
+                            <select name="rating" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
                                 <option value="5" {{ old('rating') == '5' ? 'selected' : '' }}>5 Sao (Rất Tốt)</option>
                                 <option value="4" {{ old('rating') == '4' ? 'selected' : '' }}>4 Sao (Tốt)</option>
                                 <option value="3" {{ old('rating') == '3' ? 'selected' : '' }}>3 Sao (Bình thường)</option>
@@ -149,14 +150,15 @@
                 </div>
 
                 <!-- Nút Lưu -->
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
-                        class="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
+                        class="w-full sm:flex-1 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">add_circle</span>
-                        Thêm đánh giá
+                        Thêm
                     </button>
                     <a href="{{ route('admin.reviews.index') }}"
-                        class="w-full px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200">
+                        class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-200">
+                        <span class="material-symbols-outlined text-[20px]">cancel</span>
                         Hủy
                     </a>
                 </div>
@@ -164,9 +166,9 @@
         </div>
     </form>
 </div>
+</div>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ asset('js/backend/reviews/create.js') }}?v={{ time() }}"></script>
 @endpush

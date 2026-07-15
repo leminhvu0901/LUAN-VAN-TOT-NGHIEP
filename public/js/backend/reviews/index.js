@@ -18,7 +18,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateBulkDeleteButton() {
         const count = window.selectedReviewIds.size;
         if (bulkDeleteContainer) {
-            bulkDeleteContainer.style.display = count > 0 ? 'block' : 'none';
+            if (count > 0) {
+                bulkDeleteContainer.classList.remove('hidden');
+                bulkDeleteContainer.classList.add('flex');
+            } else {
+                bulkDeleteContainer.classList.remove('flex');
+                bulkDeleteContainer.classList.add('hidden');
+            }
+        }
+        const deselectBtn = document.getElementById('bulk-deselect-btn');
+        if (deselectBtn) {
+            if (count > 0) {
+                deselectBtn.classList.remove('hidden');
+                deselectBtn.classList.add('flex');
+            } else {
+                deselectBtn.classList.remove('flex');
+                deselectBtn.classList.add('hidden');
+            }
         }
         if (selectedCountSpan) {
             selectedCountSpan.textContent = count;
@@ -31,29 +47,60 @@ document.addEventListener('DOMContentLoaded', function () {
         allCheckboxes.forEach(cb => {
             cb.checked = window.selectedReviewIds.has(cb.value);
         });
-        const selectAllEl = document.getElementById('selectAll');
-        if (selectAllEl && allCheckboxes.length > 0) {
-            selectAllEl.checked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+        const selectAllEls = document.querySelectorAll('.js-select-all');
+        if (selectAllEls.length > 0 && allCheckboxes.length > 0) {
+            const isAllChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+            selectAllEls.forEach(el => el.checked = isAllChecked);
         }
     }
 
     document.addEventListener('change', function (e) {
-        if (e.target && e.target.id === 'selectAll') {
+        if (e.target && e.target.classList.contains('js-select-all')) {
             const checked = e.target.checked;
-            document.querySelectorAll('.row-checkbox').forEach(cb => {
-                cb.checked = checked;
-                if (checked) window.selectedReviewIds.add(cb.value);
-                else window.selectedReviewIds.delete(cb.value);
-            });
-            updateBulkDeleteButton();
+            // Đồng bộ trạng thái checkbox selectAll khác (nếu có)
+            document.querySelectorAll('.js-select-all').forEach(el => el.checked = checked);
+
+            if (checked) {
+                // Lấy tất cả ID của tất cả các trang dựa trên bộ lọc hiện tại
+                const url = new URL(filterForm.action);
+                const formData = new FormData(filterForm);
+                formData.set('fetch_all_ids', '1');
+                url.search = new URLSearchParams(formData).toString();
+
+                document.querySelectorAll('.js-select-all').forEach(el => el.disabled = true);
+
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.ids) {
+                            window.selectedReviewIds = new Set(data.ids.map(id => id.toString()));
+                            syncCheckboxes();
+                            updateBulkDeleteButton();
+                        }
+                    })
+                    .catch(err => console.error('Lỗi khi lấy danh sách ID:', err))
+                    .finally(() => {
+                        document.querySelectorAll('.js-select-all').forEach(el => el.disabled = false);
+                    });
+            } else {
+                window.selectedReviewIds.clear();
+                syncCheckboxes();
+                updateBulkDeleteButton();
+            }
         }
         if (e.target && e.target.classList.contains('row-checkbox')) {
             if (e.target.checked) window.selectedReviewIds.add(e.target.value);
             else window.selectedReviewIds.delete(e.target.value);
             const allCheckboxes = document.querySelectorAll('.row-checkbox');
-            const selectAllEl = document.getElementById('selectAll');
-            if (selectAllEl) {
-                selectAllEl.checked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+            const selectAllEls = document.querySelectorAll('.js-select-all');
+            if (selectAllEls.length > 0) {
+                const isAllChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+                selectAllEls.forEach(el => el.checked = isAllChecked);
             }
             updateBulkDeleteButton();
         }
@@ -65,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // - Cập nhật URL history, hiển thị partial HTML khi cần
     // =====================
     // Tải dữ liệu bảng review (urlStr nếu truyền lên là link phân trang)
-    function fetchReviews(urlStr = null) {
+    window.fetchReviews = function (urlStr = null) {
         let url;
         if (urlStr) {
             url = new URL(urlStr);
@@ -90,6 +137,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.html) {
                     tableContainer.innerHTML = data.html;
                 }
+                if (data.stats) {
+                    window.updateStats(data.stats);
+                }
                 if (btnClearFilter) {
                     const hasFilters = [...new URLSearchParams(url.search)].some(([key, val]) =>
                         (key === 'search' && val !== '') ||
@@ -108,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     filterForm.querySelectorAll('select').forEach(select => {
-        select.addEventListener('change', () => fetchReviews());
+        select.addEventListener('change', () => window.fetchReviews());
     });
 
     let timeout = null;
@@ -116,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             clearTimeout(timeout);
-            timeout = setTimeout(() => fetchReviews(), 400);
+            timeout = setTimeout(() => window.fetchReviews(), 400);
         });
     }
 
@@ -129,59 +179,90 @@ document.addEventListener('DOMContentLoaded', function () {
                 else s.value = 'all';
             });
             if (searchInput) searchInput.value = '';
-            fetchReviews();
+            window.fetchReviews();
         });
     }
 
     tableContainer.addEventListener('click', function (e) {
+        // Phân trang
         const pageLink = e.target.closest('.pagination-container a');
         if (pageLink) {
             e.preventDefault();
-            fetchReviews(pageLink.href);
+            window.fetchReviews(pageLink.href);
+            return;
+        }
+
+        // Xóa đánh giá
+        const deleteBtn = e.target.closest('.js-delete-review');
+        if (deleteBtn) {
+            e.preventDefault();
+            const id = deleteBtn.getAttribute('data-id');
+            if (window.AdminAlert) {
+                window.AdminAlert.confirm('Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.', function () {
+                    doDelete(id);
+                }, 'Xác nhận xóa?');
+            } else {
+                if (confirm('Bạn có chắc chắn muốn xóa đánh giá này không?')) doDelete(id);
+            }
+            return;
+        }
+
+        // Ẩn/Hiện đánh giá
+        const toggleBtn = e.target.closest('.js-toggle-visibility');
+        if (toggleBtn) {
+            e.preventDefault();
+            const id = toggleBtn.getAttribute('data-id');
+            const url = toggleBtn.getAttribute('data-url');
+            doToggleVisibility(id, url, toggleBtn);
+            return;
         }
     });
 
     // =====================
     // Bulk Delete
     // =====================
-    window.submitBulkDelete = function () {
-        const ids = Array.from(window.selectedReviewIds);
-        if (ids.length === 0) return;
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function () {
+            const ids = Array.from(window.selectedReviewIds);
+            if (ids.length === 0) return;
 
-        window.AdminAlert.confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đánh giá đã chọn?`, function() {
-            const form = document.getElementById('bulk-delete-form');
-            if (form) {
-                // Tạo một input ẩn để chứa danh sách ID
-                let idsInput = document.createElement('input');
-                idsInput.type = 'hidden';
-                idsInput.name = 'review_ids[]';
-                idsInput.value = JSON.stringify(ids);
-                form.appendChild(idsInput);
-                
-                form.submit();
+            if (window.AdminAlert) {
+                window.AdminAlert.confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đánh giá đã chọn?`, function () {
+                    doBulkDelete(ids);
+                }, 'Xác nhận xóa hàng loạt?');
+            } else {
+                if (confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đánh giá đã chọn?`)) doBulkDelete(ids);
             }
-        }, 'Xác nhận xóa hàng loạt?');
-    };
+        });
+    }
+
+    const deselectBtn = document.getElementById('bulk-deselect-btn');
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+            document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false);
+            window.selectedReviewIds.clear();
+            updateBulkDeleteButton();
+        });
+    }
 });
 
 /**
  * Hàm gọi API chuyển trạng thái Ẩn/Hiện đánh giá
  */
-// Gọi API đổi trạng thái hiển thị của một đánh giá và cập nhật nút
-window.toggleVisibility = function (id) {
+function doToggleVisibility(id, url, btn) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    const toggleUrl = window.location.origin + '/admin/reviews/' + id + '/toggle-visibility';
-    const btn = document.getElementById('btn-toggle-' + id);
 
     if (btn) {
         btn.style.opacity = '0.5';
         btn.style.pointerEvents = 'none';
     }
 
-    fetch(toggleUrl, {
+    fetch(url, {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
             'Content-Type': 'application/json',
         }
@@ -191,26 +272,31 @@ window.toggleVisibility = function (id) {
             if (data.success) {
                 if (btn) {
                     if (data.new_status) {
-                        btn.innerHTML = `
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-semibold text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors">
-                            <span class="material-symbols-outlined text-[16px]">visibility</span>
-                            Hiển thị
-                        </span>`;
+                        btn.outerHTML = `
+                        <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[11px] lg:text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors" data-id="${id}" data-url="${url}">
+                            <span class="material-symbols-outlined text-[14px] lg:text-[16px]" style="font-variation-settings: 'FILL' 1;">visibility</span>
+                            Đang hiển thị
+                        </button>`;
                     } else {
-                        btn.innerHTML = `
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-semibold text-xs border border-rose-100 hover:bg-rose-100 transition-colors">
-                            <span class="material-symbols-outlined text-[16px]">visibility_off</span>
-                            Bị ẩn
-                        </span>`;
+                        btn.outerHTML = `
+                        <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-[11px] lg:text-xs border border-rose-100 hover:bg-rose-100 transition-colors" data-id="${id}" data-url="${url}">
+                            <span class="material-symbols-outlined text-[14px] lg:text-[16px]" style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+                            Đang ẩn
+                        </button>`;
                     }
                 }
+                if (data.stats) {
+                    window.updateStats(data.stats);
+                }
             } else {
-                window.AdminAlert.error('Cập nhật trạng thái thất bại!', 'Lỗi');
+                if (window.AdminAlert) window.AdminAlert.error('Cập nhật trạng thái thất bại!', 'Lỗi');
             }
         })
-        .catch(() => window.AdminAlert.error('Có lỗi xảy ra khi cập nhật trạng thái.', 'Lỗi'))
+        .catch(() => {
+            if (window.AdminAlert) window.AdminAlert.error('Có lỗi xảy ra khi cập nhật trạng thái.', 'Lỗi');
+        })
         .finally(() => {
-            if (btn) {
+            if (btn && btn.parentNode) { // Check parentNode just in case outerHTML wasn't successful
                 btn.style.opacity = '1';
                 btn.style.pointerEvents = 'auto';
             }
@@ -220,14 +306,6 @@ window.toggleVisibility = function (id) {
 /**
  * Xóa đánh giá bằng AdminAlert
  */
-// Hiển thị hộp thoại xác nhận (AdminAlert) trước khi gọi xóa
-window.deleteReview = function (id) {
-    window.AdminAlert.confirm('Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác.', function() {
-        doDelete(id);
-    }, 'Xác nhận xóa?');
-}
-
-// Thực hiện gọi API xóa một đánh giá, cập nhật UI (ẩn/loại bỏ row) và thông báo
 function doDelete(id) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     const deleteUrl = window.location.origin + '/admin/reviews/' + id;
@@ -244,20 +322,66 @@ function doDelete(id) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                const row = document.getElementById('review-row-' + id);
-                if (row) {
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.opacity = '0';
-                    row.style.transform = 'translateX(20px)';
-                    setTimeout(() => row.remove(), 300);
-                }
+                if (window.AdminAlert) window.AdminAlert.success(data.message || 'Xóa thành công!', 'Đã xóa!');
+                window.selectedReviewIds.delete(id.toString());
 
-                window.AdminAlert.success(data.message, 'Đã xóa!');
+                if (typeof window.fetchReviews === 'function') {
+                    window.fetchReviews();
+                } else {
+                    window.location.reload();
+                }
             } else {
-                window.AdminAlert.error('Xóa thất bại. Vui lòng thử lại.', 'Thất bại');
+                if (window.AdminAlert) window.AdminAlert.error(data.message || 'Xóa thất bại. Vui lòng thử lại.', 'Thất bại');
             }
         })
         .catch(() => {
-            window.AdminAlert.error('Có lỗi xảy ra khi xóa. Vui lòng thử lại.', 'Lỗi');
+            if (window.AdminAlert) window.AdminAlert.error('Có lỗi xảy ra khi xóa. Vui lòng thử lại.', 'Lỗi');
         });
 }
+
+function doBulkDelete(ids) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const bulkDeleteUrl = document.getElementById('bulk-delete-form')?.action || (window.location.origin + '/admin/reviews/bulk-delete');
+
+    fetch(bulkDeleteUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ review_ids: ids })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.AdminAlert) window.AdminAlert.success(data.message || 'Xóa hàng loạt thành công!', 'Đã xóa!');
+                window.selectedReviewIds.clear();
+
+                if (typeof window.fetchReviews === 'function') {
+                    window.fetchReviews();
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                if (window.AdminAlert) window.AdminAlert.error(data.message || 'Xóa thất bại. Vui lòng thử lại.', 'Thất bại');
+            }
+        })
+        .catch(() => {
+            if (window.AdminAlert) window.AdminAlert.error('Có lỗi xảy ra khi xóa hàng loạt. Vui lòng thử lại.', 'Lỗi');
+        });
+}
+
+/**
+ * Cập nhật số liệu thống kê ở đầu trang
+ */
+window.updateStats = function (stats) {
+    if (!stats) return;
+    const totalEl = document.getElementById('stat-total-reviews');
+    const activeEl = document.getElementById('stat-active-reviews');
+    const hiddenEl = document.getElementById('stat-hidden-reviews');
+    if (totalEl && stats.total !== undefined) totalEl.textContent = stats.total;
+    if (activeEl && stats.active !== undefined) activeEl.textContent = stats.active;
+    if (hiddenEl && stats.hidden !== undefined) hiddenEl.textContent = stats.hidden;
+};

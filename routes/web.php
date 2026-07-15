@@ -217,7 +217,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // QUẢN LÝ DANH MỤC
     Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
     Route::resource('categories', App\Http\Controllers\Backend\CategoryController::class)->except(['show']);
-
+ 
 
     // QUẢN LÝ KHO
     Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');

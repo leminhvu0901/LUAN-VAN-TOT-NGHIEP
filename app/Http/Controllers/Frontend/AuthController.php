@@ -230,12 +230,14 @@ class AuthController
         // 2. Thực hiện đăng nhập bằng facade Auth (Tự kiểm tra email và giải mã khớp bcrypt password)
         // Tham số thứ 2 `$request->filled('remember')` hỗ trợ chức năng "Ghi nhớ đăng nhập" qua Cookie
         if (Auth::attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
+            $user = Auth::user();
+
             // Đăng nhập thành công: Làm mới ID Session để chống tấn công cố định phiên (Session Fixation)
             $request->session()->regenerate();
             $request->session()->put('login_method', 'email');
 
             // Nếu tài khoản có vai trò là quản trị viên -> đưa thẳng vào trang tổng quan
-            if (Auth::user()->role === 'admin') {
+            if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
             }
 

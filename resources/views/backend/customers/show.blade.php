@@ -11,6 +11,7 @@
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách --}}
                     <a href="{{ route('admin.customers.index') }}"
+                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                         <span class="material-symbols-outlined text-[20px]">arrow_back</span>
                     </a>
@@ -26,10 +27,15 @@
                         Đang hoạt động
                     </span>
                 @else
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-sm font-semibold shadow-sm">
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                        Đang bị khóa
-                    </span>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-sm font-semibold shadow-sm" {!! $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            Đang bị khóa
+                        </span>
+                        @if($customer->lock_reason)
+                            <span class="text-xs text-rose-500 font-medium bg-rose-50 px-2 py-0.5 rounded border border-rose-100">Lý do: {{ $customer->lock_reason }}</span>
+                        @endif
+                    </div>
                 @endif
             </div>
         </div>

@@ -186,6 +186,14 @@ class CustomerController
         try {
             $customer = User::where('role', 'customer')->findOrFail($id);
             $customer->is_active = $request->input('is_active');
+            
+            // Cập nhật lý do khóa tài khoản
+            if ($customer->is_active == 0) {
+                $customer->lock_reason = $request->input('lock_reason');
+            } else {
+                $customer->lock_reason = null; // Reset lý do khi mở khóa
+            }
+            
             $customer->save();
 
             return response()->json([

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'membership_level', // Hạng thành viên (new, silver, gold, diamond)
         'role',             // Quyền hạn (admin, user...)
         'is_active',        // Trạng thái tài khoản (1: hoạt động, 0: khoá)
+        'lock_reason',      // Lý do khóa tài khoản
         'oauth_provider',   // Đăng nhập bằng mạng xã hội nào (Google, Facebook...)
         'oauth_id',         // ID từ mạng xã hội
         'google_id',        // ID riêng của Google

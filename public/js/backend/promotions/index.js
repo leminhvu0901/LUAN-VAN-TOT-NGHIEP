@@ -52,19 +52,31 @@ document.addEventListener("DOMContentLoaded", function () {
     const filterForm = document.getElementById("filter-form");
     const tableContainer = document.getElementById("table-container");
     const btnClearFilter = document.getElementById("btn-clear-filter");
-    const bulkDeleteContainer = document.getElementById("bulk-delete-container", ); //nút xóa nhiều
-    const selectedCountSpan = document.getElementById("selected-count"); // hien thi so luong da chon
+    const bulkDeleteContainer = document.getElementById("bulk-delete-container");
+    const selectedCountSpan = document.getElementById("selected-count");
+    const deselectBtn = document.getElementById("bulk-deselect-btn");
 
     // =====================
     // Quản lý chọn nhiều dòng trong bảng
     // =====================
     window.selectedPromotionIds = new Set();
 
-    // CAP NHAT TRANG THAI NUI XOA
+    // CẬP NHẬT TRẠNG THÁI NÚT XÓA HÀNG LOẠT
     function updateBulkDeleteButton() {
         const count = window.selectedPromotionIds.size;
         if (bulkDeleteContainer) {
-            bulkDeleteContainer.style.display = count > 0 ? "block" : "none";
+            if (count > 0) {
+                bulkDeleteContainer.classList.remove("hidden");
+            } else {
+                bulkDeleteContainer.classList.add("hidden");
+            }
+        }
+        if (deselectBtn) {
+            if (count > 0) {
+                deselectBtn.classList.remove("hidden");
+            } else {
+                deselectBtn.classList.add("hidden");
+            }
         }
         if (selectedCountSpan) {
             selectedCountSpan.textContent = count;
@@ -73,62 +85,92 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Đồng bộ lại checkbox sau khi bảng được render lại bằng AJAX
     function syncCheckboxes() {
-        // Đồng bộ trạng thái checkbox sau khi bảng được render lại bằng AJAX
         const allCheckboxes = document.querySelectorAll(".row-checkbox");
+        let checkedCount = 0;
         allCheckboxes.forEach((cb) => {
-            cb.checked = window.selectedPromotionIds.has(cb.value);
+            const hasId = window.selectedPromotionIds.has(cb.value);
+            cb.checked = hasId;
+            if (hasId) checkedCount++;
         });
+
+        // Đồng bộ checkbox SelectAll ở cả desktop và mobile
         const selectAllEl = document.getElementById("selectAll");
-        if (selectAllEl && allCheckboxes.length > 0) {
-            selectAllEl.checked = document.querySelectorAll(".row-checkbox:checked").length === allCheckboxes.length;
-        }
+        const selectAllMobileEl = document.getElementById("selectAll-mobile");
+        
+        const isAllChecked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+        if (selectAllEl) selectAllEl.checked = isAllChecked;
+        if (selectAllMobileEl) selectAllMobileEl.checked = isAllChecked;
     }
 
-    //LẮNG NGHE SỰ KIỆN THAY ĐỔI
+    // LẮNG NGHE SỰ KIỆN CLICK TRÊN CHECKBOX SELECT ALL & ROW CHECKBOX (Dùng Event Delegation)
     document.addEventListener("change", function (e) {
-        // Chọn/bỏ chọn tất cả
-        if (e.target && e.target.id === "selectAll") {
+        if (e.target && e.target.classList.contains("js-select-all")) {
             const checked = e.target.checked;
-            document.querySelectorAll(".row-checkbox").forEach((cb) => {
-                cb.checked = checked;
-                if (checked) window.selectedPromotionIds.add(cb.value);
-                else window.selectedPromotionIds.delete(cb.value);
-            });
-            updateBulkDeleteButton();
-        }
-        if (e.target && e.target.classList.contains("row-checkbox")) {
-            if (e.target.checked)
-                window.selectedPromotionIds.add(e.target.value);
-            else window.selectedPromotionIds.delete(e.target.value);
-            const allCheckboxes = document.querySelectorAll(".row-checkbox");
-            const selectAllEl = document.getElementById("selectAll");
-            if (selectAllEl) {
-                selectAllEl.checked = document.querySelectorAll(".row-checkbox:checked").length === allCheckboxes.length;
+            if (checked) {
+                // Fetch tất cả ID khớp bộ lọc hiện tại xuyên trang
+                let url = new URL(filterForm.action);
+                let params = new URLSearchParams(new FormData(filterForm));
+                params.set("fetch_all_ids", "1");
+                url.search = params.toString();
+
+                fetch(url, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json",
+                    },
+                })
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (data.ids && Array.isArray(data.ids)) {
+                            data.ids.forEach((id) => window.selectedPromotionIds.add(String(id)));
+                            syncCheckboxes();
+                            updateBulkDeleteButton();
+                        }
+                    })
+                    .catch((err) => console.error("Lỗi lấy danh sách ID khuyến mãi:", err));
+            } else {
+                // Bỏ chọn tất cả xuyên trang
+                window.selectedPromotionIds.clear();
+                syncCheckboxes();
+                updateBulkDeleteButton();
             }
+        }
+
+        if (e.target && e.target.classList.contains("row-checkbox")) {
+            const val = String(e.target.value);
+            if (e.target.checked) {
+                window.selectedPromotionIds.add(val);
+            } else {
+                window.selectedPromotionIds.delete(val);
+            }
+            syncCheckboxes();
             updateBulkDeleteButton();
         }
     });
 
-    //Lấy dữ liệu khuyến mãi mới từ server và cập nhật lại bảng mà không cần tải lại cả trang.
+    if (deselectBtn) {
+        deselectBtn.addEventListener("click", function () {
+            window.selectedPromotionIds.clear();
+            syncCheckboxes();
+            updateBulkDeleteButton();
+        });
+    }
+
+    // Lấy dữ liệu khuyến mãi mới từ server và cập nhật lại bảng mà không cần tải lại cả trang.
     function fetchPromotions(urlStr = null) {
         let url;
         if (urlStr) {
-            // Khi bấm phân trang, dùng luôn URL đã có query string
             url = new URL(urlStr);
         } else {
-            // Khi lọc bằng form, chuyển dữ liệu form thành query string
             url = new URL(filterForm.action);
             const formData = new FormData(filterForm);
             const searchParams = new URLSearchParams(formData);
             url.search = searchParams.toString();
         }
 
+        tableContainer.style.opacity = "0.5";
+        tableContainer.style.pointerEvents = "none";
 
-        window.history.pushState({}, "", url);//doi url
-        tableContainer.style.opacity = "0.5";//lam mo
-        tableContainer.style.pointerEvents = "none"; //khong cho bam
-
-        // Gọi endpoint hiện tại và yêu cầu trả về JSON
         fetch(url, {
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -140,28 +182,46 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (data.html) {
                     tableContainer.innerHTML = data.html;
                 }
+
+                // Cập nhật thống kê
+                if (data.stats) {
+                    const totalEl = document.getElementById("stat-total");
+                    const activeEl = document.getElementById("stat-active");
+                    const expiredEl = document.getElementById("stat-expired");
+                    if (totalEl) totalEl.textContent = data.stats.total;
+                    if (activeEl) activeEl.textContent = data.stats.active;
+                    if (expiredEl) expiredEl.textContent = data.stats.expired;
+                }
+
+                // Tự động lùi về trang trước nếu trang hiện tại rỗng
+                const checkboxes = tableContainer.querySelectorAll(".row-checkbox");
+                if (checkboxes.length === 0) {
+                    const pageParam = url.searchParams.get("page");
+                    if (pageParam && parseInt(pageParam) > 1) {
+                        url.searchParams.set("page", parseInt(pageParam) - 1);
+                        fetchPromotions(url.toString());
+                        return;
+                    }
+                }
+
                 if (data.total !== undefined) {
-                    const totalInput = document.getElementById(
-                        "total-promotions-count",
-                    );
+                    const totalInput = document.getElementById("total-promotions-count");
                     if (totalInput) totalInput.value = data.total;
                 }
                 if (btnClearFilter) {
-                    // Ẩn/nút xoá lọc tuỳ theo form hiện đang có điều kiện lọc hay không
                     const hasFilters = [
                         ...new URLSearchParams(url.search),
                     ].some(
                         ([key, val]) =>
-                            (key === "search" && val !== "") ||(key !== "search" &&  key !== "page" && val !== "all" &&val !== "newest"),
-                        );
-                    btnClearFilter.style.display = hasFilters ? "inline-block": "none";
+                            (key === "search" && val !== "") ||
+                            (key !== "search" && key !== "page" && val !== "all" && val !== "newest"),
+                    );
+                    btnClearFilter.style.display = hasFilters ? "flex" : "none";
                 }
                 syncCheckboxes();
                 updateBulkDeleteButton();
             })
-            .catch((error) =>
-                console.error("Lỗi khi tải dữ liệu khuyến mãi:", error),
-            )
+            .catch((error) => console.error("Lỗi khi tải dữ liệu khuyến mãi:", error))
             .finally(() => {
                 tableContainer.style.opacity = "1";
                 tableContainer.style.pointerEvents = "auto";
@@ -176,7 +236,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let timeout = null;
     const searchInput = filterForm.querySelector('input[name="search"]');
     if (searchInput) {
-        // Debounce để không gửi request liên tục khi đang gõ
         searchInput.addEventListener("input", function () {
             clearTimeout(timeout);
             timeout = setTimeout(() => fetchPromotions(), 400);
@@ -184,7 +243,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (btnClearFilter) {
-        // Reset form về trạng thái mặc định rồi tải lại dữ liệu
         btnClearFilter.addEventListener("click", function (e) {
             e.preventDefault();
             filterForm.reset();
@@ -207,7 +265,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // =====================
-    // Xoá hàng loạt
+    // Xoá hàng loạt bằng AJAX
     // =====================
     const swalConfig = {
         icon: "warning",
@@ -231,12 +289,10 @@ document.addEventListener("DOMContentLoaded", function () {
         buttonsStyling: false,
     };
 
-    // Xác nhận trước khi gửi form xoá nhiều khuyến mãi
     window.submitBulkDelete = function () {
         const count = window.selectedPromotionIds.size;
         if (count === 0) return;
 
-        // Dùng SweetAlert nếu có, fallback sang confirm mặc định của trình duyệt
         if (typeof Swal !== "undefined") {
             Swal.fire({
                 ...swalConfig,
@@ -254,28 +310,84 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    // Tạo danh sách ID đã chọn và submit form xoá hàng loạt lên server
     function executeBulkDelete() {
-        const form = document.getElementById("bulk-delete-form");
-        // Xoá các input động cũ trước khi thêm danh sách ID mới
-        form.querySelectorAll(
-            'input:not([name="_token"]):not([name="total_promotions_count"])',
-        ).forEach((el) => el.remove());
+        const csrfToken =
+            document.querySelector('meta[name="csrf-token"]')?.content ||
+            document.querySelector('input[name="_token"]')?.value ||
+            "";
 
-        // Đưa các ID đã chọn vào form để submit lên server
-        window.selectedPromotionIds.forEach((id) => {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = "promotion_ids[]";
-            input.value = id;
-            form.appendChild(input);
-        });
+        const bulkUrl = filterForm.action.replace("/promotions", "/promotions/bulk-delete");
 
-        form.submit();
+        tableContainer.style.opacity = "0.5";
+        tableContainer.style.pointerEvents = "none";
+
+        fetch(bulkUrl, {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": csrfToken,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({
+                promotion_ids: Array.from(window.selectedPromotionIds),
+            }),
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.success) {
+                    window.selectedPromotionIds.clear();
+                    if (typeof Swal !== "undefined") {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Thành công!",
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false,
+                            width: "320px",
+                            padding: "1rem",
+                            customClass: {
+                                popup: "rounded-xl shadow-xl border border-gray-100",
+                                title: "text-base font-bold text-gray-800",
+                                icon: "transform scale-[0.6] -mt-3 -mb-2",
+                            },
+                        });
+                    }
+                    fetchPromotions();
+                } else {
+                    throw new Error(data.message || "Xóa thất bại");
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                if (typeof Swal !== "undefined") {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Lỗi",
+                        text: err.message || "Có lỗi xảy ra khi xóa.",
+                        width: "320px",
+                        padding: "1rem",
+                        confirmButtonText: "Đóng",
+                        buttonsStyling: false,
+                        customClass: {
+                            popup: "rounded-xl shadow-xl border border-gray-100",
+                            title: "text-base font-bold text-gray-800",
+                            confirmButton:
+                                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm",
+                            icon: "transform scale-[0.6] -mt-3 -mb-2",
+                            actions: "mt-3 w-full flex justify-center",
+                        },
+                    });
+                }
+            })
+            .finally(() => {
+                tableContainer.style.opacity = "1";
+                tableContainer.style.pointerEvents = "auto";
+            });
     }
 });
 
-// Escape chuỗi để tránh chèn HTML khi hiển thị lỗi validate
+// Escape chuỗi để tránh chèn HTML
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")
@@ -285,10 +397,7 @@ function escapeHtml(value) {
         .replaceAll("'", "&#39;");
 }
 
-/**
- * Xoá một khuyến mãi đơn lẻ
- */
-// Hiển thị hộp thoại xác nhận xoá một khuyến mãi
+// Xoá một khuyến mãi đơn lẻ
 function deletePromotion(id, code) {
     if (typeof Swal !== "undefined") {
         Swal.fire({
@@ -325,15 +434,13 @@ function deletePromotion(id, code) {
     }
 }
 
-// Gửi request DELETE và cập nhật lại dòng trên giao diện sau khi xoá
+// Gửi request DELETE và cập nhật lại giao diện sau khi xoá
 function doDelete(id) {
-    // Lấy CSRF token từ meta hoặc input ẩn để gửi request DELETE hợp lệ
     const csrfToken =
         document.querySelector('meta[name="csrf-token"]')?.content ||
         document.querySelector('input[name="_token"]')?.value ||
         "";
 
-    // URL xoá theo route backend hiện tại
     const deleteUrl = window.location.origin + "/admin/promotions/" + id;
 
     fetch(deleteUrl, {
@@ -347,13 +454,20 @@ function doDelete(id) {
         .then((res) => res.json())
         .then((data) => {
             if (data.success) {
-                // Xoá dòng trên UI trước để phản hồi nhanh cho người dùng
+                window.selectedPromotionIds.delete(String(id));
                 const row = document.getElementById("promo-row-" + id);
+                const card = document.getElementById("promo-card-" + id);
                 if (row) {
                     row.style.transition = "all 0.3s ease";
                     row.style.opacity = "0";
                     row.style.transform = "translateX(20px)";
                     setTimeout(() => row.remove(), 300);
+                }
+                if (card) {
+                    card.style.transition = "all 0.3s ease";
+                    card.style.opacity = "0";
+                    card.style.transform = "translateX(20px)";
+                    setTimeout(() => card.remove(), 300);
                 }
 
                 if (typeof Swal !== "undefined") {
@@ -372,13 +486,73 @@ function doDelete(id) {
                         },
                     });
                 }
+                
+                // Kích hoạt re-fetch sau khi xóa thành công để cập nhật thống kê + phân trang
+                setTimeout(() => {
+                    const tableContainer = document.getElementById("table-container");
+                    if (tableContainer) {
+                        const filterForm = document.getElementById("filter-form");
+                        const url = new URL(filterForm.action);
+                        const formData = new FormData(filterForm);
+                        url.search = new URLSearchParams(formData).toString();
+                        
+                        // Lùi trang nếu xóa mục cuối
+                        const checkboxes = tableContainer.querySelectorAll(".row-checkbox");
+                        if (checkboxes.length === 0) {
+                            const pageParam = url.searchParams.get("page");
+                            if (pageParam && parseInt(pageParam) > 1) {
+                                url.searchParams.set("page", parseInt(pageParam) - 1);
+                            }
+                        }
+
+                        // Gọi lại fetch để cập nhật thống kê + table HTML
+                        fetch(url.toString(), {
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                                Accept: "application/json",
+                            },
+                        })
+                            .then((response) => response.json())
+                            .then((resData) => {
+                                if (resData.html) {
+                                    tableContainer.innerHTML = resData.html;
+                                }
+                                if (resData.stats) {
+                                    const totalEl = document.getElementById("stat-total");
+                                    const activeEl = document.getElementById("stat-active");
+                                    const expiredEl = document.getElementById("stat-expired");
+                                    if (totalEl) totalEl.textContent = resData.stats.total;
+                                    if (activeEl) activeEl.textContent = resData.stats.active;
+                                    if (expiredEl) expiredEl.textContent = resData.stats.expired;
+                                }
+                                // Đồng bộ lại checkbox
+                                const allCheckboxes = document.querySelectorAll(".row-checkbox");
+                                allCheckboxes.forEach((cb) => {
+                                    cb.checked = window.selectedPromotionIds.has(cb.value);
+                                });
+                                // Đồng bộ bulk delete buttons
+                                const count = window.selectedPromotionIds.size;
+                                const bulkDeleteContainer = document.getElementById("bulk-delete-container");
+                                const deselectBtn = document.getElementById("bulk-deselect-btn");
+                                const selectedCountSpan = document.getElementById("selected-count");
+                                if (bulkDeleteContainer) {
+                                    bulkDeleteContainer.classList.toggle("hidden", count === 0);
+                                }
+                                if (deselectBtn) {
+                                    deselectBtn.classList.toggle("hidden", count === 0);
+                                }
+                                if (selectedCountSpan) {
+                                    selectedCountSpan.textContent = count;
+                                }
+                            });
+                    }
+                }, 310);
             } else {
-                // Hiển thị lỗi trả về từ server nếu có
                 if (typeof Swal !== "undefined") {
                     Swal.fire({
                         icon: "error",
                         title: "Thất bại",
-                        text: data.message || "Xóa thất b ại. Vui lòng thử lại.",
+                        text: data.message || "Xóa thất bại. Vui lòng thử lại.",
                         width: "320px",
                         padding: "1rem",
                         confirmButtonText: "Đóng",
@@ -398,7 +572,6 @@ function doDelete(id) {
             }
         })
         .catch(() => {
-            // Bắt lỗi mạng hoặc lỗi không parse được JSON
             if (typeof Swal !== "undefined") {
                 Swal.fire({
                     icon: "error",
@@ -423,26 +596,25 @@ function doDelete(id) {
         });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const tableContainer = document.getElementById('table-container');
+// Lắng nghe sự kiện click trên nội dung bảng để xóa bằng Event Delegation
+document.addEventListener("DOMContentLoaded", function () {
+    const tableContainer = document.getElementById("table-container");
     if (tableContainer) {
-        tableContainer.addEventListener('click', function(e) {
-            const deleteBtn = e.target.closest('.js-delete-promotion');
+        tableContainer.addEventListener("click", function (e) {
+            const deleteBtn = e.target.closest(".js-delete-promotion");
             if (deleteBtn) {
                 const id = deleteBtn.dataset.id;
                 const code = deleteBtn.dataset.code;
-                if (typeof deletePromotion === 'function') {
-                    deletePromotion(id, code);
-                }
+                deletePromotion(id, code);
             }
         });
     }
 
-    const bulkDeleteBtn = document.querySelector('.js-bulk-delete');
+    const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     if (bulkDeleteBtn) {
-        bulkDeleteBtn.addEventListener('click', function(e) {
+        bulkDeleteBtn.addEventListener("click", function (e) {
             e.preventDefault();
-            if (typeof window.submitBulkDelete === 'function') {
+            if (typeof window.submitBulkDelete === "function") {
                 window.submitBulkDelete();
             }
         });

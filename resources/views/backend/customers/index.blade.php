@@ -3,7 +3,7 @@
 @section('title', 'Quản lý Khách hàng - Admin')
 
 @section('content')
-    <div class="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <div class="customers-page space-y-6 sm:space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
 
         <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -11,10 +11,22 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Quản lý Khách hàng</h1>
                 <p class="text-gray-500 text-sm mt-1">Quản lý danh sách thành viên, hạng và lịch sử tích lũy.</p>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.customers.create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium text-sm shadow-sm hover:shadow-md">
-                    <span class="material-symbols-outlined text-[20px]">add</span>
-                    Thêm Khách hàng
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                <button type="button" id="bulk-deselect-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
+                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
+                </button>
+
+                <div id="bulk-delete-container" class="hidden flex-1 sm:flex-none">
+                    <button type="button" class="js-bulk-delete w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100" title="Xóa đã chọn">
+                        <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                        <span class="font-semibold whitespace-nowrap">Xóa (<span id="selected-count" class="font-bold">0</span>)</span>
+                    </button>
+                </div>
+
+                <a href="{{ route('admin.customers.create') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-medium text-sm shadow-sm hover:shadow-md whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[20px] shrink-0">add</span>
+                    <span class="font-semibold whitespace-nowrap">Thêm Khách hàng</span>
                 </a>
             </div>
         </div>
@@ -77,57 +89,60 @@
         </form>
 
         <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
-        <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 mt-4 sm:mt-0">
-            <form action="{{ route('admin.customers.index') }}" method="GET" id="filter-form"
-                class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 mt-4 sm:mt-0 flex flex-col gap-4">
+            <div class="flex items-center justify-between xl:hidden">
+                <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
+                <button type="button" onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors shrink-0 border border-gray-100" title="Mở bộ lọc">
+                    <span class="material-symbols-outlined text-[20px]">filter_list</span>
+                </button>
+            </div>
 
-                <div class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-72 relative focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all">
-                    <span class="material-symbols-outlined text-gray-400">search</span>
-                    <input type="text" name="search" value="{{ request('search') }}"
-                        class="bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none"
-                        placeholder="Tìm tên, email, SĐT...">
-                </div>
-
-                <div class="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
-                    <select name="membership"
-                        class="px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
-                        <option value="all">Tất cả hạng</option>
-                        <option value="diamond" {{ request('membership') == 'diamond' ? 'selected' : '' }}>Kim cương</option>
-                        <option value="gold" {{ request('membership') == 'gold' ? 'selected' : '' }}>Vàng</option>
-                        <option value="silver" {{ request('membership') == 'silver' ? 'selected' : '' }}>Bạc</option>
-                        <option value="new" {{ request('membership') == 'new' ? 'selected' : '' }}>Mới</option>
-                    </select>
-
-                    <select name="status"
-                        class="px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
-                        <option value="all">Trạng thái</option>
-                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
-                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Bị khóa</option>
-                    </select>
-
-                    <select name="sort"
-                        class="col-span-2 sm:col-span-1 px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
-                        <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Mới nhất</option>
-                        <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
-                        <option value="points_desc" {{ request('sort') == 'points_desc' ? 'selected' : '' }}>Điểm: Cao → Thấp</option>
-                        <option value="points_asc" {{ request('sort') == 'points_asc' ? 'selected' : '' }}>Điểm: Thấp → Cao</option>
-                    </select>
-                </div>
-
-                <a href="{{ route('admin.customers.index') }}" id="btn-clear-filter"
-                    class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
-                    style="display: {{ (request('search') || (request('membership') && request('membership') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">
-                    Xóa lọc
-                </a>
-
-                <!-- Nút xóa nhiều -->
-                <div id="bulk-delete-container" style="display:none;" class="w-full sm:w-auto">
-                    <button type="button" class="js-bulk-delete flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all w-full sm:w-auto">
-                        <span class="material-symbols-outlined text-[20px]">delete_sweep</span>
-                        Xóa <span id="selected-count" class="mx-1">0</span> tài khoản
-                    </button>
-                </div>
-            </form>
+            <div id="filter-wrapper" class="hidden xl:flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full transition-all">
+                <form action="{{ route('admin.customers.index') }}" method="GET" id="filter-form"
+                    class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full">
+    
+                    <div class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-72 relative focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all">
+                        <span class="material-symbols-outlined text-gray-400">search</span>
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            class="bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none"
+                            placeholder="Tìm tên, email, SĐT...">
+                    </div>
+    
+                    <div class="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
+                        <select name="membership" id="membership-select" data-width-class="w-full sm:w-[150px]"
+                            class="custom-select-init px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
+                            <option value="all">Tất cả hạng</option>
+                            <option value="diamond" {{ request('membership') == 'diamond' ? 'selected' : '' }}>Kim cương</option>
+                            <option value="gold" {{ request('membership') == 'gold' ? 'selected' : '' }}>Vàng</option>
+                            <option value="silver" {{ request('membership') == 'silver' ? 'selected' : '' }}>Bạc</option>
+                            <option value="new" {{ request('membership') == 'new' ? 'selected' : '' }}>Mới</option>
+                        </select>
+    
+                        <select name="status" id="status-select" data-width-class="w-full sm:w-[150px]"
+                            class="custom-select-init px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
+                            <option value="all">Trạng thái</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Hoạt động</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Bị khóa</option>
+                        </select>
+    
+                        <select name="sort" id="sort-select" data-width-class="w-full sm:w-[180px]"
+                            class="custom-select-init col-span-2 sm:col-span-1 px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none w-full sm:w-auto">
+                            <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Mới nhất</option>
+                            <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
+                            <option value="points_desc" {{ request('sort') == 'points_desc' ? 'selected' : '' }}>Điểm: Cao → Thấp</option>
+                            <option value="points_asc" {{ request('sort') == 'points_asc' ? 'selected' : '' }}>Điểm: Thấp → Cao</option>
+                        </select>
+                    </div>
+    
+                    <a href="{{ route('admin.customers.index') }}" id="btn-clear-filter"
+                        class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
+                        style="display: {{ (request('search') || (request('membership') && request('membership') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">
+                        Xóa lọc
+                    </a>
+    
+                    <!-- Nút xóa nhiều đã chuyển lên header -->
+                </form>
+            </div>
         </div>
 
         <!-- Bảng danh sách Khách hàng -->
@@ -139,6 +154,5 @@
 @endsection
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('js/backend/customers/index.js') }}?v={{ time() }}"></script>
 @endpush
