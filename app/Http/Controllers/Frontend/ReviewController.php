@@ -154,7 +154,7 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = 'reviews/' . time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('images/reviews'), $imageName);
+                    $image->move(public_path('images'), $imageName);
                     $imageNames[] = $imageName;
                 }
             }

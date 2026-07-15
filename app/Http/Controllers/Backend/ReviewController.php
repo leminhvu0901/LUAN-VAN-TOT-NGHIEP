@@ -147,7 +147,7 @@ class ReviewController
                 }
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
-                    $filename = 'review_' . time() . '_' . uniqid() . '.' . $ext;
+                    $filename = 'reviews/review_' . time() . '_' . uniqid() . '.' . $ext;
                     $file->move(public_path('images'), $filename);
                     $images[] = $filename;
                 }
@@ -216,7 +216,7 @@ class ReviewController
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
                     $imageName = 'reviews/' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
-                    $file->move(public_path('images/reviews'), $imageName);
+                    $file->move(public_path('images'), $imageName);
                     $images[] = $imageName;
                     $currentCount++;
                 }
