@@ -7,17 +7,36 @@
         <div class="home-hero__inner" id="hero-slider">
             @if(isset($banners) && $banners->count() > 0)
                 @foreach($banners as $index => $banner)
-                    <img src="{{ asset($banner->image_url) }}"
+                    @php
+                        $bannerUrl = $banner->image_url;
+                        if (file_exists(public_path($bannerUrl))) {
+                            $bannerUrl = asset($bannerUrl);
+                        } elseif (file_exists(public_path('storage/' . $bannerUrl))) {
+                            $bannerUrl = asset('storage/' . $bannerUrl);
+                        } elseif (strpos($bannerUrl, 'banners/') === 0) {
+                            $bannerUrl = asset('images/banners/' . basename($bannerUrl));
+                        } else {
+                            $bannerUrl = asset($bannerUrl);
+                        }
+                        if ($index === 0) {
+                            $firstBannerUrl = $bannerUrl;
+                        }
+                    @endphp
+                    <img src="{{ $bannerUrl }}"
                         class="home-hero__img hero-slide-img {{ $index === 0 ? 'active' : '' }}" 
                         data-title="{{ $banner->title }}"
                         data-title-tag="{{ $banner->title_tag ?? '🌿 Đồ uống tươi ngon' }}"
                         alt="{{ $banner->title ?? 'Banner' }}">
                 @endforeach
+                @if(isset($firstBannerUrl))
+                    <img src="{{ $firstBannerUrl }}" class="home-hero__tracker" alt="">
+                @endif
             @else
-                <img src="{{ asset('images/slider/slider-1.png') }}" class="home-hero__img hero-slide-img active"
+                <img src="{{ asset('images/banners/slider-1.png') }}" class="home-hero__img hero-slide-img active"
                     data-title="Thưởng thức hương vị tuyệt vời" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 1">
-                <img src="{{ asset('images/slider/slider-2.png') }}" class="home-hero__img hero-slide-img"
+                <img src="{{ asset('images/banners/slider-2.png') }}" class="home-hero__img hero-slide-img"
                     data-title="Khuyến mãi mùa hè" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 2">
+                <img src="{{ asset('images/banners/slider-1.png') }}" class="home-hero__tracker" alt="">
             @endif
             <div class="home-hero__overlay"></div>
             <div class="home-hero__content">

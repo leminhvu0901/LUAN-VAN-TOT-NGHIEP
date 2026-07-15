@@ -146,6 +146,7 @@ window.AdminAlert = {
                 text: message,
                 timer: 2000,
                 showConfirmButton: false,
+                returnFocus: false,
                 width: '320px',
                 padding: '1rem',
                 customClass: {
@@ -167,6 +168,7 @@ window.AdminAlert = {
                 padding: '1rem',
                 confirmButtonText: 'Đóng',
                 buttonsStyling: false,
+                returnFocus: false,
                 customClass: {
                     popup: 'rounded-xl shadow-xl border border-gray-100',
                     title: 'text-base font-bold text-gray-800',
@@ -189,6 +191,7 @@ window.AdminAlert = {
                 width: '360px',
                 padding: '1.25rem',
                 buttonsStyling: false,
+                returnFocus: false,
                 customClass: {
                     popup: 'rounded-xl shadow-xl border border-gray-100',
                     title: 'text-lg font-bold text-gray-900',
@@ -274,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 text: window.flashSuccessMessage,
                 timer: 2000,
                 showConfirmButton: false,
+                returnFocus: false,
                 width: '320px',
                 padding: '1rem',
                 customClass: {
@@ -299,6 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 padding: '1rem',
                 confirmButtonText: 'Đóng',
                 buttonsStyling: false,
+                returnFocus: false,
                 customClass: {
                     popup: 'rounded-xl shadow-xl border border-gray-100',
                     title: 'text-base font-bold text-gray-800',

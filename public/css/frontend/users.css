@@ -6152,8 +6152,24 @@ h6>a:hover,
 }
 
 .home-hero__img.active {
+  position: absolute;
+  height: 100%;
+}
+
+.home-hero__tracker {
   position: relative;
+  width: 100%;
   height: auto;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  display: block;
+}
+
+@media (max-width: 1024px) {
+  .home-hero__tracker {
+    display: none !important;
+  }
 }
 
 .home-hero__overlay {

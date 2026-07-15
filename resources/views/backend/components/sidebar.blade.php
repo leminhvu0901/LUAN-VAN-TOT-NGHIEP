@@ -68,14 +68,14 @@
         </a>
 
         {{-- Menu Banner --}}
-        <a href="#" title="Banner" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
-            <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">view_carousel</span>
+        <a href="{{ route('admin.banners.index') }}" title="Banner" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.banners.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.banners.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">view_carousel</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Banner</span>
         </a>
 
         {{-- Menu Báo cáo --}}
-        <a href="#" title="Báo cáo" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group/link font-medium">
-            <span class="material-symbols-outlined text-[22px] text-gray-400 group-hover/link:text-gray-600">bar_chart</span>
+        <a href="{{ route('admin.reports.index') }}" title="Báo cáo" class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.reports.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.reports.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">bar_chart</span>
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Báo cáo</span>
         </a>
 

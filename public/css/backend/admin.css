@@ -773,3 +773,95 @@ select {
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
 }
+
+/* =============================================
+   BANNERS RESPONSIVE LAYOUT (.banners-page)
+   ============================================= */
+.banners-page .organic-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+.banners-page .break-word {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+}
+
+/* Custom select to avoid zooming on iOS Safari */
+.banners-page select, 
+.banners-page input {
+    font-size: 14px !important;
+}
+
+/* Pagination mobile overrides */
+@media (max-width: 640px) {
+    .banners-page .ajax-pagination .hidden.sm\:flex-1 {
+        display: none !important;
+    }
+    .banners-page .ajax-pagination .flex.justify-between {
+        width: 100% !important;
+        justify-content: space-between !important;
+    }
+}
+
+/* =============================================
+   REPORTS PAGE CUSTOM STYLES (.reports-page)
+   ============================================= */
+.reports-page .organic-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+.reports-page select, 
+.reports-page input {
+    font-size: 14px !important;
+}
+
+/* Print styling for professional PDF generation */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    body * {
+        visibility: hidden;
+    }
+    .reports-page, .reports-page * {
+        visibility: visible;
+    }
+    .reports-page {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #filter-form,
+    #export-btn,
+    aside,
+    #sidebar-overlay,
+    main > div:first-child,
+    .topbar,
+    nav,
+    header {
+        display: none !important;
+    }
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
+
+/* =============================================
+   DASHBOARD PAGE CUSTOM STYLES (.dashboard-page)
+   ============================================= */
+.dashboard-page .organic-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+.dashboard-page .dashboard-action-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dashboard-page .dashboard-action-card:hover {
+    transform: translateY(-2px);
+}

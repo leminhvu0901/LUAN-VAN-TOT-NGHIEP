@@ -6,8 +6,17 @@ use App\Models\Banner;
 
 
 Route::get('/', function () {
-    // Lấy tất cả banner đang kích hoạt 
-    $banners = \App\Models\Banner::where('is_active', 1)->get();
+    // Lấy tất cả banner đang kích hoạt và trong thời gian áp dụng, sắp xếp theo thứ tự hiển thị
+    $now = now();
+    $banners = \App\Models\Banner::where('is_active', 1)
+        ->where(function ($q) use ($now) {
+            $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
+        })
+        ->where(function ($q) use ($now) {
+            $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
+        })
+        ->orderBy('display_order', 'asc')
+        ->get();
 
     // Truy vấn lấy danh mục sản phẩm (categories) kèm theo số lượng sản phẩm của từng danh mục
     $categories = \App\Models\Category::query()
@@ -218,6 +227,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
     Route::resource('categories', App\Http\Controllers\Backend\CategoryController::class)->except(['show']);
  
+    // QUẢN LÝ BANNER
+    Route::post('banners/bulk-delete', [App\Http\Controllers\Backend\BannerController::class, 'bulkDelete'])->name('banners.bulk_delete');
+    Route::post('banners/{id}/toggle-status', [App\Http\Controllers\Backend\BannerController::class, 'toggleStatus'])->name('banners.toggle_status');
+    Route::resource('banners', App\Http\Controllers\Backend\BannerController::class)->except(['show']);
+
+    // BÁO CÁO & THỐNG KÊ
+    Route::get('reports', [App\Http\Controllers\Backend\ReportController::class, 'index'])->name('reports.index');
 
     // QUẢN LÝ KHO
     Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');
