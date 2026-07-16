@@ -165,10 +165,10 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Thanh toán qua ví điện tử MoMo ---
     // Gửi yêu cầu trừ tiền sang máy chủ MoMo
-    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\SecureMomoController::class, 'createPayment'])->name('momo.pay');
+    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\MomoController::class, 'createPayment'])->name('momo.pay');
 
     // Sau khi quét mã MoMo xong, khách bị đá ngược về route này để xem màn hình "Thanh toán thành công"
-    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\SecureMomoController::class, 'handleReturn'])->name('momo.return');
+    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
 });
 
 // ==============================================
@@ -176,7 +176,7 @@ Route::middleware(['auth'])->group(function () {
 // ==============================================
 
 // IPN của MoMo (Server-to-Server). MoMo gọi ngầm vào đường dẫn này để báo cáo kết quả giao dịch. BẮT BUỘC PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)!
-Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\SecureMomoController::class, 'handleIpn'])->name('momo.ipn');
+Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
 
 // API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
@@ -226,7 +226,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // QUẢN LÝ DANH MỤC
     Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
     Route::resource('categories', App\Http\Controllers\Backend\CategoryController::class)->except(['show']);
- 
+
     // QUẢN LÝ BANNER
     Route::post('banners/bulk-delete', [App\Http\Controllers\Backend\BannerController::class, 'bulkDelete'])->name('banners.bulk_delete');
     Route::post('banners/{id}/toggle-status', [App\Http\Controllers\Backend\BannerController::class, 'toggleStatus'])->name('banners.toggle_status');
@@ -234,6 +234,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // BÁO CÁO & THỐNG KÊ
     Route::get('reports', [App\Http\Controllers\Backend\ReportController::class, 'index'])->name('reports.index');
+
+    // CẤU HÌNH HỆ THỐNG
+    Route::get('settings', [App\Http\Controllers\Backend\SettingController::class, 'index'])->name('settings.index');
+    Route::put('settings', [App\Http\Controllers\Backend\SettingController::class, 'update'])->name('settings.update');
 
     // QUẢN LÝ KHO
     Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');

@@ -28,8 +28,8 @@
             <div class="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] p-4 rounded-xl mb-6 flex items-start gap-3 shadow-sm">
                 <span class="material-symbols-outlined text-[#c62828] mt-0.5">schedule</span>
                 <div>
-                    <span class="font-bold text-sm block">Cửa hàng hiện đã đóng cửa!</span>
-                    <span class="text-xs mt-1 block text-[#5d4037]">Giờ hoạt động của chúng tôi là từ 07:00 đến 23:00 hàng ngày. Quý khách hiện tại có thể tham khảo giỏ hàng nhưng không thể đặt hàng mới vào lúc này.</span>
+                    <span class="font-bold text-sm block">Thông báo từ cửa hàng</span>
+                    <span class="text-xs mt-1 block text-[#5d4037]">{{ $closedReason ?? 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!' }}</span>
                 </div>
             </div>
         @endif
@@ -39,8 +39,8 @@
               data-momo-url="{{ route('momo.pay') }}">
             @csrf
             <input type="hidden" name="idempotency_key" value="{{ $checkoutToken }}">
-            <input type="hidden" id="hidden_distance_km" value="2.5">
-            <input type="hidden" id="hidden_weather_fee" value="0">
+            <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
+            <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Left: Shipping Address & Method & Payment (2 columns on desktop) -->
@@ -266,8 +266,13 @@
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Phương thức thanh toán</h2>
                         </div>
 
+                        @php
+                            $codEnabled = (bool) \App\Models\Setting::getValue('cod_enabled', true);
+                            $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
+                        @endphp
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Cash On Delivery (COD) -->
+                            @if($codEnabled)
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
                                 <input type="radio" name="payment_method" value="cod" checked class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
@@ -278,10 +283,12 @@
                                     </div>
                                 </div>
                             </label>
+                            @endif
 
                             <!-- MoMo -->
+                            @if($momoEnabled)
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
-                                <input type="radio" name="payment_method" value="momo" class="text-primary focus:ring-primary">
+                                <input type="radio" name="payment_method" value="momo" {{ !$codEnabled ? 'checked' : '' }} class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
                                     <img src="{{ asset('images/payment/momo.svg') }}" alt="MoMo" class="w-8 h-8 rounded-lg" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                                     <div>
@@ -290,6 +297,13 @@
                                     </div>
                                 </div>
                             </label>
+                            @endif
+
+                            @if(!$codEnabled && !$momoEnabled)
+                            <div class="col-span-full p-4 bg-red-50 text-red-800 border border-red-200 rounded-xl text-sm font-semibold">
+                                Cửa hàng hiện đang tạm ngắt toàn bộ cổng thanh toán. Không thể hoàn tất đặt hàng lúc này.
+                            </div>
+                            @endif
                         </div>
                     </section>
                 </div>
@@ -347,6 +361,42 @@
                         <input type="hidden" name="coupon_code" id="hidden_coupon_code" value="">
                     </section>
 
+                    @php
+                        $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
+                        $points = Auth::user()->points ?? 0;
+                        $pointValue = (float) \App\Models\Setting::getValue('loyalty_point_value', 1);
+                        $maxRedeemPercent = (float) \App\Models\Setting::getValue('loyalty_max_redeem_percent', 100);
+                        $minPointsToRedeem = (int) \App\Models\Setting::getValue('loyalty_min_points_to_redeem', 10);
+                    @endphp
+                    @if($loyaltyEnabled && $points >= $minPointsToRedeem)
+                    <!-- Points Redemption Card -->
+                    <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
+                        <div class="border-b border-outline-variant pb-4 mb-4 flex items-center justify-between">
+                            <h2 class="font-headline-md text-lg text-on-surface font-bold">Dùng điểm tích lũy</h2>
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">Điểm</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <p class="text-xs text-on-surface-variant leading-relaxed">
+                                Bạn đang có <span class="font-bold text-primary">{{ $points }}</span> điểm (1 điểm = {{ number_format($pointValue, 0, ',', '.') }}đ). 
+                                Bạn có thể đổi tối đa <span class="font-bold text-primary" id="max-redeemable-points">0</span> điểm cho đơn hàng này.
+                            </p>
+                            <div class="flex gap-2">
+                                <input type="number" name="points_to_redeem" id="points_to_redeem_input" min="0" max="{{ $points }}" placeholder="Nhập số điểm muốn đổi..." 
+                                    class="flex-1 bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
+                                    data-points-balance="{{ $points }}"
+                                    data-point-value="{{ $pointValue }}"
+                                    data-max-redeem-percent="{{ $maxRedeemPercent }}"
+                                    data-min-points-to-redeem="{{ $minPointsToRedeem }}">
+                                <button type="button" id="apply_points_btn" class="bg-primary text-white font-bold text-sm px-4 rounded-lg hover:opacity-90 transition active:scale-95">
+                                    Áp dụng
+                                </button>
+                            </div>
+                            <div id="points_message" class="text-xs font-medium mt-1"></div>
+                        </div>
+                    </section>
+                    @endif
+
                     <!-- Order Price Breakdown Card -->
                     <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
                         <div class="border-b border-outline-variant pb-4 mb-4">
@@ -396,10 +446,14 @@
                         <!-- Order Action button -->
                         @if(isset($isClosed) && $isClosed)
                             <button type="button" disabled class="w-full bg-gray-300 text-gray-500 font-bold text-center py-3.5 rounded-xl cursor-not-allowed mt-6">
-                                Cửa hàng đóng cửa (07:00 - 23:00)
+                                @if(!\App\Models\Setting::getValue('orders_enabled', true))
+                                    Cửa hàng tạm ngưng nhận đơn
+                                @else
+                                    Cửa hàng đóng cửa ({{ \App\Models\Setting::getValue('store_open_time', '08:00') }} - {{ \App\Models\Setting::getValue('store_close_time', '22:00') }})
+                                @endif
                             </button>
                         @elseif(!$addresses->isEmpty())
-                            <button type="submit" id="order-submit-btn" class="w-full bg-primary-container text-on-primary hover:bg-[#008f00] font-bold text-center py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-98 mt-6">
+                            <button type="submit" id="order-submit-btn" data-closed="0" class="w-full bg-primary-container text-on-primary hover:bg-[#008f00] font-bold text-center py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-98 mt-6">
                                 <span id="submit-btn-text">Đặt hàng (COD)</span>
                             </button>
                         @else
@@ -414,5 +468,13 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    window.checkoutConfig = {
+        shippingBaseFee: {{ (float) \App\Models\Setting::getValue('shipping_base_fee', 15000) }},
+        shippingFeePerKm: {{ (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000) }},
+        shippingMaxDistanceKm: {{ (float) \App\Models\Setting::getValue('shipping_max_distance_km', 15) }},
+        freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }}
+    };
+</script>
 <script src="{{ asset('js/frontend/checkout.js') }}"></script>
 @endsection
