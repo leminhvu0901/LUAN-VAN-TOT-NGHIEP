@@ -11029,3 +11029,9 @@ div:where(.swal2-container) div:where(.swal2-actions).locked-swal-actions {
         padding: 20px 16px 16px !important;
     }
 }
+
+@media (min-width: 1024px) {
+    .happy-navbar__brand {
+        margin-left: -50px;
+    }
+}

@@ -17,7 +17,10 @@ class OrderWorkflowService
         'cancelled' => [],
     ];
 
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly NotificationService $notifications,
+    ) {}
 
     public function transition(Order $order, string $newStatus, ?string $cancelReason = null): Order
     {
@@ -61,12 +64,17 @@ class OrderWorkflowService
 
     public function markPaid(Order $order, string $transactionId, float $amount): Order
     {
-        return DB::transaction(function () use ($order, $transactionId, $amount) {
+        $wasAlreadyPaid = false;
+
+        $result = DB::transaction(function () use ($order, $transactionId, $amount, &$wasAlreadyPaid) {
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if (abs((float) $locked->final_amount - $amount) > 0.01) {
                 throw ValidationException::withMessages(['amount' => 'Số tiền thanh toán không khớp đơn hàng.']);
             }
-            if ($locked->payment_status === 'paid') return $locked;
+            if ($locked->payment_status === 'paid') {
+                $wasAlreadyPaid = true;
+                return $locked;
+            }
             $locked->forceFill([
                 'payment_status' => 'paid',
                 'payment_transaction_id' => $transactionId,
@@ -74,13 +82,27 @@ class OrderWorkflowService
             ])->save();
             return $locked;
         }, 3);
+
+        if (!$wasAlreadyPaid) {
+            $this->notifications->orderPlaced($result);
+        }
+
+        return $result;
     }
 
     private function awardPointsOnce(Order $order): void
     {
         if (!$order->user_id || (int) $order->loyalty_points_awarded > 0) return;
-        $points = (int) floor((float) $order->final_amount / 1000);
+        
+        $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
+        if (!$loyaltyEnabled) return;
+
+        $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
+        if ($moneyPerPoint <= 0) return;
+
+        $points = (int) floor((float) $order->final_amount / $moneyPerPoint);
         if ($points <= 0) return;
+
         $user = User::query()->lockForUpdate()->find($order->user_id);
         if (!$user) return;
         $user->awardPoints($order->final_amount);

@@ -140,42 +140,40 @@ window.initCustomSelects = function () {
 window.AdminAlert = {
     success: function (message, title = 'Thành công!') {
         if (typeof Swal !== 'undefined') {
-            return Swal.fire({
-                icon: 'success',
-                title: title,
-                text: message,
-                timer: 2000,
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
                 showConfirmButton: false,
-                returnFocus: false,
-                width: '320px',
-                padding: '1rem',
-                customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-base font-bold text-gray-800',
-                    htmlContainer: 'text-sm text-gray-500 mt-1',
-                    icon: 'transform scale-[0.6] -mt-3 -mb-2',
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
                 }
+            });
+            return Toast.fire({
+                icon: 'success',
+                title: message || title
             });
         }
     },
     error: function (message, title = 'Lỗi') {
         if (typeof Swal !== 'undefined') {
-            return Swal.fire({
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+            return Toast.fire({
                 icon: 'error',
                 title: title,
-                html: message,
-                width: '320px',
-                padding: '1rem',
-                confirmButtonText: 'Đóng',
-                buttonsStyling: false,
-                returnFocus: false,
-                customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-base font-bold text-gray-800',
-                    confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                    icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                    actions: 'mt-3 w-full flex justify-center'
-                }
+                html: message
             });
         }
     },
@@ -184,22 +182,20 @@ window.AdminAlert = {
             Swal.fire({
                 title: title,
                 text: message,
-                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Đồng ý',
                 cancelButtonText: 'Hủy',
-                width: '360px',
-                padding: '1.25rem',
                 buttonsStyling: false,
+                width: '340px',
+                padding: '1.25rem',
                 returnFocus: false,
                 customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-lg font-bold text-gray-900',
-                    htmlContainer: 'text-sm text-gray-600',
-                    icon: 'transform scale-[0.7] -mt-2 -mb-2',
-                    actions: 'w-full flex gap-3 px-2 mt-4',
-                    confirmButton: 'flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm',
-                    cancelButton: 'flex-1 px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm'
+                    popup: 'rounded-xl shadow-xl border border-gray-100 p-4',
+                    title: 'text-base font-bold text-gray-800 mb-1',
+                    htmlContainer: 'text-xs text-gray-500 mb-4',
+                    actions: 'w-full flex gap-2 mt-1',
+                    confirmButton: 'flex-1 px-4 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer',
+                    cancelButton: 'flex-1 px-4 py-1.5 bg-white text-gray-700 font-semibold rounded-lg text-xs border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer'
                 }
             }).then((result) => {
                 if (result.isConfirmed && typeof confirmCallback === 'function') {
@@ -214,6 +210,15 @@ window.AdminAlert = {
                 title: title,
                 html: message,
                 allowOutsideClick: false,
+                width: '280px',
+                padding: '1rem',
+                showConfirmButton: false,
+                returnFocus: false,
+                customClass: {
+                    popup: 'rounded-xl shadow-xl border border-gray-100 p-4',
+                    title: 'text-sm font-bold text-gray-800 mb-1',
+                    htmlContainer: 'text-xs text-gray-500 mt-2'
+                },
                 didOpen: () => {
                     Swal.showLoading();
                 }
@@ -227,20 +232,21 @@ window.AdminAlert = {
                 text: message,
                 input: 'text',
                 inputPlaceholder: placeholder,
-                icon: 'warning',
-                iconColor: '#f43f5e',
                 showCancelButton: true,
                 confirmButtonText: confirmText,
                 cancelButtonText: 'Hủy',
                 buttonsStyling: false,
+                width: '340px',
+                padding: '1.25rem',
+                returnFocus: false,
                 customClass: {
-                    popup: 'rounded-3xl p-6 organic-shadow border border-gray-100',
-                    title: 'text-2xl font-bold text-gray-900 mb-2',
-                    htmlContainer: 'text-gray-500 text-sm mb-6',
-                    input: 'w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-4 focus:ring-rose-500/20 focus:border-rose-500 outline-none text-sm transition-all text-center mx-auto block max-w-md shadow-sm',
-                    actions: 'flex gap-3 mt-2',
-                    confirmButton: 'px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95',
-                    cancelButton: 'px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all active:scale-95'
+                    popup: 'rounded-xl shadow-xl border border-gray-100 p-4',
+                    title: 'text-base font-bold text-gray-800 mb-1',
+                    htmlContainer: 'text-xs text-gray-500 mb-3',
+                    input: 'w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs focus:border-emerald-500 transition-colors mb-3 shadow-none text-center',
+                    actions: 'w-full flex gap-2 mt-1',
+                    confirmButton: 'flex-1 px-4 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer',
+                    cancelButton: 'flex-1 px-4 py-1.5 bg-white text-gray-700 font-semibold rounded-lg text-xs border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer'
                 },
                 inputValidator: (value) => {
                     if (!value) {
@@ -270,47 +276,36 @@ document.addEventListener('DOMContentLoaded', function () {
     // HIỂN THỊ THÔNG BÁO FLASH MESSAGE (Global)
     // ---------------------------------------------------------
     if (typeof Swal !== 'undefined') {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
         if (window.flashSuccessMessage) {
-            Swal.fire({
+            Toast.fire({
                 icon: 'success',
-                title: 'Thành công!',
-                text: window.flashSuccessMessage,
-                timer: 2000,
-                showConfirmButton: false,
-                returnFocus: false,
-                width: '320px',
-                padding: '1rem',
-                customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-base font-bold text-gray-800',
-                    htmlContainer: 'text-sm text-gray-500 mt-1',
-                    icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                }
+                title: window.flashSuccessMessage
             });
         }
         if (window.flashErrorMessages) {
-            let htmlContent = '<ul class="text-left text-sm text-gray-600 list-disc pl-5 space-y-1">';
+            let htmlContent = '<div class="text-left text-xs font-semibold space-y-0.5 mt-1">';
             window.flashErrorMessages.forEach(msg => {
-                htmlContent += `<li>${msg}</li>`;
+                htmlContent += `<div>• ${msg}</div>`;
             });
-            htmlContent += '</ul>';
+            htmlContent += '</div>';
 
-            Swal.fire({
+            Toast.fire({
                 icon: 'error',
-                title: 'Lỗi',
+                title: 'Có lỗi xảy ra!',
                 html: htmlContent,
-                width: '320px',
-                padding: '1rem',
-                confirmButtonText: 'Đóng',
-                buttonsStyling: false,
-                returnFocus: false,
-                customClass: {
-                    popup: 'rounded-xl shadow-xl border border-gray-100',
-                    title: 'text-base font-bold text-gray-800',
-                    confirmButton: 'px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm',
-                    icon: 'transform scale-[0.6] -mt-3 -mb-2',
-                    actions: 'mt-3 w-full flex justify-center'
-                }
+                timer: 5000
             });
         }
     }

@@ -18,55 +18,6 @@
         <h1 class="ml-2 font-headline-md text-headline-md-mobile text-primary">Đơn hàng của tôi</h1>
     </header>
 
-    <!-- DESKTOP: Thanh điều hướng bên trái (Sidebar) dành cho máy tính -->
-    <aside class="hidden md:flex w-[280px] flex-shrink-0 bg-tertiary-fixed border-r border-outline-variant flex-col py-stack_lg">
-        <div class="px-6 mb-8">
-            <div class="flex items-center gap-3 mb-4">
-                {{-- Hiển thị hình đại diện (Avatar) của thành viên đăng nhập --}}
-                <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary bg-white">
-                    @if(Auth::user()->avatar)
-                        <img alt="User profile avatar" class="w-full h-full object-cover" src="{{ asset('images/avatars/' . Auth::user()->avatar) }}">
-                    @else
-                        <img alt="User profile avatar" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=006e01&color=fff">
-                    @endif
-                </div>
-                {{-- Tên thành viên và hạng thẻ tích lũy --}}
-                <div>
-                    <h3 class="font-label-md text-label-md text-on-surface">{{ Auth::user()->name }}</h3>
-                    <p class="text-xs text-on-surface-variant">
-                        @switch(Auth::user()->membership_level ?? 'new')
-                            @case('silver') Thành viên hạng Bạc @break
-                            @case('gold') Thành viên hạng Vàng @break
-                            @case('diamond') Thành viên Kim Cương @break
-                            @default Thành viên Mới
-                        @endswitch
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        {{-- Liên kết điều hướng của menu bên trái --}}
-        <nav class="flex-1">
-            <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}">
-                <span class="material-symbols-outlined">person</span>
-                Thông tin tài khoản
-            </a>
-            {{-- Mục "Đơn hàng của tôi" đang được chọn (active) --}}
-            <a class="bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md" href="{{ route('orders') }}">
-                <span class="material-symbols-outlined l-icon-filled">shopping_bag</span>
-                Đơn hàng của tôi
-            </a>
-            <a class="text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('profile') }}#password">
-                <span class="material-symbols-outlined">lock</span>
-                Đổi mật khẩu
-            </a>
-            <a class="text-error hover:bg-error-container/20 px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md" href="{{ route('logout') }}">
-                <span class="material-symbols-outlined">logout</span>
-                Đăng xuất
-            </a>
-        </nav>
-    </aside>
-
     <!-- Khu vực hiển thị nội dung chính -->
     <main class="flex-1 pt-20 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg max-w-md md:max-w-full mx-auto md:mx-0 w-full relative z-10">
         <div class="w-full">

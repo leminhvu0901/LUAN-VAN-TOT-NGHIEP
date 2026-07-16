@@ -124,7 +124,7 @@
 
 
 
-            <!-- Phần 2: Bảng Lịch sử Nhập kho & Thu hồi kho -->
+            <!-- Phần 2: Bảng Lịch sử Nhập kho & Xuất kho -->
             @php
                 $nhapKho = $imports->where('quantity', '>', 0);
                 $xuatHuy = $imports->where('quantity', '<', 0);
@@ -343,9 +343,9 @@
             <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
                     <h3 class="font-bold text-gray-900 flex items-center"><span
-                            class="material-symbols-outlined align-middle mr-1.5 text-red-600">logout</span>Lịch sử Thu hồi
+                            class="material-symbols-outlined align-middle mr-1.5 text-red-600">logout</span>Lịch sử Xuất
                         kho</h3>
-                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu thu hồi</span>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
                 </div>
                 <!-- Giao diện Mobile (Card view) -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
@@ -366,11 +366,11 @@
                             <!-- Info Grid -->
                             <div class="grid grid-cols-2 gap-3 text-xs">
                                 <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
-                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng thu hồi</p>
+                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng xuất</p>
                                     <p class="font-bold text-red-600 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
                                 </div>
                                 <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
-                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị thu hồi</p>
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị xuất</p>
                                     <p class="font-bold text-gray-900 mt-0.5">{{ number_format($export->total_price, 0, ',', '.') }}đ</p>
                                 </div>
                             </div>
@@ -385,7 +385,7 @@
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
                             <span class="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
-                            <span class="text-xs font-semibold">Chưa có dữ liệu thu hồi kho.</span>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho.</span>
                         </div>
                     @endforelse
                 </div>
@@ -397,8 +397,8 @@
                             <tr>
                                 <th class="px-4 py-4 font-semibold">Mã GD</th>
                                 <th class="px-4 py-4 font-semibold">Thời gian</th>
-                                <th class="px-4 py-4 font-semibold text-right">Số lượng thu hồi</th>
-                                <th class="px-4 py-4 font-semibold text-right">Giá trị thu hồi</th>
+                                <th class="px-4 py-4 font-semibold text-right">Số lượng xuất</th>
+                                <th class="px-4 py-4 font-semibold text-right">Giá trị xuất</th>
                                 <th class="px-4 py-4 font-semibold">Ghi chú</th>
                             </tr>
                         </thead>
@@ -418,7 +418,7 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="px-4 py-10 text-center text-gray-400">
-                                        Chưa có dữ liệu thu hồi kho.
+                                        Chưa có dữ liệu xuất kho.
                                     </td>
                                 </tr>
                             @endforelse

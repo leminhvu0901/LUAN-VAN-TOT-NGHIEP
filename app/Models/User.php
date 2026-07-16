@@ -61,8 +61,14 @@ class User extends Authenticatable
      */
     public function awardPoints(int|float $amount): void
     {
-        // Tính số điểm nhận được (Chia 1000 và làm tròn xuống bằng hàm floor)
-        $earned = (int) floor($amount / 1000);
+        $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
+        if (!$loyaltyEnabled) return;
+
+        $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
+        if ($moneyPerPoint <= 0) return;
+
+        // Tính số điểm nhận được
+        $earned = (int) floor($amount / $moneyPerPoint);
         
         // Nếu số tiền quá nhỏ không được 1 điểm nào thì thoát hàm luôn (return)
         if ($earned <= 0) return;
@@ -71,10 +77,6 @@ class User extends Authenticatable
         $total = (int) ($this->points ?? 0) + $earned;
 
         // TỰ ĐỘNG XẾP HẠNG THÀNH VIÊN DỰA TRÊN TỔNG ĐIỂM
-        // - Từ 5000 điểm trở lên: Kim Cương (diamond)
-        // - Từ 2000 -> 4999 điểm: Vàng (gold)
-        // - Từ 500 -> 1999 điểm: Bạc (silver)
-        // - Dưới 500 điểm: Mới (new)
         if ($total >= 5000)      $level = 'diamond';
         elseif ($total >= 2000)  $level = 'gold';
         elseif ($total >= 500)   $level = 'silver';

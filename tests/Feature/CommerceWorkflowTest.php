@@ -39,6 +39,7 @@ class CommerceWorkflowTest extends TestCase
 
     public function test_completing_order_awards_points_only_once(): void
     {
+        \App\Models\Setting::setValue('loyalty_money_per_point', 1000);
         $user = User::factory()->create(['points' => 0, 'membership_level' => 'new']);
         $order = Order::create($this->orderData($user, ['payment_status' => 'paid', 'final_amount' => 100000]));
         $workflow = app(OrderWorkflowService::class);

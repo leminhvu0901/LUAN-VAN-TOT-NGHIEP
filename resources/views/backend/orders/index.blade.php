@@ -3,7 +3,7 @@
 @section('title', 'Danh sách Đơn hàng - Admin')
 
 @section('content')
-    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 orders-page">
+    <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 orders-page admin-orders-page">
 
         {{-- Phần tiêu đề trang và nút chức năng xuất báo cáo --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">

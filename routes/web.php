@@ -40,7 +40,7 @@ Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController:
 
 
 
-// TÀI KHOẢN & XÁC THỰC 
+// TÀI KHOẢN & XÁC THỰC
 // ĐĂNG KÝ
 Route::get('/register', function () {
     return redirect('/')->with('show_register', true);
@@ -202,7 +202,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Xuất báo cáo đơn hàng ra file Excel/CSV
     Route::get('/orders/export', [App\Http\Controllers\Backend\SecureOrderController::class, 'export'])->name('orders.export');
 
-    // Xem chi tiết đơn hàng 
+    // Xem chi tiết đơn hàng
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\SecureOrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\SecureOrderController::class, 'updateStatus'])->name('orders.status.update');
     Route::delete('/orders/{id}', [App\Http\Controllers\Backend\SecureOrderController::class, 'destroy'])->name('orders.destroy');
@@ -252,4 +252,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
+    // QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (staff-accounts)
+    Route::post('staff-accounts/{id}/toggle-status', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'toggleStatus'])->name('staff_accounts.toggle_status');
+    Route::resource('staff-accounts', App\Http\Controllers\Backend\Staff\StaffAccountController::class)->names('staff_accounts')->only(['index', 'create', 'store']);
+});
+
+// 5. KHU VỰC NHÂN VIÊN (staff)
+Route::prefix('staff')->name('staff.')->middleware(['auth', \App\Http\Middleware\IsStaffOrAdmin::class])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\StaffDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/orders', [App\Http\Controllers\Backend\Staff\StaffOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\StaffOrderController::class, 'show'])->name('orders.show');
+    Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\StaffOrderController::class, 'updateStatus'])->name('orders.status.update');
+
+    Route::get('/materials', [App\Http\Controllers\Backend\Staff\StaffMaterialController::class, 'index'])->name('materials.index');
+    Route::get('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\StaffMaterialController::class, 'imports'])->name('materials.imports');
+    Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\StaffMaterialController::class, 'storeImport'])->name('materials.imports.store');
+    Route::post('/materials/{material}/consume', [App\Http\Controllers\Backend\Staff\StaffMaterialController::class, 'consumeStock'])->name('materials.consume');
 });

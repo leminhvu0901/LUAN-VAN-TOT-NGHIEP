@@ -7,21 +7,30 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use App\Services\OrderWorkflowService;
 
 class MomoController
 {
-    // ─── Lấy cấu hình MoMo từ .env ───────────────────────────────────────────
+    // ─── Cấu hình MoMo, chọn theo Settings admin (payment_environment: sandbox/production) ──
     private string $partnerCode;
     private string $accessKey;
     private string $secretKey;
     private string $endpoint;
+    private bool $isProduction;
+    private bool $configValid;
 
-    public function __construct()
+    public function __construct(private readonly OrderWorkflowService $orderWorkflow)
     {
-        $this->partnerCode = env('MOMO_PARTNER_CODE', 'MOMOBKUN20180529');
-        $this->accessKey = env('MOMO_ACCESS_KEY', 'klm05TvNBzhg7h7j');
-        $this->secretKey = env('MOMO_SECRET_KEY', 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa');
-        $this->endpoint = env('MOMO_ENDPOINT', 'https://test-payment.momo.vn/v2/gateway/api/create');
+        $this->isProduction = \App\Models\Setting::getValue('payment_environment', 'sandbox') === 'production';
+        $momoConfig = config('services.momo.' . ($this->isProduction ? 'production' : 'sandbox'), []);
+
+        $this->partnerCode = (string) ($momoConfig['partner_code'] ?? '');
+        $this->accessKey = (string) ($momoConfig['access_key'] ?? '');
+        $this->secretKey = (string) ($momoConfig['secret_key'] ?? '');
+        $this->endpoint = (string) ($momoConfig['endpoint'] ?? '');
+
+        $this->configValid = $this->partnerCode !== '' && $this->accessKey !== '' && $this->secretKey !== '';
     }
 
     /**
@@ -33,6 +42,10 @@ class MomoController
     {
         if (!Auth::check()) {
             return redirect()->route('login');
+        }
+
+        if (!$this->configValid) {
+            return redirect()->back()->with('error', 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng liên hệ quản trị viên.')->withInput();
         }
 
         $userId = Auth::id();
@@ -272,7 +285,8 @@ class MomoController
         $orderInfo = 'Thanh toan don hang ' . $orderCode;
         $redirectUrl = route('momo.return');
         $ipnUrl = route('momo.ipn');
-        $amount = (string) $finalAmount;
+        // MoMo yêu cầu amount là số nguyên VNĐ (không thập phân)
+        $amount = (string) (int) round($finalAmount);
         $extraData = '';
         $requestType = 'payWithATM'; // Chỉ cho phép thanh toán bằng Thẻ ATM nội địa
 
@@ -308,7 +322,12 @@ class MomoController
         ];
 
         try {
-            $response = Http::timeout(30)->withoutVerifying()->post($this->endpoint, $payload);
+            $httpClient = Http::timeout(30);
+            if (!$this->isProduction) {
+                // Chỉ bỏ qua xác thực TLS ở môi trường thử nghiệm (một số máy dev gặp lỗi cert cục bộ).
+                $httpClient = $httpClient->withoutVerifying();
+            }
+            $response = $httpClient->post($this->endpoint, $payload);
             $result = $response->json();
 
             Log::info('MoMo create payment response', $result ?? []);
@@ -342,43 +361,86 @@ class MomoController
     }
 
     /**
+     * Xác thực chữ ký MoMo gửi kèm (dùng chung cho cả redirect về trình duyệt và IPN server-to-server).
+     * MoMo ký cả hai bằng cùng bộ field/thuật toán HMAC-SHA256.
+     */
+    private function verifyMomoSignature(array $data): bool
+    {
+        if (empty($data['signature'])) {
+            return false;
+        }
+
+        $rawHash = "accessKey={$this->accessKey}"
+            . "&amount=" . ($data['amount'] ?? '')
+            . "&extraData=" . ($data['extraData'] ?? '')
+            . "&message=" . ($data['message'] ?? '')
+            . "&orderId=" . ($data['orderId'] ?? '')
+            . "&orderInfo=" . ($data['orderInfo'] ?? '')
+            . "&orderType=" . ($data['orderType'] ?? '')
+            . "&partnerCode=" . ($data['partnerCode'] ?? '')
+            . "&payType=" . ($data['payType'] ?? '')
+            . "&requestId=" . ($data['requestId'] ?? '')
+            . "&responseTime=" . ($data['responseTime'] ?? '')
+            . "&resultCode=" . ($data['resultCode'] ?? '')
+            . "&transId=" . ($data['transId'] ?? '');
+
+        $expectedSignature = hash_hmac('sha256', $rawHash, $this->secretKey);
+
+        return hash_equals($expectedSignature, (string) $data['signature']);
+    }
+
+    /**
      * Xử lý sau khi khách thanh toán xong và MoMo redirect về.
      * Theo mẫu: php/PayMoMo/result.php
-     * (Chỉ dùng để hiển thị UI, KHÔNG nên cập nhật DB ở đây)
+     * MoMo ký cả redirect này (không chỉ IPN) nên có thể xác thực chữ ký và tin cậy để cập nhật DB —
+     * cần thiết vì môi trường demo/local thường không có URL public để MoMo gọi IPN server-to-server.
      */
     public function handleReturn(Request $request)
     {
-        $orderId = $request->query('orderId');
-        $resultCode = $request->query('resultCode');
-        $message = $request->query('message', '');
+        $data = $request->query();
+        $orderId = $data['orderId'] ?? null;
+        $resultCode = $data['resultCode'] ?? null;
 
-        if ($resultCode == '0') {
-            // ✅ Thanh toán thành công - cập nhật đơn hàng + xóa giỏ hàng
-            $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
-            if ($order && $order->payment_status === 'unpaid') {
-                \App\Models\Order::query()
-                    ->where('order_code', $orderId)
-                    ->update([
-                        'payment_status' => 'paid',
-                        'status' => 'pending',
-                        'updated_at' => now(),
-                    ]);
+        Log::info('MoMo return received', [
+            'orderId' => $orderId,
+            'resultCode' => $resultCode,
+            'message' => $data['message'] ?? null,
+            'transId' => $data['transId'] ?? null,
+        ]);
 
-                // Xóa giỏ hàng sau khi thanh toán thành công
-                $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
-                if ($cart) {
-                    $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
-                    \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
-                    \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
-                }
+        $order = $orderId ? \App\Models\Order::query()->where('order_code', $orderId)->first() : null;
+        if (!$order) {
+            return redirect()->route('checkout')->with('error', 'Không tìm thấy đơn hàng.');
+        }
+
+        if (!$this->verifyMomoSignature($data)) {
+            // Chữ ký thiếu/sai → không thể tin cậy nguồn gốc request này, không đụng vào payment_status.
+            Log::warning('MoMo return: invalid or missing signature', ['orderId' => $orderId]);
+            return redirect()->route('orders')->with('info', "Đang chờ xác nhận thanh toán từ MoMo cho đơn hàng {$orderId}.");
+        }
+
+        if ((string) $resultCode === '0') {
+            // ✅ Thanh toán thành công - chữ ký hợp lệ nên tin cậy để cập nhật DB
+            try {
+                $this->orderWorkflow->markPaid($order, (string) ($data['transId'] ?? ''), (float) ($data['amount'] ?? 0));
+            } catch (ValidationException $e) {
+                Log::warning('MoMo return: amount mismatch', ['orderId' => $orderId]);
+                return redirect()->route('orders')->with('error', 'Số tiền thanh toán không khớp đơn hàng, vui lòng liên hệ hỗ trợ.');
+            }
+
+            // Xóa giỏ hàng sau khi thanh toán thành công
+            $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
+            if ($cart) {
+                $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
+                \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
+                \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
             }
 
             return redirect()->route('orders')->with('success', "Thanh toán MoMo thành công! Đơn hàng {$orderId} đã được xác nhận.");
         }
 
-        // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán
-        $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
-        if ($order && in_array($order->payment_status, ['unpaid', 'failed'])) {
+        // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán (chữ ký đã xác thực nên an toàn để dọn đơn)
+        if (in_array($order->payment_status, ['unpaid', 'failed'])) {
             // Xóa hoàn toàn đơn hàng khỏi DB → giỏ hàng vẫn còn nguyên
             \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
             \App\Models\Order::query()->where('id', $order->id)->delete();
@@ -402,46 +464,29 @@ class MomoController
         $data = $request->all();
         Log::info('MoMo IPN received', $data);
 
-        // ── Xác thực chữ ký từ MoMo (theo mẫu ipn_momo.php) ─────────────────
-        $rawHash = "accessKey={$this->accessKey}"
-            . "&amount={$data['amount']}"
-            . "&extraData={$data['extraData']}"
-            . "&message={$data['message']}"
-            . "&orderId={$data['orderId']}"
-            . "&orderInfo={$data['orderInfo']}"
-            . "&orderType={$data['orderType']}"
-            . "&partnerCode={$data['partnerCode']}"
-            . "&payType={$data['payType']}"
-            . "&requestId={$data['requestId']}"
-            . "&responseTime={$data['responseTime']}"
-            . "&resultCode={$data['resultCode']}"
-            . "&transId={$data['transId']}";
-
-        $expectedSignature = hash_hmac('sha256', $rawHash, $this->secretKey);
-
-        if (!isset($data['signature']) || $data['signature'] !== $expectedSignature) {
+        if (!$this->verifyMomoSignature($data)) {
             Log::warning('MoMo IPN: Invalid signature', ['received' => $data['signature'] ?? 'none']);
             return response()->json(['message' => 'Invalid signature'], 400);
         }
 
         // ── Cập nhật trạng thái đơn hàng ─────────────────────────────────────
-        $orderId = $data['orderId'];
-        $resultCode = (int) $data['resultCode'];
+        $orderId = $data['orderId'] ?? null;
+        $resultCode = (int) ($data['resultCode'] ?? -1);
 
-        $order = \App\Models\Order::query()->where('order_code', $orderId)->first();
+        $order = $orderId ? \App\Models\Order::query()->where('order_code', $orderId)->first() : null;
         if (!$order) {
+            Log::warning('MoMo IPN: order not found', ['orderId' => $orderId]);
             return response()->json(['message' => 'Order not found'], 404);
         }
 
         if ($resultCode === 0) {
             // ✅ Thanh toán thành công
-            \App\Models\Order::query()
-                ->where('order_code', $orderId)
-                ->update([
-                    'payment_status' => 'paid',
-                    'status' => 'pending',
-                    'updated_at' => now(),
-                ]);
+            try {
+                $this->orderWorkflow->markPaid($order, (string) ($data['transId'] ?? ''), (float) ($data['amount'] ?? 0));
+            } catch (ValidationException $e) {
+                Log::warning('MoMo IPN: amount mismatch', ['orderId' => $orderId]);
+                return response()->json(['message' => 'Amount mismatch'], 400);
+            }
 
             // Xóa giỏ hàng (safety backup - phòng trường hợp handleReturn chưa xóa)
             $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();

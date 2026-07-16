@@ -404,7 +404,7 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $freeShipThreshold = 150000;
+        $freeShipThreshold = (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
         if ($user) {
             switch ($user->membership_level) {
@@ -420,14 +420,39 @@ class CartController
             }
         }
 
-        $now = now()->timezone('Asia/Ho_Chi_Minh');
-        $timeString = $now->format('H:i:s');
-        $isClosed = ($timeString < '07:00:00' || $timeString >= '23:00:00');
+        // 1. Kiểm tra tắt nhận đơn hàng
+        $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
+        $isClosed = !$receiveEnabled;
+        $closedReason = null;
+
+        if ($isClosed) {
+            $closedReason = 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!';
+        } else {
+            // 2. Kiểm tra giờ đóng/mở cửa
+            $open = \App\Models\Setting::getValue('store_open_time', '08:00');
+            $close = \App\Models\Setting::getValue('store_close_time', '22:00');
+            $nowStr = now()->format('H:i');
+            
+            $isOpen = false;
+            if ($open < $close) {
+                $isOpen = ($nowStr >= $open && $nowStr <= $close);
+            } else { // Qua đêm
+                $isOpen = ($nowStr >= $open || $nowStr <= $close);
+            }
+            if (!$isOpen) {
+                $isClosed = true;
+                $closedReason = "Cửa hàng hiện đã đóng cửa! Giờ hoạt động của chúng tôi là từ {$open} đến {$close} hàng ngày. Quý khách hiện tại có thể tham khảo giỏ hàng nhưng không thể đặt hàng mới vào lúc này.";
+            }
+        }
 
         $checkoutToken = (string) Str::uuid();
         session(['checkout_token' => $checkoutToken]);
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'freeShipThreshold', 'checkoutToken'));
+        if (\App\Models\Setting::getValue('loyalty_point_value') != 1) {
+            \App\Models\Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
+        }
+
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken'));
     }
 
     public function calculateDistance(Request $request)

@@ -423,6 +423,48 @@ function initTableEvents() {
     });
     observer.observe(tableContainer, { childList: true, subtree: true });
 }
+let activeMenu = null;
+let activeBtn = null;
+
+function closeActiveMenu() {
+    if (activeMenu) {
+        activeMenu.remove();
+        activeMenu = null;
+    }
+    activeBtn = null;
+}
+
+function positionMenu(btn, menu) {
+    if (!btn || !menu) return;
+    const rect = btn.getBoundingClientRect();
+    const menuHeight = menu.offsetHeight || 180;
+    const menuWidth = menu.offsetWidth;
+
+    // Check spaces
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    let top, left;
+
+    // Left position alignment
+    left = rect.left;
+    // Mobile safety boundary
+    if (left + menuWidth > window.innerWidth - 8) {
+        left = window.innerWidth - menuWidth - 8;
+    }
+    if (left < 8) left = 8;
+
+    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        // Open upwards
+        top = rect.top - menuHeight - 4;
+    } else {
+        // Open downwards
+        top = rect.bottom + 4;
+    }
+
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+}
 
 function initOrderStatusCustomDropdowns() {
     const selects = document.querySelectorAll('.order-status-select:not(.custom-dropdown-initialized)');
@@ -430,90 +472,130 @@ function initOrderStatusCustomDropdowns() {
         select.classList.add('custom-dropdown-initialized');
         select.classList.add('sr-only');
 
-        select.parentElement.classList.add('relative');
-
         const wrapper = document.createElement('div');
         wrapper.className = 'custom-order-status-dropdown w-full lg:w-auto relative inline-block';
 
         const btn = document.createElement('button');
         btn.type = 'button';
         let btnClasses = select.className.replace('order-status-select', '').replace('js-order-status-select', '').replace('sr-only', '').replace('custom-dropdown-initialized', '').trim();
-        btn.className = btnClasses + ' flex items-center justify-between gap-1 w-full text-left';
+        btn.className = btnClasses + ' js-custom-dropdown-btn flex items-center justify-between gap-1 w-full text-left';
+        
+        btn.selectEl = select;
 
         const selectedOption = select.options[select.selectedIndex];
         btn.innerHTML = `<span class="status-text">${selectedOption.text}</span><span class="material-symbols-outlined text-[16px]">expand_more</span>`;
 
-        const menu = document.createElement('div');
-        menu.className = 'status-options-menu hidden absolute left-0 w-full lg:min-w-[160px] lg:w-auto mt-1 bg-white border border-gray-200 rounded-lg organic-shadow z-50 max-h-[220px] overflow-y-auto py-1 shadow-xl text-left';
-
-        Array.from(select.options).forEach(opt => {
-            const item = document.createElement('div');
-            let bgClass = '';
-            let textClass = 'text-gray-700';
-            let activeBgClass = '';
-            if (opt.value === 'pending') { bgClass = 'hover:bg-yellow-50'; activeBgClass = 'bg-yellow-50'; textClass = 'text-yellow-700'; }
-            if (opt.value === 'confirmed') { bgClass = 'hover:bg-blue-50'; activeBgClass = 'bg-blue-50'; textClass = 'text-blue-700'; }
-            if (opt.value === 'shipping') { bgClass = 'hover:bg-orange-50'; activeBgClass = 'bg-orange-50'; textClass = 'text-orange-700'; }
-            if (opt.value === 'completed') { bgClass = 'hover:bg-emerald-50'; activeBgClass = 'bg-emerald-50'; textClass = 'text-emerald-700'; }
-            if (opt.value === 'cancelled') { bgClass = 'hover:bg-red-50'; activeBgClass = 'bg-red-50'; textClass = 'text-red-700'; }
-
-            const isSelected = opt.value === select.dataset.currentStatus;
-            const extraClasses = isSelected ? `font-bold ${activeBgClass}` : 'font-medium';
-
-            item.className = `px-3 py-3 lg:py-2 text-sm transition-colors ${bgClass} ${textClass} ${extraClasses}`;
-
-            if (opt.disabled) {
-                item.className += ' opacity-50 cursor-not-allowed';
-            } else {
-                item.className += ' cursor-pointer';
-                item.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    select.value = opt.value;
-                    menu.classList.add('hidden');
-                    btn.querySelector('.status-text').textContent = opt.text;
-                    select.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-            }
-            item.textContent = opt.text;
-            menu.appendChild(item);
-        });
-
-        select.addEventListener('change', () => {
-            btn.querySelector('.status-text').textContent = select.options[select.selectedIndex].text;
-        });
-
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            document.querySelectorAll('.status-options-menu').forEach(m => {
-                if (m !== menu) m.classList.add('hidden');
-            });
-            menu.classList.toggle('hidden');
-
-            if (!menu.classList.contains('hidden')) {
-                const rect = btn.getBoundingClientRect();
-                if (window.innerHeight - rect.bottom < 250) {
-                    menu.classList.remove('top-full', 'mt-1');
-                    menu.classList.add('bottom-full', 'mb-1');
-                } else {
-                    menu.classList.add('top-full', 'mt-1');
-                    menu.classList.remove('bottom-full', 'mb-1');
-                }
-            }
-        });
-
         wrapper.appendChild(btn);
-        wrapper.appendChild(menu);
         select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
     });
 }
 
-document.addEventListener('click', () => {
-    document.querySelectorAll('.status-options-menu').forEach(m => m.classList.add('hidden'));
+// 1. Click delegation
+document.addEventListener('click', function (e) {
+    const clickedItem = e.target.closest('.status-option-item');
+    if (clickedItem) {
+        e.stopPropagation();
+        if (clickedItem.classList.contains('disabled')) return;
+        
+        const value = clickedItem.dataset.value;
+        if (activeBtn && activeBtn.selectEl) {
+            const select = activeBtn.selectEl;
+            select.value = value;
+            activeBtn.querySelector('.status-text').textContent = clickedItem.textContent;
+            closeActiveMenu();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        return;
+    }
+
+    const btn = e.target.closest('.js-custom-dropdown-btn');
+    if (btn) {
+        e.stopPropagation();
+        if (activeBtn === btn) {
+            closeActiveMenu();
+            return;
+        }
+        closeActiveMenu();
+
+        activeBtn = btn;
+        const select = btn.selectEl;
+
+        // Create portal menu
+        const menu = document.createElement('div');
+        menu.className = 'status-options-menu portal-menu fixed py-1 shadow-xl text-left';
+        
+        if (document.querySelector('.staff-orders-page')) {
+            menu.classList.add('staff-status-options-menu');
+        } else if (document.querySelector('.admin-orders-page')) {
+            menu.classList.add('admin-status-options-menu');
+        }
+
+        menu.style.zIndex = '9999';
+        menu.style.maxHeight = '260px';
+        menu.style.overflowY = 'auto';
+
+        const rect = btn.getBoundingClientRect();
+        let width = rect.width;
+        if (width < 190) width = 190;
+        if (window.innerWidth < 640) {
+            const maxWidth = window.innerWidth - 24;
+            if (width > maxWidth) width = maxWidth;
+        }
+        menu.style.width = width + 'px';
+
+        const currentStatus = select.dataset.currentStatus || select.value;
+
+        Array.from(select.options).forEach(opt => {
+            const item = document.createElement('div');
+            item.dataset.value = opt.value;
+            item.textContent = opt.text;
+
+            let specificOptClass = 'opt-' + opt.value;
+            const isSelected = opt.value === currentStatus;
+            
+            item.className = `status-option-item ${specificOptClass}`;
+            if (isSelected) {
+                item.className += ' active';
+            }
+
+            if (opt.disabled) {
+                item.className += ' disabled';
+            }
+            
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+        activeMenu = menu;
+
+        positionMenu(btn, menu);
+        return;
+    }
+
+    closeActiveMenu();
 });
+
+// 2. Global event listeners to close menu on scroll / resize / Escape
+window.addEventListener('scroll', closeActiveMenu, { capture: true, passive: true });
+window.addEventListener('resize', closeActiveMenu, { passive: true });
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        document.querySelectorAll('.status-options-menu').forEach(m => m.classList.add('hidden'));
+        closeActiveMenu();
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('js-order-status-select')) {
+        const select = e.target;
+        const wrapper = select.parentNode;
+        if (wrapper) {
+            const btn = wrapper.querySelector('.js-custom-dropdown-btn');
+            if (btn) {
+                btn.querySelector('.status-text').textContent = select.options[select.selectedIndex].text;
+            }
+        }
     }
 });
 

@@ -42,10 +42,22 @@ return [
     ],
 
     'momo' => [
-        'partner_code' => env('MOMO_PARTNER_CODE'),
-        'access_key' => env('MOMO_ACCESS_KEY'),
-        'secret_key' => env('MOMO_SECRET_KEY'),
-        'endpoint' => env('MOMO_ENDPOINT', 'https://test-payment.momo.vn/v2/gateway/api/create'),
+        // Môi trường "thử nghiệm" (sandbox) - dùng credentials test công khai của MoMo làm mặc định
+        // để demo hoạt động ngay cả khi .env chưa cấu hình gì.
+        'sandbox' => [
+            'partner_code' => env('MOMO_PARTNER_CODE_SANDBOX', 'MOMOBKUN20180529'),
+            'access_key' => env('MOMO_ACCESS_KEY_SANDBOX', 'klm05TvNBzhg7h7j'),
+            'secret_key' => env('MOMO_SECRET_KEY_SANDBOX', 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa'),
+            'endpoint' => env('MOMO_ENDPOINT_SANDBOX', 'https://test-payment.momo.vn/v2/gateway/api/create'),
+        ],
+        // Môi trường "chính thức" (production) - bắt buộc phải cấu hình credentials thật trong .env,
+        // không có giá trị mặc định để tránh vô tình chạy production bằng credentials test.
+        'production' => [
+            'partner_code' => env('MOMO_PARTNER_CODE'),
+            'access_key' => env('MOMO_ACCESS_KEY'),
+            'secret_key' => env('MOMO_SECRET_KEY'),
+            'endpoint' => env('MOMO_ENDPOINT', 'https://payment.momo.vn/v2/gateway/api/create'),
+        ],
     ],
 
     'openroute' => [

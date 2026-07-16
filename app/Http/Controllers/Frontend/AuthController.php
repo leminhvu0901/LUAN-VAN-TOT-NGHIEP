@@ -232,6 +232,16 @@ class AuthController
         if (Auth::attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
             $user = Auth::user();
 
+            // Tài khoản đã bị khóa (is_active = 0): không cho vào, đăng xuất ngay lập tức
+            if (!$user->is_active) {
+                Auth::logout();
+                return back()->withErrors([
+                    'login_error' => $user->lock_reason
+                        ? "Tài khoản của bạn đã bị khóa: {$user->lock_reason}"
+                        : 'Tài khoản của bạn đã bị khóa.',
+                ])->withInput($request->only('email'));
+            }
+
             // Đăng nhập thành công: Làm mới ID Session để chống tấn công cố định phiên (Session Fixation)
             $request->session()->regenerate();
             $request->session()->put('login_method', 'email');
@@ -239,6 +249,11 @@ class AuthController
             // Nếu tài khoản có vai trò là quản trị viên -> đưa thẳng vào trang tổng quan
             if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
+            }
+
+            // Nhân viên -> đưa vào khu vực nhân viên
+            if ($user->role === 'staff') {
+                return redirect()->route('staff.dashboard');
             }
 
             // Người dùng thường thì quay về trang chủ
@@ -307,13 +322,26 @@ class AuthController
                 }
             }
 
+            // Tài khoản đã bị khóa (is_active = 0): không cho vào
+            if (!$user->is_active) {
+                return redirect('/login')->withErrors([
+                    'login_error' => $user->lock_reason
+                        ? "Tài khoản của bạn đã bị khóa: {$user->lock_reason}"
+                        : 'Tài khoản của bạn đã bị khóa.',
+                ]);
+            }
+
             // Đăng nhập trực tiếp cho người dùng
             Auth::login($user);
             session()->put('login_method', 'google');
-            
+
             // Phân quyền điều hướng sau khi đăng nhập Google
             if ($user->role === 'admin') {
                 return redirect()->route('admin.dashboard');
+            }
+
+            if ($user->role === 'staff') {
+                return redirect()->route('staff.dashboard');
             }
 
             return redirect('/');

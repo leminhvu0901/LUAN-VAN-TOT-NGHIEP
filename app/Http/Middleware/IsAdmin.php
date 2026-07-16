@@ -17,11 +17,19 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        if (!Auth::check()) {
+            return redirect('/login')->with('error', 'Vui lòng đăng nhập.');
+        }
+
+        if (Auth::user()->role === 'admin') {
             return $next($request);
         }
-        
-        // If not authenticated or not admin, redirect to login page
-        return redirect('/login')->with('error', 'Bạn không có quyền truy cập trang quản trị.');
+
+        // Đã đăng nhập nhưng không đủ quyền: đưa về đúng khu vực của họ thay vì văng về login
+        if (Auth::user()->role === 'staff') {
+            return redirect()->route('staff.dashboard');
+        }
+
+        abort(403);
     }
 }

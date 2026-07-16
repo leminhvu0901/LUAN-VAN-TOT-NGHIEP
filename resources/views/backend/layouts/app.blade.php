@@ -31,7 +31,7 @@
 <body class="flex h-screen overflow-hidden antialiased">
 
     {{-- 1. NHÚNG SIDEBAR: --}}
-    @include('backend.components.sidebar')
+    @include($sidebarView ?? 'backend.components.sidebar')
 
     {{-- 2. KHU VỰC NỘI DUNG CHÍNH --}}
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f8fafc]">
@@ -49,7 +49,7 @@
     </div>
 
     {{-- File Javascript xử lý hiệu ứng đóng/mở Sidebar --}}
-    <script src="{{ asset('js/backend/layout.js') }}"></script>
+    <script src="{{ asset('js/backend/layout.js') }}?v={{ time() }}"></script>
 
     {{-- Thư viện bên thứ 3 --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

@@ -133,18 +133,18 @@ class MaterialController
     }
 
     // 4. Xóa hẳn Vật tư ra khỏi hệ thống
-    public function destroy(Material $material, Request $request)
+    public function destroy(Material $material, Request $request = null)
     {
         $blockReason = $this->getMaterialDeleteBlockReason($material);
         if ($blockReason !== null) {
-            if ($request->ajax()) {
+            if ($request && $request->ajax()) {
                 return response()->json(['success' => false, 'message' => $blockReason]);
             }
             return redirect()->back()->withErrors(['delete' => $blockReason]);
         }
 
         $material->delete();
-        if ($request->ajax()) {
+        if ($request && $request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Vật tư đã được xóa!']);
         }
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
@@ -197,52 +197,19 @@ class MaterialController
     }
 
     // 6. Tạo Phiếu Nhập Kho Mới (Cộng dồn số lượng và tính lại Giá vốn Trung bình)
+    // Logic tính toán thực tế nằm ở InventoryService::createImportLot() (dùng chung với StaffMaterialController).
     public function storeImport(Request $request, Material $material)
     {
         $request->merge(['_form_context' => 'import-create']);
         $validated = $this->validateImportData($request, today()->toDateString());
 
-        DB::transaction(function () use ($material, $validated) {
-            $lockedMaterial = Material::query()->lockForUpdate()->findOrFail($material->id);
-            $quantity = (float) $validated['quantity'];
-            $totalPrice = (float) $validated['total_price'];
-
-            $lot = MaterialImport::create([
-                'material_id' => $lockedMaterial->id,
-                'quantity' => $quantity,
-                'remaining_quantity' => $quantity,
-                'total_price' => $totalPrice,
-                'note' => $validated['note'] ?? null,
-                'expiration_date' => $validated['expiration_date'] ?? null,
-            ]);
-
-            if (Schema::hasTable('inventory_movements')) DB::table('inventory_movements')->insert([
-                'material_id' => $lockedMaterial->id,
-                'material_import_id' => $lot->id,
-                'order_id' => null,
-                'type' => 'import',
-                'quantity' => $quantity,
-                'unit_cost' => $totalPrice / $quantity,
-                'note' => $validated['note'] ?? 'Nhập kho',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $totalOldValue = (float) $lockedMaterial->current_stock * (float) $lockedMaterial->unit_price;
-            $newStock = (float) $lockedMaterial->current_stock + $quantity;
-            $newAvgPrice = ($totalOldValue + $totalPrice) / $newStock;
-
-            if ($newAvgPrice > self::MAX_UNIT_PRICE) {
-                throw ValidationException::withMessages([
-                    'total_price' => 'Phiếu nhập làm giá vốn bình quân vượt quá 999.999.999 đồng/đơn vị.',
-                ]);
-            }
-
-            $lockedMaterial->update([
-                'current_stock' => $newStock,
-                'unit_price' => $newAvgPrice,
-            ]);
-        });
+        $this->inventory->createImportLot(
+            $material,
+            (string) $validated['quantity'],
+            (string) $validated['total_price'],
+            $validated['note'] ?? null,
+            $validated['expiration_date'] ?? null,
+        );
 
         return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }

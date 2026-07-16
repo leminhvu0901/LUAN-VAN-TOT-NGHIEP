@@ -105,6 +105,9 @@ class SecureOrderController
     {
         $query = Order::query();
         if ($request->input('delete_all_pages') === '1') {
+            if (in_array($request->input('status'), ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
+                $query->where('status', $request->input('status'));
+            }
             if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
             if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
             if ($request->filled('search')) {
