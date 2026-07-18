@@ -12,9 +12,15 @@ use Illuminate\Validation\ValidationException;
 
 class CartPricingService
 {
-    public function pricedItems(Cart $cart, bool $lock = false): Collection
+    public function pricedItems(Cart $cart, bool $lock = false, ?array $selectedIds = null): Collection
     {
         $query = CartItem::query()->with(['product', 'toppings.topping'])->where('cart_id', $cart->id);
+
+        // Nếu có danh sách id được chọn, chỉ lấy những sản phẩm đó
+        if ($selectedIds !== null && count($selectedIds) > 0) {
+            $query->whereIn('id', $selectedIds);
+        }
+
         if ($lock) $query->lockForUpdate();
         $items = $query->get();
 

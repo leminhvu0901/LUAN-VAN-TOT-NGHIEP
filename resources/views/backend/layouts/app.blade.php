@@ -19,7 +19,7 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="{{ asset('js/backend/tailwind-config.js') }}"></script>
+    <script src="{{ asset('js/backend/admin/tailwind-config.js') }}"></script>
     <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
@@ -49,7 +49,7 @@
     </div>
 
     {{-- File Javascript xử lý hiệu ứng đóng/mở Sidebar --}}
-    <script src="{{ asset('js/backend/layout.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/backend/admin/layout.js') }}?v={{ time() }}"></script>
 
     {{-- Thư viện bên thứ 3 --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

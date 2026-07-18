@@ -1,5 +1,5 @@
 {{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 {{-- Đặt tên class CSS riêng cho thẻ body của trang quản lý đơn hàng --}}
 @section('body_class', 'profile-body')
@@ -10,22 +10,49 @@
 <div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0" data-open-order-id="{{ session('open_order_id') }}">
 
     <!-- MOBILE: Thanh tiêu đề trên cùng dành cho thiết bị di động -->
-    <header class="md:hidden fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center px-4 h-16 shadow-sm">
+    <header class="md:hidden fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center justify-between px-4 h-16 shadow-sm">
         {{-- Nút quay lại trang trước đó --}}
         <a href="{{ url()->previous() }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform">
             <span class="material-symbols-outlined text-primary">arrow_back</span>
         </a>
-        <h1 class="ml-2 font-headline-md text-headline-md-mobile text-primary">Đơn hàng của tôi</h1>
+        {{-- Logo thương hiệu (giống navbar) --}}
+        @php
+            $ordersPageLogo = \App\Models\Setting::getValue('store_logo', '/images/logo/black.png');
+            $ordersPageName = \App\Models\Setting::getValue('store_name', 'Happy Tea');
+        @endphp
+        <a href="{{ url('/') }}">
+            <img src="{{ asset($ordersPageLogo) }}" alt="{{ $ordersPageName }}" class="h-8 w-auto max-w-[120px] object-contain">
+        </a>
+        <div class="w-10"></div> {{-- Spacer cân bằng nút back --}}
     </header>
 
     <!-- Khu vực hiển thị nội dung chính -->
-    <main class="flex-1 pt-20 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg max-w-md md:max-w-full mx-auto md:mx-0 w-full relative z-10">
+    <main class="flex-1 pt-20 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg w-full max-w-6xl mx-auto relative z-10">
         <div class="w-full">
             {{-- Hiển thị thông báo thành công từ Session (ví dụ khi hủy đơn, đánh giá thành công) --}}
             @if(session('success'))
             <div class="bg-secondary-container text-on-secondary-container border border-outline-variant px-4 py-3 rounded-xl mb-6 shadow-sm flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">check_circle</span>
                 <span class="font-bold text-sm">{{ session('success') }}</span>
+            </div>
+            @endif
+
+            {{-- Hiển thị thông báo lỗi từ Session --}}
+            @if(session('error'))
+            <div class="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-xl mb-6 shadow-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-red-600">error</span>
+                <span class="font-bold text-sm">{{ session('error') }}</span>
+            </div>
+            @endif
+
+            {{-- Hiển thị lỗi Validation --}}
+            @if($errors->any())
+            <div class="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-xl mb-6 shadow-sm">
+                <ul class="list-disc list-inside text-xs font-bold">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
             @endif
 
@@ -141,6 +168,13 @@
                             </div>
                             <div class="flex gap-2 md:gap-3 shrink-0">
                                 <button type="button" data-toggle-order="{{ $order->id }}" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
+                                @if($order->status === 'pending')
+                                    <button type="button"
+                                        onclick="confirmCancelOrder('{{ $order->id }}', '{{ $order->order_code ?? 'HPY-' . $order->id }}')"
+                                        class="px-4 py-1.5 md:px-6 md:py-2.5 bg-red-50 border border-red-300 text-red-600 font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-red-100 transition-all active:scale-95 whitespace-nowrap">
+                                        Hủy đơn
+                                    </button>
+                                @endif
                                 <form method="POST" action="{{ route('orders.reorder', $order) }}" class="hidden md:inline-block">
                                     @csrf
                                     <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
@@ -332,9 +366,14 @@
             <span class="font-label-md text-[11px] mt-1">Tài khoản</span>
         </a>
     </nav>
+    {{-- Form ẩn dùng để gửi yêu cầu hủy đơn hàng --}}
+    <form id="cancel-order-form" method="POST" action="" class="hidden">
+        @csrf
+        <input type="hidden" name="cancel_reason" id="cancel-reason-input">
+    </form>
 </div>
 @endsection
 {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
 @push('scripts')
-    <script src="{{ asset('js/frontend/orders.js') }}"></script>
+    <script src="{{ asset('js/frontend/orders/orders.js') }}"></script>
 @endpush

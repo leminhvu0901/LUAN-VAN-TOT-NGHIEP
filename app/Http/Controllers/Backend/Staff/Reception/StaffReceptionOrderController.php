@@ -1,0 +1,367 @@
+<?php
+
+namespace App\Http\Controllers\Backend\Staff\Reception;
+
+use App\Models\Cart;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\User;
+use App\Services\CartPricingService;
+use App\Services\OrderService;
+use App\Services\OrderWorkflowService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+// Lễ tân xem/xử lý TOÀN BỘ đơn hàng của quán (không lọc theo người được phân công) —
+// khác với StaffDeliveryOrderController chỉ thấy đơn được phân công cho chính mình.
+class StaffReceptionOrderController
+{
+    public function __construct(
+        private readonly OrderWorkflowService $orderWorkflow,
+        private readonly OrderService $orderService,
+        private readonly CartPricingService $cartPricing,
+    ) {}
+
+    public function index(Request $request)
+    {
+        // Dọn đơn MoMo "chờ thanh toán" bị treo quá lâu mỗi lần lễ tân mở danh sách — không cần cron
+        // để thấy hiệu quả ngay, cron (nếu có cấu hình) chỉ để dọn cả khi không ai mở trang.
+        $this->orderWorkflow->cancelStalePendingPayments();
+
+        $status = $request->query('status');
+        $query = Order::query()->latest();
+        if (in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
+            $query->where('status', $status);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+        if ($request->input('sort') === 'asc') {
+            $query->reorder('created_at');
+        }
+
+        $collection = $query->get();
+        if ($request->filled('search')) {
+            $needle = Str::ascii(mb_strtolower(trim($request->input('search'))));
+            $collection = $collection->filter(function ($order) use ($needle) {
+                $haystack = Str::ascii(mb_strtolower(implode(' ', [$order->order_code, $order->customer_name, $order->customer_phone])));
+                return str_contains($haystack, str_replace('#', '', $needle));
+            });
+        }
+
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $paginator = new LengthAwarePaginator(
+            $collection->slice(($page - 1) * 10, 10)->values(),
+            $collection->count(),
+            10,
+            $page,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'query' => $request->query(),
+            ]
+        );
+
+        $labels = [
+            'pending' => ['Chờ xác nhận', 'warning'],
+            'confirmed' => ['Đã xác nhận', 'primary'],
+            'shipping' => ['Đang giao', 'info'],
+            'completed' => ['Hoàn thành', 'success'],
+            'cancelled' => ['Đã hủy', 'danger'],
+        ];
+
+        $orders = collect($paginator->items())->map(function ($order) use ($labels) {
+            [$label, $color] = $labels[$order->status] ?? [$order->status, 'warning'];
+            $created = Carbon::parse($order->created_at);
+            return [
+                'id' => $order->id,
+                'code' => $order->order_code ?: '#HPY-' . $order->id,
+                'customer_name' => $order->customer_name,
+                'customer_phone' => $order->customer_phone,
+                'total' => number_format($order->final_amount, 0, ',', '.') . ' VNĐ',
+                'payment_method' => strtoupper($order->payment_method ?: 'COD'),
+                'payment_status' => $order->payment_status ?: 'unpaid',
+                'status' => $label,
+                'raw_status' => $order->status,
+                'status_color' => $color,
+                'delivery_type' => $order->delivery_type,
+                // Đơn giao hàng đã xác nhận nhưng chưa gán shipper -> cần nổi bật để lễ tân biết mà phân công,
+                // tránh đơn "kẹt" âm thầm ở trạng thái đã xác nhận không ai xử lý tiếp.
+                'needs_delivery_assignment' => $order->delivery_type === 'delivery'
+                    && $order->status === 'confirmed'
+                    && !$order->delivery_staff_id,
+                'time' => $created->format('H:i') . "\n" . $created->format('d/m/Y'),
+            ];
+        })->all();
+
+        $stats = [
+            'total_orders' => Order::count(),
+            'pending_orders' => Order::where('status', 'pending')->count(),
+            'cancelled_orders' => Order::where('status', 'cancelled')->count(),
+        ];
+
+        if ($request->ajax() || $request->has('ajax')) {
+            return response()->json([
+                'table_html' => view('backend.staff.reception.orders.partials.table', compact('orders', 'paginator', 'status'))->with('currentStatus', $status)->render(),
+                'stats_html' => view('backend.staff.reception.orders.partials.stats', compact('stats'))->render(),
+            ]);
+        }
+
+        return view('backend.staff.reception.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status);
+    }
+
+    public function show(Order $order)
+    {
+        $items = OrderItem::query()->leftJoin('products', 'order_items.product_id', '=', 'products.id')
+            ->where('order_items.order_id', $order->id)->select('order_items.*')
+            ->selectRaw('COALESCE(order_items.product_name, products.name) as product_name')
+            ->selectRaw('COALESCE(order_items.product_image, products.image) as product_image')->get();
+
+        $order->loadMissing('deliveryStaff');
+
+        // Chỉ cần danh sách nhân viên vận chuyển khi đơn giao hàng đã xác nhận và chưa được phân công.
+        $availableDeliveryStaff = ($order->delivery_type === 'delivery' && $order->status === 'confirmed' && !$order->delivery_staff_id)
+            ? \App\Models\User::where('role', 'staff')->where('staff_type', 'delivery')->where('is_active', true)->orderBy('name')->get()
+            : collect();
+
+        // Thông tin cửa hàng để in trên hóa đơn khách hàng.
+        $storeInfo = [
+            'name' => \App\Models\Setting::getValue('store_name', 'Happy Tea'),
+            'phone' => \App\Models\Setting::getValue('store_phone', ''),
+            'address' => \App\Models\Setting::getValue('store_address', ''),
+        ];
+
+        return view('backend.staff.reception.orders.show', compact('order', 'items', 'availableDeliveryStaff', 'storeInfo'));
+    }
+
+    public function updateStatus(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:pending,confirmed,shipping,completed,cancelled'],
+            'cancel_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        // Đơn giao hàng (không phải khách tại quầy): lễ tân chỉ được xác nhận/hủy đơn TRƯỚC khi đơn
+        // vào tay nhân viên vận chuyển. Một khi đơn đã "đang giao", MỌI thay đổi (hoàn thành/hủy/giao
+        // thất bại) đều thuộc về nhân viên vận chuyển qua StaffDeliveryOrderController — kể cả hủy,
+        // để tránh lễ tân bấm tắt qua đúng quy trình markDeliveryFailed (có audit lý do/thời điểm).
+        $isDeliveryOrder = $order->delivery_type !== 'pickup';
+        if ($isDeliveryOrder && ($order->status === 'shipping' || in_array($validated['status'], ['shipping', 'completed'], true))) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'status' => 'Đơn giao hàng đang trên đường đi (hoặc cần chuyển sang bước giao hàng) — chỉ nhân viên giao hàng được xử lý sau khi được phân công.',
+            ]);
+        }
+
+        $this->orderWorkflow->transition($order, $validated['status'], $validated['cancel_reason'] ?? null);
+
+        return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
+    }
+
+    // Lễ tân/admin phân công 1 nhân viên vận chuyển cho đơn đã xác nhận.
+    public function assignDelivery(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'delivery_staff_id' => ['required', 'integer'],
+        ], [
+            'delivery_staff_id.required' => 'Vui lòng chọn nhân viên giao hàng.',
+        ]);
+
+        $this->orderWorkflow->assignDeliveryStaff(
+            $order,
+            (int) $validated['delivery_staff_id'],
+            \Illuminate\Support\Facades\Auth::id()
+        );
+
+        return back()->with('success', 'Đã phân công nhân viên giao hàng!');
+    }
+
+    // Trang "Tạo đơn tại quầy": lễ tân thêm sản phẩm vào giỏ hàng của chính tài khoản mình
+    // (dùng lại endpoint /cart/add sẵn có, không phân biệt role), rồi xác nhận tạo đơn pickup
+    // dưới tên khách vãng lai/qua điện thoại.
+    public function createOrder()
+    {
+        $products = Product::with(['category', 'sizes', 'toppings' => function ($query) {
+            $query->where('is_available', true);
+        }])->where('is_active', true)->orderBy('name')->get();
+
+        $categories = \App\Models\Category::query()->where('is_active', true)->orderBy('name')->get();
+        // POS chỉ nên cho chọn MoMo nếu admin đã bật kênh này trong Cài đặt (tiền mặt luôn khả dụng
+        // vì không phụ thuộc cổng thanh toán ngoài).
+        $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
+
+        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled'));
+    }
+
+    // Xem trước tổng tiền (tạm tính + khuyến mãi nếu có + tổng phải trả) của giỏ hàng lễ tân đang
+    // thao tác — để hiển thị TRƯỚC khi bấm "Tạo đơn". Nếu có query 'coupon_code', ưu tiên validate
+    // đúng mã đó (thay vì tự động chọn) — khớp với logic thật trong OrderService::create() để
+    // preview không bao giờ lệch với kết quả tạo đơn. POS chỉ tạo đơn tại quầy/mang đi nên không
+    // có phí giao hàng.
+    public function previewTotal(Request $request)
+    {
+        $cart = Cart::query()->where('user_id', Auth::id())->first();
+        $items = $cart ? \App\Models\CartItem::query()->where('cart_id', $cart->id)->get() : collect();
+
+        if ($items->isEmpty()) {
+            return response()->json([
+                'subtotal' => 0, 'discount' => 0, 'shipping_fee' => 0,
+                'promotion_code' => null, 'promotion_label' => null,
+                'final_amount' => 0, 'coupon_error' => null,
+            ]);
+        }
+
+        $pricedItems = $this->cartPricing->pricedItems($cart);
+        $subtotal = $this->cartPricing->subtotal($pricedItems);
+        $totalQuantity = (int) $pricedItems->sum('quantity');
+
+        $customerId = $request->query('customer_id');
+        $orderOwner = $customerId ? User::where('role', 'customer')->find($customerId) : null;
+
+        $couponCode = trim((string) $request->query('coupon_code', ''));
+        $couponError = null;
+
+        if ($couponCode !== '') {
+            try {
+                $preview = $this->orderService->previewManualCoupon($couponCode, $orderOwner, $subtotal, 'pickup', $totalQuantity);
+                $promotion = $preview['promotion'];
+                $discount = $preview['discount'];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $promotion = null;
+                $discount = 0;
+                $couponError = collect($e->errors())->flatten()->first();
+            }
+        } else {
+            $preview = $this->orderService->previewAutoPromotion($subtotal, $totalQuantity);
+            $promotion = $preview['promotion'];
+            $discount = $preview['discount'];
+        }
+
+        return response()->json([
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'shipping_fee' => 0,
+            'promotion_code' => $promotion?->code,
+            'promotion_label' => $promotion
+                ? ($promotion->type === 'percent' ? "Khuyến mãi -{$promotion->value}%" : 'Khuyến mãi') . " ({$promotion->code})"
+                : null,
+            'final_amount' => max(0, $subtotal - $discount),
+            'coupon_error' => $couponError,
+        ]);
+    }
+
+    public function storeOrder(Request $request)
+    {
+        // POS chỉ tạo đơn TẠI QUẦY/MANG ĐI — khách uống/nhận trực tiếp, không cần địa chỉ giao hàng
+        // và không có COD (khái niệm "trả khi nhận" chỉ áp dụng cho đơn giao hàng, không áp dụng khi
+        // khách đang đứng ngay tại quầy). Đơn giao hàng vẫn tồn tại trong hệ thống (khách tự đặt qua
+        // trang khách hàng) nhưng KHÔNG được tạo từ màn hình POS này.
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:cash,momo'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
+            // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên — để trống = khách vãng lai.
+            'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'customer')],
+            // Chỉ có ý nghĩa khi đã chọn customer_id — validate ràng buộc số dư/hạn mức thật nằm ở
+            // OrderService::create() (nguồn tính toán duy nhất, POS không tự tin số liệu từ JS).
+            'points_to_redeem' => ['nullable', 'integer', 'min:0'],
+            // Mã khuyến mãi lễ tân nhập tay (tùy chọn) — nếu để trống, OrderService tự chọn mã tốt
+            // nhất (resolveAutoPromotion) như trước. Validate hợp lệ thật nằm ở OrderService::create().
+            'coupon_code' => ['nullable', 'string', 'max:50'],
+        ], [
+            'payment_method.required' => 'Vui lòng chọn phương thức thanh toán.',
+            'payment_method.in' => 'Phương thức thanh toán không hợp lệ.',
+            'pickup_mode.in' => 'Loại đơn không hợp lệ.',
+            'customer_id.exists' => 'Khách hàng không hợp lệ.',
+        ]);
+
+        $customer = !empty($validated['customer_id'])
+            ? User::where('role', 'customer')->find($validated['customer_id'])
+            : null;
+
+        if (!$customer && !empty($validated['points_to_redeem'])) {
+            return back()->withErrors(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.'])->withInput();
+        }
+
+        $payload = [
+            'idempotency_key' => (string) Str::uuid(),
+            'delivery_type' => 'pickup',
+            'pickup_mode' => $validated['pickup_mode'] ?? 'dine_in',
+            // Luôn gửi key này (kể cả null) để OrderService gắn đúng "khách vãng lai" thay vì mặc
+            // định đứng tên tài khoản lễ tân đang thao tác.
+            'customer_id' => $customer?->id,
+            'customer_name' => $customer->name ?? 'Khách tại quầy',
+            'customer_phone' => $customer->phone ?? null,
+            'points_to_redeem' => $customer ? ($validated['points_to_redeem'] ?? 0) : 0,
+            'coupon_code' => $validated['coupon_code'] ?? null,
+            'note' => $validated['note'] ?? null,
+        ];
+
+        $order = $this->orderService->create(Auth::user(), $payload, $validated['payment_method']);
+
+        if ($validated['payment_method'] === 'momo') {
+            // Chuyển sang cổng MoMo để khách quét QR thanh toán ngay tại quầy.
+            return app(\App\Http\Controllers\Frontend\MomoController::class)->payExistingOrder($request, $order);
+        }
+
+        // Tiền mặt: KHÔNG tự động đánh dấu đã thanh toán ngay ở đây nữa — lễ tân phải nhập số tiền
+        // khách đưa và bấm xác nhận rõ ràng ở trang chi tiết đơn (confirmCashPayment()) sau khi thực
+        // sự đã cầm tiền, tránh in hóa đơn/phiếu pha chế cho đơn chưa thu tiền thật.
+        return redirect()->route('staff.reception.orders.show', $order->id)
+            ->with('success', "Đã tạo đơn {$order->order_code}. Vui lòng xác nhận đã thu tiền mặt để hoàn tất.");
+    }
+
+    // Lễ tân xác nhận ĐÃ THỰC SỰ THU tiền mặt cho một đơn tại quầy — tách khỏi lúc tạo đơn để có
+    // bước xác nhận rõ ràng (nhập tiền khách đưa, tính tiền thừa) trước khi đơn được coi là đã
+    // thanh toán và cho phép in hóa đơn/phiếu pha chế.
+    public function confirmCashPayment(Request $request, Order $order)
+    {
+        if ($order->payment_method !== 'cash' || $order->payment_status === 'paid') {
+            return redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('error', 'Đơn này không cần xác nhận thanh toán tiền mặt.');
+        }
+
+        $validated = $request->validate([
+            'amount_tendered' => ['required', 'numeric', 'min:0'],
+        ], [
+            'amount_tendered.required' => 'Vui lòng nhập số tiền khách đưa.',
+            'amount_tendered.numeric' => 'Số tiền không hợp lệ.',
+        ]);
+
+        if ((float) $validated['amount_tendered'] < (float) $order->final_amount) {
+            return back()->withErrors(['amount_tendered' => 'Số tiền khách đưa không đủ để thanh toán đơn hàng.']);
+        }
+
+        $order->forceFill(['amount_tendered' => $validated['amount_tendered']])->save();
+        $this->orderWorkflow->markPaid($order, 'CASH-' . $order->order_code, (float) $order->final_amount);
+
+        return redirect()->route('staff.reception.orders.show', $order->id)
+            ->with('success', 'Đã xác nhận thu tiền mặt thành công!');
+    }
+
+    // Tìm khách hàng theo tên/SĐT để gắn đơn tại quầy đúng chủ tài khoản — trả kèm điểm tích lũy để
+    // lễ tân biết khách còn bao nhiêu điểm có thể dùng giảm giá (không trả lịch sử mua hàng hay dữ
+    // liệu quản trị nào khác).
+    public function searchCustomer(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+        if (mb_strlen($search) < 2) {
+            return response()->json(['results' => []]);
+        }
+
+        $customers = \App\Models\User::query()->where('role', 'customer')
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%");
+            })
+            ->limit(8)
+            ->get(['id', 'name', 'phone', 'points']);
+
+        return response()->json(['results' => $customers]);
+    }
+}

@@ -15,6 +15,7 @@ class Order extends Model
         'paid_at' => 'datetime',
         'inventory_reserved_at' => 'datetime',
         'inventory_released_at' => 'datetime',
+        'cod_settled_at' => 'datetime',
     ];
 
     public function items()
@@ -30,5 +31,10 @@ class Order extends Model
     public function promotion()
     {
         return $this->belongsTo(Promotion::class, 'promotion_id');
+    }
+
+    public function deliveryStaff()
+    {
+        return $this->belongsTo(User::class, 'delivery_staff_id');
     }
 }

@@ -1,98 +1,135 @@
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 @section('content')
 
-    {{-- ===== HERO BANNER ===== --}}
-    <section class="home-hero">
-        <div class="home-hero__inner" id="hero-slider">
+    {{-- Helper function to safely resolve banner URL --}}
+    @php
+        if (!function_exists('getBannerUrl')) {
+            function getBannerUrl($path) {
+                if (empty($path)) return '';
+                if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                    return $path;
+                }
+                if (file_exists(public_path($path))) {
+                    return asset($path);
+                }
+                if (file_exists(public_path('storage/' . $path))) {
+                    return asset('storage/' . $path);
+                }
+                if (strpos($path, 'banners/') === 0) {
+                    return asset('images/banners/' . basename($path));
+                }
+                return asset($path);
+            }
+        }
+    @endphp
+
+    <section class="hero-banner home-hero">
+        <div class="hero-banner__inner home-hero__inner" id="hero-slider">
             @if(isset($banners) && $banners->count() > 0)
                 @foreach($banners as $index => $banner)
-                    @php
-                        $bannerUrl = $banner->image_url;
-                        if (file_exists(public_path($bannerUrl))) {
-                            $bannerUrl = asset($bannerUrl);
-                        } elseif (file_exists(public_path('storage/' . $bannerUrl))) {
-                            $bannerUrl = asset('storage/' . $bannerUrl);
-                        } elseif (strpos($bannerUrl, 'banners/') === 0) {
-                            $bannerUrl = asset('images/banners/' . basename($bannerUrl));
-                        } else {
-                            $bannerUrl = asset($bannerUrl);
-                        }
-                        if ($index === 0) {
-                            $firstBannerUrl = $bannerUrl;
-                        }
-                    @endphp
-                    <img src="{{ $bannerUrl }}"
-                        class="home-hero__img hero-slide-img {{ $index === 0 ? 'active' : '' }}" 
+                    <picture class="hero-banner__media hero-slide-img {{ $index === 0 ? 'active' : '' }}" 
                         data-title="{{ $banner->title }}"
-                        data-title-tag="{{ $banner->title_tag ?? '🌿 Đồ uống tươi ngon' }}"
-                        alt="{{ $banner->title ?? 'Banner' }}">
+                        data-title-tag="{{ $banner->title_tag }}"
+                        data-link="{{ $banner->link_url }}">
+                        @if(!empty($banner->mobile_image_url))
+                            <source media="(max-width: 640px)" srcset="{{ getBannerUrl($banner->mobile_image_url) }}">
+                        @endif
+                        <img src="{{ getBannerUrl($banner->image_url) }}"
+                            alt="{{ $banner->title ?? 'Banner' }}"
+                            onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
+                    </picture>
                 @endforeach
-                @if(isset($firstBannerUrl))
-                    <img src="{{ $firstBannerUrl }}" class="home-hero__tracker" alt="">
+                @if(isset($banners) && $banners->count() > 0)
+                    @php
+                        $firstBanner = $banners->first();
+                        $firstBannerUrl = getBannerUrl($firstBanner->image_url);
+                        $firstBannerMobileUrl = $firstBanner->mobile_image_url ? getBannerUrl($firstBanner->mobile_image_url) : $firstBannerUrl;
+                    @endphp
+                    <picture class="hero-banner__tracker home-hero__tracker">
+                        @if(!empty($firstBanner->mobile_image_url))
+                            <source media="(max-width: 640px)" srcset="{{ $firstBannerMobileUrl }}">
+                        @endif
+                        <img src="{{ $firstBannerUrl }}" alt="">
+                    </picture>
                 @endif
             @else
-                <img src="{{ asset('images/banners/slider-1.png') }}" class="home-hero__img hero-slide-img active"
-                    data-title="Thưởng thức hương vị tuyệt vời" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 1">
-                <img src="{{ asset('images/banners/slider-2.png') }}" class="home-hero__img hero-slide-img"
-                    data-title="Khuyến mãi mùa hè" data-title-tag="🌿 Đồ uống tươi ngon" alt="Banner 2">
-                <img src="{{ asset('images/banners/slider-1.png') }}" class="home-hero__tracker" alt="">
+                <picture class="hero-banner__media hero-slide-img active"
+                    data-title="Thưởng thức hương vị tuyệt vời" 
+                    data-title-tag="🌿 Đồ uống tươi ngon">
+                    <img src="{{ asset('images/banners/slider-1.png') }}" alt="Banner 1" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
+                </picture>
+                <picture class="hero-banner__media hero-slide-img"
+                    data-title="Khuyến mãi mùa hè" 
+                    data-title-tag="🌿 Đồ uống tươi ngon">
+                    <img src="{{ asset('images/banners/slider-2.png') }}" alt="Banner 2" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-2.png') }}'">
+                </picture>
+                <picture class="hero-banner__tracker home-hero__tracker">
+                    <img src="{{ asset('images/banners/slider-1.png') }}" alt="">
+                </picture>
             @endif
-            <div class="home-hero__overlay"></div>
-            <div class="home-hero__content">
-                <div class="home-hero__top">
-                    @php
-                        $heroTitleTag = isset($banners) && $banners->count() > 0 ? ($banners->first()->title_tag ?? '🌿 Đồ uống tươi ngon') : '🌿 Đồ uống tươi ngon';
-                    @endphp
-                    <span class="home-hero__tag" id="hero-title-tag">{{ $heroTitleTag }}</span>
-                </div>
 
-                <div class="home-hero__middle">
-                    @php
-                        $heroTitle = isset($banners) && $banners->count() > 0 ? $banners->first()->title : 'Thưởng thức hương vị tuyệt vời';
-                        $titleLen = mb_strlen($heroTitle);
-                        $maxFs = '3.5rem';
-                        $midFs = '8cqw';
-                        if ($titleLen > 60) {
-                            $maxFs = '2.2rem';
-                            $midFs = '4.5cqw';
-                        } elseif ($titleLen > 30) {
-                            $maxFs = '2.8rem';
-                            $midFs = '6cqw';
-                        }
-                    @endphp
-                    <h1 class="home-hero__title" id="hero-title" style="--max-fs: {{ $maxFs }}; --mid-fs: {{ $midFs }};">
-                        {{ $heroTitle }}
-                    </h1>
+            {{-- Navigation Dots --}}
+            @if(isset($banners) && $banners->count() > 1)
+                <div class="hero-banner__dots">
+                    @foreach($banners as $index => $banner)
+                        <button class="hero-banner__dot {{ $index === 0 ? 'active' : '' }}" data-slide-index="{{ $index }}" aria-label="Slide {{ $index + 1 }}"></button>
+                    @endforeach
                 </div>
+            @elseif(!isset($banners) || $banners->count() === 0)
+                <div class="hero-banner__dots">
+                    <button class="hero-banner__dot active" data-slide-index="0" aria-label="Slide 1"></button>
+                    <button class="hero-banner__dot" data-slide-index="1" aria-label="Slide 2"></button>
+                </div>
+            @endif
 
-                <div class="home-hero__bottom">
-                    <div class="home-hero__actions">
-                        <a href="/products" class="home-hero__btn home-hero__btn--primary">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
-                                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                            </svg>
-                            Đặt ngay
-                        </a>
-                        <a href="/products" class="home-hero__btn home-hero__btn--ghost">Xem menu</a>
+            <div class="hero-banner__overlay home-hero__overlay"></div>
+            <div class="hero-banner__content home-hero__content">
+                <div class="hero-banner__content-inner home-hero__content-inner">
+                    @php
+                        $firstBanner = isset($banners) && $banners->count() > 0 ? $banners->first() : null;
+                        $heroTitleTag = $firstBanner ? $firstBanner->title_tag : '🌿 Đồ uống tươi ngon';
+                        $heroTitle = $firstBanner ? $firstBanner->title : 'Thưởng thức hương vị tuyệt vời';
+                        $heroLink = $firstBanner ? $firstBanner->link_url : '/products';
+                    @endphp
+                    <div class="hero-banner__top home-hero__top" id="hero-tag-container" style="{{ empty($heroTitleTag) ? 'display: none;' : '' }}">
+                        <span class="hero-banner__badge home-hero__tag" id="hero-title-tag">{{ $heroTitleTag }}</span>
+                    </div>
+
+                    <div class="hero-banner__middle home-hero__middle">
+                        <h1 class="hero-banner__title home-hero__title" id="hero-title">
+                            {{ $heroTitle }}
+                        </h1>
+                    </div>
+
+                    <div class="hero-banner__bottom home-hero__bottom">
+                        <div class="hero-banner__actions home-hero__actions">
+                            <a href="{{ $heroLink ?: '/products' }}" class="hero-banner__btn hero-banner__btn--primary home-hero__btn home-hero__btn--primary">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
+                                </svg>
+                                Đặt ngay
+                            </a>
+                            <a href="/products" class="hero-banner__btn hero-banner__btn--ghost home-hero__btn home-hero__btn--ghost">Xem menu</a>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="home-hero__stats" style="z-index: 10;">
-                <div class="home-hero__stat">
-                    <span class="home-hero__stat-num">50+</span>
-                    <span class="home-hero__stat-label">Món đồ uống</span>
+            <div class="hero-banner__stats home-hero__stats" style="z-index: 10;">
+                <div class="hero-banner__stat home-hero__stat">
+                    <span class="hero-banner__stat-num home-hero__stat-num">50+</span>
+                    <span class="hero-banner__stat-label home-hero__stat-label">Món đồ uống</span>
                 </div>
-                <div class="home-hero__stat-divider"></div>
-                <div class="home-hero__stat">
-                    <span class="home-hero__stat-num">4.9★</span>
-                    <span class="home-hero__stat-label">Đánh giá</span>
+                <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
+                <div class="hero-banner__stat home-hero__stat">
+                    <span class="hero-banner__stat-num home-hero__stat-num">4.9★</span>
+                    <span class="hero-banner__stat-label home-hero__stat-label">Đánh giá</span>
                 </div>
-                <div class="home-hero__stat-divider"></div>
-                <div class="home-hero__stat">
-                    <span class="home-hero__stat-num">30'</span>
-                    <span class="home-hero__stat-label">Giao hàng</span>
+                <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
+                <div class="hero-banner__stat home-hero__stat">
+                    <span class="hero-banner__stat-num home-hero__stat-num">30'</span>
+                    <span class="hero-banner__stat-label home-hero__stat-label">Giao hàng</span>
                 </div>
             </div>
         </div>
@@ -270,27 +307,6 @@
         </div>
     </section>
 
-    {{-- ===== PROMO BANNER ===== --}}
-    <section class="home-promo-section container" id="promo">
-        <div class="home-promo">
-            <div class="home-promo__deco home-promo__deco--1"></div>
-            <div class="home-promo__deco home-promo__deco--2"></div>
-            <div class="home-promo__body">
-                <span class="home-promo__chip">🎉 Ưu đãi đặc biệt</span>
-                <h2 class="home-promo__title">Giảm 10% cho đơn hàng đầu tiên</h2>
-                <p class="home-promo__desc">Dùng mã <strong>NEW</strong> khi thanh toán. Áp dụng cho tất cả sản
-                    phẩm, giảm tối đa 50.000đ.</p>
-                <div class="home-promo__actions">
-                    <a href="/products" class="home-promo__btn">Đặt hàng ngay</a>
-                </div>
-            </div>
-            <div class="home-promo__visual">
-                <div class="home-promo__emoji">☕</div>
-                <div class="home-promo__emoji home-promo__emoji--2">🧋</div>
-                <div class="home-promo__emoji home-promo__emoji--3">🍵</div>
-            </div>
-        </div>
-    </section>
 
     {{-- ===== TẠI SAO CHỌN CHÚNG TÔI ===== --}}
     <section class="home-features container">

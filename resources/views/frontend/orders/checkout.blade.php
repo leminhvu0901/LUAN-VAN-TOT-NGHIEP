@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 @section('body_class', 'profile-body')
 
@@ -285,15 +285,15 @@
                             </label>
                             @endif
 
-                            <!-- MoMo -->
+                            <!-- Chuyển khoản (MoMo - hiện đầy đủ các phương thức) -->
                             @if($momoEnabled)
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
                                 <input type="radio" name="payment_method" value="momo" {{ !$codEnabled ? 'checked' : '' }} class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
-                                    <img src="{{ asset('images/payment/momo.svg') }}" alt="MoMo" class="w-8 h-8 rounded-lg" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
                                     <div>
-                                        <span class="block font-bold text-on-surface">Ví điện tử MoMo</span>
-                                        <span class="text-xs text-on-surface-variant">Liên kết thanh toán online</span>
+                                        <span class="block font-bold text-on-surface">Chuyển khoản</span>
+                                        <span class="text-xs text-on-surface-variant">Ví MoMo, ATM, Visa/Master...</span>
                                     </div>
                                 </div>
                             </label>
@@ -315,6 +315,11 @@
                         <div class="border-b border-outline-variant pb-4 mb-4">
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Tóm tắt đơn hàng</h2>
                         </div>
+
+                        {{-- Hidden inputs truyền danh sách cart_item_id đã chọn vào form --}}
+                        @foreach($items as $item)
+                            <input type="hidden" name="selected_item_ids[]" value="{{ $item->id }}">
+                        @endforeach
 
                         <!-- Product List -->
                         <div class="divide-y divide-outline-variant/50 max-h-96 overflow-y-auto pr-1">
@@ -476,5 +481,5 @@
         freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }}
     };
 </script>
-<script src="{{ asset('js/frontend/checkout.js') }}"></script>
+<script src="{{ asset('js/frontend/orders/checkout.js') }}"></script>
 @endsection

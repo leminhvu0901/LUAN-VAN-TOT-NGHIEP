@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -c \"\\(Get-Content tests/Feature/StaffRoleWorkflowTest.php\\).Length\")",
+      "Bash(php -l tests/Feature/StaffRoleWorkflowTest.php)",
+      "Bash(php -l app/Http/Controllers/Backend/Staff/StaffAccountController.php)",
+      "Bash(node --check public/js/backend/staff-accounts/index.js)",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('public/js/backend/staff-accounts/index.js','utf8'\\); new Function\\(require\\('fs'\\).readFileSync\\('public/js/backend/staff-accounts/index.js','utf8'\\)\\); console.log\\('OK'\\)\")"
+    ]
+  }
+}

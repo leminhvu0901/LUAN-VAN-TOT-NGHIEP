@@ -64,108 +64,8 @@
 @endphp
 
 @if($navIsClosed)
-    <style>
-        .store-closed-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .store-closed-modal-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-        }
-        .store-closed-modal-content {
-            background-color: #ffffff;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 420px;
-            width: calc(100% - 32px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            position: relative;
-            transform: scale(0.9);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid #f3f4f6;
-            box-sizing: border-box;
-            z-index: 100000;
-        }
-        .store-closed-modal-flex {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-        .store-closed-icon-wrapper {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background-color: #ffebee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-            color: #c62828;
-            flex-shrink: 0;
-            animation: storePulse 2s infinite;
-        }
-        .store-closed-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0 0 12px 0;
-            line-height: 1.2;
-        }
-        .store-closed-desc {
-            font-size: 14px;
-            color: #4b5563;
-            line-height: 1.6;
-            margin: 0 0 24px 0;
-        }
-        .store-closed-btn {
-            width: 100%;
-            height: 48px;
-            background-color: #006e01;
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 15px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 110, 1, 0.15);
-        }
-        .store-closed-btn:hover {
-            background-color: #005301;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 12px -2px rgba(0, 110, 1, 0.25);
-        }
-        .store-closed-btn:active {
-            transform: translateY(1px);
-        }
-        @keyframes storePulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-    </style>
-
     <!-- Modal thông báo cửa hàng đóng cửa/ngưng nhận đơn (Chỉ xuất hiện khi mới vào web) -->
-    <div id="store-closed-modal" class="store-closed-modal-overlay" style="display: none;">
+    <div id="store-closed-modal" class="store-closed-modal-overlay">
         <!-- Backdrop -->
         <div class="store-closed-modal-backdrop"></div>
         <!-- Modal Content -->
@@ -173,7 +73,7 @@
             <div class="store-closed-modal-flex">
                 <!-- Icon container with soft pulse animation -->
                 <div class="store-closed-icon-wrapper">
-                    <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'FILL' 1;">schedule</span>
+                    <span class="material-symbols-outlined store-closed-icon">schedule</span>
                 </div>
                 <h3 class="store-closed-title">Thông báo nhận đơn</h3>
                 <p class="store-closed-desc">
@@ -228,7 +128,7 @@ z-50: luôn hiển thị trên các phần tử khác
 shadow-sm: đổ bóng nhẹ phía dưới
 --}}
 <header class="happy-navbar sticky top-0 z-50 bg-white shadow-sm" id="main-navbar">
-    <div class="container mx-auto px-4">
+    <div class="nav-container">
         <div class="happy-navbar__row">
 
             {{-- ===== LOGO: Biểu tượng thương hiệu =====
@@ -342,7 +242,7 @@ shadow-sm: đổ bóng nhẹ phía dưới
                         </svg>
                         {{-- Badge: ẩn nếu giỏ rỗng ($cartCount = 0), hiện nếu có sp --}}
                         <span id="cart-badge"
-                            style="{{ $cartCount > 0 ? '' : 'display: none;' }}">{{ $cartCount }}</span>
+                            class="{{ $cartCount > 0 ? '' : 'cart-badge--hidden' }}">{{ $cartCount }}</span>
                     </button>
 
                     {{-- ===== NÚT HAMBURGER (Mobile) =====
@@ -506,20 +406,34 @@ Mở/đóng được điều khiển bởi navbar.js
         </button>
     </div>
 
+    {{-- Thanh chọn tất cả (chỉ hiện khi có sản phẩm trong giỏ) --}}
+    <div id="cart-select-all-bar" class="cart-select-all-bar">
+        <label class="cart-select-all-label" for="cart-select-all-chk">
+            <input type="checkbox" id="cart-select-all-chk" checked>
+            <span>Chọn tất cả</span>
+        </label>
+        <span class="cart-select-all-hint" id="cart-selected-count-hint">0 đã chọn</span>
+    </div>
+
     {{-- Body: danh sách sản phẩm trong giỏ (được inject bởi JS qua AJAX) --}}
     <div id="cart-list">
         {{-- Cart items được inject qua JS --}}
     </div>
 
-    {{-- Footer: tổng tiền + nút thanh toán --}}
+    {{-- Footer: tổng tiền ĐÃ CHỌN + nút thanh toán động --}}
     <div class="cart-drawer__footer">
         <div class="cart-drawer__total-row">
-            <span class="cart-drawer__total-label">Tổng cộng:</span>
-            {{-- Tổng tiền được cập nhật động bởi JS --}}
+            <span class="cart-drawer__total-label">Đã chọn:</span>
+            {{-- Tổng tiền sản phẩm ĐÃ CHỌN, cập nhật động bởi JS --}}
             <span id="cart-drawer-total" class="cart-drawer__total-amount">0đ</span>
         </div>
-        {{-- Nút chuyển sang trang thanh toán --}}
-        <a href="{{ route('checkout') }}" class="cart-drawer__checkout-btn">Thanh toán ngay</a>
+        {{-- Nút thanh toán: disabled khi không chọn sản phẩm nào --}}
+        <button type="button" id="cart-checkout-btn"
+            class="cart-drawer__checkout-btn"
+            onclick="cartProceedToCheckout()"
+            disabled>
+            Thanh toán ngay (<span id="cart-selected-item-count">0</span> sản phẩm)
+        </button>
     </div>
 </aside>
 
@@ -528,5 +442,5 @@ Mở/đóng được điều khiển bởi navbar.js
 navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
 --}}
 @push('scripts')
-    <script src="{{ asset('js/frontend/navbar.js') }}"></script>
+    <script src="{{ asset('js/frontend/layout/navbar.js') }}"></script>
 @endpush

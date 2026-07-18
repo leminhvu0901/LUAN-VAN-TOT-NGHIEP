@@ -1,5 +1,5 @@
 {{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 @section('content')
         <div class="p-page-wrapper">
@@ -217,5 +217,5 @@
         </div><!-- end .p-page-wrapper -->
 
     {{-- Nhúng tệp tin Script JS điều khiển sắp xếp sản phẩm phía Client --}}
-    <script src="{{ asset('js/frontend/product-index.js') }}"></script>
+    <script src="{{ asset('js/frontend/products/index.js') }}"></script>
 @endsection

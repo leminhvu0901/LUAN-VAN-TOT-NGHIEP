@@ -135,39 +135,93 @@ if (navbar) {
 
 // Wishlist toggle is handled globally in main.js via inline onclick handlers
 
-// Hero Auto Slider (3s)
+// Hero Auto Slider (4s) with Dot navigation
 (function () {
     var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
     var heroTitle = document.getElementById('hero-title');
+    var dots = document.querySelectorAll('#hero-slider .hero-banner__dot');
     if (sliderImgs.length === 0) return;
     var currentIdx = 0;
-    setInterval(function () {
+    var slideInterval = null;
+
+    function showSlide(nextIdx) {
+        if (nextIdx === currentIdx) return;
         var prevIdx = currentIdx;
 
         // Slide out the current one to the left
         sliderImgs[prevIdx].classList.remove('active');
         sliderImgs[prevIdx].classList.add('prev-slide');
 
-        // Determine next slide
-        currentIdx = (currentIdx + 1) % sliderImgs.length;
+        // Update index
+        currentIdx = nextIdx;
 
         // Slide in the new one from the right
-        sliderImgs[currentIdx].classList.remove('prev-slide'); // Just in case
+        sliderImgs[currentIdx].classList.remove('prev-slide');
         sliderImgs[currentIdx].classList.add('active');
 
-        // Remove prev-slide after transition so it resets position
+        // Update active class on dots
+        dots.forEach(function (dot, idx) {
+            if (idx === currentIdx) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+
+        // Remove prev-slide class after animation finishes
         setTimeout(function () {
             sliderImgs[prevIdx].classList.remove('prev-slide');
         }, 800);
 
         // Update title dynamically
-        if (heroTitle && sliderImgs[currentIdx].dataset.title) {
-            heroTitle.innerText = sliderImgs[currentIdx].dataset.title;
+        if (heroTitle) {
+            heroTitle.innerText = sliderImgs[currentIdx].dataset.title || '';
         }
         
         var heroTitleTag = document.getElementById('hero-title-tag');
-        if (heroTitleTag && sliderImgs[currentIdx].dataset.titleTag) {
-            heroTitleTag.innerText = sliderImgs[currentIdx].dataset.titleTag;
+        var heroTagContainer = document.getElementById('hero-tag-container');
+        var titleTagText = sliderImgs[currentIdx].dataset.titleTag;
+        if (heroTitleTag && heroTagContainer) {
+            if (titleTagText && titleTagText.trim() !== '') {
+                heroTitleTag.innerText = titleTagText;
+                heroTagContainer.style.display = '';
+            } else {
+                heroTitleTag.innerText = '';
+                heroTagContainer.style.display = 'none';
+            }
         }
-    }, 3000);
+
+        // Update link dynamically
+        var primaryBtn = document.querySelector('.home-hero__btn--primary');
+        if (primaryBtn) {
+            var slideLink = sliderImgs[currentIdx].dataset.link;
+            primaryBtn.href = (slideLink && slideLink.trim() !== '') ? slideLink : '/products';
+        }
+    }
+
+    function startAutoSlide() {
+        stopAutoSlide();
+        slideInterval = setInterval(function () {
+            var next = (currentIdx + 1) % sliderImgs.length;
+            showSlide(next);
+        }, 4000);
+    }
+
+    function stopAutoSlide() {
+        if (slideInterval) {
+            clearInterval(slideInterval);
+        }
+    }
+
+    // Attach click listener to dots
+    dots.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+            var targetIdx = parseInt(this.getAttribute('data-slide-index'));
+            showSlide(targetIdx);
+            startAutoSlide(); // Reset auto slide timer
+        });
+    });
+
+    // Start auto slider on load
+    startAutoSlide();
 })();

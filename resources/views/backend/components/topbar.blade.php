@@ -11,10 +11,15 @@
         <!-- Khối Thông tin Người dùng (Avatar + Tên) -->
         <div class="flex items-center gap-2 cursor-pointer">
 
-            <!-- Avatar: Sử dụng API của ui-avatars.com để tự động tạo ảnh đại diện dựa trên Chữ cái đầu của Tên User -->
+            <!-- Avatar: dùng ảnh đã tải lên nếu có, nếu chưa thì fallback sang ui-avatars.com theo chữ cái đầu tên -->
+            @php
+                $topbarAvatarUrl = Auth::user()->avatar
+                    ? (str_starts_with(Auth::user()->avatar, 'http') ? Auth::user()->avatar : asset('images/avatars/' . Auth::user()->avatar))
+                    : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=10b981&color=fff';
+            @endphp
             <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
                 <img alt="{{ Auth::user()->name }}" class="w-full h-full object-cover"
-                    src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=10b981&color=fff" />
+                    src="{{ $topbarAvatarUrl }}" />
             </div>
 
             <!-- Tên User đang đăng nhập: Lấy từ Session thông qua Auth::user()->name. (Ẩn trên điện thoại, chỉ hiện trên PC) -->

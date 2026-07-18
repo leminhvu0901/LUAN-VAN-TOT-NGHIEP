@@ -251,9 +251,9 @@ class AuthController
                 return redirect()->route('admin.dashboard');
             }
 
-            // Nhân viên -> đưa vào khu vực nhân viên
+            // Nhân viên -> đưa vào đúng khu vực theo loại nhân viên (mặc định lễ tân nếu chưa gán loại)
             if ($user->role === 'staff') {
-                return redirect()->route('staff.dashboard');
+                return redirect()->route($user->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
             }
 
             // Người dùng thường thì quay về trang chủ
@@ -341,11 +341,11 @@ class AuthController
             }
 
             if ($user->role === 'staff') {
-                return redirect()->route('staff.dashboard');
+                return redirect()->route($user->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
             }
 
             return redirect('/');
-            
+
         } catch (\Exception $e) {
             // Ghi lỗi chi tiết vào hệ thống log để lập trình viên theo dõi
             Log::error('Google Login Error: ' . $e->getMessage());
@@ -404,7 +404,7 @@ class AuthController
         if (!$request->session()->has('can_reset_password')) {
             return redirect('/');
         }
-        return view('auth.reset-password');
+        return view('frontend.auth.reset-password');
     }
 
     /**

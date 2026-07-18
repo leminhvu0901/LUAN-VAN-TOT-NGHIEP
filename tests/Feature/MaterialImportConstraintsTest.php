@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Backend\MaterialController;
+use App\Http\Controllers\Backend\Admin\MaterialController;
 use App\Models\Material;
 use App\Models\MaterialImport;
 use Illuminate\Database\Schema\Blueprint;

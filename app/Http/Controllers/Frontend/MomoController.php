@@ -101,7 +101,16 @@ class MomoController
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
 
-        $cartItems = \App\Models\CartItem::query()->where('cart_id', $cart->id)->get();
+        $cartItemQuery = \App\Models\CartItem::query()->where('cart_id', $cart->id);
+
+        // Lọc theo danh sách đã chọn (nếu có trong session)
+        $selectedIds = session('selected_cart_item_ids');
+        if (!empty($selectedIds)) {
+            // Validate: chỉ lấy id thuộc cart của user này
+            $cartItemQuery->whereIn('id', $selectedIds);
+        }
+
+        $cartItems = $cartItemQuery->get();
         if ($cartItems->isEmpty()) {
             return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
         }
@@ -168,7 +177,8 @@ class MomoController
         $inputCoupon = trim($request->input('coupon_code'));
         if (!empty($inputCoupon)) {
             $coupon = \App\Models\Promotion::query()->where('code', strtoupper($inputCoupon))->first();
-            if ($coupon && $coupon->is_active && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
+            // Đơn MoMo ở luồng này luôn là đơn giao hàng -> mã chỉ dành riêng cho "Tại quầy" không được áp dụng.
+            if ($coupon && $coupon->is_active && $coupon->applies_to !== 'pickup' && (!$coupon->usage_limit || $coupon->used_count < $coupon->usage_limit)) {
                 $isValidDate = true;
                 if ($coupon->start_at && now() < $coupon->start_at)
                     $isValidDate = false;
@@ -233,6 +243,8 @@ class MomoController
                 'customer_name' => $address->fullname,
                 'customer_phone' => $address->phone,
                 'delivery_address' => $fullAddress,
+                'delivery_latitude' => $address->latitude,
+                'delivery_longitude' => $address->longitude,
                 'total_amount' => $subtotal,
                 'discount_amount' => $discountAmount,
                 'final_amount' => $finalAmount,
@@ -281,18 +293,42 @@ class MomoController
         }
 
         // ── 7. Gọi API MoMo (theo mẫu PayMoMo/init_payment.php) ─────────────
-        $requestId = $orderCode . '_' . time();
         $orderInfo = 'Thanh toan don hang ' . $orderCode;
+        // payWithMethod: MoMo tự hiện màn hình chọn phương thức (Ví MoMo, ATM, Visa/Master...)
+        $payUrl = $this->requestPayUrl($orderCode, $finalAmount, $orderInfo, 'payWithMethod');
+
+        if ($payUrl) {
+            // ✅ MoMo trả payUrl → chuyển sang trang MoMo (CHƯA xóa giỏ hàng, chờ xác nhận thanh toán)
+            return redirect()->away($payUrl);
+        }
+
+        // ❌ MoMo không trả payUrl → hủy đơn hàng đã tạo (giỏ hàng vẫn còn)
+        \App\Models\OrderItem::query()->where('order_id', $orderId)->delete();
+        \App\Models\Order::query()->where('id', $orderId)->delete();
+        if ($promotionId) {
+            \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
+        }
+
+        return redirect()->route('checkout')->with('error', 'MoMo: Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
+    }
+
+    /**
+     * Yêu cầu MoMo tạo payUrl cho một đơn hàng (mã đơn + số tiền + mô tả) — dùng chung cho cả
+     * luồng khách tự checkout (createPayment) và luồng lễ tân bấm thanh toán MoMo cho đơn tại quầy
+     * (payExistingOrder) để tránh trùng lặp logic ký chữ ký HMAC dễ phát sinh lỗi nếu tách rời.
+     */
+    private function requestPayUrl(string $orderCode, float $amount, string $orderInfo, string $requestType = 'payWithATM'): ?string
+    {
+        $requestId = $orderCode . '_' . time();
         $redirectUrl = route('momo.return');
         $ipnUrl = route('momo.ipn');
         // MoMo yêu cầu amount là số nguyên VNĐ (không thập phân)
-        $amount = (string) (int) round($finalAmount);
+        $amountStr = (string) (int) round($amount);
         $extraData = '';
-        $requestType = 'payWithATM'; // Chỉ cho phép thanh toán bằng Thẻ ATM nội địa
 
         // Tạo chữ ký HMAC SHA256 - đúng theo tài liệu MoMo PayMoMo
         $rawHash = "accessKey={$this->accessKey}"
-            . "&amount={$amount}"
+            . "&amount={$amountStr}"
             . "&extraData={$extraData}"
             . "&ipnUrl={$ipnUrl}"
             . "&orderId={$orderCode}"
@@ -310,7 +346,7 @@ class MomoController
             'partnerName' => 'Test',
             'storeId' => 'MomoTestStore',
             'requestId' => $requestId,
-            'amount' => $amount,
+            'amount' => $amountStr,
             'orderId' => $orderCode,
             'orderInfo' => $orderInfo,
             'redirectUrl' => $redirectUrl,
@@ -332,32 +368,41 @@ class MomoController
 
             Log::info('MoMo create payment response', $result ?? []);
 
-            if (isset($result['payUrl']) && !empty($result['payUrl'])) {
-                // ✅ MoMo trả payUrl → chuyển sang trang MoMo (CHƯA xóa giỏ hàng, chờ xác nhận thanh toán)
-                return redirect()->away($result['payUrl']);
-            }
-
-            // ❌ MoMo không trả payUrl → hủy đơn hàng đã tạo (giỏ hàng vẫn còn)
-            \App\Models\OrderItem::query()->where('order_id', $orderId)->delete();
-            \App\Models\Order::query()->where('id', $orderId)->delete();
-            if ($promotionId) {
-                \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
-            }
-
-            $errMessage = $result['message'] ?? 'Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.';
-            return redirect()->route('checkout')->with('error', 'MoMo: ' . $errMessage);
-
+            return (!empty($result['payUrl'])) ? $result['payUrl'] : null;
         } catch (\Exception $e) {
-            // ❌ Lỗi network → hủy đơn hàng (giỏ hàng vẫn còn)
-            \App\Models\OrderItem::query()->where('order_id', $orderId)->delete();
-            \App\Models\Order::query()->where('id', $orderId)->delete();
-            if ($promotionId) {
-                \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
-            }
-
             Log::error('MoMo API error: ' . $e->getMessage());
-            return redirect()->route('checkout')->with('error', 'Lỗi kết nối MoMo: ' . $e->getMessage());
+            return null;
         }
+    }
+
+    /**
+     * Lễ tân bấm "Thanh toán MoMo" cho một đơn tại quầy đã tồn tại (tạo ở StaffReceptionOrderController).
+     * Khác với createPayment(): đơn đã có sẵn trong DB (không tạo mới), chỉ xin payUrl rồi chuyển hướng.
+     * Đơn tại quầy đã đặt trước tồn kho thật nên KHÔNG tự xóa khi thất bại — để lễ tân thử lại hoặc
+     * đổi phương thức thanh toán, tránh làm rác/orphan dữ liệu tồn kho đã trừ.
+     */
+    public function payExistingOrder(Request $request, \App\Models\Order $order)
+    {
+        if (!$this->configValid) {
+            return redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('error', 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng chọn thanh toán tiền mặt hoặc liên hệ quản trị viên.');
+        }
+
+        if ($order->payment_method !== 'momo' || $order->payment_status === 'paid') {
+            return redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('error', 'Đơn hàng này không cần thanh toán qua MoMo.');
+        }
+
+        // Dùng payWithMethod để MoMo hiện đầy đủ các phương thức: ví MoMo, ATM, thẻ tín dụng...
+        // (giống luồng khách tự checkout online)
+        $payUrl = $this->requestPayUrl($order->order_code, (float) $order->final_amount, 'Thanh toan don hang ' . $order->order_code, 'payWithMethod');
+
+        if (!$payUrl) {
+            return redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('error', 'Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
+        }
+
+        return redirect()->away($payUrl);
     }
 
     /**
@@ -428,18 +473,39 @@ class MomoController
                 return redirect()->route('orders')->with('error', 'Số tiền thanh toán không khớp đơn hàng, vui lòng liên hệ hỗ trợ.');
             }
 
-            // Xóa giỏ hàng sau khi thanh toán thành công
+            // Xóa CHỈ những cart_items đã được đưa vào đơn hàng này (dựa theo product_id + size)
             $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
             if ($cart) {
-                $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
-                \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
-                \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
+                // Lấy product_id của các sản phẩm trong đơn
+                $orderedProductIds = $order->items->pluck('product_id')->toArray();
+                $cartItemIds = \App\Models\CartItem::query()
+                    ->where('cart_id', $cart->id)
+                    ->whereIn('product_id', $orderedProductIds)
+                    ->pluck('id');
+                if ($cartItemIds->isNotEmpty()) {
+                    \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
+                    \App\Models\CartItem::query()->whereIn('id', $cartItemIds)->delete();
+                }
+            }
+
+            // Đơn tại quầy (lễ tân tạo) → quay về trang chi tiết đơn phía backend, không phải trang "đơn của tôi" của khách.
+            if ($order->delivery_type === 'pickup') {
+                return redirect()->route('staff.reception.orders.show', $order->id)
+                    ->with('success', "Thanh toán MoMo thành công! Đơn hàng {$orderId} đã được xác nhận.");
             }
 
             return redirect()->route('orders')->with('success', "Thanh toán MoMo thành công! Đơn hàng {$orderId} đã được xác nhận.");
         }
 
-        // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán (chữ ký đã xác thực nên an toàn để dọn đơn)
+        // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán
+        if ($order->delivery_type === 'pickup') {
+            // Đơn tại quầy đã đặt trước tồn kho thật (không có giỏ hàng nào để "giữ nguyên") —
+            // không tự xóa, để lễ tân thử thanh toán lại hoặc hủy đúng quy trình (giải phóng tồn kho đàng hoàng).
+            return redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('error', 'Thanh toán MoMo chưa hoàn tất. Bạn có thể thử lại hoặc hủy đơn.');
+        }
+
+        // Chữ ký đã xác thực nên an toàn để dọn đơn checkout của khách (giỏ hàng khách vẫn còn nguyên)
         if (in_array($order->payment_status, ['unpaid', 'failed'])) {
             // Xóa hoàn toàn đơn hàng khỏi DB → giỏ hàng vẫn còn nguyên
             \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
@@ -488,17 +554,24 @@ class MomoController
                 return response()->json(['message' => 'Amount mismatch'], 400);
             }
 
-            // Xóa giỏ hàng (safety backup - phòng trường hợp handleReturn chưa xóa)
+            // Xóa CHỈ những cart_items thuộc đơn hàng này (safety backup)
             $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
             if ($cart) {
-                $cartItemIds = \App\Models\CartItem::query()->where('cart_id', $cart->id)->pluck('id');
+                $orderedProductIds = $order->items->pluck('product_id')->toArray();
+                $cartItemIds = \App\Models\CartItem::query()
+                    ->where('cart_id', $cart->id)
+                    ->whereIn('product_id', $orderedProductIds)
+                    ->pluck('id');
                 if ($cartItemIds->isNotEmpty()) {
                     \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
-                    \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
+                    \App\Models\CartItem::query()->whereIn('id', $cartItemIds)->delete();
                 }
             }
 
             Log::info("MoMo IPN: Order {$orderId} marked as PAID");
+        } elseif ($order->delivery_type === 'pickup') {
+            // Đơn tại quầy đã đặt trước tồn kho thật → không tự xóa, giữ lại để lễ tân thử lại/hủy đúng quy trình.
+            Log::info("MoMo IPN: Pickup order {$orderId} payment failed (resultCode={$resultCode}), kept for retry.");
         } else {
             // Thanh toán thất bại → Xóa luôn đơn hàng (để không rác lịch sử của user)
             \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();

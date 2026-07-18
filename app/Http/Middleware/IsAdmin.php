@@ -27,7 +27,7 @@ class IsAdmin
 
         // Đã đăng nhập nhưng không đủ quyền: đưa về đúng khu vực của họ thay vì văng về login
         if (Auth::user()->role === 'staff') {
-            return redirect()->route('staff.dashboard');
+            return redirect()->route(Auth::user()->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
         }
 
         abort(403);

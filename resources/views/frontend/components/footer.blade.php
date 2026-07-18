@@ -169,4 +169,4 @@
     </div>
 </footer>
 
-<script src="{{ asset('js/frontend/footer.js') }}"></script>
+<script src="{{ asset('js/frontend/layout/footer.js') }}"></script>

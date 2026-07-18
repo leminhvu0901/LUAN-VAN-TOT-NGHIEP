@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 {{-- Khai báo class CSS riêng biệt cho thẻ body của trang này để tránh xung đột với các trang khác --}}
 @section('body_class', 'profile-body')

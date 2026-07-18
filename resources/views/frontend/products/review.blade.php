@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 @section('content')
 <div class="min-h-screen bg-gray-50/50 py-8 px-4 font-body-md text-on-surface">
@@ -161,6 +161,6 @@
 </div>
 
 @push('scripts')
-<script src="{{ asset('js/frontend/product-review.js') }}"></script>
+<script src="{{ asset('js/frontend/products/review.js') }}"></script>
 @endpush
 @endsection

@@ -26,6 +26,7 @@ class User extends Authenticatable
         'points',           // Điểm tích luỹ của khách hàng
         'membership_level', // Hạng thành viên (new, silver, gold, diamond)
         'role',             // Quyền hạn (admin, user...)
+        'staff_type',       // Loại nhân viên khi role=staff (receptionist, delivery)
         'is_active',        // Trạng thái tài khoản (1: hoạt động, 0: khoá)
         'lock_reason',      // Lý do khóa tài khoản
         'oauth_provider',   // Đăng nhập bằng mạng xã hội nào (Google, Facebook...)

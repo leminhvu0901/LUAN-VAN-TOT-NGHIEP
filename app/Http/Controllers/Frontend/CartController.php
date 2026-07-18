@@ -363,6 +363,38 @@ class CartController
         return $this->getCartData();
     }
 
+    public function setSelected(Request $request)
+    {
+        $validated = $request->validate([
+            'selected_item_ids'   => ['required', 'array', 'min:1', 'max:50'],
+            'selected_item_ids.*' => ['integer', 'min:1'],
+        ]);
+
+        // Verify the IDs actually belong to this user's cart (server-side security)
+        $cart = $this->findCart();
+        if (!$cart) {
+            return response()->json(['success' => false, 'message' => 'Giỏ hàng không tồn tại.'], 400);
+        }
+
+        $validIds = CartItem::query()
+            ->where('cart_id', $cart->id)
+            ->whereIn('id', $validated['selected_item_ids'])
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($validIds)) {
+            return response()->json(['success' => false, 'message' => 'Không có sản phẩm hợp lệ được chọn.'], 422);
+        }
+
+        session(['selected_cart_item_ids' => $validIds]);
+
+        return response()->json([
+            'success'  => true,
+            'selected' => $validIds,
+            'count'    => count($validIds),
+        ]);
+    }
+
     public function checkout()
     {
         if (!Auth::check()) {
@@ -387,7 +419,22 @@ class CartController
         $subtotal = 0;
         if ($cart) {
             try {
-                $items = $this->cartPricing->pricedItems($cart);
+                // Đọc danh sách id sản phẩm đã chọn từ session (null = lấy toàn bộ giỏ)
+                $selectedIds = session('selected_cart_item_ids');
+
+                // Nếu có selectedIds, validate lại phía server rằng chúng thuộc cart của user này
+                if (!empty($selectedIds)) {
+                    $validSelectedIds = CartItem::query()
+                        ->where('cart_id', $cart->id)
+                        ->whereIn('id', $selectedIds)
+                        ->pluck('id')
+                        ->toArray();
+                    $selectedIds = !empty($validSelectedIds) ? $validSelectedIds : null;
+                } else {
+                    $selectedIds = null; // fallback: tất cả giỏ
+                }
+
+                $items = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
                 foreach ($items as $item) {
                     $item->name = $item->product->name;
                     $item->image = $item->product->image;
@@ -580,7 +627,9 @@ class CartController
         }
 
         $user = Auth::check() ? Auth::user() : null;
-        $validity = $coupon->checkValidity($user, $subtotal);
+        // Trang checkout của khách hàng luôn là đơn giao hàng (không có tùy chọn nhận tại quầy) ->
+        // mã chỉ dành riêng cho "Tại quầy" phải bị từ chối ở đây.
+        $validity = $coupon->checkValidity($user, $subtotal, 'delivery');
 
         if (!$validity['valid']) {
             return response()->json(['valid' => false, 'message' => $validity['message']]);

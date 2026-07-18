@@ -52,11 +52,13 @@ class CustomerOrderController
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'address_id' => ['required', 'integer'],
-            'coupon_code' => ['nullable', 'string', 'max:50'],
-            'note' => ['nullable', 'string', 'max:500'],
-            'idempotency_key' => ['required', 'uuid'],
-            'points_to_redeem' => ['nullable', 'integer', 'min:0'],
+            'address_id'          => ['required', 'integer'],
+            'coupon_code'         => ['nullable', 'string', 'max:50'],
+            'note'                => ['nullable', 'string', 'max:500'],
+            'idempotency_key'     => ['required', 'uuid'],
+            'points_to_redeem'    => ['nullable', 'integer', 'min:0'],
+            'selected_item_ids'   => ['nullable', 'array'],
+            'selected_item_ids.*' => ['integer', 'min:1'],
         ]);
         $this->assertCheckoutToken($validated['idempotency_key']);
         $this->assertStoreOpen();
@@ -69,6 +71,8 @@ class CustomerOrderController
         $order = $this->orders->create(Auth::user(), $validated, 'cod');
         $this->notifications->orderPlaced($order);
         session()->forget('checkout_token');
+        // Xóa session lọc sản phẩm đã chọn sau khi đặt hàng thành công
+        session()->forget('selected_cart_item_ids');
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
 
@@ -117,6 +121,29 @@ class CustomerOrderController
         });
 
         return redirect()->route('checkout')->with('success', 'Đã thêm lại các sản phẩm còn bán vào giỏ hàng.');
+    }
+
+    public function cancel(Order $order, Request $request, \App\Services\OrderWorkflowService $workflow)
+    {
+        abort_unless($order->user_id === Auth::id(), 404);
+
+        if ($order->status !== 'pending') {
+            return redirect()->back()->with('error', 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
+        }
+
+        $reason = $request->input('cancel_reason', 'Khách hàng tự hủy đơn hàng.');
+        if (mb_strlen(trim($reason)) < 5) {
+            $reason = 'Khách hàng tự hủy đơn hàng.';
+        }
+
+        try {
+            $workflow->transition($order, 'cancelled', $reason);
+            return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy thành công!");
+        } catch (ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
+        }
     }
 
     private function assertCheckoutToken(string $token): void

@@ -17,6 +17,17 @@ class OrderWorkflowService
         'cancelled' => [],
     ];
 
+    // Đơn tại quầy (pickup) không có bước giao hàng — khách nhận trực tiếp nên bỏ qua "shipping",
+    // xác nhận xong là hoàn thành luôn. Giữ 'shipping' => ['completed', 'cancelled'] để tương thích
+    // ngược cho các đơn pickup cũ (nếu có) đã lỡ ở trạng thái này từ trước khi đổi luồng.
+    private const PICKUP_TRANSITIONS = [
+        'pending' => ['confirmed', 'cancelled'],
+        'confirmed' => ['completed', 'cancelled'],
+        'shipping' => ['completed', 'cancelled'],
+        'completed' => [],
+        'cancelled' => [],
+    ];
+
     public function __construct(
         private readonly InventoryService $inventory,
         private readonly NotificationService $notifications,
@@ -27,7 +38,8 @@ class OrderWorkflowService
         return DB::transaction(function () use ($order, $newStatus, $cancelReason) {
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if ($newStatus === $locked->status) return $locked;
-            if (!in_array($newStatus, self::TRANSITIONS[$locked->status] ?? [], true)) {
+            $transitions = $locked->delivery_type === 'pickup' ? self::PICKUP_TRANSITIONS : self::TRANSITIONS;
+            if (!in_array($newStatus, $transitions[$locked->status] ?? [], true)) {
                 throw ValidationException::withMessages(['status' => "Không thể chuyển từ {$locked->status} sang {$newStatus}."]);
             }
 
@@ -41,6 +53,12 @@ class OrderWorkflowService
                 $this->inventory->releaseForOrder($locked);
                 if ($locked->promotion_id) {
                     DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
+                }
+                // Hoàn lại điểm tích lũy đã dùng (nếu có) cho đúng khách đứng tên đơn — trước đây đơn
+                // hủy không hoàn điểm, khiến khách bị trừ điểm oan cho đơn không thành.
+                if ((int) $locked->points_redeemed > 0 && $locked->user_id) {
+                    User::query()->lockForUpdate()->where('id', $locked->user_id)
+                        ->increment('points', (int) $locked->points_redeemed);
                 }
                 $locked->cancel_reason = trim($cancelReason);
             }
@@ -88,6 +106,158 @@ class OrderWorkflowService
         }
 
         return $result;
+    }
+
+    /**
+     * Lễ tân/admin phân công nhân viên vận chuyển cho một đơn đã xác nhận.
+     */
+    public function assignDeliveryStaff(Order $order, int $deliveryStaffId, int $assignedByUserId): Order
+    {
+        return DB::transaction(function () use ($order, $deliveryStaffId, $assignedByUserId) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status !== 'confirmed') {
+                throw ValidationException::withMessages([
+                    'status' => 'Chỉ có thể phân công giao hàng cho đơn đã xác nhận.',
+                ]);
+            }
+
+            $deliveryStaff = User::query()->find($deliveryStaffId);
+            if (!$deliveryStaff || $deliveryStaff->role !== 'staff' || $deliveryStaff->staff_type !== 'delivery' || !$deliveryStaff->is_active) {
+                throw ValidationException::withMessages([
+                    'delivery_staff_id' => 'Nhân viên giao hàng không hợp lệ hoặc đã bị khóa.',
+                ]);
+            }
+
+            $locked->forceFill([
+                'delivery_staff_id' => $deliveryStaff->id,
+                'assigned_by' => $assignedByUserId,
+                'assigned_at' => now(),
+            ])->save();
+
+            return $locked->fresh();
+        }, 3);
+    }
+
+    /**
+     * Nhân viên vận chuyển đánh dấu giao hàng thất bại. Theo quyết định nghiệp vụ đã duyệt:
+     * đơn được hủy thẳng (status -> cancelled) NGAY CẢ KHI đã thanh toán trước (vd MoMo) —
+     * cố ý bỏ qua rule "phải hoàn tiền trước khi hủy" trong transition() chỉ cho nhánh này.
+     */
+    public function markDeliveryFailed(Order $order, string $reason): Order
+    {
+        return DB::transaction(function () use ($order, $reason) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status !== 'shipping') {
+                throw ValidationException::withMessages([
+                    'status' => 'Chỉ đơn đang giao mới được đánh dấu giao thất bại.',
+                ]);
+            }
+
+            if (mb_strlen(trim($reason)) < 5) {
+                throw ValidationException::withMessages([
+                    'delivery_failed_reason' => 'Vui lòng nhập lý do giao thất bại ít nhất 5 ký tự.',
+                ]);
+            }
+
+            $this->inventory->releaseForOrder($locked);
+            if ($locked->promotion_id) {
+                DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
+            }
+            if ((int) $locked->points_redeemed > 0 && $locked->user_id) {
+                User::query()->lockForUpdate()->where('id', $locked->user_id)
+                    ->increment('points', (int) $locked->points_redeemed);
+            }
+
+            $reason = trim($reason);
+            $locked->forceFill([
+                'status' => 'cancelled',
+                'cancel_reason' => 'Giao hàng thất bại: ' . $reason,
+                'delivery_failed_reason' => $reason,
+                'delivery_failed_at' => now(),
+            ])->save();
+
+            return $locked->fresh();
+        }, 3);
+    }
+
+    /**
+     * Lễ tân/admin xác nhận ĐÃ NHẬN LẠI tiền mặt COD từ một đơn cụ thể mà nhân viên vận chuyển vừa
+     * nộp quầy. Chỉ áp dụng cho đơn COD đã hoàn thành (tiền đã thực sự được thu từ khách).
+     */
+    public function settleCod(Order $order, int $settledByUserId): Order
+    {
+        return DB::transaction(function () use ($order, $settledByUserId) {
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->payment_method !== 'cod' || $locked->status !== 'completed') {
+                throw ValidationException::withMessages([
+                    'cod' => 'Chỉ đơn COD đã hoàn thành mới cần đối soát.',
+                ]);
+            }
+
+            if (!$locked->cod_settled_at) {
+                $locked->forceFill(['cod_settled_at' => now(), 'cod_settled_by' => $settledByUserId])->save();
+            }
+
+            return $locked->fresh();
+        }, 3);
+    }
+
+    /**
+     * Xác nhận nộp quầy MỘT LẦN cho TOÀN BỘ đơn COD đã hoàn thành nhưng chưa đối soát của một nhân
+     * viên vận chuyển — dùng khi shipper đưa đủ một cục tiền cho các đơn đã giao trong ca/ngày.
+     * Trả về số đơn vừa được đánh dấu đã nộp.
+     */
+    public function settleAllCodForDeliveryStaff(int $deliveryStaffId, int $settledByUserId): int
+    {
+        return DB::transaction(function () use ($deliveryStaffId, $settledByUserId) {
+            $orders = Order::query()
+                ->where('delivery_staff_id', $deliveryStaffId)
+                ->where('payment_method', 'cod')
+                ->where('status', 'completed')
+                ->whereNull('cod_settled_at')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($orders as $order) {
+                $order->forceFill(['cod_settled_at' => now(), 'cod_settled_by' => $settledByUserId])->save();
+            }
+
+            return $orders->count();
+        }, 3);
+    }
+
+    /**
+     * Tự động hủy các đơn "chờ thanh toán" MoMo bị treo quá lâu (khách/lễ tân mở cổng MoMo rồi bỏ
+     * dở, không hủy tay). Quan trọng nhất với đơn tại quầy vì loại đơn này đã trừ tồn kho thật ngay
+     * lúc tạo (OrderService::create -> reserveForOrder) — treo mãi sẽ khóa cứng tồn kho không ai
+     * bán được. transition() sang 'cancelled' tự giải phóng tồn kho + hoàn used_count khuyến mãi.
+     * Gọi cơ hội chủ nghĩa từ trang danh sách đơn (không cần cron) + có thể chạy qua lệnh Artisan
+     * theo lịch để dọn cả khi không ai mở trang.
+     */
+    public function cancelStalePendingPayments(int $minutes = 15): int
+    {
+        $staleOrders = Order::query()
+            ->where('payment_method', 'momo')
+            ->where('payment_status', 'unpaid')
+            ->where('status', 'pending')
+            ->where('created_at', '<=', now()->subMinutes($minutes))
+            ->get();
+
+        $cancelledCount = 0;
+        foreach ($staleOrders as $order) {
+            try {
+                $this->transition($order, 'cancelled', 'Tự động hủy do quá thời gian chờ thanh toán MoMo.');
+                $cancelledCount++;
+            } catch (ValidationException $e) {
+                // Đơn vừa được thanh toán/hủy đúng lúc job chạy (race condition) -> bỏ qua, không phải lỗi thật.
+                continue;
+            }
+        }
+
+        return $cancelledCount;
     }
 
     private function awardPointsOnce(Order $order): void

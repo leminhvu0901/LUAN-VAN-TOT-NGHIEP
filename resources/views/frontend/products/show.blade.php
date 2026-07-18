@@ -1,5 +1,5 @@
 {{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
-@extends('layouts.app')
+@extends('frontend.layouts.app')
 
 @section('content')
 {{-- Thẻ wrapper bao bọc chi tiết sản phẩm, đồng thời truyền id sản phẩm và giá cơ bản qua thuộc tính data để JS đọc --}}
@@ -351,6 +351,6 @@
 
 {{-- Đẩy mã JS của trang chi tiết sản phẩm vào ngăn xếp stack của Layout --}}
 @push('scripts')
-<script src="{{ asset('js/frontend/product-show.js') }}"></script>
+<script src="{{ asset('js/frontend/products/show.js') }}"></script>
 @endpush
 @endsection

@@ -28,9 +28,39 @@ class OrderService
         if ($existing)
             return $existing;
 
-        $address = UserAddress::query()->where('user_id', $user->id)->find($payload['address_id']);
-        if (!$address) {
-            throw ValidationException::withMessages(['address_id' => 'Địa chỉ giao hàng không hợp lệ.']);
+        // Đơn 'pickup' (vd: nhân viên lễ tân tạo đơn tại quầy) không cần địa chỉ/tính phí ship.
+        $isPickup = ($payload['delivery_type'] ?? 'delivery') === 'pickup';
+
+        // Tách "người thao tác" ($user — chủ giỏ hàng, luôn dùng để khóa Cart) khỏi "khách đứng tên
+        // đơn" (order owner — người được tính điểm/hạng thành viên/redeem/địa chỉ giao hàng). Khi lễ
+        // tân tạo đơn (POS) cho MỘT khách hàng có tài khoản cụ thể, payload gửi key 'customer_id'
+        // tường minh (có thể null = khách vãng lai) để order KHÔNG đứng tên lễ tân. Mọi luồng cũ
+        // (khách tự checkout, MoMo...) không gửi key này -> hành vi giữ nguyên y hệt trước đây: order
+        // đứng tên & tính điểm/địa chỉ trên chính $user. Phải resolve SỚM (trước khi tìm địa chỉ giao
+        // hàng ngay dưới đây) vì đơn giao hàng lễ tân tạo hộ khách phải dùng địa chỉ CỦA KHÁCH, không
+        // phải của lễ tân.
+        $hasExplicitOrderOwner = array_key_exists('customer_id', $payload);
+        $orderOwnerId = $hasExplicitOrderOwner ? $payload['customer_id'] : $user->id;
+        if ($orderOwnerId === $user->id) {
+            $orderOwner = $user;
+        } elseif ($orderOwnerId) {
+            $orderOwner = User::query()->where('role', 'customer')->find($orderOwnerId);
+            if (!$orderOwner) {
+                throw ValidationException::withMessages(['customer_id' => 'Khách hàng không hợp lệ.']);
+            }
+        } else {
+            $orderOwner = null; // Khách vãng lai — không có tài khoản để tính điểm/hạng thành viên/địa chỉ.
+        }
+
+        $address = null;
+        if (!$isPickup) {
+            if (!$orderOwner) {
+                throw ValidationException::withMessages(['address_id' => 'Đơn giao hàng cần gắn với một khách hàng có tài khoản để lấy địa chỉ.']);
+            }
+            $address = UserAddress::query()->where('user_id', $orderOwner->id)->find($payload['address_id'] ?? null);
+            if (!$address) {
+                throw ValidationException::withMessages(['address_id' => 'Địa chỉ giao hàng không hợp lệ.']);
+            }
         }
 
         // 1. Kiểm tra nhận đơn hàng (orders_enabled)
@@ -59,21 +89,33 @@ class OrderService
         if (!$cart)
             throw ValidationException::withMessages(['cart' => 'Giỏ hàng của bạn đang trống.']);
 
-        $previewItems = $this->cartPricing->pricedItems($cart);
+        // Lấy danh sách id sản phẩm đã chọn từ payload (CustomerOrderController đã validate)
+        $selectedIds = isset($payload['selected_item_ids']) && is_array($payload['selected_item_ids']) && count($payload['selected_item_ids']) > 0
+            ? array_map('intval', $payload['selected_item_ids'])
+            : null;
+
+        $previewItems = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
         $previewSubtotal = $this->cartPricing->subtotal($previewItems);
 
-        $quote = $this->shipping->quote($address, $previewSubtotal, $user);
+        if ($isPickup) {
+            $quote = ['shipping_fee' => 0, 'weather_fee' => 0, 'distance_km' => null];
+        } else {
+            // Dùng $orderOwner (khách đứng tên đơn) chứ không phải $user (lễ tân) để tính đúng ngưỡng
+            // freeship theo hạng thành viên CỦA KHÁCH khi lễ tân tạo đơn giao hàng hộ qua điện thoại.
+            $quote = $this->shipping->quote($address, $previewSubtotal, $orderOwner);
 
-        // 4. Kiểm tra khoảng cách giao hàng tối đa (shipping_max_distance_km)
-        $maxDistance = (float) \App\Models\Setting::getValue('shipping_max_distance_km', ShippingQuoteService::MAX_DELIVERY_KM);
-        if ($quote['distance_km'] > $maxDistance) {
-            throw ValidationException::withMessages(['address_id' => "Địa chỉ vượt quá phạm vi giao hàng {$maxDistance} km."]);
+            // 4. Kiểm tra khoảng cách giao hàng tối đa (shipping_max_distance_km)
+            $maxDistance = (float) \App\Models\Setting::getValue('shipping_max_distance_km', ShippingQuoteService::MAX_DELIVERY_KM);
+            if ($quote['distance_km'] > $maxDistance) {
+                throw ValidationException::withMessages(['address_id' => "Địa chỉ vượt quá phạm vi giao hàng {$maxDistance} km."]);
+            }
         }
 
-        return DB::transaction(function () use ($user, $payload, $paymentMethod, $address, $cart, $previewSubtotal, $quote) {
+        return DB::transaction(function () use ($user, $payload, $paymentMethod, $address, $cart, $previewSubtotal, $quote, $isPickup, $selectedIds, $orderOwner, $orderOwnerId) {
             $lockedCart = Cart::query()->whereKey($cart->id)->where('user_id', $user->id)->lockForUpdate()->firstOrFail();
-            $items = $this->cartPricing->pricedItems($lockedCart, true);
+            $items = $this->cartPricing->pricedItems($lockedCart, true, $selectedIds);
             $subtotal = $this->cartPricing->subtotal($items);
+            $totalQuantity = (int) $items->sum('quantity');
             if (abs($subtotal - $previewSubtotal) > 0.01) {
                 throw ValidationException::withMessages(['cart' => 'Giá giỏ hàng vừa thay đổi, vui lòng kiểm tra lại.']);
             }
@@ -83,6 +125,10 @@ class OrderService
             $pointsDiscount = 0;
 
             if ($pointsToRedeem > 0) {
+                if (!$orderOwner) {
+                    throw ValidationException::withMessages(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.']);
+                }
+
                 $loyaltyEnabled = \App\Models\Setting::getValue('loyalty_enabled', '1') == '1';
                 if (!$loyaltyEnabled) {
                     throw ValidationException::withMessages(['points_to_redeem' => 'Chương trình tích điểm hiện đang tạm đóng.']);
@@ -94,7 +140,7 @@ class OrderService
                 }
 
                 // Check actual points balance
-                $pointsBalance = (int) $user->points;
+                $pointsBalance = (int) $orderOwner->points;
                 if ($pointsToRedeem > $pointsBalance) {
                     throw ValidationException::withMessages(['points_to_redeem' => 'Số điểm quy đổi vượt quá số dư hiện có.']);
                 }
@@ -111,8 +157,20 @@ class OrderService
                 }
             }
 
-            [$promotion, $couponDiscount] = $this->promotionDiscount($payload['coupon_code'] ?? null, $user, $subtotal);
-            $membershipDiscount = match ($user->membership_level) {
+            // Lễ tân có thể nhập mã khuyến mãi thủ công cho đơn tại quầy (thay vì chỉ tự động chọn) —
+            // dùng $orderOwner (khách đứng tên đơn) chứ không phải $user (lễ tân) để kiểm tra đúng
+            // hạng thành viên/giới hạn "mỗi người 1 lần" của CHÍNH KHÁCH, không phải tài khoản lễ tân.
+            $channel = $isPickup ? 'pickup' : 'delivery';
+            if (filled($payload['coupon_code'] ?? null)) {
+                [$promotion, $couponDiscount] = $this->promotionDiscount($payload['coupon_code'], $orderOwner, $subtotal, $channel, $totalQuantity);
+            } elseif ($isPickup) {
+                $promotion = $this->resolveAutoPromotion($subtotal, $totalQuantity);
+                $couponDiscount = $promotion ? $this->calculateDiscount($promotion, $subtotal) : 0;
+            } else {
+                $promotion = null;
+                $couponDiscount = 0;
+            }
+            $membershipDiscount = match ($orderOwner?->membership_level) {
                 'silver' => round($subtotal * 0.02),
                 'gold' => round($subtotal * 0.05),
                 'diamond' => round($subtotal * 0.10),
@@ -128,10 +186,22 @@ class OrderService
             $order = Order::create([
                 'order_code' => $orderCode,
                 'idempotency_key' => $payload['idempotency_key'],
-                'user_id' => $user->id,
-                'customer_name' => $address->fullname,
-                'customer_phone' => $address->phone,
-                'delivery_address' => implode(', ', array_filter([$address->specific_address, $address->ward, $address->district, $address->province])),
+                'user_id' => $orderOwnerId,
+                // Lễ tân/admin thực sự xử lý đơn (POS) — tách biệt với user_id (khách đứng tên đơn)
+                // để báo cáo sau này biết ai bán. Áp dụng cho MỌI đơn do staff/admin tạo qua
+                // POS, không chỉ riêng đơn pickup (Giai đoạn 5: lễ tân cũng tạo được đơn giao hàng hộ
+                // khách gọi điện) — null cho khách tự checkout (role=customer).
+                'created_by' => in_array($user->role, ['staff', 'admin'], true) ? $user->id : null,
+                // Dùng array_key_exists thay vì '??' — với khách vãng lai, controller gửi tường minh
+                // 'customer_phone' => null (không phải bỏ trống key); '??' sẽ coi null là "chưa gửi"
+                // và âm thầm fallback về SĐT của lễ tân, sai hoàn toàn ý định "khách vãng lai".
+                'customer_name' => $isPickup ? (array_key_exists('customer_name', $payload) ? $payload['customer_name'] : $user->name) : $address->fullname,
+                'customer_phone' => $isPickup ? (array_key_exists('customer_phone', $payload) ? $payload['customer_phone'] : $user->phone) : $address->phone,
+                'delivery_address' => $isPickup ? null : implode(', ', array_filter([$address->specific_address, $address->ward, $address->district, $address->province])),
+                // Snapshot tọa độ GPS tại thời điểm đặt hàng để nhân viên vận chuyển mở đúng điểm trên bản đồ
+                // thay vì tìm theo chuỗi địa chỉ text (dễ ra nhiều kết quả trùng tên đường/khu vực).
+                'delivery_latitude' => $isPickup ? null : $address->latitude,
+                'delivery_longitude' => $isPickup ? null : $address->longitude,
                 'total_amount' => $subtotal,
                 'discount_amount' => $discount,
                 'final_amount' => $finalAmount,
@@ -140,13 +210,19 @@ class OrderService
                 'status' => 'pending',
                 'coupon_code' => $promotion?->code,
                 'promotion_id' => $promotion?->id,
-                'delivery_type' => 'delivery',
-                'estimated_time' => now()->addMinutes(45),
+                'delivery_type' => $isPickup ? 'pickup' : 'delivery',
+                // Chỉ có ý nghĩa cho đơn pickup (tại quầy/mang đi) — đơn delivery luôn null.
+                'pickup_mode' => $isPickup ? ($payload['pickup_mode'] ?? 'dine_in') : null,
+                'estimated_time' => now()->addMinutes($isPickup ? 15 : 45),
                 'distance_km' => $quote['distance_km'],
                 'weather_fee' => $quote['weather_fee'],
                 'peak_hour_fee' => 0,
                 'shipping_fee' => $quote['shipping_fee'],
                 'customer_note' => $payload['note'] ?? null,
+                // Lưu lại số điểm đã dùng (nếu có) để OrderWorkflowService::transition() hoàn đúng
+                // số điểm này cho khách khi đơn bị hủy sau đó — trước đây chỉ trừ điểm ngay lúc tạo
+                // đơn nhưng không lưu lại đã dùng bao nhiêu, khiến hủy đơn không hoàn được điểm.
+                'points_redeemed' => $pointsToRedeem,
             ]);
 
             foreach ($items as $item) {
@@ -167,23 +243,50 @@ class OrderService
             }
 
             $this->inventory->reserveForOrder($order, $items);
+            // CHỈ xóa những cart_items đã được đưa vào đơn hàng này.
+            // Các sản phẩm còn lại trong giỏ (không được chọn) sẽ được giữ nguyên.
             $itemIds = $items->pluck('id');
             DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
-            DB::table('cart_items')->where('cart_id', $lockedCart->id)->delete();
+            DB::table('cart_items')->whereIn('id', $itemIds)->delete();
             if ($promotion)
                 $promotion->increment('used_count');
 
             if ($pointsToRedeem > 0) {
-                $lockedUser = User::query()->lockForUpdate()->findOrFail($user->id);
-                $lockedUser->points = max(0, $lockedUser->points - $pointsToRedeem);
-                $lockedUser->save();
+                // $orderOwner chắc chắn khác null ở đây (đã chặn ở trên nếu khách vãng lai).
+                $lockedOwner = User::query()->lockForUpdate()->findOrFail($orderOwner->id);
+                $lockedOwner->points = max(0, $lockedOwner->points - $pointsToRedeem);
+                $lockedOwner->save();
             }
 
             return $order->fresh('items');
         }, 3);
     }
 
-    private function promotionDiscount(?string $code, User $user, float $subtotal): array
+    /**
+     * Xem trước khuyến mãi tự động sẽ áp dụng cho một đơn tại quầy (nếu có) — dùng cho giao diện POS
+     * hiển thị tổng tiền thực tế TRƯỚC khi lễ tân bấm "Tạo đơn", không cần tạo đơn thật mới biết được.
+     */
+    public function previewAutoPromotion(float $subtotal, int $totalQuantity = 0): array
+    {
+        $promotion = $this->resolveAutoPromotion($subtotal, $totalQuantity);
+        $discount = $promotion ? $this->calculateDiscount($promotion, $subtotal) : 0;
+
+        return ['promotion' => $promotion, 'discount' => $discount];
+    }
+
+    /**
+     * Xem trước 1 mã khuyến mãi NHẬP TAY (không phải tự động chọn) cho đơn tại quầy — dùng cho POS
+     * hiển thị kết quả TRƯỚC khi tạo đơn thật. Ném ValidationException giống hệt lúc tạo đơn thật
+     * (promotionDiscount() dùng chung) nên luôn khớp giữa preview và kết quả tạo đơn.
+     */
+    public function previewManualCoupon(string $code, ?User $orderOwner, float $subtotal, ?string $deliveryType = null, int $totalQuantity = 0): array
+    {
+        [$promotion, $discount] = $this->promotionDiscount($code, $orderOwner, $subtotal, $deliveryType, $totalQuantity);
+
+        return ['promotion' => $promotion, 'discount' => $discount];
+    }
+
+    private function promotionDiscount(?string $code, ?User $user, float $subtotal, ?string $deliveryType = null, int $totalQuantity = 0): array
     {
         if (!filled($code))
             return [null, 0];
@@ -191,16 +294,67 @@ class OrderService
         $promotion = Promotion::query()->where('code', strtoupper(trim($code)))->lockForUpdate()->first();
         if (!$promotion)
             throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không tồn tại.']);
-        $validity = $promotion->checkValidity($user, $subtotal);
+        $validity = $promotion->checkValidity($user, $subtotal, $deliveryType, $totalQuantity);
         if (!$validity['valid'])
             throw ValidationException::withMessages(['coupon_code' => $validity['message']]);
 
+        return [$promotion, $this->calculateDiscount($promotion, $subtotal)];
+    }
+
+    private function calculateDiscount(Promotion $promotion, float $subtotal): float
+    {
         $discount = $promotion->type === 'percent'
             ? round($subtotal * ((float) $promotion->value / 100))
             : (float) $promotion->value;
-        if ($promotion->max_discount_amount)
+        if ($promotion->max_discount_amount) {
             $discount = min($discount, (float) $promotion->max_discount_amount);
+        }
+        return min($discount, $subtotal);
+    }
 
-        return [$promotion, min($discount, $subtotal)];
+    /**
+     * Tự động chọn khuyến mãi phù hợp nhất cho đơn tại quầy (không có ô nhập mã trên giao diện POS).
+     * Chỉ xét mã áp dụng cho TẤT CẢ (apply_for=all) — đơn tại quầy tạo dưới tài khoản lễ tân nên
+     * không có khách hàng thật để kiểm tra hạng thành viên hay giới hạn 1 lần/người (checkValidity
+     * sẽ luôn dùng chung tài khoản lễ tân, không phản ánh đúng khách vãng lai thực tế).
+     * Chỉ xét mã áp dụng cho kênh "Tại quầy" hoặc "Tất cả" (applies_to) — mã dành riêng cho giao
+     * hàng (applies_to=delivery) không được tự động áp cho đơn tại quầy.
+     */
+    private function resolveAutoPromotion(float $subtotal, int $totalQuantity = 0): ?Promotion
+    {
+        $now = now();
+
+        return Promotion::query()
+            ->where('is_active', true)
+            ->where('apply_for', 'all')
+            ->whereIn('applies_to', ['all', 'pickup'])
+            ->where(function ($q) use ($subtotal) {
+                $q->whereNull('min_order_amount')->orWhere('min_order_amount', '<=', $subtotal);
+            })
+            ->where(function ($q) use ($totalQuantity) {
+                $q->whereNull('min_quantity')->orWhere('min_quantity', '<=', $totalQuantity);
+            })
+            ->where(function ($q) {
+                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+            })
+            ->get()
+            ->filter(function (Promotion $promotion) use ($now) {
+                if ($promotion->is_recurring) {
+                    $nowStr = $now->format('H:i:s');
+                    $currentDay = $now->dayOfWeekIso;
+                    if (is_array($promotion->recurring_days) && count($promotion->recurring_days) > 0
+                        && !in_array($currentDay, $promotion->recurring_days, true)) {
+                        return false;
+                    }
+                    if ($promotion->recurring_start_time && $nowStr < $promotion->recurring_start_time) return false;
+                    if ($promotion->recurring_end_time && $nowStr > $promotion->recurring_end_time) return false;
+                    return true;
+                }
+                if ($promotion->end_at && $now->gt($promotion->end_at)) return false;
+                if ($promotion->start_at && $now->lt($promotion->start_at)) return false;
+                return true;
+            })
+            ->sortByDesc(fn (Promotion $promotion) => $this->calculateDiscount($promotion, $subtotal))
+            ->first();
     }
 }

@@ -106,6 +106,23 @@ input[type=number] {
     -moz-appearance: textfield;
 }
 
+/* Chip button style for options */
+.pos-chip-btn {
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 2px solid #e5e7eb;
+    color: #4b5563;
+    background: #fff;
+    cursor: pointer;
+}
+.pos-chip-btn.is-active {
+    border-color: var(--color-primary, #16a34a);
+    background: color-mix(in srgb, var(--color-primary, #16a34a) 10%, white);
+    color: var(--color-primary, #16a34a);
+}
+
 /* Print Styles */
 @media print {
     body {
@@ -126,6 +143,37 @@ input[type=number] {
     /* Adjust margins */
     @page {
         margin: 0;
+    }
+
+    /* Phiếu pha chế / hóa đơn khách hàng (trang chi tiết đơn tại quầy của lễ tân) — mặc định 2 khối
+       này ẩn (class 'hidden' của Tailwind); khi in 1 trong 2, JS gắn class tương ứng lên <body> để
+       CHỈ hiện đúng khối đó.
+       QUAN TRỌNG: layout admin bọc toàn bộ nội dung trong khung chiều cao cố định + overflow-hidden
+       (<body>/<main> đều h-screen overflow-hidden, #main-content-area overflow-y-auto) — chỉ đổi
+       display:none/block KHÔNG đủ vì phiếu in vẫn bị "nhốt" bên trong khung đó và bị cắt khi in.
+       Phải dùng đúng pattern đã chứng minh hoạt động ở trang Báo cáo (visibility + position:absolute
+       để thoát hẳn ra khỏi khung cha, không phải chỉ ẩn/hiện tại chỗ). */
+    body.pos-printing-ticket * {
+        visibility: hidden !important;
+    }
+    body.pos-printing-prep #print-prep-ticket,
+    body.pos-printing-prep #print-prep-ticket * {
+        visibility: visible !important;
+    }
+    body.pos-printing-invoice #print-customer-invoice,
+    body.pos-printing-invoice #print-customer-invoice * {
+        visibility: visible !important;
+    }
+    body.pos-printing-prep #print-prep-ticket,
+    body.pos-printing-invoice #print-customer-invoice {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 1rem !important;
+        background: #ffffff !important;
     }
 }
 

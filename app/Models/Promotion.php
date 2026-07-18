@@ -29,9 +29,19 @@ class Promotion extends Model
 
 
     // KIỂM TRA MÃ GIẢM GIÁ CÓ HỢP LỆ KHÔNG
-    public function checkValidity($user, $subtotal)
+    // $deliveryType: 'pickup' (tại quầy) hoặc 'delivery' (giao hàng) — truyền null để bỏ qua kiểm
+    // tra kênh (vd nơi gọi chưa biết ngữ cảnh đơn hàng).
+    public function checkValidity($user, $subtotal, ?string $deliveryType = null, ?int $totalQuantity = null)
     {
-        // 1. KIỂM TRA TRẠNG THÁI CHUNG 
+        // 0. KIỂM TRA KÊNH ÁP DỤNG (tại quầy / giao hàng) — mã chỉ dành riêng 1 kênh thì không cho
+        // dùng ở kênh còn lại (vd mã "chỉ giao hàng" không được tự động áp cho đơn tại quầy).
+        if ($deliveryType && $this->applies_to && $this->applies_to !== 'all' && $this->applies_to !== $deliveryType) {
+            $channelNames = ['pickup' => 'đơn tại quầy', 'delivery' => 'đơn giao hàng'];
+            $requiredChannel = $channelNames[$this->applies_to] ?? $this->applies_to;
+            return ['valid' => false, 'message' => "Mã giảm giá này chỉ áp dụng cho {$requiredChannel}."];
+        }
+
+        // 1. KIỂM TRA TRẠNG THÁI CHUNG
         // Nếu admin đã tắt mã này (is_active = 0) thì báo lỗi ngay
         if (!$this->is_active) {
             return ['valid' => false, 'message' => 'Mã giảm giá đã ngừng hoạt động.'];
@@ -82,6 +92,11 @@ class Promotion extends Model
         // Nếu đơn hàng chưa đủ giá trị tối thiểu (min_order_amount)
         if ($this->min_order_amount && $subtotal < $this->min_order_amount) {
             return ['valid' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($this->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.'];
+        }
+
+        // 3.5. KIỂM TRA SỐ LƯỢNG MÓN TỐI THIỂU (vd: mã combo yêu cầu mua từ 2-3 ly trở lên)
+        if ($this->min_quantity && (int) ($totalQuantity ?? 0) < $this->min_quantity) {
+            return ['valid' => false, 'message' => "Đơn hàng cần mua tối thiểu {$this->min_quantity} món để dùng mã này."];
         }
 
         // 4. KIỂM TRA GIỚI HẠN TỔNG SỐ LƯỢT DÙNG TRÊN TOÀN HỆ THỐNG

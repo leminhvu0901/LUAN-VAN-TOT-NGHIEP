@@ -1,0 +1,492 @@
+@extends('backend.layouts.app')
+
+@section('title', 'Chi tiết Đơn hàng ' . ($order->order_code ?? '#HPY-' . $order->id))
+
+@section('content')
+    <div id="pos-order-page-content" class="flex flex-col gap-6 h-full pb-4 orders-page">
+
+        {{-- PHẦN 1: HEADER (Tiêu đề, Trạng thái đơn, Nút in) --}}
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    {{-- Nút quay lại trang danh sách đơn hàng --}}
+                    <a href="{{ route('staff.reception.orders.index') }}"
+                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                        title="Quay lại">
+                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                    </a>
+
+                    {{-- Mã đơn hàng --}}
+                    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Đơn hàng <span
+                            class="text-primary">{{ $order->order_code ?? ('#HPY-' . $order->id) }}</span></h1>
+                </div>
+                {{-- Hiển thị ngày giờ đặt hàng --}}
+                <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:
+                    {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
+                {{-- Chỉ cho in khi đơn ĐÃ THANH TOÁN THẬT — tránh in hóa đơn/phiếu pha chế cho đơn
+                     còn "chờ thu tiền" (đặc biệt đơn tiền mặt từ Giai đoạn 3, không còn tự động paid
+                     ngay lúc tạo đơn nữa). --}}
+                @if($order->payment_status === 'paid')
+                    <button id="print-prep-ticket-btn" type="button"
+                        class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
+                        <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                        Phiếu pha chế
+                    </button>
+                    <button id="print-invoice-btn" type="button"
+                        class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        Hóa đơn khách
+                    </button>
+                @else
+                    <span class="text-xs text-gray-400 italic">Xác nhận thanh toán để in hóa đơn/phiếu pha chế</span>
+                @endif
+            </div>
+        </div>
+
+        {{-- PHẦN 1.5: THÔNG BÁO LÝ DO HỦY ĐƠN --}}
+        @if($order->status === 'cancelled' && $order->cancel_reason)
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+                <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
+                <div>
+                    <h4 class="font-bold text-red-800">Lý do hủy đơn hàng</h4>
+                    <p class="text-sm text-red-600 mt-1">{{ $order->cancel_reason }}</p>
+                </div>
+            </div>
+        @endif
+
+        {{-- PHẦN 1.6: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG — chỉ chỉnh được tại đây, danh sách chỉ hiển thị --}}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+            @php
+                $statusLabels = [
+                    'pending' => ['Chờ xác nhận', 'badge-pending'],
+                    'confirmed' => ['Đã xác nhận', 'badge-confirmed'],
+                    'shipping' => ['Đang giao', 'badge-shipping'],
+                    'completed' => ['Hoàn thành', 'badge-completed'],
+                    'cancelled' => ['Đã hủy', 'badge-cancelled'],
+                ];
+                [$statusLabel, $statusBadgeClass] = $statusLabels[$order->status] ?? [$order->status, ''];
+                $isDeliveryOrder = $order->delivery_type !== 'pickup';
+                // Không cho hủy khi: đơn đã thanh toán (phải hoàn tiền trước — theo rule OrderWorkflowService),
+                // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
+                $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
+                    && $order->payment_status !== 'paid';
+            @endphp
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-gray-400">sync_alt</span>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
+                        <span class="badge-status {{ $statusBadgeClass }} font-bold text-xs mt-1 inline-block px-2.5 py-1">{{ $statusLabel }}</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($order->status === 'pending')
+                        <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="confirmed">
+                            <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
+                        </form>
+                    @endif
+
+                    {{-- Đơn tại quầy: khách nhận trực tiếp, không có bước giao hàng — xác nhận xong là hoàn thành luôn. --}}
+                    @if($order->delivery_type === 'pickup' && in_array($order->status, ['confirmed', 'shipping'], true))
+                        <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="min-h-[40px] px-4 bg-emerald-600 text-white font-bold rounded-lg text-sm">Hoàn thành</button>
+                        </form>
+                    @endif
+
+                    @if($canCancel)
+                        <form id="cancel-order-form" action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="cancelled">
+                            <input type="hidden" name="cancel_reason" id="cancel_reason_input">
+                            <button type="button" id="cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm">Hủy đơn</button>
+                        </form>
+                    @endif
+
+                    @if($isDeliveryOrder && $order->status === 'shipping')
+                        <p class="text-xs text-gray-400">Đơn đang được giao — chỉ nhân viên vận chuyển được cập nhật tiếp.</p>
+                    @elseif(in_array($order->status, ['completed', 'cancelled']))
+                        <p class="text-xs text-gray-400">Đơn đã kết thúc, không thể thay đổi thêm.</p>
+                    @elseif(!$canCancel && in_array($order->status, ['pending', 'confirmed']))
+                        <p class="text-xs text-gray-400">Đơn đã thanh toán — cần hoàn tiền trước khi hủy.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- PHẦN 2: LƯỚI GIAO DIỆN CHÍNH --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {{-- CỘT TRÁI (Chiếm 2/3 không gian): Danh sách món ăn và tổng tiền --}}
+            <div class="lg:col-span-2 flex flex-col gap-6">
+
+                {{-- Khối 1: Danh sách món ăn (Order Items) --}}
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-5 border-b border-gray-100">
+                        <h3 class="font-bold text-gray-900 text-lg">Chi tiết món</h3>
+                    </div>
+                    <div class="divide-y divide-gray-100">
+                        @foreach($items as $item)
+                            <div class="p-5 flex gap-4">
+                                <div class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+                                    @if($item->product_image)
+                                        <img src="{{ asset('images/' . $item->product_image) }}" alt="{{ $item->product_name }}"
+                                            class="w-full h-full object-cover"
+                                            data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                            <span class="material-symbols-outlined text-3xl">local_cafe</span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="flex-1 flex flex-col justify-between overflow-hidden">
+                                    @php
+                                        $iceLabels = ['normal' => 'Đá chung', 'full' => 'Đá riêng', 'less' => 'Ít đá', 'none' => 'Không đá'];
+                                        $itemToppings = is_array($item->options) ? $item->options : [];
+                                    @endphp
+                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                        <div class="break-words overflow-wrap-anywhere">
+                                            <h4 class="font-bold text-gray-900">{{ $item->product_name }}</h4>
+                                            <div class="text-sm text-gray-500 mt-1 flex flex-wrap gap-1">
+                                                @if($item->size_name)
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Size {{ $item->size_name }}</span>
+                                                @endif
+                                                @if($item->sugar_level !== null)
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Đường {{ $item->sugar_level }}%</span>
+                                                @endif
+                                                @if($item->ice_level)
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">{{ $iceLabels[$item->ice_level] ?? $item->ice_level }}</span>
+                                                @endif
+                                            </div>
+                                            @if(!empty($itemToppings))
+                                                <p class="text-xs text-gray-500 mt-1">+ Topping: {{ implode(', ', $itemToppings) }}</p>
+                                            @endif
+                                            @if($item->note)
+                                                <p class="text-xs text-amber-600 mt-1">Ghi chú: {{ $item->note }}</p>
+                                            @endif
+                                        </div>
+                                        <div class="text-left sm:text-right shrink-0">
+                                            <span class="font-bold text-gray-900">{{ number_format($item->unit_price, 0, ',', '.') }}đ</span>
+                                            <span class="text-sm text-gray-500 ml-2 sm:ml-0 sm:block">x{{ $item->quantity }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right mt-2 border-t border-gray-50 pt-2 sm:border-none sm:pt-0">
+                                        <span class="text-gray-500 text-xs sm:hidden mr-1">Thành tiền:</span>
+                                        <span class="font-bold text-primary">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Khối 2: Tạm tính và Tổng tiền --}}
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                    <div class="flex flex-col gap-3">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Tạm tính ({{ $items->sum('quantity') }} món)</span>
+                            <span class="font-medium">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Phí giao hàng ({{ $order->distance_km ?? 0 }}km)</span>
+                            <span class="font-medium">{{ number_format($order->shipping_fee ?? 0, 0, ',', '.') }}đ</span>
+                        </div>
+                        @if($order->weather_fee > 0)
+                            <div class="flex justify-between text-gray-600">
+                                <span>Phụ thu thời tiết xấu</span>
+                                <span class="font-medium">{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
+                            </div>
+                        @endif
+                        @if($order->discount_amount > 0)
+                            <div class="flex justify-between text-emerald-600">
+                                <span>Khuyến mãi {{ $order->coupon_code ? '(' . $order->coupon_code . ')' : '' }}</span>
+                                <span class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
+                            </div>
+                        @endif
+                        <div class="pt-4 mt-2 border-t border-gray-100 flex justify-between items-center">
+                            <span class="font-bold text-gray-900 text-lg">Tổng cộng</span>
+                            <span class="font-bold text-primary text-xl">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- CỘT PHẢI (Chiếm 1/3 không gian): Khách hàng, Giao hàng, Thanh toán --}}
+            <div class="flex flex-col gap-6">
+
+                {{-- Khối 3: Thông tin Khách hàng --}}
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-gray-400">person</span>
+                        Khách hàng
+                    </h3>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                            {{ substr($order->customer_name, 0, 1) }}
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-900">{{ $order->customer_name }}</div>
+                            <div class="text-sm text-gray-500">{{ $order->customer_phone }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Khối 4: Thông tin Giao hàng --}}
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-gray-400">local_shipping</span>
+                        Giao hàng
+                    </h3>
+                    <div class="flex flex-col gap-4">
+                        @if($order->delivery_type === 'pickup')
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Hình thức nhận hàng</p>
+                                <p class="text-sm text-gray-900">Khách nhận tại quầy (không cần giao hàng)</p>
+                            </div>
+                        @else
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao</p>
+                                <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Nhân viên giao hàng</p>
+                                @if($order->deliveryStaff)
+                                    <p class="text-sm font-semibold text-gray-900">{{ $order->deliveryStaff->name }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $order->deliveryStaff->phone ?: 'Chưa cập nhật SĐT' }}
+                                        @if($order->assigned_at)
+                                            · Phân công lúc {{ \Carbon\Carbon::parse($order->assigned_at)->format('d/m/Y H:i') }}
+                                        @endif
+                                    </p>
+                                @elseif($order->status === 'confirmed')
+                                    <form action="{{ route('staff.reception.orders.assign_delivery', $order->id) }}" method="POST" class="flex flex-col gap-2 mt-1">
+                                        @csrf
+                                        <select name="delivery_staff_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                            <option value="">-- Chọn nhân viên giao hàng --</option>
+                                            @foreach($availableDeliveryStaff as $staff)
+                                                <option value="{{ $staff->id }}">{{ $staff->name }}{{ $staff->phone ? ' — ' . $staff->phone : '' }}</option>
+                                            @endforeach
+                                        </select>
+                                        @if($availableDeliveryStaff->isEmpty())
+                                            <p class="text-xs text-red-500">Chưa có nhân viên giao hàng nào đang hoạt động.</p>
+                                        @else
+                                            <button type="submit" class="w-full min-h-[40px] bg-primary text-white font-bold rounded-lg text-sm">
+                                                Phân công giao hàng
+                                            </button>
+                                        @endif
+                                    </form>
+                                @elseif($order->status === 'pending')
+                                    <p class="text-sm text-gray-500">Cần xác nhận đơn trước khi phân công giao hàng.</p>
+                                @else
+                                    <p class="text-sm text-gray-500">Chưa được phân công.</p>
+                                @endif
+                            </div>
+                        @endif
+                        @if($order->customer_note)
+                            <div>
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Ghi chú của khách</p>
+                                <p class="text-sm text-gray-900 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                                    {{ $order->customer_note }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Khối 5: Tình trạng Thanh toán --}}
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-gray-400">payments</span>
+                        Thanh toán
+                    </h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-gray-900 uppercase">
+                                {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                            </div>
+                            @if($order->payment_method === 'momo')
+                                @if(($order->payment_status ?? '') === 'paid')
+                                    <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
+                                    </div>
+                                @else
+                                    <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
+                                    </div>
+                                @endif
+                            @elseif($order->payment_method === 'cash')
+                                @if($order->payment_status === 'paid')
+                                    <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thu tiền mặt
+                                    </div>
+                                    @if($order->amount_tendered !== null)
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Khách đưa: {{ number_format($order->amount_tendered, 0, ',', '.') }}đ
+                                            · Thối lại: {{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ
+                                        </p>
+                                    @endif
+                                @else
+                                    <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thu tiền
+                                    </div>
+                                @endif
+                            @else
+                                <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
+                            @endif
+                        </div>
+                        <span class="material-symbols-outlined text-4xl text-gray-200">
+                            {{ ($order->payment_method ?? '') === 'momo' ? 'account_balance_wallet' : 'money' }}
+                        </span>
+                    </div>
+
+                    @if($order->payment_method === 'momo' && $order->payment_status !== 'paid')
+                        <form action="{{ route('staff.reception.orders.pay_momo', $order->id) }}" method="POST" class="mt-4">
+                            @csrf
+                            <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
+                                Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($order->payment_method === 'cash' && $order->payment_status !== 'paid')
+                        <form action="{{ route('staff.reception.orders.confirm_cash', $order->id) }}" method="POST" class="mt-4 space-y-2 pt-4 border-t border-gray-100">
+                            @csrf
+                            <label class="block text-sm font-medium text-gray-700">Tiền khách đưa</label>
+                            <input type="text" id="cash-amount-tendered-display" 
+                                 value="{{ old('amount_tendered', (int) $order->final_amount) }}"
+                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
+                            <input type="hidden" name="amount_tendered" id="cash-amount-tendered" value="{{ old('amount_tendered', (int) $order->final_amount) }}">
+                            @error('amount_tendered') <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">Tiền thừa</span>
+                                <span id="cash-change-preview" class="font-bold text-gray-900">0đ</span>
+                            </div>
+                            <input type="hidden" id="cash-final-amount" value="{{ (int) $order->final_amount }}">
+                            <button type="submit" class="w-full min-h-[44px] bg-emerald-600 text-white font-bold rounded-xl">
+                                Xác nhận đã thu tiền
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @php
+        $printIceLabels = ['normal' => 'Đá chung', 'full' => 'Đá riêng', 'less' => 'Ít đá', 'none' => 'Không đá'];
+        $pickupModeLabels = ['dine_in' => 'Tại quầy', 'takeaway' => 'Mang đi'];
+    @endphp
+
+    {{-- PHIẾU PHA CHẾ: chỉ hiện khi in (JS gắn class lên <body> trước khi gọi window.print()) — không
+         hiển thị giá tiền, chỉ thông tin cần thiết để pha chế đúng món. --}}
+    <div id="print-prep-ticket" class="hidden">
+        <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', monospace;">
+            <h2 style="text-align: center; margin: 0 0 4px;">PHIẾU PHA CHẾ</h2>
+            <p style="text-align: center; margin: 0 0 12px; font-size: 13px;">
+                {{ $order->delivery_type === 'pickup' ? ($pickupModeLabels[$order->pickup_mode] ?? 'Tại quầy') : 'Giao hàng' }}
+            </p>
+            <hr>
+            <p style="margin: 8px 0;"><strong>Mã đơn:</strong> {{ $order->order_code }}</p>
+            <p style="margin: 8px 0;"><strong>Giờ tạo:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
+            <hr>
+            @foreach($items as $item)
+                @php $printToppings = is_array($item->options) ? $item->options : []; @endphp
+                <div style="margin: 10px 0;">
+                    <p style="margin: 0; font-weight: bold; font-size: 15px;">{{ $item->quantity }} x {{ $item->product_name }}</p>
+                    <p style="margin: 2px 0 0; font-size: 13px;">
+                        @if($item->size_name) Size {{ $item->size_name }} @endif
+                        @if($item->sugar_level !== null) · Đường {{ $item->sugar_level }}% @endif
+                        @if($item->ice_level) · {{ $printIceLabels[$item->ice_level] ?? $item->ice_level }} @endif
+                    </p>
+                    @if(!empty($printToppings))
+                        <p style="margin: 2px 0 0; font-size: 13px;">+ {{ implode(', ', $printToppings) }}</p>
+                    @endif
+                    @if($item->note)
+                        <p style="margin: 2px 0 0; font-size: 13px; font-style: italic;">Ghi chú: {{ $item->note }}</p>
+                    @endif
+                </div>
+            @endforeach
+            @if($order->customer_note)
+                <hr>
+                <p style="margin: 8px 0; font-size: 13px;"><strong>Ghi chú đơn:</strong> {{ $order->customer_note }}</p>
+            @endif
+        </div>
+    </div>
+
+    {{-- HÓA ĐƠN KHÁCH HÀNG: đầy đủ giá + tổng + phương thức thanh toán, không có nút bấm/form. --}}
+    <div id="print-customer-invoice" class="hidden">
+        <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', monospace;">
+            <h2 style="text-align: center; margin: 0 0 2px;">{{ $storeInfo['name'] }}</h2>
+            @if($storeInfo['address'])
+                <p style="text-align: center; margin: 0; font-size: 12px;">{{ $storeInfo['address'] }}</p>
+            @endif
+            @if($storeInfo['phone'])
+                <p style="text-align: center; margin: 0 0 8px; font-size: 12px;">ĐT: {{ $storeInfo['phone'] }}</p>
+            @endif
+            <p style="text-align: center; margin: 0 0 8px; font-weight: bold;">HÓA ĐƠN BÁN HÀNG</p>
+            <hr>
+            <p style="margin: 6px 0;">Mã đơn: {{ $order->order_code }}</p>
+            <p style="margin: 6px 0;">Ngày: {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
+            <hr>
+            @foreach($items as $item)
+                <div style="display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px;">
+                    <span>{{ $item->product_name }}{{ $item->size_name ? ' (' . $item->size_name . ')' : '' }} x{{ $item->quantity }}</span>
+                    <span>{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                </div>
+            @endforeach
+            <hr>
+            <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                <span>Tạm tính</span>
+                <span>{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
+            </div>
+            @if($order->discount_amount > 0)
+                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                    <span>Giảm giá{{ $order->coupon_code ? ' (' . $order->coupon_code . ')' : '' }}</span>
+                    <span>-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
+                </div>
+            @endif
+            @if($order->shipping_fee > 0)
+                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                    <span>Phí giao hàng</span>
+                    <span>{{ number_format($order->shipping_fee, 0, ',', '.') }}đ</span>
+                </div>
+            @endif
+            <div style="display: flex; justify-content: space-between; margin: 8px 0; font-weight: bold; font-size: 15px;">
+                <span>TỔNG CỘNG</span>
+                <span>{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
+            </div>
+            <hr>
+            <p style="margin: 6px 0;">
+                Thanh toán: {{ match($order->payment_method) { 'momo' => 'MoMo', 'cash' => 'Tiền mặt', default => 'COD' } }}
+            </p>
+            @if($order->payment_method === 'cash' && $order->amount_tendered !== null)
+                <div style="display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px;">
+                    <span>Khách đưa</span>
+                    <span>{{ number_format($order->amount_tendered, 0, ',', '.') }}đ</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px;">
+                    <span>Tiền thừa</span>
+                    <span>{{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ</span>
+                </div>
+            @endif
+            <hr>
+            <p style="text-align: center; margin: 12px 0 0; font-size: 12px;">Cảm ơn quý khách!</p>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script src="{{ asset('js/backend/staff/reception/orders/show.js') }}"></script>
+    @endpush
+@endsection
