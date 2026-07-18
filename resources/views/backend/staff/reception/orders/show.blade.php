@@ -25,7 +25,7 @@
                 <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
+            <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
                 {{-- Chỉ cho in khi đơn ĐÃ THANH TOÁN THẬT — tránh in hóa đơn/phiếu pha chế cho đơn
                      còn "chờ thu tiền" (đặc biệt đơn tiền mặt từ Giai đoạn 3, không còn tự động paid
                      ngay lúc tạo đơn nữa). --}}

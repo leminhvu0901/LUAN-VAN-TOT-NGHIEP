@@ -162,8 +162,6 @@ Route::middleware(['auth'])->group(function () {
     // Tính phụ phí thời tiết
     Route::get('/checkout/weather-fee', [App\Http\Controllers\Frontend\CartController::class, 'calculateWeatherFee']);
 
-    // Tính phụ phí thời tiết theo tọa độ GPS
-    Route::get('/checkout/weather-fee-by-coords', [App\Http\Controllers\Frontend\CartController::class, 'calculateWeatherFeeByCoords']);
     // Kiểm tra Mã giảm giá (Coupon) có hợp lệ không
     Route::post('/checkout/validate-coupon', [App\Http\Controllers\Frontend\CartController::class, 'validateCoupon']);
 

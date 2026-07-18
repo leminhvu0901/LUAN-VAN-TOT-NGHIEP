@@ -57,7 +57,7 @@
                         <p class="text-[11px] text-gray-400 pt-3">Các đơn dưới đây <span class="font-bold text-amber-600">CHƯA nộp</span> — bấm "Xác nhận đã nộp" ngay khi nhận tiền mặt từ nhân viên.</p>
                         <div class="divide-y divide-gray-50">
                             @foreach($group['unsettled_orders'] as $order)
-                                <div class="flex items-center justify-between gap-3 py-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3">
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
                                             <span class="font-bold text-primary text-sm">{{ $order->order_code }}</span>
@@ -66,7 +66,7 @@
                                         </div>
                                         <p class="text-[11px] text-gray-400">Hoàn thành lúc {{ \Carbon\Carbon::parse($order->updated_at)->format('d/m/Y H:i') }}</p>
                                     </div>
-                                    <div class="flex items-center gap-3 shrink-0">
+                                    <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0">
                                         <span class="font-bold text-gray-900 text-sm">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
                                         <form action="{{ route('staff.reception.cod_settlement.settle_one', $order->id) }}" method="POST"
                                             onsubmit="return confirm('Xác nhận đã nhận {{ number_format($order->final_amount, 0, ',', '.') }}đ tiền mặt cho đơn {{ $order->order_code }}?');">

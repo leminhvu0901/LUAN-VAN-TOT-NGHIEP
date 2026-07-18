@@ -840,12 +840,19 @@ select {
     font-size: 14px !important;
 }
 
-/* Pagination mobile overrides */
+/* Pagination mobile overrides — áp dụng luôn cho các trang lễ tân dùng chung component
+   .ajax-pagination (danh sách đơn hàng, lịch sử kho), không chỉ riêng trang Banner. */
 @media (max-width: 640px) {
-    .banners-page .ajax-pagination .hidden.sm\:flex-1 {
+    .banners-page .ajax-pagination .hidden.sm\:flex-1,
+    .orders-page .ajax-pagination .hidden.sm\:flex-1,
+    #materials-index-page .ajax-pagination .hidden.sm\:flex-1,
+    #materials-imports-page .ajax-pagination .hidden.sm\:flex-1 {
         display: none !important;
     }
-    .banners-page .ajax-pagination .flex.justify-between {
+    .banners-page .ajax-pagination .flex.justify-between,
+    .orders-page .ajax-pagination .flex.justify-between,
+    #materials-index-page .ajax-pagination .flex.justify-between,
+    #materials-imports-page .ajax-pagination .flex.justify-between {
         width: 100% !important;
         justify-content: space-between !important;
     }

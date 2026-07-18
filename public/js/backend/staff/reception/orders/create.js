@@ -97,6 +97,26 @@
 
     // ───────────────────────── Giỏ hàng + tổng tiền xem trước ─────────────────────────
 
+    // Số món trong giỏ ở lần refreshCart() gần nhất — dùng để hiển thị trên thanh giỏ hàng nổi
+    // (mobile/tablet). Không gọi lại API riêng cho thanh nổi, tránh 2 nguồn dữ liệu dễ lệch nhau.
+    let lastCartItemCount = 0;
+
+    function updateMobileCartBar(total) {
+        const bar = document.getElementById('pos-mobile-cart-bar');
+        if (!bar) return;
+
+        if (lastCartItemCount <= 0) {
+            bar.classList.add('hidden');
+            return;
+        }
+
+        bar.classList.remove('hidden');
+        const countEl = document.getElementById('pos-mobile-cart-count');
+        const totalEl = document.getElementById('pos-mobile-cart-total');
+        if (countEl) countEl.textContent = lastCartItemCount;
+        if (totalEl) totalEl.textContent = formatMoney(total);
+    }
+
     function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount) {
         document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
@@ -118,6 +138,7 @@
         }
 
         document.getElementById('pos-cart-total').textContent = formatMoney(finalAmount);
+        updateMobileCartBar(finalAmount);
     }
 
     function getCurrentOrderType() {
@@ -192,9 +213,12 @@
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = '';
                     container.appendChild(emptyEl);
+                    lastCartItemCount = 0;
                     updatePreviewTotal(0, 0, null, 0, 0);
                     return;
                 }
+
+                lastCartItemCount = data.items.reduce(function (sum, item) { return sum + (item.quantity || 0); }, 0);
 
                 container.innerHTML = '';
                 data.items.forEach(function (item) {
@@ -436,6 +460,45 @@
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: JSON.stringify({ item_id: btn.dataset.itemId }),
         }).then(() => refreshCart());
+    });
+
+    // ───────────────────────── Giỏ hàng dạng bottom-sheet trên tablet/điện thoại (dưới lg:) ─────────────────────────
+    // Ở lg:+ (desktop) cột giỏ hàng luôn hiển thị cố định (class lg:block trong Blade ép hiện, JS
+    // không cần và không nên can thiệp) — các hàm dưới đây chỉ có tác dụng thực sự dưới lg:.
+
+    const cartColumn = document.getElementById('pos-cart-column');
+    const cartBackdrop = document.getElementById('pos-cart-backdrop');
+    const mobileCartOpenBtn = document.getElementById('pos-mobile-cart-open-btn');
+    const cartCloseBtn = document.getElementById('pos-cart-close-btn');
+
+    function openMobileCart() {
+        if (!cartColumn) return;
+        cartColumn.classList.remove('hidden');
+        if (cartBackdrop) cartBackdrop.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileCart() {
+        if (!cartColumn) return;
+        // Chỉ thực sự đóng dưới lg: — từ lg: trở lên class "lg:block" trong Blade đã ép luôn hiển
+        // thị (đúng ý, ở desktop đây là cột cố định chứ không phải bottom-sheet để đóng/mở).
+        if (window.innerWidth < 1024) {
+            cartColumn.classList.add('hidden');
+        }
+        if (cartBackdrop) cartBackdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    if (mobileCartOpenBtn) mobileCartOpenBtn.addEventListener('click', openMobileCart);
+    if (cartCloseBtn) cartCloseBtn.addEventListener('click', closeMobileCart);
+    if (cartBackdrop) cartBackdrop.addEventListener('click', closeMobileCart);
+
+    // Xoay ngang/resize sang desktop trong lúc bottom-sheet đang mở -> đảm bảo không kẹt khóa cuộn nền.
+    window.addEventListener('resize', function () {
+        if (window.innerWidth >= 1024) {
+            document.body.style.overflow = '';
+            if (cartBackdrop) cartBackdrop.classList.add('hidden');
+        }
     });
 
     // ───────────────────────── Toggle nút chọn (loại đơn / thanh toán) ─────────────────────────

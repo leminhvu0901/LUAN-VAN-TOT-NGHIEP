@@ -3,7 +3,7 @@
 @section('title', 'Tạo đơn tại quầy - Nhân viên pha chế')
 
 @section('content')
-    <div class="p-4 sm:p-6">
+    <div class="p-4 sm:p-6 pb-24 sm:pb-24 lg:pb-6">
         <div class="mb-4">
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Tạo đơn tại quầy</h2>
             <p class="text-gray-500 text-sm mt-1">Dùng cho khách tại quầy, mang đi, hoặc đặt giao hàng qua điện thoại.</p>
@@ -62,10 +62,16 @@
                 </div>
             </div>
 
-            {{-- Cột giỏ hàng + thông tin khách — dính trên cùng để luôn thấy khi cuộn danh sách sản
-                 phẩm; giới hạn chiều cao bằng màn hình và tự cuộn nội bộ khi nhiều món/thông tin, tránh
-                 nút "Tạo đơn" ở đáy bị đẩy khuất ngoài màn hình khi cột bị ghim cứng ở đỉnh. --}}
-            <div class="space-y-4 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
+            {{-- Cột giỏ hàng + thông tin khách. Ở lg:+ (desktop): dính trên cùng, tự cuộn nội bộ,
+                 giống hệt hành vi cũ. Dưới lg: (tablet/điện thoại): ẩn mặc định và hiện dưới dạng
+                 bottom-sheet khi lễ tân bấm nút "Xem giỏ hàng" ở thanh nổi đáy màn hình (JS bên dưới)
+                 — tránh phải cuộn qua hết lưới sản phẩm mới tới được nút "Tạo đơn". --}}
+            <div id="pos-cart-column" class="hidden lg:block fixed inset-x-0 lg:inset-auto bottom-0 lg:bottom-auto z-50 lg:z-auto space-y-4 max-h-[85vh] lg:max-h-[calc(100vh-6rem)] overflow-y-auto lg:pr-1 rounded-t-2xl lg:rounded-none bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 lg:sticky lg:top-0 lg:self-start">
+                <div class="lg:hidden flex justify-end">
+                    <button type="button" id="pos-cart-close-btn" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500" aria-label="Đóng giỏ hàng">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                     <h3 class="text-lg font-black text-gray-900 mb-3">Giỏ hàng</h3>
                     <div id="pos-cart-items" class="space-y-2">
@@ -173,6 +179,19 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    {{-- Lớp phủ nền khi giỏ hàng dạng bottom-sheet đang mở trên tablet/điện thoại (dưới lg:) --}}
+    <div id="pos-cart-backdrop" class="hidden lg:hidden fixed inset-0 bg-black/40 z-40"></div>
+
+    {{-- Thanh giỏ hàng nổi cố định đáy màn hình — chỉ hiện dưới lg: (tablet/điện thoại), JS tự ẩn khi
+         giỏ hàng trống. Bấm vào để mở bottom-sheet giỏ hàng + form thanh toán ở trên. --}}
+    <div id="pos-mobile-cart-bar" class="hidden lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+            <p class="text-xs text-gray-500">Giỏ hàng (<span id="pos-mobile-cart-count">0</span> món)</p>
+            <p class="font-black text-emerald-600 text-lg" id="pos-mobile-cart-total">0đ</p>
+        </div>
+        <button type="button" id="pos-mobile-cart-open-btn" class="shrink-0 px-5 py-2.5 bg-primary text-white font-bold rounded-xl text-sm">Xem giỏ hàng</button>
     </div>
 
     {{-- Modal chọn size/topping/đường/đá/số lượng khi thêm sản phẩm --}}

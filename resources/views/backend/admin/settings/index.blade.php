@@ -285,6 +285,9 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        {{-- Hidden input gửi "0" khi checkbox bị bỏ tick — HTML không tự gửi field cho checkbox unchecked,
+                                             nếu thiếu input này thì backend nhận request rỗng và validate "required" báo lỗi sai. --}}
+                                        <input type="hidden" name="orders_enabled" value="0">
                                         <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" class="sr-only peer" {{ ($settings['orders_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -299,6 +302,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="auto_cancel_unpaid_enabled" value="0">
                                         <input type="checkbox" name="auto_cancel_unpaid_enabled" id="auto_cancel_unpaid_enabled" value="1" class="sr-only peer" {{ ($settings['auto_cancel_unpaid_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -391,6 +395,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="weather_surcharge_enabled" value="0">
                                         <input type="checkbox" name="weather_surcharge_enabled" id="weather_surcharge_enabled" value="1" class="sr-only peer" {{ ($settings['weather_surcharge_enabled'] ?? '0') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -482,6 +487,7 @@
                                 <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200/50">
                                     <span class="text-xs font-semibold text-gray-500">Kích hoạt</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="cod_enabled" value="0">
                                         <input type="checkbox" name="cod_enabled" id="cod_enabled" value="1" class="sr-only peer" {{ ($settings['cod_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -507,6 +513,7 @@
                                 <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200/50">
                                     <span class="text-xs font-semibold text-gray-500">Kích hoạt</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="momo_enabled" value="0">
                                         <input type="checkbox" name="momo_enabled" id="momo_enabled" value="1" class="sr-only peer" {{ ($settings['momo_enabled'] ?? '0') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -543,6 +550,7 @@
                             </div>
                             <div class="flex items-center">
                                 <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="hidden" name="loyalty_enabled" value="0">
                                     <input type="checkbox" name="loyalty_enabled" id="loyalty_enabled" value="1" class="sr-only peer" {{ ($settings['loyalty_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                 </label>
@@ -631,6 +639,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="order_confirmation_email_enabled" value="0">
                                         <input type="checkbox" name="order_confirmation_email_enabled" id="order_confirmation_email_enabled" value="1" class="sr-only peer" {{ ($settings['order_confirmation_email_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -645,6 +654,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="new_order_admin_notification_enabled" value="0">
                                         <input type="checkbox" name="new_order_admin_notification_enabled" id="new_order_admin_notification_enabled" value="1" class="sr-only peer" {{ ($settings['new_order_admin_notification_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
@@ -659,6 +669,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="low_stock_notification_enabled" value="0">
                                         <input type="checkbox" name="low_stock_notification_enabled" id="low_stock_notification_enabled" value="1" class="sr-only peer" {{ ($settings['low_stock_notification_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                                     </label>
