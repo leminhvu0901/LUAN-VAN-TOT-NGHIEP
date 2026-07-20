@@ -48,7 +48,7 @@
                     <!-- 1. Shipping Address Section -->
                     <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
                         <div class="flex items-center gap-2 border-b border-outline-variant pb-4 mb-4">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">location_on</span>
+                            <span class="material-symbols-outlined text-primary material-filled">location_on</span>
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Địa chỉ giao hàng</h2>
                         </div>
 
@@ -262,7 +262,7 @@
                     <!-- 3. Payment Method Section -->
                     <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
                         <div class="flex items-center gap-2 border-b border-outline-variant pb-4 mb-4">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">payments</span>
+                            <span class="material-symbols-outlined text-primary material-filled">payments</span>
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Phương thức thanh toán</h2>
                         </div>
 
@@ -290,7 +290,7 @@
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
                                 <input type="radio" name="payment_method" value="momo" {{ !$codEnabled ? 'checked' : '' }} class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+                                    <span class="material-symbols-outlined text-primary text-3xl material-filled">account_balance</span>
                                     <div>
                                         <span class="block font-bold text-on-surface">Chuyển khoản</span>
                                         <span class="text-xs text-on-surface-variant">Ví MoMo, ATM, Visa/Master...</span>

@@ -64,8 +64,7 @@
                         class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">rate_review</span>
                     <div
                         class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                        <span class="material-symbols-outlined text-2xl"
-                            style="font-variation-settings: 'FILL' 1;">rate_review</span>
+                        <span class="material-symbols-outlined text-2xl icon-fill">rate_review</span>
                     </div>
                     <div class="space-y-1 min-w-0 z-10">
                         <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Tổng đánh giá</p>
@@ -82,8 +81,7 @@
                         class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">visibility</span>
                     <div
                         class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                        <span class="material-symbols-outlined text-2xl"
-                            style="font-variation-settings: 'FILL' 1;">visibility</span>
+                        <span class="material-symbols-outlined text-2xl icon-fill">visibility</span>
                     </div>
                     <div class="space-y-1 min-w-0 z-10">
                         <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Đang hiển thị</p>
@@ -100,8 +98,7 @@
                         class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-rose-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">visibility_off</span>
                     <div
                         class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                        <span class="material-symbols-outlined text-2xl"
-                            style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+                        <span class="material-symbols-outlined text-2xl icon-fill">visibility_off</span>
                     </div>
                     <div class="space-y-1 min-w-0 z-10">
                         <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Đang bị ẩn</p>
@@ -123,7 +120,7 @@
                 <div class="flex items-center justify-between xl:hidden">
                     <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                     <button type="button"
-                        onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');"
+                        onclick="toggleFilterPanel('filter-wrapper')"
                         class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                         <span class="material-symbols-outlined text-[18px]">filter_list</span> <span
                             class="hidden sm:inline">Bộ lọc</span>

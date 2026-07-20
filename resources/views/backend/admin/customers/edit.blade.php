@@ -8,7 +8,7 @@
         {{-- HEADER --}}
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.customers.index') }}"
-                onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                onclick="smartGoBack(event)"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
@@ -168,7 +168,7 @@
                 {{-- Nút Submit --}}
                 <div class="flex gap-3 pt-2">
                     <a href="{{ route('admin.customers.index') }}"
-                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        onclick="smartGoBack(event)"
                         class="flex-1 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 text-center font-semibold rounded-xl hover:bg-gray-50 transition-colors">
                         Hủy
                     </a>

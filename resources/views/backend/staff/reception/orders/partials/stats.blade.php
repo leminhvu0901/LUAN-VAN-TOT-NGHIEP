@@ -8,7 +8,7 @@
         </p>
     </div>
     <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform flex-shrink-0">
-        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
+        <span class="material-symbols-outlined text-lg icon-fill">shopping_bag</span>
     </div>
 </div>
 
@@ -26,7 +26,7 @@
         </p>
     </div>
     <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform flex-shrink-0">
-        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">assignment_late</span>
+        <span class="material-symbols-outlined text-lg icon-fill">assignment_late</span>
     </div>
 </div>
 
@@ -40,6 +40,6 @@
         </p>
     </div>
     <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-        <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">cancel</span>
+        <span class="material-symbols-outlined text-lg icon-fill">cancel</span>
     </div>
 </div>

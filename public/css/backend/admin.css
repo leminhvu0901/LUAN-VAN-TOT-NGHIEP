@@ -7,6 +7,10 @@ body {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 24;
 }
 
+.icon-fill {
+    font-variation-settings: 'FILL' 1;
+}
+
 /* Global Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
@@ -175,6 +179,117 @@ input[type=number] {
         padding: 1rem !important;
         background: #ffffff !important;
     }
+}
+
+/* Phiếu pha chế / Hóa đơn khách hàng — nội dung bên trong #print-prep-ticket / #print-customer-invoice
+   (trang chi tiết đơn tại quầy của lễ tân). Các class này áp dụng thường xuyên (không chỉ khi in) vì
+   bản thân khối cha đã bị Tailwind '.hidden' ẩn đi ngoài lúc in. */
+.print-ticket {
+    max-width: 320px;
+    margin: 0 auto;
+    font-family: 'Courier New', monospace;
+}
+
+.print-ticket__title {
+    text-align: center;
+    margin: 0 0 4px;
+}
+
+.print-ticket__title--invoice {
+    text-align: center;
+    margin: 0 0 2px;
+}
+
+.print-ticket__subtitle {
+    text-align: center;
+    margin: 0 0 12px;
+    font-size: 13px;
+}
+
+.print-ticket__center-sm {
+    text-align: center;
+    margin: 0;
+    font-size: 12px;
+}
+
+.print-ticket__center-sm-mb {
+    text-align: center;
+    margin: 0 0 8px;
+    font-size: 12px;
+}
+
+.print-ticket__center-bold {
+    text-align: center;
+    margin: 0 0 8px;
+    font-weight: bold;
+}
+
+.print-ticket__row {
+    margin: 8px 0;
+}
+
+.print-ticket__row-sm {
+    margin: 6px 0;
+}
+
+.print-ticket__item {
+    margin: 10px 0;
+}
+
+.print-ticket__item-name {
+    margin: 0;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.print-ticket__item-detail {
+    margin: 2px 0 0;
+    font-size: 13px;
+}
+
+.print-ticket__item-note {
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.print-ticket__note {
+    margin: 8px 0;
+    font-size: 13px;
+}
+
+.print-ticket__flex-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 0;
+    font-size: 13px;
+}
+
+.print-ticket__flex-row--plain {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+}
+
+.print-ticket__flex-row--small {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    font-size: 13px;
+}
+
+.print-ticket__flex-row--total {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.print-ticket__footer {
+    text-align: center;
+    margin: 12px 0 0;
+    font-size: 12px;
 }
 
 /* =============================================

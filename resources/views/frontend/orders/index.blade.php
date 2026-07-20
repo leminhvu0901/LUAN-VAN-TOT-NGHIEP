@@ -1,33 +1,19 @@
 {{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
 @extends('frontend.layouts.app')
 
-{{-- Đặt tên class CSS riêng cho thẻ body của trang quản lý đơn hàng --}}
-@section('body_class', 'profile-body')
+{{-- Đặt tên class CSS riêng cho thẻ body của trang quản lý đơn hàng. Thêm "orders-page-body" để
+     bật lại navbar chung (search/yêu thích/giỏ hàng/tài khoản) trên mobile — mặc định class
+     "profile-body" ẩn navbar chung để dùng header riêng, nhưng trang Đơn hàng muốn dùng navbar
+     chung giống trang Sản phẩm (xem override trong users.css). --}}
+@section('body_class', 'profile-body orders-page-body')
 
 
 @section('content')
 {{-- Khung chứa chính của trang web. Nếu có mã đơn hàng từ session (ví dụ sau khi đặt hàng/đánh giá xong), thuộc tính data-open-order-id sẽ truyền dữ liệu cho JS tự động mở chi tiết --}}
 <div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0" data-open-order-id="{{ session('open_order_id') }}">
 
-    <!-- MOBILE: Thanh tiêu đề trên cùng dành cho thiết bị di động -->
-    <header class="md:hidden fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center justify-between px-4 h-16 shadow-sm">
-        {{-- Nút quay lại trang trước đó --}}
-        <a href="{{ url()->previous() }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform">
-            <span class="material-symbols-outlined text-primary">arrow_back</span>
-        </a>
-        {{-- Logo thương hiệu (giống navbar) --}}
-        @php
-            $ordersPageLogo = \App\Models\Setting::getValue('store_logo', '/images/logo/black.png');
-            $ordersPageName = \App\Models\Setting::getValue('store_name', 'Happy Tea');
-        @endphp
-        <a href="{{ url('/') }}">
-            <img src="{{ asset($ordersPageLogo) }}" alt="{{ $ordersPageName }}" class="h-8 w-auto max-w-[120px] object-contain">
-        </a>
-        <div class="w-10"></div> {{-- Spacer cân bằng nút back --}}
-    </header>
-
     <!-- Khu vực hiển thị nội dung chính -->
-    <main class="flex-1 pt-20 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg w-full max-w-6xl mx-auto relative z-10">
+    <main class="flex-1 pt-4 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg w-full max-w-6xl mx-auto relative z-10">
         <div class="w-full">
             {{-- Hiển thị thông báo thành công từ Session (ví dụ khi hủy đơn, đánh giá thành công) --}}
             @if(session('success'))
@@ -347,25 +333,7 @@
         </div>
     </main>
 
-    <!-- MOBILE: Thanh điều hướng phía dưới màn hình (Bottom Navigation Bar) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface rounded-t-xl border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-around items-center px-2 py-3 pb-safe">
-        <a href="{{ url('/') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">home</span>
-            <span class="font-label-md text-[11px] mt-1">Trang chủ</span>
-        </a>
-        <a href="{{ url('/products') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">eco</span>
-            <span class="font-label-md text-[11px] mt-1">Sản phẩm</span>
-        </a>
-        <a href="{{ route('orders') }}" class="flex flex-col items-center justify-center bg-primary-container/10 text-primary-container rounded-xl px-4 py-1.5 active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined l-icon-filled">receipt_long</span>
-            <span class="font-label-md text-[12px] font-bold mt-0.5">Đơn hàng</span>
-        </a>
-        <a href="{{ route('profile') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">person</span>
-            <span class="font-label-md text-[11px] mt-1">Tài khoản</span>
-        </a>
-    </nav>
+    @include('frontend.components.bottom-nav')
     {{-- Form ẩn dùng để gửi yêu cầu hủy đơn hàng --}}
     <form id="cancel-order-form" method="POST" action="" class="hidden">
         @csrf

@@ -7,7 +7,7 @@
         <div class="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div class="flex items-start sm:items-center gap-3 sm:gap-4">
                 <a href="{{ route('admin.materials.index') }}"
-                    onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                    onclick="smartGoBack(event)"
                     class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-gray-900 transition-colors">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>

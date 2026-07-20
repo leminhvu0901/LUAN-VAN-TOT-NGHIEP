@@ -9,7 +9,7 @@
     <!-- Header -->
     <div class="flex items-center gap-4 mb-4">
         <a href="{{ route('admin.products.index') }}"
-            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            onclick="smartGoBack(event)"
             class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </a>
@@ -129,7 +129,7 @@
             
             <div class="mt-8 flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
                 <a href="{{ route('admin.products.index') }}"
-                    onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                    onclick="smartGoBack(event)"
                     class="w-full sm:w-auto px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-center">
                     Hủy bỏ
                 </a>

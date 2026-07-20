@@ -45,9 +45,9 @@
                         <div class="flex text-amber-400">
                             @for($i = 1; $i <= 5; $i++)
                                 @if($i <= $review->rating)
-                                    <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined text-[16px] icon-fill">star</span>
                                 @else
-                                    <span class="material-symbols-outlined text-[16px] text-gray-300" style="font-variation-settings: 'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined text-[16px] text-gray-300 icon-fill">star</span>
                                 @endif
                             @endfor
                         </div>
@@ -87,12 +87,12 @@
                 <div id="status-mobile-{{ $review->id }}">
                     @if($review->is_visible)
                         <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[11px] border border-emerald-100 hover:bg-emerald-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                            <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">visibility</span>
+                            <span class="material-symbols-outlined text-[14px] icon-fill">visibility</span>
                             Đang hiển thị
                         </button>
                     @else
                         <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-[11px] border border-rose-100 hover:bg-rose-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                            <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+                            <span class="material-symbols-outlined text-[14px] icon-fill">visibility_off</span>
                             Đang ẩn
                         </button>
                     @endif
@@ -171,9 +171,9 @@
                         <div class="flex items-center text-amber-400">
                             @for($i = 1; $i <= 5; $i++)
                                 @if($i <= $review->rating)
-                                    <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined text-[16px] icon-fill">star</span>
                                 @else
-                                    <span class="material-symbols-outlined text-[16px] text-gray-300" style="font-variation-settings: 'FILL' 1;">star</span>
+                                    <span class="material-symbols-outlined text-[16px] text-gray-300 icon-fill">star</span>
                                 @endif
                             @endfor
                             <span class="text-xs font-bold text-amber-600 ml-1.5 bg-amber-100 px-1.5 py-0.5 rounded">{{ $review->rating }}/5</span>
@@ -206,12 +206,12 @@
                         <div id="status-{{ $review->id }}">
                             @if($review->is_visible)
                                 <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                                    <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">visibility</span>
+                                    <span class="material-symbols-outlined text-[16px] icon-fill">visibility</span>
                                     Hiển thị
                                 </button>
                             @else
                                 <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-xs border border-rose-100 hover:bg-rose-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                                    <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+                                    <span class="material-symbols-outlined text-[16px] icon-fill">visibility_off</span>
                                     Bị ẩn
                                 </button>
                             @endif

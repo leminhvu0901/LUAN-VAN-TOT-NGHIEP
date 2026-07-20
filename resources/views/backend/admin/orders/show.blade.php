@@ -11,7 +11,7 @@
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách đơn hàng --}}
                     <a href="{{ route('admin.orders.index') }}"
-                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        onclick="smartGoBack(event)"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         title="Quay lại">
                         <span class="material-symbols-outlined text-[20px]">arrow_back</span>

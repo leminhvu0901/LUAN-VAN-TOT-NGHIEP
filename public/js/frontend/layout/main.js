@@ -566,10 +566,14 @@ const updateCartUI = (data) => {
     if (!data || !data.success) return;
 
     // 1. Cập nhật con số hiển thị trên icon giỏ hàng của Navbar (đỏm đỏ)
+    // Dùng classList.toggle thay vì style.display — badge được server render kèm class
+    // "cart-badge--hidden" (display:none !important) khi giỏ trống lúc tải trang. Nếu chỉ đổi
+    // style.display bằng JS mà không gỡ class này, !important của CSS luôn thắng khiến badge
+    // không bao giờ hiện lại được nữa dù giỏ hàng đã có sản phẩm.
     var badge = document.getElementById('cart-badge');
     if (badge) {
         badge.innerText = data.count;
-        badge.style.display = data.count > 0 ? '' : 'none';
+        badge.classList.toggle('cart-badge--hidden', !(data.count > 0));
     }
 
     // 2. Cập nhật câu phụ đề trên ngăn kéo (ví dụ: "3 sản phẩm")

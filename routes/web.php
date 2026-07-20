@@ -183,6 +183,12 @@ Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController:
 // API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
 
+// Chatbox trả lời nhanh - ô nhập câu hỏi tự do (rule-based intent, không AI). Public (khách chưa
+// đăng nhập cũng dùng được), chỉ đọc dữ liệu, có rate limit chống spam.
+Route::post('/quick-chat/ask', [App\Http\Controllers\Frontend\QuickChatController::class, 'ask'])
+    ->middleware('throttle:20,1')
+    ->name('quick-chat.ask');
+
 // Route hỗ trợ dev test nhanh kết nối Database
 // Development-only authentication and database routes were intentionally removed.
 

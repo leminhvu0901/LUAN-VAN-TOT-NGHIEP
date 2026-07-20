@@ -1,6 +1,9 @@
 {{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
 @extends('frontend.layouts.app')
 
+{{-- Chừa khoảng trống phía dưới trên mobile để nội dung không bị thanh điều hướng dưới cùng che mất --}}
+@section('body_class', 'has-mobile-bottom-nav')
+
 @section('content')
         <div class="p-page-wrapper">
             <!-- Breadcrumb (Đường dẫn định vị thanh tiêu đề) -->
@@ -215,6 +218,8 @@
                 </div><!-- end .p-product-area -->
             </div><!-- end .p-main-layout -->
         </div><!-- end .p-page-wrapper -->
+
+    @include('frontend.components.bottom-nav')
 
     {{-- Nhúng tệp tin Script JS điều khiển sắp xếp sản phẩm phía Client --}}
     <script src="{{ asset('js/frontend/products/index.js') }}"></script>

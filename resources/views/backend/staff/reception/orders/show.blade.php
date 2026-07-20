@@ -11,7 +11,7 @@
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách đơn hàng --}}
                     <a href="{{ route('staff.reception.orders.index') }}"
-                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        onclick="smartGoBack(event)"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         title="Quay lại">
                         <span class="material-symbols-outlined text-[20px]">arrow_back</span>
@@ -392,97 +392,97 @@
     {{-- PHIẾU PHA CHẾ: chỉ hiện khi in (JS gắn class lên <body> trước khi gọi window.print()) — không
          hiển thị giá tiền, chỉ thông tin cần thiết để pha chế đúng món. --}}
     <div id="print-prep-ticket" class="hidden">
-        <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', monospace;">
-            <h2 style="text-align: center; margin: 0 0 4px;">PHIẾU PHA CHẾ</h2>
-            <p style="text-align: center; margin: 0 0 12px; font-size: 13px;">
+        <div class="print-ticket">
+            <h2 class="print-ticket__title">PHIẾU PHA CHẾ</h2>
+            <p class="print-ticket__subtitle">
                 {{ $order->delivery_type === 'pickup' ? ($pickupModeLabels[$order->pickup_mode] ?? 'Tại quầy') : 'Giao hàng' }}
             </p>
             <hr>
-            <p style="margin: 8px 0;"><strong>Mã đơn:</strong> {{ $order->order_code }}</p>
-            <p style="margin: 8px 0;"><strong>Giờ tạo:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
+            <p class="print-ticket__row"><strong>Mã đơn:</strong> {{ $order->order_code }}</p>
+            <p class="print-ticket__row"><strong>Giờ tạo:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
             <hr>
             @foreach($items as $item)
                 @php $printToppings = is_array($item->options) ? $item->options : []; @endphp
-                <div style="margin: 10px 0;">
-                    <p style="margin: 0; font-weight: bold; font-size: 15px;">{{ $item->quantity }} x {{ $item->product_name }}</p>
-                    <p style="margin: 2px 0 0; font-size: 13px;">
+                <div class="print-ticket__item">
+                    <p class="print-ticket__item-name">{{ $item->quantity }} x {{ $item->product_name }}</p>
+                    <p class="print-ticket__item-detail">
                         @if($item->size_name) Size {{ $item->size_name }} @endif
                         @if($item->sugar_level !== null) · Đường {{ $item->sugar_level }}% @endif
                         @if($item->ice_level) · {{ $printIceLabels[$item->ice_level] ?? $item->ice_level }} @endif
                     </p>
                     @if(!empty($printToppings))
-                        <p style="margin: 2px 0 0; font-size: 13px;">+ {{ implode(', ', $printToppings) }}</p>
+                        <p class="print-ticket__item-detail">+ {{ implode(', ', $printToppings) }}</p>
                     @endif
                     @if($item->note)
-                        <p style="margin: 2px 0 0; font-size: 13px; font-style: italic;">Ghi chú: {{ $item->note }}</p>
+                        <p class="print-ticket__item-note">Ghi chú: {{ $item->note }}</p>
                     @endif
                 </div>
             @endforeach
             @if($order->customer_note)
                 <hr>
-                <p style="margin: 8px 0; font-size: 13px;"><strong>Ghi chú đơn:</strong> {{ $order->customer_note }}</p>
+                <p class="print-ticket__note"><strong>Ghi chú đơn:</strong> {{ $order->customer_note }}</p>
             @endif
         </div>
     </div>
 
     {{-- HÓA ĐƠN KHÁCH HÀNG: đầy đủ giá + tổng + phương thức thanh toán, không có nút bấm/form. --}}
     <div id="print-customer-invoice" class="hidden">
-        <div style="max-width: 320px; margin: 0 auto; font-family: 'Courier New', monospace;">
-            <h2 style="text-align: center; margin: 0 0 2px;">{{ $storeInfo['name'] }}</h2>
+        <div class="print-ticket">
+            <h2 class="print-ticket__title--invoice">{{ $storeInfo['name'] }}</h2>
             @if($storeInfo['address'])
-                <p style="text-align: center; margin: 0; font-size: 12px;">{{ $storeInfo['address'] }}</p>
+                <p class="print-ticket__center-sm">{{ $storeInfo['address'] }}</p>
             @endif
             @if($storeInfo['phone'])
-                <p style="text-align: center; margin: 0 0 8px; font-size: 12px;">ĐT: {{ $storeInfo['phone'] }}</p>
+                <p class="print-ticket__center-sm-mb">ĐT: {{ $storeInfo['phone'] }}</p>
             @endif
-            <p style="text-align: center; margin: 0 0 8px; font-weight: bold;">HÓA ĐƠN BÁN HÀNG</p>
+            <p class="print-ticket__center-bold">HÓA ĐƠN BÁN HÀNG</p>
             <hr>
-            <p style="margin: 6px 0;">Mã đơn: {{ $order->order_code }}</p>
-            <p style="margin: 6px 0;">Ngày: {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
+            <p class="print-ticket__row-sm">Mã đơn: {{ $order->order_code }}</p>
+            <p class="print-ticket__row-sm">Ngày: {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
             <hr>
             @foreach($items as $item)
-                <div style="display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px;">
+                <div class="print-ticket__flex-row">
                     <span>{{ $item->product_name }}{{ $item->size_name ? ' (' . $item->size_name . ')' : '' }} x{{ $item->quantity }}</span>
                     <span>{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
                 </div>
             @endforeach
             <hr>
-            <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+            <div class="print-ticket__flex-row--plain">
                 <span>Tạm tính</span>
                 <span>{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
             </div>
             @if($order->discount_amount > 0)
-                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                <div class="print-ticket__flex-row--plain">
                     <span>Giảm giá{{ $order->coupon_code ? ' (' . $order->coupon_code . ')' : '' }}</span>
                     <span>-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
                 </div>
             @endif
             @if($order->shipping_fee > 0)
-                <div style="display: flex; justify-content: space-between; margin: 4px 0;">
+                <div class="print-ticket__flex-row--plain">
                     <span>Phí giao hàng</span>
                     <span>{{ number_format($order->shipping_fee, 0, ',', '.') }}đ</span>
                 </div>
             @endif
-            <div style="display: flex; justify-content: space-between; margin: 8px 0; font-weight: bold; font-size: 15px;">
+            <div class="print-ticket__flex-row--total">
                 <span>TỔNG CỘNG</span>
                 <span>{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
             </div>
             <hr>
-            <p style="margin: 6px 0;">
+            <p class="print-ticket__row-sm">
                 Thanh toán: {{ match($order->payment_method) { 'momo' => 'MoMo', 'cash' => 'Tiền mặt', default => 'COD' } }}
             </p>
             @if($order->payment_method === 'cash' && $order->amount_tendered !== null)
-                <div style="display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px;">
+                <div class="print-ticket__flex-row--small">
                     <span>Khách đưa</span>
                     <span>{{ number_format($order->amount_tendered, 0, ',', '.') }}đ</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px;">
+                <div class="print-ticket__flex-row--small">
                     <span>Tiền thừa</span>
                     <span>{{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ</span>
                 </div>
             @endif
             <hr>
-            <p style="text-align: center; margin: 12px 0 0; font-size: 12px;">Cảm ơn quý khách!</p>
+            <p class="print-ticket__footer">Cảm ơn quý khách!</p>
         </div>
     </div>
 

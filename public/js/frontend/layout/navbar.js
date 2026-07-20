@@ -113,4 +113,41 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { closeWishlist(); closeCart(); }
     });
+
+
+    /* ====================================================================
+       5. MODAL THÔNG BÁO CỬA HÀNG ĐÓNG CỬA / NGƯNG NHẬN ĐƠN
+       Chỉ tồn tại trong DOM khi $navIsClosed = true (xem navbar.blade.php)
+       ==================================================================== */
+    const storeClosedModal = $('store-closed-modal');
+    if (storeClosedModal) {
+        const lastShownAt = sessionStorage.getItem('store_closed_popup_shown_at');
+        const now = Date.now();
+
+        // Hiển thị nếu chưa từng hiện hoặc lần hiện cuối cùng đã cách đây hơn 10 giây (10000ms)
+        if (!lastShownAt || (now - parseInt(lastShownAt)) > 10000) {
+            const content = $('store-closed-content');
+
+            // Lưu mốc thời gian hiển thị ngay lập tức để tránh trùng lặp khi chuyển trang nhanh
+            sessionStorage.setItem('store_closed_popup_shown_at', now.toString());
+
+            // Hiển thị modal với hiệu ứng zoom + fade in
+            storeClosedModal.style.display = 'flex';
+            setTimeout(() => {
+                storeClosedModal.style.opacity = '1';
+                content.style.transform = 'scale(1)';
+                content.style.opacity = '1';
+            }, 50);
+
+            // Đóng modal khi bấm nút "Tôi đã hiểu"
+            $('close-store-modal-btn')?.addEventListener('click', function () {
+                storeClosedModal.style.opacity = '0';
+                content.style.transform = 'scale(0.9)';
+                content.style.opacity = '0';
+                setTimeout(() => {
+                    storeClosedModal.style.display = 'none';
+                }, 300);
+            });
+        }
+    }
 })();

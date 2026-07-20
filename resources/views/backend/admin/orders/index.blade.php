@@ -13,7 +13,7 @@
             </div>
             
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                <button type="button" id="bulk-deselect-btn" onclick="document.querySelectorAll('.js-select-all, .order-checkbox').forEach(el => el.checked = false); resetOrderSelection();" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
+                <button type="button" id="bulk-deselect-btn" onclick="bulkDeselectAllRows('.order-checkbox', 'resetOrderSelection')" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
                     <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
                     <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                 </button>
@@ -34,7 +34,7 @@
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button"
-                    onclick="document.getElementById('search-form').classList.toggle('hidden'); document.getElementById('search-form').classList.toggle('flex');"
+                    onclick="toggleFilterPanel('search-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ
                         lọc</span>

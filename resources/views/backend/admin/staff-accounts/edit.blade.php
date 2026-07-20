@@ -8,7 +8,7 @@
         {{-- HEADER --}}
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.staff_accounts.index') }}"
-                onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                onclick="smartGoBack(event)"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
@@ -125,7 +125,7 @@
             {{-- Nút lưu --}}
             <div class="flex gap-3 pt-4 border-t border-gray-100 justify-end">
                 <a href="{{ route('admin.staff_accounts.index') }}"
-                    onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                    onclick="smartGoBack(event)"
                     class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors">
                     Hủy
                 </a>
@@ -139,54 +139,5 @@
 @endsection
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const avatarInput = document.getElementById('avatar-input');
-            const avatarPreview = document.getElementById('avatar-preview');
-            const avatarPlaceholder = document.getElementById('avatar-placeholder');
-
-            if (avatarInput) {
-                avatarInput.addEventListener('change', function (e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    if (file.size > 2 * 1024 * 1024) {
-                        if (window.AdminAlert) {
-                            window.AdminAlert.error('Kích thước ảnh không được vượt quá 2MB.', 'Lỗi tải ảnh');
-                        } else {
-                            alert('Kích thước ảnh không được vượt quá 2MB.');
-                        }
-                        this.value = '';
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        avatarPreview.src = e.target.result;
-                        avatarPreview.classList.remove('hidden');
-                        if (avatarPlaceholder) {
-                            avatarPlaceholder.classList.add('hidden');
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            document.querySelectorAll('.toggle-password').forEach(button => {
-                button.addEventListener('click', function () {
-                    const targetId = this.getAttribute('data-target');
-                    const input = document.getElementById(targetId);
-                    const icon = this.querySelector('.material-symbols-outlined');
-
-                    if (input.type === 'password') {
-                        input.type = 'text';
-                        icon.textContent = 'visibility';
-                    } else {
-                        input.type = 'password';
-                        icon.textContent = 'visibility_off';
-                    }
-                });
-            });
-        });
-    </script>
+    <script src="{{ asset('js/backend/admin/staff-accounts/form-common.js') }}"></script>
 @endpush

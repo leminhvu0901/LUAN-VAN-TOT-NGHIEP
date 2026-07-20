@@ -1,0 +1,101 @@
+@startuml
+title HỆ THỐNG ĐẶT ĐỒ UỐNG TRỰC TUYẾN - SƠ ĐỒ USE CASE TỔNG QUÁT
+
+left to right direction
+skinparam packageStyle rect
+skinparam actorStyle awesome
+
+actor "Khách hàng" as KhachHang
+actor "Nhân viên lễ tân" as LeTan
+actor "Nhân viên giao hàng" as GiaoHang
+actor "Quản trị viên" as Admin
+actor "Cổng thanh toán MoMo" as MoMo
+
+' Nhân viên lễ tân và giao hàng cũng là "nhân viên" nói chung (kế thừa, không bắt buộc nhưng hay dùng)
+actor "Nhân viên" as NhanVien
+LeTan --|> NhanVien
+GiaoHang --|> NhanVien
+
+package "Chức năng Khách hàng" {
+    usecase "Đăng ký / Đăng nhập\n(kèm Google, OTP)" as UC_Auth
+    usecase "Quản lý tài khoản\n(hồ sơ, địa chỉ nhận hàng)" as UC_Profile
+    usecase "Xem và tìm kiếm sản phẩm" as UC_ViewProduct
+    usecase "Tùy chỉnh đồ uống\n(size, đường, đá, topping)" as UC_Customize
+    usecase "Quản lý sản phẩm yêu thích" as UC_Favorite
+    usecase "Giỏ hàng và đặt hàng" as UC_Cart
+    usecase "Áp dụng mã khuyến mãi" as UC_ApplyPromo
+    usecase "Thanh toán" as UC_Payment
+    usecase "Theo dõi đơn hàng\n(xem, đặt lại, hủy đơn)" as UC_TrackOrder
+    usecase "Đánh giá sản phẩm" as UC_Review
+}
+
+package "Chức năng Nhân viên lễ tân" {
+    usecase "Xem dashboard lễ tân" as UC_ReceptionDashboard
+    usecase "Tạo đơn hàng tại quầy (POS)" as UC_CreatePOSOrder
+    usecase "Quản lý đơn hàng tại quầy\n(cập nhật trạng thái, phân công giao hàng,\nxác nhận thanh toán tiền mặt, in phiếu)" as UC_ManagePOSOrder
+    usecase "Quản lý nguyên vật liệu\n(xem tồn kho, nhập kho, tiêu hao)" as UC_ManageMaterial
+    usecase "Xem sản phẩm / khuyến mãi" as UC_ViewCatalog
+    usecase "Đối soát công nợ COD" as UC_CodSettlement
+}
+
+package "Chức năng Nhân viên giao hàng" {
+    usecase "Xem đơn hàng được phân công" as UC_ViewAssignedOrder
+    usecase "Cập nhật trạng thái giao hàng\n(bắt đầu giao, hoàn thành, thất bại)" as UC_UpdateDeliveryStatus
+}
+
+package "Chức năng Admin" {
+    usecase "Xem dashboard & báo cáo thống kê" as UC_Dashboard
+    usecase "Quản lý danh mục" as UC_Category
+    usecase "Quản lý sản phẩm\n(bao gồm topping, size)" as UC_Product
+    usecase "Quản lý đơn hàng" as UC_Order
+    usecase "Quản lý khuyến mãi" as UC_Promotion
+    usecase "Quản lý kho nguyên vật liệu" as UC_Material
+    usecase "Quản lý banner" as UC_Banner
+    usecase "Quản lý khách hàng" as UC_Customer
+    usecase "Quản lý tài khoản nhân viên\n(lễ tân, giao hàng)" as UC_StaffAccount
+    usecase "Quản lý đánh giá sản phẩm" as UC_ManageReview
+    usecase "Quản lý cấu hình hệ thống\n(giờ hoạt động, phí ship, cổng thanh toán...)" as UC_Setting
+}
+
+' ===== Quan hệ Khách hàng =====
+KhachHang --> UC_Auth
+KhachHang --> UC_Profile
+KhachHang --> UC_ViewProduct
+KhachHang --> UC_Favorite
+KhachHang --> UC_Cart
+KhachHang --> UC_TrackOrder
+KhachHang --> UC_Review
+UC_Cart .> UC_Customize : <<include>>
+UC_Cart .> UC_Payment : <<include>>
+UC_Payment .> UC_ApplyPromo : <<extend>>
+UC_Payment .> MoMo : <<extend>>
+MoMo --> UC_Payment
+
+' ===== Quan hệ Lễ tân =====
+LeTan --> UC_ReceptionDashboard
+LeTan --> UC_CreatePOSOrder
+LeTan --> UC_ManagePOSOrder
+LeTan --> UC_ManageMaterial
+LeTan --> UC_ViewCatalog
+LeTan --> UC_CodSettlement
+UC_CreatePOSOrder .> UC_Customize : <<include>>
+UC_ManagePOSOrder .> MoMo : <<extend>>
+
+' ===== Quan hệ Giao hàng =====
+GiaoHang --> UC_ViewAssignedOrder
+GiaoHang --> UC_UpdateDeliveryStatus
+
+' ===== Quan hệ Admin =====
+Admin --> UC_Dashboard
+Admin --> UC_Category
+Admin --> UC_Product
+Admin --> UC_Order
+Admin --> UC_Promotion
+Admin --> UC_Material
+Admin --> UC_Banner
+Admin --> UC_Customer
+Admin --> UC_StaffAccount
+Admin --> UC_ManageReview
+Admin --> UC_Setting
+
+@enduml

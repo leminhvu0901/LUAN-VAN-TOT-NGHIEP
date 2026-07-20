@@ -23,7 +23,7 @@
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button"
-                    onclick="document.getElementById('search-form').classList.toggle('hidden'); document.getElementById('search-form').classList.toggle('flex');"
+                    onclick="toggleFilterPanel('search-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
                 </button>

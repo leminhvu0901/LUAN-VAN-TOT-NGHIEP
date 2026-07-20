@@ -6200,6 +6200,27 @@ h6>a:hover,
   pointer-events: none;
 }
 
+/* Ảnh "tracker" chỉ dùng để giữ đúng chiều cao/tỷ lệ khung banner trong luồng flex (các slide thật
+   đều position:absolute nên không tự chiếm chỗ) — phải ẩn hẳn ở MỌI kích thước màn hình. Trước đây
+   chỉ được ẩn trong @media (min-width:1024px) (desktop), nên trên mobile/tablet ảnh này lộ ra,
+   chen ngang vào giữa lúc chuyển slide, gây vỡ giao diện banner. */
+.hero-banner__tracker,
+.home-hero__tracker {
+  position: relative;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.hero-banner__tracker img,
+.home-hero__tracker img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .hero-banner__content,
 .home-hero__content {
   position: relative;
@@ -6341,7 +6362,9 @@ h6>a:hover,
     background: rgba(16, 185, 129, 0.18);
     border: 1px solid rgba(16, 185, 129, 0.4);
     color: #6ee7b7;
-    font-size: 0.78rem;
+    /* clamp thay vì cỡ cố định — giữ nguyên 0.78rem ở màn laptop (~1440px trở xuống), chỉ lớn dần
+       tới 1.05rem trên màn hình rất rộng, tránh trông "lọt thỏm" khi banner giãn to. */
+    font-size: clamp(0.78rem, 0.87vw, 1.05rem);
     font-weight: 700;
     padding: 0.35rem 0.95rem;
     border-radius: 999px;
@@ -6357,7 +6380,10 @@ h6>a:hover,
 
   .hero-banner__title,
   .home-hero__title {
-    font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+    /* Nâng trần từ 2.2rem lên 3rem — trước đây chữ ngừng lớn thêm từ ~1600px viewport trở lên,
+       khiến chữ trông nhỏ dần một cách tương đối khi banner (co theo tỷ lệ ảnh) tiếp tục giãn to
+       trên màn hình rộng hơn (2K, ultrawide...). */
+    font-size: clamp(1.4rem, 2.2vw, 3rem);
     font-weight: 900;
     line-height: 1.25;
     color: #fff;
@@ -6376,7 +6402,7 @@ h6>a:hover,
 
   .hero-banner__desc,
   .home-hero__desc {
-    font-size: 1rem;
+    font-size: clamp(1rem, 1.1vw, 1.3rem);
     line-height: 1.65;
     color: rgba(255, 255, 255, 0.82);
     margin: 0 0 1.75rem 0;
@@ -6398,9 +6424,9 @@ h6>a:hover,
     justify-content: flex-start;
     gap: 0.55rem;
     height: auto;
-    padding: 0.82rem 1.7rem;
+    padding: clamp(0.82rem, 0.91vw, 1.05rem) clamp(1.7rem, 1.9vw, 2.2rem);
     border-radius: 0.875rem;
-    font-size: 0.95rem;
+    font-size: clamp(0.95rem, 1.05vw, 1.2rem);
     font-weight: 700;
     text-decoration: none;
     transition: transform 0.25s cubic-bezier(.22, .68, 0, 1.2),
@@ -6490,7 +6516,7 @@ h6>a:hover,
 
   .hero-banner__stat-num,
   .home-hero__stat-num {
-    font-size: 1.4rem;
+    font-size: clamp(1.4rem, 1.55vw, 1.8rem);
     font-weight: 900;
     color: #fff;
     line-height: 1;
@@ -6500,7 +6526,7 @@ h6>a:hover,
 
   .hero-banner__stat-label,
   .home-hero__stat-label {
-    font-size: 0.7rem;
+    font-size: clamp(0.7rem, 0.78vw, 0.85rem);
     color: rgba(255, 255, 255, 0.65);
     white-space: nowrap;
     text-transform: uppercase;
@@ -9479,6 +9505,94 @@ animation: dividerPulse 2.5s ease-in-out infinite;
     background-color: #f8f9ff;
     min-height: max(884px, 100dvh);
   }
+
+  /* Trang Đơn hàng (orders-page-body) dùng lại navbar chung (search/yêu thích/giỏ hàng/tài
+     khoản) giống trang Sản phẩm thay vì header riêng — ghi đè lại rule ẩn navbar ở trên,
+     chỉ áp dụng cho trang này, không ảnh hưởng Hồ sơ/Thanh toán vẫn dùng "profile-body". */
+  .orders-page-body #main-navbar {
+    display: block !important;
+  }
+
+  /* Chừa khoảng trống đáy trang trên mobile cho các trang có thanh điều hướng dưới cùng
+     (Trang chủ, Sản phẩm) — tránh nội dung cuối trang bị thanh cố định che mất. Đồng thời ẩn
+     footer gốc (giống cách "profile-body" đã ẩn cho Đơn hàng/Hồ sơ) — có thanh điều hướng riêng
+     rồi thì không cần footer đầy đủ nữa, tránh lộ ra phía sau/phía dưới thanh cố định. */
+  .has-mobile-bottom-nav {
+    padding-bottom: 5rem;
+  }
+
+  .has-mobile-bottom-nav #footer {
+    display: none !important;
+  }
+}
+
+/* ===================================================
+   THANH ĐIỀU HƯỚNG DƯỚI CÙNG (Mobile Bottom Navigation)
+   Dùng chung cho Trang chủ / Sản phẩm / Đơn hàng / Tài khoản.
+   CSS THUẦN (không phải Tailwind) vì Tailwind CDN chỉ được nạp có điều kiện cho
+   profile/orders/checkout/review (xem head.blade.php) — Trang chủ/Sản phẩm không có Tailwind,
+   nên component dùng chung này bắt buộc phải tự đứng vững bằng CSS thường.
+   =================================================== */
+.l-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  background: #f8f9ff;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-top: 1px solid #bccbb4;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  justify-content: space-around;
+  padding: 0.75rem 0.5rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  .l-bottom-nav {
+    display: flex;
+  }
+}
+
+.l-bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  color: #3e4a38;
+  text-decoration: none;
+  transition: transform 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.l-bottom-nav__item:hover {
+  color: #006e01;
+}
+
+.l-bottom-nav__item:active {
+  transform: scale(0.9);
+}
+
+.l-bottom-nav__item.is-active {
+  background: rgba(10, 173, 10, 0.1);
+  color: #0aad0a;
+  border-radius: 0.75rem;
+  padding: 0.375rem 1rem;
+}
+
+.l-bottom-nav__label {
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+  font-size: 11px;
+  margin-top: 0.25rem;
+  white-space: nowrap;
+}
+
+.l-bottom-nav__item.is-active .l-bottom-nav__label {
+  font-size: 12px;
+  font-weight: 700;
 }
 
 
@@ -11546,4 +11660,539 @@ html {
   background: #10b981;
   width: 24px;
   border-radius: 5px;
+}
+
+/* =============================================
+   QUICK CHATBOX (trả lời nhanh, không AI) — component dùng CSS thuần vì
+   Tailwind CDN không load unconditional (xem head.blade.php). z-index thấp hơn
+   các modal xác thực/store-closed (99999-100000) để không bao giờ đè lên chúng.
+   ============================================= */
+.quick-chatbox {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9990;
+}
+
+.quick-chatbox__toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #006e01;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 110, 1, 0.35);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.quick-chatbox__toggle:hover {
+  background: #0aad0a;
+  transform: scale(1.05);
+}
+
+.quick-chatbox__toggle:focus-visible {
+  outline: 2px solid #0aad0a;
+  outline-offset: 3px;
+}
+
+.quick-chatbox__toggle-icon-close {
+  display: none;
+}
+
+.quick-chatbox__toggle.is-open .quick-chatbox__toggle-icon-chat {
+  display: none;
+}
+
+.quick-chatbox__toggle.is-open .quick-chatbox__toggle-icon-close {
+  display: block;
+}
+
+.quick-chatbox__panel {
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
+  width: 372px;
+  max-width: calc(100vw - 24px);
+  height: 540px;
+  max-height: calc(100vh - 110px);
+  background: #f8f9ff;
+  border: 1px solid #bccbb4;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.92) translateY(12px);
+  transform-origin: bottom right;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+}
+
+.quick-chatbox__panel.is-open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Cùng lý do với .quick-chatbox__screen[hidden] ở trên: display:flex khai báo phía trên đè mất
+   display:none của thuộc tính hidden — panel sẽ vẫn chiếm chỗ/bắt sự kiện dù đang "đóng". */
+.quick-chatbox__panel[hidden] {
+  display: none;
+}
+
+.quick-chatbox__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #006e01;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.quick-chatbox__header-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.quick-chatbox__close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.quick-chatbox__close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.quick-chatbox__close:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.quick-chatbox__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quick-chatbox__messages {
+  padding: 12px 14px 4px;
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.quick-chatbox__message {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.quick-chatbox__message--bot {
+  background: #ffffff;
+  border: 1px solid #bccbb4;
+  color: #3e4a38;
+  border-bottom-left-radius: 2px;
+}
+
+.quick-chatbox__message--user {
+  background: #0aad0a;
+  color: #ffffff;
+  margin-left: auto;
+  border-bottom-right-radius: 2px;
+}
+
+.quick-chatbox__message--typing {
+  background: #ffffff;
+  border: 1px solid #bccbb4;
+  color: #8a9484;
+  border-bottom-left-radius: 2px;
+  font-style: italic;
+}
+
+.quick-chatbox__screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px 14px;
+  overflow: hidden;
+}
+
+/* Thuộc tính hidden bị .quick-chatbox__screen { display:flex } ở trên đè mất (cùng độ ưu tiên,
+   author stylesheet thắng UA stylesheet) — cần rule riêng độ ưu tiên cao hơn để giữ đúng display:none. */
+.quick-chatbox__screen[hidden] {
+  display: none;
+}
+
+/* Khu vực hội thoại tự do — thay thế các .quick-chatbox__screen khi đang dùng (JS đảm bảo chỉ 1
+   trong 2 hiển thị tại 1 thời điểm), chiếm toàn bộ không gian còn lại nên cuộn được đầy đủ. */
+.quick-chatbox__answer-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 14px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.quick-chatbox__answer-area[hidden] {
+  display: none;
+}
+
+.quick-chatbox__screen-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.quick-chatbox__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: #006e01;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.quick-chatbox__nav-btn:hover {
+  background: rgba(10, 173, 10, 0.1);
+}
+
+.quick-chatbox__nav-btn:focus-visible {
+  outline: 2px solid #0aad0a;
+  outline-offset: 2px;
+}
+
+.quick-chatbox__scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.quick-chatbox__options {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.quick-chatbox__option {
+  text-align: left;
+  padding: 10px 14px;
+  border: 1px solid #bccbb4;
+  background: #ffffff;
+  color: #3e4a38;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.quick-chatbox__option:hover {
+  background: rgba(10, 173, 10, 0.08);
+  border-color: #0aad0a;
+}
+
+.quick-chatbox__option:focus-visible {
+  outline: 2px solid #0aad0a;
+  outline-offset: 2px;
+}
+
+.quick-chatbox__product-card,
+.quick-chatbox__promotion-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #bccbb4;
+  background: #ffffff;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.quick-chatbox__promotion-card {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-chatbox__product-card-img {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f0f2ec;
+}
+
+.quick-chatbox__product-card-info {
+  min-width: 0;
+}
+
+.quick-chatbox__product-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3e4a38;
+  margin: 0 0 2px;
+}
+
+.quick-chatbox__product-card-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #006e01;
+  margin: 0 0 4px;
+}
+
+.quick-chatbox__product-card-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0aad0a;
+  text-decoration: underline;
+}
+
+.quick-chatbox__promotion-card-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: #006e01;
+}
+
+.quick-chatbox__promotion-card-desc {
+  font-size: 12px;
+  color: #3e4a38;
+}
+
+.quick-chatbox__promotion-card-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3e4a38;
+}
+
+.quick-chatbox__promotion-card-condition,
+.quick-chatbox__promotion-card-expiry {
+  font-size: 11px;
+  color: #8a9484;
+}
+
+.quick-chatbox__answer-text {
+  font-size: 13px;
+  color: #3e4a38;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.quick-chatbox__answer-list {
+  font-size: 13px;
+  color: #3e4a38;
+  padding-left: 18px;
+  margin: 0 0 10px;
+}
+
+.quick-chatbox__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #006e01;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.quick-chatbox__action-btn:hover {
+  background: #0aad0a;
+}
+
+.quick-chatbox__action-btn--secondary {
+  background: #ffffff;
+  color: #006e01;
+  border: 1px solid #bccbb4;
+}
+
+.quick-chatbox__action-btn--secondary:hover {
+  background: rgba(10, 173, 10, 0.08);
+}
+
+.quick-chatbox__contact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-chatbox__empty {
+  font-size: 13px;
+  color: #8a9484;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.quick-chatbox__footer {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 11px;
+  color: #8a9484;
+  text-align: center;
+  border-top: 1px solid #bccbb4;
+  background: #ffffff;
+}
+
+/* Tránh đè lên .l-bottom-nav (chỉ tồn tại trên mobile ở home/products/orders/profile) —
+   class này do quick-chatbox.js tự thêm sau khi kiểm tra DOM, không suy luận qua body class
+   vì checkout.blade.php cũng mang class 'profile-body' nhưng KHÔNG có bottom-nav. */
+@media (max-width: 768px) {
+  .quick-chatbox {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .quick-chatbox--has-bottom-nav {
+    bottom: 84px;
+  }
+
+  .quick-chatbox__panel {
+    right: 12px;
+    left: 12px;
+    bottom: 84px;
+    width: auto;
+    max-width: none;
+    height: 78vh;
+    max-height: 78vh;
+  }
+
+  .quick-chatbox--has-bottom-nav .quick-chatbox__panel {
+    bottom: 148px;
+  }
+
+  .quick-chatbox__option,
+  .quick-chatbox__action-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .quick-chatbox__nav-btn {
+    min-height: 44px;
+  }
+
+  .quick-chatbox__close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .quick-chatbox__product-card-link {
+    display: inline-block;
+    padding: 6px 0;
+  }
+}
+
+/* Ô nhập câu hỏi tự do — luôn hiển thị ở mọi screen, nằm ngoài vùng overflow:auto nên không bị
+   cuộn mất khi bàn phím mobile mở. */
+.quick-chatbox__input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid #bccbb4;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.quick-chatbox__input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #bccbb4;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #3e4a38;
+  background: #f8f9ff;
+  outline: none;
+  font-family: inherit;
+}
+
+.quick-chatbox__input:focus {
+  border-color: #0aad0a;
+  box-shadow: 0 0 0 2px rgba(10, 173, 10, 0.15);
+}
+
+.quick-chatbox__send-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #006e01;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.quick-chatbox__send-btn:hover:not(:disabled) {
+  background: #0aad0a;
+}
+
+.quick-chatbox__send-btn:disabled {
+  background: #bccbb4;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.quick-chatbox__send-btn:focus-visible {
+  outline: 2px solid #0aad0a;
+  outline-offset: 2px;
+}
+
+/* Kết quả trả lời cho câu hỏi tự do (card sản phẩm/khuyến mãi, nút gợi ý) — chèn ngay trong
+   .quick-chatbox__messages, ngay sau bong bóng trả lời của bot. */
+.quick-chatbox__result-cards,
+.quick-chatbox__result-suggestions {
+  margin: 0 0 10px;
+}
+
+.quick-chatbox__result-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

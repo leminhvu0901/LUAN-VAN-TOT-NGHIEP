@@ -38,7 +38,7 @@
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl p-5 border border-indigo-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
                 <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">group</span>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">group</span>
+                    <span class="material-symbols-outlined text-2xl icon-fill">group</span>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Tổng tài khoản</p>
@@ -50,7 +50,7 @@
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl p-5 border border-amber-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
                 <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-amber-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">workspace_premium</span>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                    <span class="material-symbols-outlined text-2xl icon-fill">workspace_premium</span>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Diamond & Gold</p>
@@ -62,7 +62,7 @@
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
                 <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">person_add</span>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">person_add</span>
+                    <span class="material-symbols-outlined text-2xl icon-fill">person_add</span>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Mới đăng ký</p>
@@ -74,7 +74,7 @@
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-2xl p-5 border border-rose-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
                 <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-rose-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">block</span>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">block</span>
+                    <span class="material-symbols-outlined text-2xl icon-fill">block</span>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Tài khoản bị khóa</p>
@@ -92,7 +92,7 @@
         <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 mt-4 sm:mt-0 flex flex-col gap-4">
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
-                <button type="button" onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors shrink-0 border border-gray-100" title="Mở bộ lọc">
+                <button type="button" onclick="toggleFilterPanel('filter-wrapper')" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors shrink-0 border border-gray-100" title="Mở bộ lọc">
                     <span class="material-symbols-outlined text-[20px]">filter_list</span>
                 </button>
             </div>

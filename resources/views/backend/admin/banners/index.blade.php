@@ -65,8 +65,7 @@
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm"
-                        style="font-variation-settings: 'FILL' 1;">view_carousel</span>
+                    <span class="material-symbols-outlined text-sm icon-fill">view_carousel</span>
                 </div>
             </div>
 
@@ -83,8 +82,7 @@
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm"
-                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    <span class="material-symbols-outlined text-sm icon-fill">check_circle</span>
                 </div>
             </div>
 
@@ -101,8 +99,7 @@
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm"
-                        style="font-variation-settings: 'FILL' 1;">schedule</span>
+                    <span class="material-symbols-outlined text-sm icon-fill">schedule</span>
                 </div>
             </div>
 
@@ -120,8 +117,7 @@
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm"
-                        style="font-variation-settings: 'FILL' 1;">history_toggle_off</span>
+                    <span class="material-symbols-outlined text-sm icon-fill">history_toggle_off</span>
                 </div>
             </div>
 
@@ -139,8 +135,7 @@
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-100 group-hover:scale-110 transition-all flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm"
-                        style="font-variation-settings: 'FILL' 1;">visibility_off</span>
+                    <span class="material-symbols-outlined text-sm icon-fill">visibility_off</span>
                 </div>
             </div>
         </div>
@@ -150,7 +145,7 @@
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button"
-                    onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');"
+                    onclick="toggleFilterPanel('filter-wrapper')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ
                         lọc</span>

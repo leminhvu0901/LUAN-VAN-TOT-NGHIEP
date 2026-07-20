@@ -13,7 +13,7 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-            <button type="button" id="bulk-deselect-btn" onclick="document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false); resetCategorySelection();" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
+            <button type="button" id="bulk-deselect-btn" onclick="bulkDeselectAllRows('.row-checkbox', 'resetCategorySelection')" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
                 <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
                 <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
             </button>
@@ -57,7 +57,7 @@
                 </p>
             </div>
             <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">category</span>
+                <span class="material-symbols-outlined text-lg icon-fill">category</span>
             </div>
         </div>
 
@@ -71,7 +71,7 @@
                 </p>
             </div>
             <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                <span class="material-symbols-outlined text-lg icon-fill">check_circle</span>
             </div>
         </div>
 
@@ -85,7 +85,7 @@
                 </p>
             </div>
             <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-100 group-hover:scale-110 transition-all flex-shrink-0">
-                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">block</span>
+                <span class="material-symbols-outlined text-lg icon-fill">block</span>
             </div>
         </div>
     </div>
@@ -94,7 +94,7 @@
     <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 flex flex-col gap-4">
         <div class="flex items-center justify-between xl:hidden">
             <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
-            <button type="button" onclick="document.getElementById('filter-wrapper').classList.toggle('hidden'); document.getElementById('filter-wrapper').classList.toggle('flex');" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
+            <button type="button" onclick="toggleFilterPanel('filter-wrapper')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                 <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
             </button>
         </div>

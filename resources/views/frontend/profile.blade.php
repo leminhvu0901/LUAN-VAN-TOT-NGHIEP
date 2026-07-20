@@ -330,7 +330,7 @@
                     @endif
                 </div>
                 <button type="button" class="absolute bottom-0 right-0 bg-primary-container p-1.5 rounded-full text-white shadow-sm ring-2 ring-white active:scale-90 transition-transform" onclick="document.getElementById('avatarInput').click()">
-                    <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">edit</span>
+                    <span class="material-symbols-outlined text-sm material-filled">edit</span>
                 </button>
             </div>
             
@@ -506,25 +506,7 @@
         </div>
     </main>
 
-    <!-- Thanh Menu Điều hướng cố định dưới đáy màn hình điện thoại (BottomNavBar) -->
-    <nav class="fixed bottom-0 left-0 w-full z-50 bg-surface rounded-t-xl border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-around items-center px-2 py-3 pb-safe">
-        <a href="{{ url('/') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">home</span>
-            <span class="font-label-md text-[11px] mt-1">Trang chủ</span>
-        </a>
-        <a href="{{ url('/products') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">eco</span>
-            <span class="font-label-md text-[11px] mt-1">Sản phẩm</span>
-        </a>
-        <a href="{{ route('orders') }}" class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined">receipt_long</span>
-            <span class="font-label-md text-[11px] mt-1">Đơn hàng</span>
-        </a>
-        <a href="{{ route('profile') }}" class="flex flex-col items-center justify-center bg-primary-container/10 text-primary-container rounded-xl px-4 py-1.5 active:scale-90 transition-all duration-200">
-            <span class="material-symbols-outlined material-filled">person</span>
-            <span class="font-label-md text-[12px] font-bold mt-0.5">Tài khoản</span>
-        </a>
-    </nav>
+    @include('frontend.components.bottom-nav')
 </div>
 
 

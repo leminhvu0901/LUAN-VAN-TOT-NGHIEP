@@ -18,11 +18,11 @@
                         @php $avgR = round($product->avg_rating * 2) / 2; @endphp
                         @for($i=1; $i<=5; $i++)
                             @if($i <= floor($avgR))
-                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-base material-filled">star</span>
                             @elseif($i == ceil($avgR) && $avgR != floor($avgR))
-                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">star_half</span>
+                                <span class="material-symbols-outlined text-base material-filled">star_half</span>
                             @else
-                                <span class="material-symbols-outlined text-base text-gray-300" style="font-variation-settings: 'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-base text-gray-300 material-filled">star</span>
                             @endif
                         @endfor
                     </div>
@@ -42,7 +42,7 @@
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Đánh giá sản phẩm:</label>
                         <div class="flex items-center gap-1 cursor-pointer" id="star-rating-container">
                             @for($i=1; $i<=5; $i++)
-                                <span class="material-symbols-outlined text-3xl text-gray-300 hover:text-yellow-400 transition-colors" data-value="{{ $i }}" style="font-variation-settings: 'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-3xl text-gray-300 hover:text-yellow-400 transition-colors material-filled" data-value="{{ $i }}">star</span>
                             @endfor
                         </div>
                         <input type="hidden" name="rating" id="rating-input" required>
@@ -114,7 +114,7 @@
                                 <h4 class="font-bold text-sm text-gray-900">{{ $review->user_name }}</h4>
                                 <div class="flex text-yellow-400 text-xs mt-0.5">
                                     @for($i=1; $i<=5; $i++)
-                                        <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' {{ $i <= $review->rating ? '1' : '0' }};">{{ $i <= $review->rating ? 'star' : 'star' }}</span>
+                                        <span class="material-symbols-outlined text-[14px] {{ $i <= $review->rating ? 'material-filled' : '' }}">star</span>
                                     @endfor
                                 </div>
                                 <span class="text-[11px] text-gray-400">{{ \Carbon\Carbon::parse($review->created_at)->translatedFormat('d \T\h\á\n\g m, Y') }}</span>

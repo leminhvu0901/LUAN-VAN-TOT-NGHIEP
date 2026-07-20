@@ -1,5 +1,8 @@
 @extends('frontend.layouts.app')
 
+{{-- Chừa khoảng trống phía dưới trên mobile để nội dung không bị thanh điều hướng dưới cùng che mất --}}
+@section('body_class', 'has-mobile-bottom-nav')
+
 @section('content')
 
     {{-- Helper function to safely resolve banner URL --}}
@@ -367,6 +370,8 @@
             </div>
         </div>
     </section>
+
+    @include('frontend.components.bottom-nav')
 
     @push('scripts')
         <script src="{{ asset('js/frontend/home.js') }}"></script>

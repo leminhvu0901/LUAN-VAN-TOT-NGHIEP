@@ -313,3 +313,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+
+// ---------------------------------------------------------
+// TIỆN ÍCH DÙNG CHUNG (gọi trực tiếp từ onclick="..." trong Blade) —
+// gộp lại từ nhiều đoạn onclick trùng lặp copy-paste ở hàng chục trang admin/lễ tân.
+// ---------------------------------------------------------
+
+// Nút "Quay lại": chỉ dùng history.back() nếu trang trước đó cùng site (referrer cùng host),
+// tránh trường hợp vào thẳng trang bằng URL/bookmark thì bấm "quay lại" bị văng ra ngoài site.
+window.smartGoBack = function (event) {
+    if (document.referrer.includes(window.location.host)) {
+        event.preventDefault();
+        window.history.back();
+    }
+};
+
+// Mở/đóng khung bộ lọc trên mobile (nút "Bộ lọc"/icon phễu ở các trang danh sách).
+window.toggleFilterPanel = function (targetId) {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    el.classList.toggle('hidden');
+    el.classList.toggle('flex');
+};
+
+// Bỏ chọn tất cả checkbox (chọn all + từng dòng) rồi gọi lại hàm reset UI chọn lọc riêng của
+// từng trang (vd resetProductSelection/resetOrderSelection/resetCategorySelection — mỗi trang
+// định nghĩa hàm reset riêng trong file JS của trang đó, không gộp được vì logic UI khác nhau).
+window.bulkDeselectAllRows = function (checkboxSelector, resetFnName) {
+    document.querySelectorAll('.js-select-all, ' + checkboxSelector).forEach(function (el) {
+        el.checked = false;
+    });
+    if (typeof window[resetFnName] === 'function') {
+        window[resetFnName]();
+    }
+};

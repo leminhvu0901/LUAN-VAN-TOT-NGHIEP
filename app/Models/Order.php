@@ -28,11 +28,6 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id'); // Assuming User is in App\Models\User or \App\User
     }
 
-    public function promotion()
-    {
-        return $this->belongsTo(Promotion::class, 'promotion_id');
-    }
-
     public function deliveryStaff()
     {
         return $this->belongsTo(User::class, 'delivery_staff_id');

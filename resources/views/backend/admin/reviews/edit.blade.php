@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-4">
         <a href="{{ route('admin.reviews.index') }}"
-            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            onclick="smartGoBack(event)"
             class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors shrink-0">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
         </a>
@@ -38,7 +38,7 @@
                 <!-- Card: Thông tin chính -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-600 text-[20px]" style="font-variation-settings: 'FILL' 1;">reviews</span>
+                        <span class="material-symbols-outlined text-amber-600 text-[20px] icon-fill">reviews</span>
                         Nội dung đánh giá
                     </h3>
                     <div class="space-y-5">
@@ -56,7 +56,7 @@
                         <!-- Số sao -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-amber-500" style="font-variation-settings: 'FILL' 1;">star</span>
+                                <span class="material-symbols-outlined text-[18px] text-amber-500 icon-fill">star</span>
                                 Số sao đánh giá <span class="text-red-500">*</span>
                             </label>
                             <select name="rating" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
@@ -137,7 +137,7 @@
                 <!-- Card: Trạng thái -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">toggle_on</span>
+                        <span class="material-symbols-outlined text-amber-500 text-[20px] icon-fill">toggle_on</span>
                         Trạng thái
                     </h3>
                     <label class="flex items-center gap-3 cursor-pointer">
@@ -164,7 +164,7 @@
                         Lưu
                     </button>
                     <a href="{{ route('admin.reviews.index') }}"
-                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        onclick="smartGoBack(event)"
                         class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-200">
                         <span class="material-symbols-outlined text-[20px]">cancel</span>
                         Hủy

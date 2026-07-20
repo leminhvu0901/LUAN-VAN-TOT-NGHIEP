@@ -31,7 +31,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">inventory_2</span>
                 </div>
             </div>
 
@@ -45,7 +45,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">production_quantity_limits</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">production_quantity_limits</span>
                 </div>
             </div>
 
@@ -59,7 +59,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">remove_shopping_cart</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
                 </div>
             </div>
 
@@ -73,7 +73,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">event_upcoming</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">event_upcoming</span>
                 </div>
             </div>
 
@@ -87,7 +87,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">event_busy</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">event_busy</span>
                 </div>
             </div>
 
@@ -101,7 +101,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">remove_shopping_cart</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
                 </div>
             </div>
 
@@ -115,7 +115,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">payments</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">payments</span>
                 </div>
             </div>
 
@@ -129,7 +129,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">assignment_return</span>
+                    <span class="material-symbols-outlined text-lg icon-fill">assignment_return</span>
                 </div>
             </div>
         </div>
@@ -139,7 +139,7 @@
             <div class="flex items-center justify-between lg:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button"
-                    onclick="document.getElementById('filter-form').classList.toggle('hidden'); document.getElementById('filter-form').classList.toggle('flex');"
+                    onclick="toggleFilterPanel('filter-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
                     <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
                 </button>

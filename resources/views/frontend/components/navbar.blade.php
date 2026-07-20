@@ -85,41 +85,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const lastShownAt = sessionStorage.getItem('store_closed_popup_shown_at');
-            const now = Date.now();
-            
-            // Hiển thị nếu chưa từng hiện hoặc lần hiện cuối cùng đã cách đây hơn 10 giây (10000ms)
-            if (!lastShownAt || (now - parseInt(lastShownAt)) > 10000) {
-                const modal = document.getElementById('store-closed-modal');
-                const content = document.getElementById('store-closed-content');
-                
-                // Lưu mốc thời gian hiển thị ngay lập tức để tránh trùng lặp khi chuyển trang nhanh
-                sessionStorage.setItem('store_closed_popup_shown_at', now.toString());
-
-                // Hiển thị modal với hiệu ứng zoom + fade in
-                modal.style.display = 'flex';
-                setTimeout(() => {
-                    modal.style.opacity = '1';
-                    content.style.transform = 'scale(1)';
-                    content.style.opacity = '1';
-                }, 50);
-
-                // Đóng modal khi bấm nút "Tôi đã hiểu"
-                const closeBtn = document.getElementById('close-store-modal-btn');
-                closeBtn.addEventListener('click', function () {
-                    modal.style.opacity = '0';
-                    content.style.transform = 'scale(0.9)';
-                    content.style.opacity = '0';
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                    }, 300);
-                });
-            }
-        });
-    </script>
 @endif
 
 {{-- ===== HEADER: Thanh navbar cố định trên cùng =====

@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex items-center gap-4 mb-4">
         <a href="{{ route('admin.promotions.index') }}"
-            onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+            onclick="smartGoBack(event)"
             class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
             <span class="material-symbols-outlined text-[20px]">arrow_back</span>
         </a>
@@ -38,7 +38,7 @@
                 <!-- Card: Thông tin chính -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-600 text-[20px]" style="font-variation-settings: 'FILL' 1;">local_offer</span>
+                        <span class="material-symbols-outlined text-emerald-600 text-[20px] icon-fill">local_offer</span>
                         Thông tin khuyến mãi
                     </h3>
                     <div class="space-y-5">
@@ -136,7 +136,7 @@
                 <!-- Card: Điều kiện áp dụng -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">rule</span>
+                        <span class="material-symbols-outlined text-amber-500 text-[20px] icon-fill">rule</span>
                         Điều kiện áp dụng
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -216,7 +216,7 @@
                 <!-- Card: Thời gian -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-blue-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                        <span class="material-symbols-outlined text-blue-500 text-[20px] icon-fill">calendar_month</span>
                         Thời gian áp dụng
                     </h3>
                     
@@ -284,7 +284,7 @@
                 <!-- Card: Trạng thái -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-500 text-[20px]" style="font-variation-settings: 'FILL' 1;">toggle_on</span>
+                        <span class="material-symbols-outlined text-emerald-500 text-[20px] icon-fill">toggle_on</span>
                         Trạng thái
                     </h3>
                     <label class="flex items-center gap-3 cursor-pointer">
@@ -311,7 +311,7 @@
                         Cập nhật
                     </button>
                     <a href="{{ route('admin.promotions.index') }}"
-                        onclick="if(document.referrer.includes(window.location.host)) { event.preventDefault(); window.history.back(); }"
+                        onclick="smartGoBack(event)"
                         class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200 flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">cancel</span>
                         Hủy

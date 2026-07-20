@@ -37,6 +37,9 @@
     @include('frontend.auth.forgot-password')
     @include('frontend.auth.verify-otp')
 
+    {{-- Chatbox trả lời nhanh (quick-reply, không AI) — hiển thị trên mọi trang frontend --}}
+    @include('frontend.components.quick-chatbox')
+
 
 
     {{-- ===== SCRIPTS ===== --}}
