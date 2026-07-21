@@ -16,7 +16,7 @@
         <p class="hidden md:block text-sm text-on-surface-variant font-medium">Bảo mật &amp; Đáng tin cậy</p>
     </header>
 
-    <div class="max-w-6xl mx-auto px-4 md:px-8 mt-8">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 mt-8">
         @if(session('error'))
             <div class="bg-error-container text-on-error-container border border-error p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm">
                 <span class="material-symbols-outlined">error</span>
@@ -212,20 +212,52 @@
                                             <p class="text-xs text-on-surface-variant mt-2 ml-1">Cho phép trình duyệt truy cập vị trí. Sau khi có vị trí, bạn có thể kéo ghim trên bản đồ để chỉnh lại.</p>
                                         </div>
 
-                                        <!-- Khu vực: 2 select Tỉnh/Thành phố + Phường/Xã, dữ liệu tải qua AJAX từ danh mục
-                                        hành chính chính thức (KHÔNG cho gõ tự do). Geoapify chỉ được PHÉP tự chọn option
-                                        khi đối chiếu chắc chắn với danh sách này — không bao giờ tự ghi 1 chuỗi vào đây. -->
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="locSelectContainer">
+                                        <!-- Khu vực: 2 ô tìm chọn Tỉnh/Thành phố + Phường/Xã độc lập, hiển thị đủ chiều rộng -->
+                                        <div class="grid grid-cols-1 gap-3.5" id="locSelectContainer">
                                             <div class="space-y-1">
-                                                <label for="addr_province_select" class="text-xs font-bold text-on-surface-variant ml-1">Tỉnh/Thành phố <span class="text-error">*</span></label>
-                                                <select id="addr_province_select" onchange="onProvinceChange()" class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" aria-invalid="false">
+                                                <label for="addr_province_search" class="text-xs font-bold text-on-surface-variant ml-1">Tỉnh/Thành phố <span class="text-error">*</span></label>
+                                                <div class="relative" data-area-search-root="province">
+                                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-on-surface-variant pointer-events-none">search</span>
+                                                    <input type="search" id="addr_province_search"
+                                                        onfocus="openAreaSearch('province')" oninput="filterAreaOptions('province')"
+                                                        onkeydown="handleAreaSearchKeydown(event, 'province')"
+                                                        autocomplete="off" role="combobox" aria-autocomplete="list"
+                                                        aria-controls="addr_province_options" aria-expanded="false" aria-invalid="false"
+                                                        class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl pl-10 pr-10 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all disabled:opacity-60 truncate"
+                                                        placeholder="Tìm tỉnh/thành phố..." disabled>
+                                                    <button type="button" onclick="toggleAreaSearch('province')" class="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container" aria-label="Mở danh sách tỉnh/thành phố">
+                                                        <span class="material-symbols-outlined text-[20px]">arrow_drop_down</span>
+                                                    </button>
+                                                    <div id="addr_province_dropdown" class="hidden absolute left-0 right-0 top-full z-[100] mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden">
+                                                        <div id="addr_province_options" role="listbox" class="max-h-64 overflow-y-auto p-1"></div>
+                                                        <p id="addr_province_empty" class="hidden px-4 py-3 text-sm text-on-surface-variant">Không tìm thấy tỉnh/thành phố phù hợp.</p>
+                                                    </div>
+                                                </div>
+                                                <select id="addr_province_select" class="hidden" tabindex="-1" aria-hidden="true">
                                                     <option value="">Đang tải tỉnh/thành phố...</option>
                                                 </select>
                                                 <p id="provinceHelpText" class="text-xs text-error ml-1 hidden"></p>
                                             </div>
                                             <div class="space-y-1">
-                                                <label for="addr_ward_select" class="text-xs font-bold text-on-surface-variant ml-1">Phường/Xã <span class="text-error">*</span></label>
-                                                <select id="addr_ward_select" onchange="onWardChange()" class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all disabled:opacity-60" disabled aria-invalid="false">
+                                                <label for="addr_ward_search" class="text-xs font-bold text-on-surface-variant ml-1">Phường/Xã <span class="text-error">*</span></label>
+                                                <div class="relative" data-area-search-root="ward">
+                                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-on-surface-variant pointer-events-none">search</span>
+                                                    <input type="search" id="addr_ward_search"
+                                                        onfocus="openAreaSearch('ward')" oninput="filterAreaOptions('ward')"
+                                                        onkeydown="handleAreaSearchKeydown(event, 'ward')"
+                                                        autocomplete="off" role="combobox" aria-autocomplete="list"
+                                                        aria-controls="addr_ward_options" aria-expanded="false" aria-invalid="false"
+                                                        class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl pl-10 pr-10 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all disabled:opacity-60 truncate"
+                                                        placeholder="Chọn tỉnh/thành phố trước" disabled>
+                                                    <button type="button" onclick="toggleAreaSearch('ward')" class="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container" aria-label="Mở danh sách phường/xã">
+                                                        <span class="material-symbols-outlined text-[20px]">arrow_drop_down</span>
+                                                    </button>
+                                                    <div id="addr_ward_dropdown" class="hidden absolute left-0 right-0 top-full z-[100] mt-1 bg-white border border-outline-variant rounded-xl shadow-xl overflow-hidden">
+                                                        <div id="addr_ward_options" role="listbox" class="max-h-64 overflow-y-auto p-1"></div>
+                                                        <p id="addr_ward_empty" class="hidden px-4 py-3 text-sm text-on-surface-variant">Không tìm thấy phường/xã phù hợp.</p>
+                                                    </div>
+                                                </div>
+                                                <select id="addr_ward_select" class="hidden" tabindex="-1" aria-hidden="true" disabled>
                                                     <option value="">Vui lòng chọn tỉnh/thành phố trước</option>
                                                 </select>
                                                 <p id="wardHelpText" class="text-xs text-error ml-1 hidden"></p>

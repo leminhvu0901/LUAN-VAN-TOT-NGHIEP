@@ -11,6 +11,10 @@ let provincesLoading = false;
 let wardsDataByProvince = {};
 let wardsLoading = false;
 
+// Dữ liệu cho 2 combobox có tìm kiếm. Select ẩn vẫn giữ code hành chính chính thức;
+// ô search chỉ đảm nhiệm hiển thị và lọc tên (kể cả khi khách gõ không dấu).
+const areaSearchItems = { province: [], ward: [] };
+
 // Phương thức xác định vị trí đang chọn: 'gps' | 'map' | 'manual'.
 let locationMethod = 'map';
 // Khách đã tự CHỌN (change thật, không phải set bằng code) 1 trong 2 select Tỉnh/Thành-Phường/Xã
@@ -218,6 +222,7 @@ function applyLocationProperties(props) {
     const provinceSel = document.getElementById('addr_province_select');
     if (provinceSel && provinceSel.value !== String(province.code)) {
         provinceSel.value = String(province.code);
+        setAreaSearchValue('province', province.name);
         document.getElementById('addr_province_code').value = String(province.code);
         showAreaError('province', '');
     }
@@ -230,6 +235,7 @@ function applyLocationProperties(props) {
         const wardSel = document.getElementById('addr_ward_select');
         if (wardSel) {
             wardSel.value = String(ward.code);
+            setAreaSearchValue('ward', ward.name);
             document.getElementById('addr_ward_code').value = String(ward.code);
             showAreaError('ward', '');
         }
@@ -288,6 +294,136 @@ function normalizeVN(str) {
         .trim();
 }
 
+function areaSearchElements(which) {
+    return {
+        search: document.getElementById(which === 'province' ? 'addr_province_search' : 'addr_ward_search'),
+        select: document.getElementById(which === 'province' ? 'addr_province_select' : 'addr_ward_select'),
+        dropdown: document.getElementById(which === 'province' ? 'addr_province_dropdown' : 'addr_ward_dropdown'),
+        options: document.getElementById(which === 'province' ? 'addr_province_options' : 'addr_ward_options'),
+        empty: document.getElementById(which === 'province' ? 'addr_province_empty' : 'addr_ward_empty'),
+    };
+}
+
+function setAreaSearchItems(which, items) {
+    areaSearchItems[which] = Array.isArray(items) ? items : [];
+    renderAreaOptions(which, '');
+}
+
+function setAreaSearchValue(which, value) {
+    const { search } = areaSearchElements(which);
+    if (search) search.value = value || '';
+}
+
+function renderAreaOptions(which, query) {
+    const { options, empty, select } = areaSearchElements(which);
+    if (!options || !empty) return;
+
+    const normalizedQuery = normalizeVN(query || '');
+    const filtered = areaSearchItems[which].filter(item =>
+        !normalizedQuery || normalizeVN(item.name).includes(normalizedQuery)
+    );
+    options.innerHTML = '';
+
+    filtered.forEach(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.code = String(item.code);
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-selected', select && select.value === String(item.code) ? 'true' : 'false');
+        button.className = 'w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-primary-container/20 focus:bg-primary-container/20 focus:outline-none transition-colors';
+        if (select && select.value === String(item.code)) {
+            button.classList.add('bg-primary-container/20', 'text-primary', 'font-bold');
+        }
+        button.textContent = item.name;
+        button.addEventListener('click', function () {
+            chooseAreaOption(which, item.code, item.name);
+        });
+        options.appendChild(button);
+    });
+
+    empty.classList.toggle('hidden', filtered.length > 0);
+}
+
+function openAreaSearch(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown || search.disabled) return;
+
+    ['province', 'ward'].forEach(other => {
+        if (other !== which) closeAreaSearch(other);
+    });
+    // Khi vừa mở, luôn hiện toàn bộ danh sách; gõ vào ô sẽ lọc ngay.
+    renderAreaOptions(which, '');
+    dropdown.classList.remove('hidden');
+    search.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(function () { search.select(); });
+}
+
+function closeAreaSearch(which) {
+    const { search, select, dropdown } = areaSearchElements(which);
+    if (!dropdown) return;
+    dropdown.classList.add('hidden');
+    if (search) {
+        search.setAttribute('aria-expanded', 'false');
+        const selected = areaSearchItems[which].find(item => select && String(item.code) === select.value);
+        search.value = selected ? selected.name : '';
+    }
+}
+
+function toggleAreaSearch(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown || search.disabled) return;
+    if (dropdown.classList.contains('hidden')) {
+        search.focus();
+        openAreaSearch(which);
+    } else {
+        closeAreaSearch(which);
+    }
+}
+
+function filterAreaOptions(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown) return;
+
+    renderAreaOptions(which, search.value);
+    dropdown.classList.remove('hidden');
+    search.setAttribute('aria-expanded', 'true');
+}
+
+function chooseAreaOption(which, code, name) {
+    const { search, select, dropdown } = areaSearchElements(which);
+    if (!search || !select) return;
+
+    const oldCode = select.value;
+    select.value = String(code);
+    search.value = name;
+    if (dropdown) dropdown.classList.add('hidden');
+    search.setAttribute('aria-expanded', 'false');
+
+    // Chọn lại đúng option hiện tại không được reset dữ liệu ngoài ý muốn.
+    if (oldCode === String(code)) {
+        updateSaveButtonState();
+        return;
+    }
+    if (which === 'province') onProvinceChange();
+    else onWardChange();
+}
+
+function handleAreaSearchKeydown(event, which) {
+    if (event.key === 'Escape') {
+        closeAreaSearch(which);
+        event.target.blur();
+        return;
+    }
+    if (event.key !== 'Enter') return;
+
+    const { options, dropdown } = areaSearchElements(which);
+    const first = options ? options.querySelector('button') : null;
+    if (first && dropdown && !dropdown.classList.contains('hidden')) {
+        event.preventDefault();
+        first.click();
+    }
+}
+
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
@@ -298,20 +434,31 @@ function escapeHtml(str) {
 function showAreaError(which, msg) {
     const help = document.getElementById(which === 'province' ? 'provinceHelpText' : 'wardHelpText');
     const sel = document.getElementById(which === 'province' ? 'addr_province_select' : 'addr_ward_select');
+    const search = document.getElementById(which === 'province' ? 'addr_province_search' : 'addr_ward_search');
     if (help) { help.textContent = msg || ''; help.classList.toggle('hidden', !msg); }
     if (sel) sel.setAttribute('aria-invalid', msg ? 'true' : 'false');
+    if (search) search.setAttribute('aria-invalid', msg ? 'true' : 'false');
 }
 
 // Tải danh sách Tỉnh/Thành phố (1 lần, cache lại) — nguồn hành chính chính thức qua backend proxy,
 // KHÔNG hard-code danh sách ở đây (mục 3).
 function loadProvinces() {
-    if (provincesData) return Promise.resolve(provincesData);
+    if (provincesData) {
+        setAreaSearchItems('province', provincesData);
+        return Promise.resolve(provincesData);
+    }
 
     provincesLoading = true;
     const sel = document.getElementById('addr_province_select');
+    const search = document.getElementById('addr_province_search');
     if (sel) {
         sel.disabled = true;
         sel.innerHTML = '<option value="">Đang tải tỉnh/thành phố...</option>';
+    }
+    if (search) {
+        search.disabled = true;
+        search.value = '';
+        search.placeholder = 'Đang tải tỉnh/thành phố...';
     }
     updateSaveButtonState();
 
@@ -322,6 +469,7 @@ function loadProvinces() {
             if (!ok || !data.success) {
                 showAreaError('province', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
                 if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+                if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
                 updateSaveButtonState();
                 return null;
             }
@@ -331,6 +479,11 @@ function loadProvinces() {
                 sel.innerHTML = '<option value="">Chọn tỉnh/thành phố</option>' +
                     provincesData.map(p => `<option value="${p.code}">${escapeHtml(p.name)}</option>`).join('');
             }
+            setAreaSearchItems('province', provincesData);
+            if (search) {
+                search.disabled = false;
+                search.placeholder = 'Tìm tỉnh/thành phố...';
+            }
             updateSaveButtonState();
             return provincesData;
         })
@@ -338,6 +491,7 @@ function loadProvinces() {
             provincesLoading = false;
             showAreaError('province', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
             if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+            if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
             updateSaveButtonState();
             return null;
         });
@@ -346,13 +500,41 @@ function loadProvinces() {
 // Tải danh sách Phường/Xã CỦA 1 tỉnh (chỉ tải theo tỉnh, không tải cả nước — mục 3.4), cache theo
 // province_code.
 function loadWardsFor(provinceCode) {
-    if (wardsDataByProvince[provinceCode]) return Promise.resolve(wardsDataByProvince[provinceCode]);
+    const fillWardOptions = function (wards) {
+        const provinceSelect = document.getElementById('addr_province_select');
+        // Nếu khách đã đổi sang tỉnh khác trong lúc request đang chạy, chỉ cache kết quả cũ,
+        // không được vẽ nhầm danh sách phường/xã của tỉnh trước đó.
+        if (provinceSelect && provinceSelect.value !== String(provinceCode)) return;
+        const wardSelect = document.getElementById('addr_ward_select');
+        const wardSearch = document.getElementById('addr_ward_search');
+        if (wardSelect) {
+            wardSelect.disabled = false;
+            wardSelect.innerHTML = '<option value="">Chọn phường/xã</option>' +
+                wards.map(w => `<option value="${w.code}">${escapeHtml(w.name)}</option>`).join('');
+        }
+        setAreaSearchItems('ward', wards);
+        if (wardSearch) {
+            wardSearch.disabled = false;
+            wardSearch.placeholder = 'Tìm phường/xã...';
+        }
+    };
+
+    if (wardsDataByProvince[provinceCode]) {
+        fillWardOptions(wardsDataByProvince[provinceCode]);
+        return Promise.resolve(wardsDataByProvince[provinceCode]);
+    }
 
     wardsLoading = true;
     const sel = document.getElementById('addr_ward_select');
+    const search = document.getElementById('addr_ward_search');
     if (sel) {
         sel.disabled = true;
         sel.innerHTML = '<option value="">Đang tải phường/xã...</option>';
+    }
+    if (search) {
+        search.disabled = true;
+        search.value = '';
+        search.placeholder = 'Đang tải phường/xã...';
     }
     updateSaveButtonState();
 
@@ -363,15 +545,12 @@ function loadWardsFor(provinceCode) {
             if (!ok || !data.success) {
                 showAreaError('ward', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
                 if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+                if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
                 updateSaveButtonState();
                 return null;
             }
             wardsDataByProvince[provinceCode] = data.data;
-            if (sel) {
-                sel.disabled = false;
-                sel.innerHTML = '<option value="">Chọn phường/xã</option>' +
-                    data.data.map(w => `<option value="${w.code}">${escapeHtml(w.name)}</option>`).join('');
-            }
+            fillWardOptions(data.data);
             updateSaveButtonState();
             return data.data;
         })
@@ -379,6 +558,7 @@ function loadWardsFor(provinceCode) {
             wardsLoading = false;
             showAreaError('ward', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
             if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+            if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
             updateSaveButtonState();
             return null;
         });
@@ -400,6 +580,13 @@ function onProvinceChange() {
         wardSel.disabled = true;
         wardSel.innerHTML = '<option value="">Vui lòng chọn tỉnh/thành phố trước</option>';
     }
+    const wardSearch = document.getElementById('addr_ward_search');
+    if (wardSearch) {
+        wardSearch.disabled = true;
+        wardSearch.value = '';
+        wardSearch.placeholder = 'Chọn tỉnh/thành phố trước';
+    }
+    setAreaSearchItems('ward', []);
 
     // Tọa độ cũ (nếu có) không còn chắc khớp với tỉnh mới -> xóa, yêu cầu xác định lại vị trí (mục 3.3).
     document.getElementById('addr_lat').value = '';
@@ -431,11 +618,19 @@ function resetAreaSelects() {
     showAreaError('ward', '');
     const provinceSel = document.getElementById('addr_province_select');
     if (provinceSel && provincesData) provinceSel.value = '';
+    setAreaSearchValue('province', '');
     const wardSel = document.getElementById('addr_ward_select');
     if (wardSel) {
         wardSel.disabled = true;
         wardSel.innerHTML = '<option value="">Vui lòng chọn tỉnh/thành phố trước</option>';
     }
+    const wardSearch = document.getElementById('addr_ward_search');
+    if (wardSearch) {
+        wardSearch.disabled = true;
+        wardSearch.value = '';
+        wardSearch.placeholder = 'Chọn tỉnh/thành phố trước';
+    }
+    setAreaSearchItems('ward', []);
 }
 
 // Chế độ Sửa: dữ liệu cũ chỉ có TÊN tỉnh/phường (không có code) -> đối chiếu theo tên đã chuẩn hoá để
@@ -450,6 +645,7 @@ function preselectAreaByName(provinceName, wardName) {
 
         const provinceSel = document.getElementById('addr_province_select');
         if (provinceSel) provinceSel.value = String(province.code);
+        setAreaSearchValue('province', province.name);
         document.getElementById('addr_province_code').value = String(province.code);
 
         loadWardsFor(province.code).then(wards => {
@@ -459,6 +655,7 @@ function preselectAreaByName(provinceName, wardName) {
             if (!ward) return;
             const wardSel = document.getElementById('addr_ward_select');
             if (wardSel) wardSel.value = String(ward.code);
+            setAreaSearchValue('ward', ward.name);
             document.getElementById('addr_ward_code').value = String(ward.code);
             updateSaveButtonState();
         });
@@ -720,6 +917,11 @@ window.onWardChange = onWardChange;
 window.setLocationMethod = setLocationMethod;
 window.confirmMapLocation = confirmMapLocation;
 window.updateSaveButtonState = updateSaveButtonState;
+window.openAreaSearch = openAreaSearch;
+window.closeAreaSearch = closeAreaSearch;
+window.toggleAreaSearch = toggleAreaSearch;
+window.filterAreaOptions = filterAreaOptions;
+window.handleAreaSearchKeydown = handleAreaSearchKeydown;
 
 // Bật/tắt nút "Hoàn thành" theo thời gian thực khi khách gõ các trường bắt buộc.
 document.addEventListener('DOMContentLoaded', function () {
@@ -736,6 +938,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (provSel) provSel.addEventListener('change', function () { onProvinceChange(); updateSaveButtonState(); });
     const wardSel = document.getElementById('addr_ward_select');
     if (wardSel) wardSel.addEventListener('change', function () { onWardChange(); updateSaveButtonState(); });
+
+    document.addEventListener('click', function (event) {
+        ['province', 'ward'].forEach(function (which) {
+            const root = document.querySelector(`[data-area-search-root="${which}"]`);
+            if (root && !root.contains(event.target)) closeAreaSearch(which);
+        });
+    });
 });
 
 document.addEventListener('DOMContentLoaded', function () {
