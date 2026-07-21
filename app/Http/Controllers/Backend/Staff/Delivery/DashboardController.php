@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Backend\Staff\Delivery;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
-class StaffDeliveryDashboardController
+class DashboardController
 {
     public function index()
     {

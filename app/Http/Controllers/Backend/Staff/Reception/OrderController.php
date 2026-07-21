@@ -17,9 +17,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-// Lễ tân xem/xử lý TOÀN BỘ đơn hàng của quán (không lọc theo người được phân công) —
-// khác với StaffDeliveryOrderController chỉ thấy đơn được phân công cho chính mình.
-class StaffReceptionOrderController
+/**
+ * Controller Quản lý Đơn hàng dành cho Lễ tân (Reception Staff).
+ *
+ * Lễ tân có quyền xem và xử lý TOÀN BỘ đơn hàng của cửa hàng (không bị giới hạn theo người được phân công).
+ * Đảm nhiệm việc tiếp nhận đơn online, tạo đơn tại quầy (POS), phân công đơn cho Shipper và thu tiền mặt tại quầy.
+ */
+class OrderController
 {
     public function __construct(
         private readonly OrderWorkflowService $orderWorkflow,
@@ -27,6 +31,16 @@ class StaffReceptionOrderController
         private readonly CartPricingService $cartPricing,
     ) {}
 
+    /**
+     * Hiển thị danh sách đơn hàng cho Lễ tân.
+     *
+     * Hỗ trợ lọc theo trạng thái, khoảng thời gian, sắp xếp ngày tạo, tìm kiếm đa năng theo mã đơn/tên/SĐT khách,
+     * phân trang tùy chỉnh và phản hồi dạng AJAX (cập nhật bảng & thống kê không cần tải lại trang).
+     * Tự động dọn dẹp các đơn thanh toán MoMo bị quá hạn (stale pending) mỗi lần tải danh sách.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse
+     */
     public function index(Request $request)
     {
         // Dọn đơn MoMo "chờ thanh toán" bị treo quá lâu mỗi lần lễ tân mở danh sách — không cần cron
@@ -117,6 +131,15 @@ class StaffReceptionOrderController
         return view('backend.staff.reception.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status);
     }
 
+    /**
+     * Xem chi tiết 1 đơn hàng cụ thể.
+     *
+     * Nạp thông tin danh sách sản phẩm (kèm tên/ảnh fallback từ bảng products), thông tin nhân viên giao hàng,
+     * danh sách Shipper khả dụng (để phân công nếu đơn cần giao) và thông tin cửa hàng để chuẩn bị in hóa đơn.
+     *
+     * @param  Order  $order
+     * @return \Illuminate\View\View
+     */
     public function show(Order $order)
     {
         $items = OrderItem::query()->leftJoin('products', 'order_items.product_id', '=', 'products.id')
@@ -141,6 +164,18 @@ class StaffReceptionOrderController
         return view('backend.staff.reception.orders.show', compact('order', 'items', 'availableDeliveryStaff', 'storeInfo'));
     }
 
+    /**
+     * Cập nhật trạng thái đơn hàng (Xác nhận, Hủy đơn,...).
+     *
+     * Ràng buộc nghiệp vụ: Đối với đơn giao hàng (delivery), Lễ tân chỉ được chuyển trạng thái TRƯỚC khi đơn sang
+     * bước giao hàng ('shipping'). Khi đơn đã ở trạng thái 'shipping', quyền cập nhật (hoàn thành/giao thất bại)
+     * thuộc về Nhân viên vận chuyển để đảm bảo đúng quy trình kiểm soát.
+     *
+     * @param  Request  $request
+     * @param  Order  $order
+     * @return \Illuminate\Http\RedirectResponse
+     * @throws \Illuminate\Validation\ValidationException
+     */
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -164,7 +199,13 @@ class StaffReceptionOrderController
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
-    // Lễ tân/admin phân công 1 nhân viên vận chuyển cho đơn đã xác nhận.
+    /**
+     * Phân công Nhân viên vận chuyển (Shipper) cho đơn giao hàng đã xác nhận.
+     *
+     * @param  Request  $request
+     * @param  Order  $order
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function assignDelivery(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -182,9 +223,14 @@ class StaffReceptionOrderController
         return back()->with('success', 'Đã phân công nhân viên giao hàng!');
     }
 
-    // Trang "Tạo đơn tại quầy": lễ tân thêm sản phẩm vào giỏ hàng của chính tài khoản mình
-    // (dùng lại endpoint /cart/add sẵn có, không phân biệt role), rồi xác nhận tạo đơn pickup
-    // dưới tên khách vãng lai/qua điện thoại.
+    /**
+     * Hiển thị màn hình Tạo đơn tại quầy (POS) cho Lễ tân.
+     *
+     * Lấy danh sách sản phẩm đang bán (kèm danh mục, kích thước, topping còn khả dụng)
+     * và trạng thái kích hoạt cổng thanh toán MoMo để phục vụ bán hàng trực tiếp tại quầy.
+     *
+     * @return \Illuminate\View\View
+     */
     public function createOrder()
     {
         $products = Product::with(['category', 'sizes', 'toppings' => function ($query) {
@@ -199,11 +245,15 @@ class StaffReceptionOrderController
         return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled'));
     }
 
-    // Xem trước tổng tiền (tạm tính + khuyến mãi nếu có + tổng phải trả) của giỏ hàng lễ tân đang
-    // thao tác — để hiển thị TRƯỚC khi bấm "Tạo đơn". Nếu có query 'coupon_code', ưu tiên validate
-    // đúng mã đó (thay vì tự động chọn) — khớp với logic thật trong OrderService::create() để
-    // preview không bao giờ lệch với kết quả tạo đơn. POS chỉ tạo đơn tại quầy/mang đi nên không
-    // có phí giao hàng.
+    /**
+     * Xem trước tổng tiền đơn hàng tại quầy (POS) qua AJAX trước khi tạo đơn.
+     *
+     * Tính toán tạm tính, kiểm tra áp dụng mã giảm giá nhập tay hoặc tự động chọn ưu đãi tốt nhất,
+     * tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy (pickup) nên phí giao hàng = 0.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function previewTotal(Request $request)
     {
         $cart = Cart::query()->where('user_id', Auth::id())->first();
@@ -256,6 +306,16 @@ class StaffReceptionOrderController
         ]);
     }
 
+    /**
+     * Lưu và tạo Đơn hàng mới tại quầy (POS).
+     *
+     * Tiếp nhận phương thức thanh toán (tiền mặt / MoMo), loại nhận hàng (uống tại chỗ / mang về),
+     * thông tin khách hàng (khách thành viên hoặc vãng lai), điểm thưởng áp dụng và mã giảm giá.
+     * Nếu thanh toán MoMo -> chuyển hướng sang cổng MoMo; Nếu tiền mặt -> chuyển sang trang chi tiết đơn để chờ thu tiền.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+     */
     public function storeOrder(Request $request)
     {
         // POS chỉ tạo đơn TẠI QUẦY/MANG ĐI — khách uống/nhận trực tiếp, không cần địa chỉ giao hàng
@@ -317,9 +377,16 @@ class StaffReceptionOrderController
             ->with('success', "Đã tạo đơn {$order->order_code}. Vui lòng xác nhận đã thu tiền mặt để hoàn tất.");
     }
 
-    // Lễ tân xác nhận ĐÃ THỰC SỰ THU tiền mặt cho một đơn tại quầy — tách khỏi lúc tạo đơn để có
-    // bước xác nhận rõ ràng (nhập tiền khách đưa, tính tiền thừa) trước khi đơn được coi là đã
-    // thanh toán và cho phép in hóa đơn/phiếu pha chế.
+    /**
+     * Xác nhận đã thu tiền mặt tại quầy từ khách hàng.
+     *
+     * Kiểm tra số tiền khách đưa (`amount_tendered`) phải lớn hơn hoặc bằng tổng giá trị đơn hàng (`final_amount`).
+     * Cập nhật số tiền nhận, chuyển trạng thái đơn sang Đã thanh toán (`paid`) và sẵn sàng cho việc in hóa đơn/phiếu pha chế.
+     *
+     * @param  Request  $request
+     * @param  Order  $order
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function confirmCashPayment(Request $request, Order $order)
     {
         if ($order->payment_method !== 'cash' || $order->payment_status === 'paid') {
@@ -345,9 +412,14 @@ class StaffReceptionOrderController
             ->with('success', 'Đã xác nhận thu tiền mặt thành công!');
     }
 
-    // Tìm khách hàng theo tên/SĐT để gắn đơn tại quầy đúng chủ tài khoản — trả kèm điểm tích lũy để
-    // lễ tân biết khách còn bao nhiêu điểm có thể dùng giảm giá (không trả lịch sử mua hàng hay dữ
-    // liệu quản trị nào khác).
+    /**
+     * Tìm kiếm thông tin Khách hàng thành viên qua AJAX (theo Tên hoặc Số điện thoại).
+     *
+     * Phục vụ màn hình POS tại quầy để gắn thông tin khách hàng vào đơn và xem số điểm tích lũy hiện có.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function searchCustomer(Request $request)
     {
         $search = trim((string) $request->query('q', ''));

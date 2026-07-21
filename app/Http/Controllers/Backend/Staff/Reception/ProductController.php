@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 // Lễ tân chỉ xem sản phẩm (đọc-only) — không có store/update/destroy.
 // Hiển thị cả hàng "hết hàng" (is_active=false) để không nhận nhầm đơn cho món hiện không bán.
-class StaffProductController
+class ProductController
 {
     public function index(Request $request)
     {

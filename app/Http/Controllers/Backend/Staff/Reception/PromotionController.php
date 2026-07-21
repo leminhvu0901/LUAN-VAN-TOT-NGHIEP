@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Backend\Staff\Reception;
 use App\Models\Promotion;
 
 // Lễ tân chỉ xem khuyến mãi đang áp dụng (đọc-only) — không có store/update/destroy.
-class StaffPromotionController
+class PromotionController
 {
     public function index()
     {

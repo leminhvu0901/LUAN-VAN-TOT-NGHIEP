@@ -272,45 +272,45 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
 // 5. KHU VỰC NHÂN VIÊN LỄ TÂN (receptionist)
 Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', \App\Http\Middleware\IsReceptionist::class])->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Reception\DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/orders', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'index'])->name('orders.index');
     // Đặt trước /orders/{order} để tránh "create" bị route-model-binding hiểu nhầm là 1 order id.
-    Route::get('/orders/create', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'createOrder'])->name('orders.create');
-    Route::get('/orders/preview-total', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'previewTotal'])->name('orders.preview_total');
-    Route::post('/orders', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'storeOrder'])->name('orders.store');
-    Route::get('/customers/search', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'searchCustomer'])->name('customers.search');
-    Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'show'])->name('orders.show');
-    Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'updateStatus'])->name('orders.status.update');
-    Route::post('/orders/{order}/assign-delivery', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'assignDelivery'])->name('orders.assign_delivery');
+    Route::get('/orders/create', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'createOrder'])->name('orders.create');
+    Route::get('/orders/preview-total', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'previewTotal'])->name('orders.preview_total');
+    Route::post('/orders', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'storeOrder'])->name('orders.store');
+    Route::get('/customers/search', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'searchCustomer'])->name('customers.search');
+    Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'show'])->name('orders.show');
+    Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'updateStatus'])->name('orders.status.update');
+    Route::post('/orders/{order}/assign-delivery', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'assignDelivery'])->name('orders.assign_delivery');
     Route::post('/orders/{order}/pay-momo', [App\Http\Controllers\Frontend\MomoController::class, 'payExistingOrder'])->name('orders.pay_momo');
-    Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionOrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');
+    Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');
 
-    Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\StaffMaterialController::class, 'index'])->name('materials.index');
-    Route::get('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\StaffMaterialController::class, 'imports'])->name('materials.imports');
-    Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\StaffMaterialController::class, 'storeImport'])->name('materials.imports.store');
-    Route::post('/materials/{material}/consume', [App\Http\Controllers\Backend\Staff\Reception\StaffMaterialController::class, 'consumeStock'])->name('materials.consume');
+    Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'index'])->name('materials.index');
+    Route::get('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'imports'])->name('materials.imports');
+    Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'storeImport'])->name('materials.imports.store');
+    Route::post('/materials/{material}/consume', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'consumeStock'])->name('materials.consume');
 
-    Route::get('/products', [App\Http\Controllers\Backend\Staff\Reception\StaffProductController::class, 'index'])->name('products.index');
-    Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\StaffPromotionController::class, 'index'])->name('promotions.index');
+    Route::get('/products', [App\Http\Controllers\Backend\Staff\Reception\ProductController::class, 'index'])->name('products.index');
+    Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\PromotionController::class, 'index'])->name('promotions.index');
     // Hồ sơ cá nhân chỉ để XEM — nhân viên không có quyền tự sửa thông tin tài khoản, chỉ admin
     // mới được sửa (qua /admin/staff-accounts/{id}/edit).
     Route::get('/profile', [App\Http\Controllers\Backend\Staff\StaffProfileController::class, 'edit'])->name('profile.edit');
 
-    Route::get('/cod-settlement', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionCodController::class, 'index'])->name('cod_settlement.index');
-    Route::post('/cod-settlement/orders/{order}/settle', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionCodController::class, 'settleOne'])->name('cod_settlement.settle_one');
-    Route::post('/cod-settlement/staff/{deliveryStaff}/settle-all', [App\Http\Controllers\Backend\Staff\Reception\StaffReceptionCodController::class, 'settleAll'])->name('cod_settlement.settle_all');
+    Route::get('/cod-settlement', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'index'])->name('cod_settlement.index');
+    Route::post('/cod-settlement/orders/{order}/settle', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'settleOne'])->name('cod_settlement.settle_one');
+    Route::post('/cod-settlement/staff/{deliveryStaff}/settle-all', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'settleAll'])->name('cod_settlement.settle_all');
 });
 
 // 6. KHU VỰC NHÂN VIÊN VẬN CHUYỂN (delivery) — chỉ thấy đơn được phân công cho chính mình
 Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \App\Http\Middleware\IsDelivery::class])->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Delivery\DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/orders', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryOrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryOrderController::class, 'show'])->name('orders.show');
-    Route::patch('/orders/{order}/ship', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryOrderController::class, 'ship'])->name('orders.ship');
-    Route::patch('/orders/{order}/complete', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryOrderController::class, 'complete'])->name('orders.complete');
-    Route::patch('/orders/{order}/fail', [App\Http\Controllers\Backend\Staff\Delivery\StaffDeliveryOrderController::class, 'fail'])->name('orders.fail');
+    Route::get('/orders', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'show'])->name('orders.show');
+    Route::patch('/orders/{order}/ship', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'ship'])->name('orders.ship');
+    Route::patch('/orders/{order}/complete', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'complete'])->name('orders.complete');
+    Route::patch('/orders/{order}/fail', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'fail'])->name('orders.fail');
 
     Route::get('/profile', [App\Http\Controllers\Backend\Staff\StaffProfileController::class, 'edit'])->name('profile.edit');
 });

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 // Đối soát tiền COD: nhân viên vận chuyển thu tiền mặt từ khách khi hoàn thành đơn, sau đó phải
 // nộp lại cho lễ tân/quầy. Trang này cho lễ tân biết chính xác đơn nào đã nộp, đơn nào shipper còn giữ.
-class StaffReceptionCodController
+class CodController
 {
     public function __construct(private readonly OrderWorkflowService $orderWorkflow) {}
 

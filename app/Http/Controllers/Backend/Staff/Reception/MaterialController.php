@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class StaffMaterialController
+class MaterialController
 {
     private const MAX_UNIT_PRICE = 999999999;
 

@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\Material;
 use App\Models\MaterialImport;
 
-class StaffReceptionDashboardController
+class DashboardController
 {
     public function index()
     {

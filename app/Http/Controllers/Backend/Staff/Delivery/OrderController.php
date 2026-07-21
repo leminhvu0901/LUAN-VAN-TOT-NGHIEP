@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 // Nhân viên vận chuyển CHỈ được xem/xử lý đơn được phân công cho chính mình.
 // Không có method destroy/bulkDelete/export hay bất kỳ thao tác admin-only nào.
-class StaffDeliveryOrderController
+class OrderController
 {
     public function __construct(private readonly OrderWorkflowService $orderWorkflow) {}
 
