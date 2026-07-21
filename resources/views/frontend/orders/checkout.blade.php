@@ -86,7 +86,8 @@
                                         data-type="{{ $defaultAddress->type }}"
                                         data-is-default="{{ $defaultAddress->is_default }}"
                                         data-latitude="{{ $defaultAddress->latitude }}"
-                                        data-longitude="{{ $defaultAddress->longitude }}">
+                                        data-longitude="{{ $defaultAddress->longitude }}"
+                                        data-location-method="{{ $defaultAddress->location_method }}">
                                         Sửa địa chỉ này
                                     </button>
                                 </div>
@@ -145,7 +146,8 @@
                                                 data-type="{{ $addr->type }}"
                                                 data-is-default="{{ $addr->is_default }}"
                                                 data-latitude="{{ $addr->latitude }}"
-                                                data-longitude="{{ $addr->longitude }}">
+                                                data-longitude="{{ $addr->longitude }}"
+                                                data-location-method="{{ $addr->location_method }}">
                                                 Sửa
                                             </button>
                                             <button type="button" class="text-error hover:text-red-700 text-xs font-bold transition-all" onclick="event.preventDefault(); event.stopPropagation(); deleteAddressCheckout({{ $addr->id }})">
@@ -166,10 +168,31 @@
                                     </button>
                                 </div>
                                 
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Segmented control: 3 phương thức xác định vị trí độc lập (gps/map/manual) -->
+                                <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4" role="tablist" aria-label="Phương thức xác định vị trí">
+                                    <button type="button" data-method="gps" onclick="setLocationMethod('gps')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                        <span class="material-symbols-outlined text-[18px]">my_location</span> Vị trí hiện tại
+                                    </button>
+                                    <button type="button" data-method="map" onclick="setLocationMethod('map')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                        <span class="material-symbols-outlined text-[18px]">map</span> Chọn trên bản đồ
+                                    </button>
+                                    <button type="button" data-method="manual" onclick="setLocationMethod('manual')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                        <span class="material-symbols-outlined text-[18px]">edit_location_alt</span> Nhập địa chỉ
+                                    </button>
+                                </div>
+
+                                <!-- Trạng thái xác định vị trí -->
+                                <div id="locStatus" class="mb-4 flex items-center gap-2 text-sm font-medium rounded-xl px-3 py-2.5 bg-surface-container-lowest text-on-surface-variant">
+                                    <span id="locStatusIcon" class="material-symbols-outlined text-[18px]">location_searching</span>
+                                    <span id="locStatusText">Chưa xác định vị trí</span>
+                                </div>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="addressGrid">
                                     <!-- Left: Form Inputs -->
                                     <div class="space-y-4">
                                         <input type="hidden" id="addr_id">
+                                        <input type="hidden" id="addr_location_method" value="map">
+                                        <input type="hidden" id="addr_formatted">
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div class="space-y-1">
                                                 <label class="text-xs font-bold text-on-surface-variant ml-1">Họ và tên</label>
@@ -181,29 +204,35 @@
                                             </div>
                                         </div>
 
-                                        <!-- Location Picker -->
-                                        <div class="space-y-1 relative" id="locPickerContainer">
-                                            <label class="text-xs font-bold text-on-surface-variant ml-1">Khu vực</label>
-                                            <div class="relative">
-                                                <input type="text" id="locPickerInputText" readonly class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-surface-container-low focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Chọn Tỉnh/Thành, Phường/Xã" onclick="toggleLocPanel()">
-                                                <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+                                        <!-- Nút GPS (chỉ hiện ở mode "Vị trí hiện tại") -->
+                                        <div id="gpsBlock" class="hidden">
+                                            <button type="button" onclick="getCurrentLocation()" class="w-full min-h-[44px] rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors active:scale-[0.98]">
+                                                <span class="material-symbols-outlined text-[20px]">my_location</span> Lấy vị trí hiện tại
+                                            </button>
+                                            <p class="text-xs text-on-surface-variant mt-2 ml-1">Cho phép trình duyệt truy cập vị trí. Sau khi có vị trí, bạn có thể kéo ghim trên bản đồ để chỉnh lại.</p>
+                                        </div>
+
+                                        <!-- Khu vực: 2 select Tỉnh/Thành phố + Phường/Xã, dữ liệu tải qua AJAX từ danh mục
+                                        hành chính chính thức (KHÔNG cho gõ tự do). Geoapify chỉ được PHÉP tự chọn option
+                                        khi đối chiếu chắc chắn với danh sách này — không bao giờ tự ghi 1 chuỗi vào đây. -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="locSelectContainer">
+                                            <div class="space-y-1">
+                                                <label for="addr_province_select" class="text-xs font-bold text-on-surface-variant ml-1">Tỉnh/Thành phố <span class="text-error">*</span></label>
+                                                <select id="addr_province_select" onchange="onProvinceChange()" class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" aria-invalid="false">
+                                                    <option value="">Đang tải tỉnh/thành phố...</option>
+                                                </select>
+                                                <p id="provinceHelpText" class="text-xs text-error ml-1 hidden"></p>
                                             </div>
-                                            
-                                            <!-- Dropdown Panel -->
-                                            <div id="locPanel" class="loc-panel absolute z-50 w-full mt-1 bg-white border border-outline-variant rounded-xl shadow-lg overflow-hidden" style="display:none; top: 100%;">
-                                                <div class="flex border-b border-outline-variant bg-surface-container-lowest">
-                                                    <button type="button" id="tab_province" onclick="switchLocTab('province')" class="flex-1 py-3 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">Tỉnh/Thành</button>
-                                                    <button type="button" id="tab_ward" onclick="switchLocTab('ward')" class="flex-1 py-3 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">Phường/Xã</button>
-                                                </div>
-                                                <div class="p-2 border-b border-outline-variant bg-surface-container-lowest">
-                                                    <input type="text" id="locSearchInput" placeholder="Tìm kiếm..." class="w-full px-3 py-2 text-sm border border-outline-variant rounded-lg outline-none focus:ring-2 focus:ring-primary" oninput="filterLocItems(this.value)">
-                                                </div>
-                                                <div id="locList" class="max-h-60 overflow-y-auto text-sm"></div>
+                                            <div class="space-y-1">
+                                                <label for="addr_ward_select" class="text-xs font-bold text-on-surface-variant ml-1">Phường/Xã <span class="text-error">*</span></label>
+                                                <select id="addr_ward_select" onchange="onWardChange()" class="w-full min-h-[44px] bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all disabled:opacity-60" disabled aria-invalid="false">
+                                                    <option value="">Vui lòng chọn tỉnh/thành phố trước</option>
+                                                </select>
+                                                <p id="wardHelpText" class="text-xs text-error ml-1 hidden"></p>
                                             </div>
-                                            
-                                            <input type="hidden" id="addr_province">
-                                            <input type="hidden" id="addr_district">
-                                            <input type="hidden" id="addr_ward">
+
+                                            <input type="hidden" id="addr_province_code">
+                                            <input type="hidden" id="addr_ward_code">
                                         </div>
 
                                         <div class="space-y-1">
@@ -215,45 +244,46 @@
                                         <div class="space-y-3 pt-2">
                                             <label class="text-xs font-bold text-on-surface-variant ml-1">Loại địa chỉ</label>
                                             <div class="flex gap-3">
-                                                <button type="button" id="btnTypeHome" onclick="setAddrType('home')" class="flex-1 py-2 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-2">
+                                                <button type="button" id="btnTypeHome" onclick="setAddrType('home')" class="flex-1 min-h-[44px] rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-2">
                                                     <span class="material-symbols-outlined text-[18px]">home</span> Nhà riêng
                                                 </button>
-                                                <button type="button" id="btnTypeOffice" onclick="setAddrType('office')" class="flex-1 py-2 rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-2">
+                                                <button type="button" id="btnTypeOffice" onclick="setAddrType('office')" class="flex-1 min-h-[44px] rounded-lg border text-sm font-bold transition-all flex items-center justify-center gap-2">
                                                     <span class="material-symbols-outlined text-[18px]">domain</span> Công ty
                                                 </button>
                                             </div>
                                             <input type="hidden" id="addr_type" value="home">
                                         </div>
-                                        
+
                                         <label class="flex items-center gap-3 cursor-pointer p-3 border border-outline-variant rounded-xl hover:bg-surface-container-lowest transition-colors mt-2">
                                             <input type="checkbox" id="addr_default" class="w-4 h-4 text-primary focus:ring-primary rounded border-outline-variant">
                                             <span class="text-sm font-medium text-on-surface">Đặt làm địa chỉ mặc định</span>
                                         </label>
                                     </div>
 
-                                    <!-- Right: Map -->
-                                    <div class="flex flex-col h-full space-y-3">
-                                        <div class="flex items-center justify-between">
-                                            <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản đồ</label>
-                                            <button type="button" onclick="getCurrentLocation(this)" class="text-primary hover:text-green-800 font-bold text-xs flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full transition-colors active:scale-95">
-                                                <span class="material-symbols-outlined text-[16px]">my_location</span>
-                                                <span id="gps-btn-text">Định vị GPS</span>
-                                            </button>
-                                        </div>
-                                        <div id="leafletMap" class="w-full flex-1 min-h-[250px] rounded-xl border border-outline-variant z-10"></div>
+                                    <!-- Right: Map (mode gps/map; ẩn ở mode manual) -->
+                                    <div id="mapColumn" class="flex flex-col h-full space-y-3">
+                                        <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản đồ</label>
+                                        <p id="mapHint" class="text-xs text-on-surface-variant ml-1 hidden">Chạm vào bản đồ hoặc kéo ghim đến đúng vị trí giao hàng, rồi bấm "Xác nhận vị trí này".</p>
+                                        <div id="addressMap" class="w-full flex-1 min-h-[250px] max-h-[60vh] rounded-xl border border-outline-variant z-10"></div>
                                         <input type="hidden" id="addr_lat">
                                         <input type="hidden" id="addr_lng">
-                                        
-                                        <!-- Actions -->
-                                        <div class="grid grid-cols-2 gap-3 pt-4">
-                                            <button type="button" onclick="closeAddressModal()" class="py-3 rounded-xl border border-outline-variant text-on-surface font-bold hover:bg-surface-container-low transition-colors">
-                                                Hủy
-                                            </button>
-                                            <button type="button" onclick="saveAddress()" class="py-3 rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-opacity shadow-sm">
-                                                Hoàn thành
-                                            </button>
-                                        </div>
+                                        <button type="button" id="btnConfirmMapLocation" onclick="confirmMapLocation()" class="hidden w-full min-h-[44px] rounded-xl bg-primary text-white font-bold text-sm hover:opacity-90 transition-opacity active:scale-[0.98]">
+                                            Xác nhận vị trí này
+                                        </button>
                                     </div>
+                                </div>
+
+                                <!-- Thông báo lỗi chung của form (không dùng alert() — mục 9) -->
+                                <p id="addressFormError" class="text-sm text-error font-medium mt-3 hidden"></p>
+
+                                <!-- Actions (full-width, hiện ở mọi mode) -->
+                                <div class="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-outline-variant/60">
+                                    <button type="button" onclick="closeAddressModal()" class="min-h-[44px] rounded-xl border border-outline-variant text-on-surface font-bold hover:bg-surface-container-low transition-colors">
+                                        Hủy
+                                    </button>
+                                    <button type="button" id="btnSaveAddress" onclick="saveAddress()" class="min-h-[44px] rounded-xl bg-primary text-white font-bold hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Hoàn thành
+                                    </button>
                                 </div>
                             </div>
 
@@ -414,7 +444,7 @@
                                 <span id="summary-subtotal-text">{{ number_format($subtotal, 0, ',', '.') }}đ</span>
                             </div>
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium" id="summary-shipping-distance-row">
-                                <span>Phí giao hàng (<span id="summary-distance-km-val">0.0</span> km × 3.000đ)</span>
+                                <span>Phí giao hàng (<span id="summary-distance-km-val">0.0</span> km × {{ number_format((float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000), 0, ',', '.') }}đ)</span>
                                 <span id="summary-shipping-distance-text">0đ</span>
                             </div>
                             <div class="flex justify-between text-sm text-primary font-bold hidden" id="summary-free-ship-row">
@@ -478,7 +508,10 @@
         shippingBaseFee: {{ (float) \App\Models\Setting::getValue('shipping_base_fee', 15000) }},
         shippingFeePerKm: {{ (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000) }},
         shippingMaxDistanceKm: {{ (float) \App\Models\Setting::getValue('shipping_max_distance_km', 15) }},
-        freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }}
+        freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }},
+        geoapifyKey: @json(config('services.geoapify.key')),
+        shopLat: {{ (float) \App\Models\Setting::getValue('store_latitude', 10.73809) }},
+        shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
     };
 </script>
 <script src="{{ asset('js/frontend/orders/checkout.js') }}"></script>

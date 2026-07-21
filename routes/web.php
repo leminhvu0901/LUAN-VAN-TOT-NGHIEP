@@ -136,6 +136,10 @@ Route::middleware(['auth'])->group(function () {
     // Lưu danh sách sản phẩm ĐÃ CHỌN vào session trước khi sang trang checkout
     Route::post('/cart/set-selected', [App\Http\Controllers\Frontend\CartController::class, 'setSelected'])->name('cart.set-selected');
 
+    // --- Dữ liệu hành chính (tỉnh/thành + phường/xã) cho form địa chỉ ---
+    Route::get('/administrative/provinces', [App\Http\Controllers\Frontend\AdministrativeDivisionController::class, 'provinces'])->name('administrative.provinces');
+    Route::get('/administrative/provinces/{provinceCode}/wards', [App\Http\Controllers\Frontend\AdministrativeDivisionController::class, 'wards'])->name('administrative.wards');
+
     // --- Quản lý Danh bạ Địa chỉ nhận hàng ---
     // Lưu địa chỉ mới
     Route::post('/profile/address', [App\Http\Controllers\Frontend\ProfileController::class, 'storeAddress'])->name('profile.address.store');

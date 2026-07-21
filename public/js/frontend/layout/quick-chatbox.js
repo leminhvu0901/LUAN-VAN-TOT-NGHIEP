@@ -232,7 +232,15 @@
         });
     }
 
+    // Chặn gửi trùng lặp khi có 1 request đang bay (double-click nút gợi ý, hoặc gõ Enter liên tục) —
+    // rule-based lẫn Gemini đều đi qua cùng 1 endpoint nên chỉ cần 1 cờ chung, không cần phân biệt.
+    let askRequestInFlight = false;
+
     function submitAsk(payload, displayText) {
+        if (askRequestInFlight) return;
+        askRequestInFlight = true;
+        if (askSend) askSend.disabled = true;
+
         showAnswerArea();
         const questionEl = appendMessageTo(answerArea, displayText, 'user');
         scrollQuestionIntoView(answerArea, questionEl);
@@ -241,6 +249,7 @@
         const tokenEl = document.querySelector('meta[name="csrf-token"]');
         if (!tokenEl) {
             if (askTypingEl && askTypingEl.parentNode) askTypingEl.parentNode.removeChild(askTypingEl);
+            finishAskRequest();
             return;
         }
 
@@ -260,12 +269,19 @@
                 setTimeout(() => {
                     if (askTypingEl && askTypingEl.parentNode) askTypingEl.parentNode.removeChild(askTypingEl);
                     renderAskResult(data);
+                    finishAskRequest();
                 }, remain);
             })
             .catch(() => {
                 if (askTypingEl && askTypingEl.parentNode) askTypingEl.parentNode.removeChild(askTypingEl);
                 appendMessageTo(answerArea, 'Có lỗi xảy ra, vui lòng thử lại.', 'bot');
+                finishAskRequest();
             });
+    }
+
+    function finishAskRequest() {
+        askRequestInFlight = false;
+        if (askSend) askSend.disabled = askInput ? askInput.value.trim().length === 0 : false;
     }
 
     function renderAskResult(data) {

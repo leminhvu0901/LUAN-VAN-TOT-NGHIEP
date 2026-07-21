@@ -161,23 +161,128 @@ class ProfileController
     /**
      * Thêm Địa chỉ giao hàng mới
      */
+    // Ngưỡng confidence tối thiểu để chấp nhận kết quả forward-geocode ở chế độ manual. Dưới mức này
+    // coi là "quá mơ hồ" -> yêu cầu khách kiểm tra lại / chọn bản đồ (đặc tả mục 4).
+    private const GEOCODE_MIN_CONFIDENCE = 0.3;
+
+    // Validate chung cho store + update. province_code/ward_code là mã hành chính khách CHỌN từ 2
+    // select (không còn ô nhập tay) — tên tỉnh/phường thật sự dùng để lưu do BACKEND tự tra lại từ
+    // AdministrativeDivisionService (xem resolveAdministrativeArea), không tin tên frontend gửi.
+    private function addressValidationRules(): array
+    {
+        return [
+            'fullname' => 'required|string|max:255',
+            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
+            'province_code' => 'required|integer',
+            'ward_code' => 'required|integer',
+            'specific_address' => 'required|string|max:500',
+            'type' => 'required|in:home,office',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'location_method' => 'nullable|in:gps,map,manual',
+            'formatted_address' => 'nullable|string|max:500',
+        ];
+    }
+
+    private function addressValidationMessages(): array
+    {
+        return [
+            'phone.required' => 'Vui lòng nhập số điện thoại.',
+            'phone.regex' => 'Số điện thoại không đúng định dạng.',
+            'province_code.required' => 'Vui lòng chọn Tỉnh/Thành phố.',
+            'ward_code.required' => 'Vui lòng chọn Phường/Xã.',
+        ];
+    }
+
+    // Đối chiếu province_code/ward_code khách gửi với danh mục hành chính CHÍNH THỨC (không tin tên
+    // do frontend gửi kèm) -> trả tên tỉnh/phường chuẩn để lưu, hoặc ['error'=>..., 'field'=>...] để
+    // nơi gọi phản hồi 422 kèm đúng field (mục 8: hiển thị lỗi ngay dưới đúng select).
+    private function resolveAdministrativeArea(Request $request): array
+    {
+        $service = app(\App\Services\AdministrativeDivisionService::class);
+        $provinceCode = (int) $request->input('province_code');
+        $wardCode = (int) $request->input('ward_code');
+
+        $provinces = $service->provinces();
+        if ($provinces === null) {
+            return ['error' => 'Không thể xác thực dữ liệu địa chỉ. Vui lòng thử lại.', 'field' => 'province_code'];
+        }
+        $province = collect($provinces)->firstWhere('code', $provinceCode);
+        if (!$province) {
+            return ['error' => 'Tỉnh/Thành phố không hợp lệ. Vui lòng chọn lại.', 'field' => 'province_code'];
+        }
+
+        $wards = $service->wardsOf($provinceCode);
+        if ($wards === null) {
+            return ['error' => 'Không thể xác thực dữ liệu địa chỉ. Vui lòng thử lại.', 'field' => 'ward_code'];
+        }
+        $ward = collect($wards)->firstWhere('code', $wardCode);
+        if (!$ward) {
+            return ['error' => 'Phường/Xã không hợp lệ hoặc không thuộc Tỉnh/Thành phố đã chọn. Vui lòng chọn lại.', 'field' => 'ward_code'];
+        }
+
+        return ['province' => $province['name'], 'ward' => $ward['name']];
+    }
+
+    // Xác định tọa độ + phương thức + địa chỉ tham khảo để lưu.
+    //   - gps/map: dùng luôn latitude/longitude frontend gửi (khách đã chọn trên bản đồ/GPS).
+    //   - manual (hoặc thiếu tọa độ): backend forward-geocode qua Geoapify (proximity bias quanh cửa
+    //     hàng). Không thấy / confidence thấp -> trả ['error' => ...] để nơi gọi phản hồi 422, KHÔNG lưu.
+    // KHÔNG ghi đè province/ward khách chọn — Geoapify chỉ cấp tọa độ + địa chỉ tham khảo.
+    // $area: tỉnh/phường ĐÃ được resolveAdministrativeArea() xác thực (tên chuẩn, không phải tên khách gõ).
+    private function resolveLocation(Request $request, array $area): array
+    {
+        $method = $request->input('location_method');
+        $method = in_array($method, ['gps', 'map', 'manual'], true) ? $method : 'map';
+
+        $lat = $request->input('latitude');
+        $lng = $request->input('longitude');
+        $formatted = $request->input('formatted_address');
+
+        if ($lat === null || $lng === null || $lat === '' || $lng === '') {
+            // Bỏ "Phường <số>" (Geoapify hiểu sai) + luôn thêm "Việt Nam" (thiếu quốc gia -> 0 kết quả).
+            $query = trim($request->input('specific_address') . ', ' . $area['ward'] . ', ' . $area['province']);
+            $query = preg_replace('/phường\s*\d+/iu', '', $query);
+            $query = preg_replace('/,\s*,/', ',', $query);
+            $query = trim(preg_replace('/,\s*$/', '', (string) $query)) . ', Việt Nam';
+
+            $storeLat = (float) \App\Models\Setting::getValue('store_latitude', 10.73809);
+            $storeLng = (float) \App\Models\Setting::getValue('store_longitude', 106.67812);
+            $geo = app(\App\Services\GeoapifyService::class)->geocodeAddress($query, $storeLat, $storeLng);
+
+            if (!$geo || $geo['confidence'] < self::GEOCODE_MIN_CONFIDENCE) {
+                return ['error' => 'Không xác định được vị trí cho địa chỉ này. Bạn vui lòng kiểm tra lại hoặc chọn trực tiếp trên bản đồ.'];
+            }
+
+            $lat = $geo['lat'];
+            $lng = $geo['lng'];
+            $formatted = $formatted ?: $geo['formatted'];
+        }
+
+        return [
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'location_method' => $method,
+            'formatted_address' => $formatted,
+        ];
+    }
+
     public function storeAddress(Request $request)
     {
         // 1. Kiểm tra thông tin nhập vào
-        $request->validate([
-            'fullname' => 'required|string|max:255',
-            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
-            'province' => 'required|string|max:255', // Tỉnh/Thành phố
-            'district' => 'required|string|max:255', // Quận/Huyện
-            'ward' => 'required|string|max:255', // Phường/Xã
-            'specific_address' => 'required|string|max:500', // Số nhà, tên đường
-            'type' => 'required|in:home,office', // Loại địa chỉ (Nhà riêng hay Cơ quan)
-            'latitude' => 'nullable|numeric', // Tọa độ bản đồ (nếu có)
-            'longitude' => 'nullable|numeric',
-        ], [
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.regex' => 'Số điện thoại không đúng định dạng.',
-        ]);
+        $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
+
+        // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức (không tin tên frontend gửi).
+        $area = $this->resolveAdministrativeArea($request);
+        if (isset($area['error'])) {
+            return response()->json(['success' => false, 'message' => $area['error'], 'errors' => [$area['field'] => [$area['error']]]], 422);
+        }
+
+        // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa có) — mơ hồ/không thấy thì báo lỗi, không lưu.
+        $location = $this->resolveLocation($request, $area);
+        if (isset($location['error'])) {
+            return response()->json(['success' => false, 'message' => $location['error']], 422);
+        }
 
         $userId = \Illuminate\Support\Facades\Auth::id();
         $isDefault = $request->boolean('is_default'); // User có tick chọn làm mặc định không?
@@ -199,14 +304,16 @@ class ProfileController
             'user_id' => $userId,
             'fullname' => $request->input('fullname'),
             'phone' => $request->input('phone'),
-            'province' => $request->input('province'),
-            'district' => $request->input('district'),
-            'ward' => $request->input('ward'),
+            'province' => $area['province'],
+            'district' => $area['ward'],
+            'ward' => $area['ward'],
             'specific_address' => $request->input('specific_address'),
             'type' => $request->input('type'),
             'is_default' => $isDefault,
-            'latitude' => $request->input('latitude'),
-            'longitude' => $request->input('longitude'),
+            'latitude' => $location['latitude'],
+            'longitude' => $location['longitude'],
+            'location_method' => $location['location_method'],
+            'formatted_address' => $location['formatted_address'],
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -221,20 +328,19 @@ class ProfileController
     public function updateAddress(Request $request, $id)
     {
         // 1. Kiểm tra dữ liệu (giống hệt hàm Store)
-        $request->validate([
-            'fullname' => 'required|string|max:255',
-            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
-            'province' => 'required|string|max:255',
-            'district' => 'required|string|max:255',
-            'ward' => 'required|string|max:255',
-            'specific_address' => 'required|string|max:500',
-            'type' => 'required|in:home,office',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-        ], [
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.regex' => 'Số điện thoại không đúng định dạng.',
-        ]);
+        $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
+
+        // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức (không tin tên frontend gửi).
+        $area = $this->resolveAdministrativeArea($request);
+        if (isset($area['error'])) {
+            return response()->json(['success' => false, 'message' => $area['error'], 'errors' => [$area['field'] => [$area['error']]]], 422);
+        }
+
+        // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa có) — mơ hồ/không thấy thì báo lỗi, không lưu.
+        $location = $this->resolveLocation($request, $area);
+        if (isset($location['error'])) {
+            return response()->json(['success' => false, 'message' => $location['error']], 422);
+        }
 
         $userId = \Illuminate\Support\Facades\Auth::id();
         $isDefault = $request->boolean('is_default');
@@ -251,14 +357,16 @@ class ProfileController
             ->update([
                 'fullname' => $request->input('fullname'),
                 'phone' => $request->input('phone'),
-                'province' => $request->input('province'),
-                'district' => $request->input('district'),
-                'ward' => $request->input('ward'),
+                'province' => $area['province'],
+                'district' => $area['ward'],
+                'ward' => $area['ward'],
                 'specific_address' => $request->input('specific_address'),
                 'type' => $request->input('type'),
                 'is_default' => $isDefault, // Có thể bằng true (nếu user tích) hoặc false (nếu user không tích và nó không phải mặc định ban đầu)
-                'latitude' => $request->input('latitude'),
-                'longitude' => $request->input('longitude'),
+                'latitude' => $location['latitude'],
+                'longitude' => $location['longitude'],
+                'location_method' => $location['location_method'],
+                'formatted_address' => $location['formatted_address'],
                 'updated_at' => now(),
             ]);
 

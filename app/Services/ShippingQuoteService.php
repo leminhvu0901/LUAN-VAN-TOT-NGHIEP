@@ -10,6 +10,10 @@ class ShippingQuoteService
 {
     public const MAX_DELIVERY_KM = 15;
 
+    public function __construct(private GeoapifyService $geoapify)
+    {
+    }
+
     public function quote(UserAddress $address, float $subtotal, ?User $user): array
     {
         $distance = $this->distanceFor($address);
@@ -42,26 +46,46 @@ class ShippingQuoteService
 
     public function distanceFor(UserAddress $address): float
     {
+        return $this->distanceForWithSource($address)['distance_km'];
+    }
+
+    // Như distanceFor() nhưng kèm 'is_mock' (false = số km thật từ Geoapify Routing API/
+    // OpenRouteService, true = ước lượng cố định theo quận/huyện) — CartController dùng để hiển thị
+    // đúng trạng thái cho khách ở màn hình checkout. Thứ tự nguồn: Geoapify Routing API (chính) ->
+    // OpenRouteService (dự phòng, giữ lại cho đến khi Geoapify được xác nhận ổn định) -> ước lượng cố
+    // định (luôn có, không bao giờ để trống).
+    public function distanceForWithSource(UserAddress $address): array
+    {
         $storeLat = (float) \App\Models\Setting::getValue('store_latitude', 10.73809);
         $storeLng = (float) \App\Models\Setting::getValue('store_longitude', 106.67812);
 
-        if ($address->latitude && $address->longitude && config('services.openroute.key')) {
-            try {
-                $response = Http::timeout(8)
-                    ->withToken(config('services.openroute.key'))
-                    ->post('https://api.openrouteservice.org/v2/directions/driving-car', [
-                        'coordinates' => [[$storeLng, $storeLat], [(float) $address->longitude, (float) $address->latitude]],
-                    ])->throw()->json();
-                if (isset($response['routes'][0]['summary']['distance'])) {
-                    return round($response['routes'][0]['summary']['distance'] / 1000, 1);
+        if ($address->latitude && $address->longitude) {
+            $destLat = (float) $address->latitude;
+            $destLng = (float) $address->longitude;
+
+            $distance = $this->geoapify->drivingDistanceKm($storeLat, $storeLng, $destLat, $destLng);
+            if ($distance !== null) {
+                return ['distance_km' => $distance, 'is_mock' => false];
+            }
+
+            if (config('services.openroute.key')) {
+                try {
+                    $response = Http::timeout(8)
+                        ->withToken(config('services.openroute.key'))
+                        ->post('https://api.openrouteservice.org/v2/directions/driving-car', [
+                            'coordinates' => [[$storeLng, $storeLat], [$destLng, $destLat]],
+                        ])->throw()->json();
+                    if (isset($response['routes'][0]['summary']['distance'])) {
+                        return ['distance_km' => round($response['routes'][0]['summary']['distance'] / 1000, 1), 'is_mock' => false];
+                    }
+                } catch (\Throwable) {
+                    // Rơi xuống ước lượng cố định theo quận/huyện bên dưới.
                 }
-            } catch (\Throwable) {
-                // Fall back to the deterministic district estimate below.
             }
         }
 
         $district = mb_strtolower((string) $address->district);
-        return match (true) {
+        $estimate = match (true) {
             str_contains($district, '8') => 1.5,
             str_contains($district, '5') => 2.8,
             str_contains($district, '10') => 4.5,
@@ -71,6 +95,8 @@ class ShippingQuoteService
             str_contains($district, 'binh thanh'), str_contains($district, 'bình thạnh') => 7.5,
             default => 3.5,
         };
+
+        return ['distance_km' => $estimate, 'is_mock' => true];
     }
 
     private function weatherFee(UserAddress $address, float $shippingFee): float

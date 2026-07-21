@@ -502,7 +502,7 @@ class CartController
         return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken'));
     }
 
-    public function calculateDistance(Request $request)
+    public function calculateDistance(Request $request, \App\Services\GeoapifyService $geoapify)
     {
         $addressId = $request->query('address_id');
         $userId = Auth::id();
@@ -516,103 +516,38 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Địa chỉ không hợp lệ'], 400);
         }
 
-        $destAddress = $address->specific_address . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province;
-        $lat = isset($address->latitude) ? $address->latitude : null;
-        $lon = isset($address->longitude) ? $address->longitude : null;
-
-        // Fallback to geocoding address string via Nominatim if coordinates are missing
-        if (empty($lat) || empty($lon)) {
-            try {
-                $client = new \GuzzleHttp\Client();
-                $geocodeUrl = "https://nominatim.openstreetmap.org/search?q=" . urlencode($destAddress) . "&format=json&limit=1";
-                $geoRes = $client->get($geocodeUrl, [
-                    'headers' => [
-                        'User-Agent' => 'CoffeeDeliveryApp/1.0 (contact@example.com)'
-                    ],
-                    'timeout' => 8
+        // Thiếu tọa độ (địa chỉ cũ nhập tay, chưa từng chọn qua bản đồ) -> geocode chuỗi địa chỉ qua
+        // Geoapify Geocoding API để lấy tọa độ, rồi lưu lại vào DB để dùng ngay từ lần sau.
+        if (empty($address->latitude) || empty($address->longitude)) {
+            // Đã xác nhận qua test thật với API Geoapify: (1) CỐ Ý bỏ Phường/Xã khỏi chuỗi truy vấn —
+            // cụm "Phường 8" (phường đặt tên bằng số) khiến Geoapify hiểu sai địa chỉ hoàn toàn (trả về
+            // tọa độ ở Bắc Ninh/Hà Nội thay vì TP.HCM, confidence=0); (2) BẮT BUỘC phải có "Việt Nam" ở
+            // cuối — thiếu quốc gia thì Geoapify trả về 0 kết quả hoàn toàn (không parse được). Chỉ dùng
+            // "địa chỉ cụ thể + quận/huyện + tỉnh/thành + Việt Nam" cho kết quả đúng ổn định
+            // (confidence=1.0, match_type=full_match khi kiểm tra thật).
+            $destAddress = $address->specific_address . ', ' . $address->district . ', ' . $address->province . ', Việt Nam';
+            $geocoded = $geoapify->geocodeAddress($destAddress);
+            if ($geocoded) {
+                $address->latitude = $geocoded['lat'];
+                $address->longitude = $geocoded['lng'];
+                \App\Models\UserAddress::query()->where('id', $addressId)->update([
+                    'latitude' => $geocoded['lat'],
+                    'longitude' => $geocoded['lng'],
+                    'updated_at' => now(),
                 ]);
-                $geoData = json_decode($geoRes->getBody()->getContents(), true);
-                if (!empty($geoData) && isset($geoData[0]['lat']) && isset($geoData[0]['lon'])) {
-                    $lat = floatval($geoData[0]['lat']);
-                    $lon = floatval($geoData[0]['lon']);
-
-                    // Save coordinates back to database to cache it
-                    \App\Models\UserAddress::query()
-                        ->where('id', $addressId)
-                        ->update([
-                            'latitude' => $lat,
-                            'longitude' => $lon,
-                            'updated_at' => now()
-                        ]);
-                }
-            } catch (\Exception $e) {
-                // Ignore and keep coordinates empty
             }
         }
 
-        $orsKey = env('OPENROUTE_SERVICE_API_KEY');
-
-        // Check if we have coordinates and ORS API key
-        if (!empty($lat) && !empty($lon) && !empty($orsKey)) {
-            try {
-                // Shop coordinates: 180 Cao Lỗ, Quận 8 is lat 10.73809, lon 106.67812
-                $shopCoords = [106.67812, 10.73809]; // [lon, lat]
-                $destCoords = [floatval($lon), floatval($lat)];
-
-                $client = new \GuzzleHttp\Client();
-                $response = $client->post('https://api.openrouteservice.org/v2/directions/driving-car', [
-                    'headers' => [
-                        'Authorization' => $orsKey,
-                        'Content-Type' => 'application/json',
-                    ],
-                    'json' => [
-                        'coordinates' => [
-                            $shopCoords,
-                            $destCoords
-                        ]
-                    ],
-                    'timeout' => 8
-                ]);
-
-                $data = json_decode($response->getBody()->getContents(), true);
-                if (isset($data['routes'][0]['summary']['distance'])) {
-                    $distanceMeters = $data['routes'][0]['summary']['distance'];
-                    $distanceKm = round($distanceMeters / 1000, 1);
-                    return response()->json([
-                        'success' => true,
-                        'distance_km' => $distanceKm,
-                        'is_mock' => false
-                    ]);
-                }
-            } catch (\Exception $e) {
-                // Fall back below if ORS call fails
-            }
-        }
-
-        // Fallback mock distance based on District relative to shop at Quận 8
-        $district = mb_strtolower($address->district);
-        $distance = 3.5; // default
-        if (str_contains($district, '8')) {
-            $distance = 1.5;
-        } elseif (str_contains($district, '5')) {
-            $distance = 2.8;
-        } elseif (str_contains($district, '10')) {
-            $distance = 4.5;
-        } elseif (str_contains($district, '1') || str_contains($district, '4')) {
-            $distance = 5.2;
-        } elseif (str_contains($district, '7')) {
-            $distance = 4.8;
-        } elseif (str_contains($district, '3')) {
-            $distance = 5.8;
-        } elseif (str_contains($district, 'bình thạnh') || str_contains($district, 'binh thanh')) {
-            $distance = 7.5;
-        }
+        // Tái dùng ĐÚNG luồng tính khoảng cách thật (Geoapify Routing API -> OpenRouteService dự phòng
+        // -> ước lượng cố định theo quận/huyện) đang dùng cho đơn hàng thật ở ShippingQuoteService, đảm
+        // bảo số hiển thị ở màn hình checkout luôn khớp với số tính phí thật khi đặt hàng.
+        $result = $this->shippingQuote->distanceForWithSource($address);
 
         return response()->json([
             'success' => true,
-            'distance_km' => $distance,
-            'is_mock' => true,
-            'message' => 'Sử dụng khoảng cách mô phỏng dự phòng.'
+            'distance_km' => $result['distance_km'],
+            'is_mock' => $result['is_mock'],
+            'message' => $result['is_mock'] ? 'Sử dụng khoảng cách mô phỏng dự phòng.' : null,
         ]);
     }
 
@@ -701,14 +636,10 @@ class CartController
         $lat = isset($address->latitude) ? $address->latitude : null;
         $lon = isset($address->longitude) ? $address->longitude : null;
 
-        // Nếu không có tọa độ, không thể tính phí thời tiết, trả về 0
+        // Nếu không có tọa độ cụ thể trên địa chỉ, mặc định lấy tọa độ Chánh Hưng, Q8 (10.7433, 106.6738)
         if (empty($lat) || empty($lon)) {
-            return response()->json([
-                'success' => true,
-                'fee' => 0,
-                'condition' => 'Bình thường',
-                'message' => 'Không có tọa độ để kiểm tra thời tiết.'
-            ]);
+            $lat = 10.7433;
+            $lon = 106.6738;
         }
 
         try {
