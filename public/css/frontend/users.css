@@ -10857,6 +10857,14 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   cursor: default;
 }
 
+/* Trạng thái đang tải trang kế tiếp qua AJAX — mờ nhẹ + chặn thao tác lặp, tránh cảm giác giật khi
+   nội dung thay đổi đột ngột (xem loadProductsPage() trong products/index.js). */
+.p-product-area-loading {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
 /* Style riêng cho trang chi tiết sản phẩm (Product Detail Show) */
 
 /* Nút dropdown Topping */

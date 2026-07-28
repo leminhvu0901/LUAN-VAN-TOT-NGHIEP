@@ -59,7 +59,10 @@ function submitFilterForm() {
 
 // Tham chiếu các phần tử điều khiển sắp xếp và lưới sản phẩm
 const sortSelect = document.getElementById('sort-select');
-const grid = document.getElementById('product-grid');
+// "let" (không phải const) vì #product-grid bị THAY THẾ hoàn toàn (không chỉ sửa nội dung) mỗi lần
+// chuyển trang qua AJAX bên dưới -> node cũ bị gỡ khỏi DOM, phải gán lại biến này trỏ sang node MỚI,
+// nếu không applySortAndFilter() sẽ thao tác nhầm lên node đã "chết", không còn hiển thị trên trang.
+let grid = document.getElementById('product-grid');
 const pillButtons = document.querySelectorAll('#product-pill-filters .home-popular__filter-btn');
 let currentPillFilter = 'all'; // Bộ lọc tag mặc định (Tất cả)
 
@@ -148,3 +151,70 @@ if (sortSelect && grid) {
     // Tự động chạy sắp xếp mặc định lần đầu khi tải trang
     applySortAndFilter();
 }
+
+/**
+ * Phân trang qua AJAX (mục tiêu: tránh tải lại cả trang gây giật/nhấp nháy khi bấm chuyển trang).
+ * Chặn click vào .p-pagination__btn, gọi fetch lấy đúng partial lưới sản phẩm + phân trang mới,
+ * thay nội dung tại chỗ, cập nhật URL trên thanh địa chỉ (không tải lại trang), rồi chạy lại sort/filter
+ * phía client trên bộ thẻ vừa nhận về. Gắn listener trên document (không phải trên #ajax-product-area
+ * trực tiếp) vì vùng đó bị thay thế hoàn toàn mỗi lần chuyển trang, gắn trực tiếp sẽ mất listener.
+ */
+document.addEventListener('click', function (event) {
+    const link = event.target.closest('.p-pagination__btn');
+    if (!link) return;
+    if (link.classList.contains('p-pagination__btn--disabled')) {
+        event.preventDefault();
+        return;
+    }
+
+    const url = link.getAttribute('href');
+    if (!url) return;
+
+    event.preventDefault();
+    loadProductsPage(url);
+});
+
+function loadProductsPage(url, updateHistory) {
+    if (updateHistory === undefined) updateHistory = true;
+
+    const wrapper = document.getElementById('ajax-product-area');
+    if (!wrapper) {
+        window.location.href = url; // Không tìm thấy vùng AJAX (không nên xảy ra) -> điều hướng thật để không kẹt trang
+        return;
+    }
+    const outerParent = wrapper.parentElement;
+
+    wrapper.classList.add('p-product-area-loading');
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (response) {
+            if (!response.ok) throw new Error('Request failed');
+            return response.text();
+        })
+        .then(function (html) {
+            outerParent.innerHTML = html;
+            // Chỉ đẩy thêm lịch sử khi người dùng CHỦ ĐỘNG bấm số trang mới — khi hàm này được gọi lại
+            // do sự kiện popstate (bấm nút Back/Forward của trình duyệt) thì KHÔNG đẩy thêm, nếu không
+            // sẽ phá vỡ ngăn xếp lịch sử, bấm Back nhiều lần sẽ không thoát được khỏi trang sản phẩm.
+            if (updateHistory) history.pushState({}, '', url);
+
+            // #product-grid vừa bị thay bằng node MỚI (do outerParent.innerHTML ghi đè toàn bộ) -> phải
+            // gán lại tham chiếu, nếu không applySortAndFilter() sẽ thao tác nhầm lên node cũ đã gỡ khỏi DOM.
+            grid = document.getElementById('product-grid');
+            if (sortSelect && grid) applySortAndFilter();
+
+            outerParent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch(function () {
+            // Fetch lỗi (mất mạng, server lỗi...) -> điều hướng thật như link bình thường, không kẹt trang
+            window.location.href = url;
+        });
+}
+
+// Bấm nút Back/Forward của trình duyệt sau khi đã chuyển trang qua AJAX -> tải lại đúng nội dung
+// tương ứng URL hiện tại thay vì chỉ đổi URL trên thanh địa chỉ mà nội dung trang không đổi theo.
+window.addEventListener('popstate', function () {
+    if (document.getElementById('ajax-product-area')) {
+        loadProductsPage(window.location.href, false);
+    }
+});
