@@ -242,7 +242,10 @@ shadow-sm: đổ bóng nhẹ phía dưới
             <form action="{{ url('/products') }}" method="GET" class="happy-navbar__search">
                 <button type="submit" class="happy-navbar__search-icon bg-transparent border-none p-0 cursor-pointer"
                     aria-label="Tìm kiếm">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    {{-- Đặt width/height tường minh thay vì class "h-4 w-4": users.css KHÔNG định nghĩa
+                    .h-4/.w-4 (chỉ có .h-5/.w-5, .h-7, .h-8...), nên SVG không nhận được kích thước và
+                    icon không hiển thị. Các SVG khác trong file này cũng dùng thuộc tính width/height. --}}
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
                         <path stroke-linecap="round" d="m21 21-4.35-4.35" />
                     </svg>

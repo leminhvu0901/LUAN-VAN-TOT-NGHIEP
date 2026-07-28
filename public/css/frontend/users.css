@@ -4426,14 +4426,10 @@ h6>a:hover,
   max-width: 36rem;
 }
 
-.happy-navbar__search-icon {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  pointer-events: none;
-}
+/* (Đã xóa khối .happy-navbar__search-icon kiểu icon đè tuyệt đối lên input ở đây — thiết kế cũ đã bị
+   thay bằng bố cục flex ở khối .happy-navbar__search-icon phía dưới. Hai khối trùng tên class khiến
+   position/transform/pointer-events của bản cũ rò rỉ sang bản mới, đẩy icon lệch khỏi vị trí đúng.
+   Đã xác minh chỉ có DUY NHẤT nút tìm kiếm mobile dùng class này, desktop dùng biến thể --desktop.) */
 
 .happy-navbar__search-input {
   width: 100%;
@@ -4616,13 +4612,6 @@ h6>a:hover,
 
 /* Icon kính lúp bên trái */
 .happy-navbar__search-icon {
-  /* Có một định nghĩa .happy-navbar__search-icon KHÁC ở phía trên (dòng ~4429, kiểu icon đè tuyệt
-     đối lên input — thiết kế cũ không còn dùng nhưng chưa xóa) đặt position:absolute và
-     pointer-events:none cho cùng tên class này. CSS không tự "reset" giữa 2 khối trùng selector nên
-     2 thuộc tính đó bị rò rỉ sang đây, phá layout flex hiện tại (icon bị đẩy lệch/mất khỏi vị trí
-     đúng). Khai báo lại tường minh để chặn rò rỉ, không cần xóa khối cũ (đỡ rủi ro ảnh hưởng chỗ khác). */
-  position: static;
-  pointer-events: auto;
   flex-shrink: 0;
   color: #9ca3af;
   display: flex;
