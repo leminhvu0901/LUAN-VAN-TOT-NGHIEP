@@ -282,11 +282,15 @@
             .then(r => r.json())
             .then(data => {
                 const container = document.getElementById('pos-cart-items');
-                const emptyEl = document.getElementById('pos-cart-empty');
 
                 if (!data.items || data.items.length === 0) {
-                    container.innerHTML = '';
-                    container.appendChild(emptyEl);
+                    // Không tái sử dụng lại node #pos-cart-empty gốc (lấy qua getElementById) — nó đã
+                    // bị "container.innerHTML = ''" xóa vĩnh viễn khỏi DOM ngay từ lần đầu giỏ hàng có
+                    // sản phẩm, nên ở lần rỗng tiếp theo getElementById trả về null, appendChild(null)
+                    // ném lỗi ngầm khiến updatePreviewTotal() phía dưới không bao giờ chạy tới (tổng
+                    // tiền bị kẹt lại giá trị cũ dù giỏ đã trống). Dựng lại HTML placeholder trực tiếp
+                    // thay vì gắn lại node cũ.
+                    container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4" id="pos-cart-empty">Chưa có sản phẩm nào.</p>';
                     lastCartItemCount = 0;
                     updatePreviewTotal(0, 0, null, 0, 0, [], 0, 0);
                     return;
