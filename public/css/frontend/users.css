@@ -9578,6 +9578,21 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
 }
 
+/* Chrome mobile (Android) có kiểu thanh địa chỉ tự ẩn/hiện khi cuộn — trong lúc ẩn, trình duyệt tính
+   sai chiều cao viewport trong khoảnh khắc ngắn khiến "position: fixed; bottom: 0" bị hở ra một
+   khoảng ngắn bên dưới, lộ màu nền trang (webview khác như Google app không có kiểu thanh này nên
+   không bị). Kéo dài màu nền của thanh xuống dưới mép nhìn thấy bằng ::after — nếu có hở tạm thời thì
+   vẫn đúng màu thanh, không lộ khoảng trắng. */
+.l-bottom-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 60px;
+  background: inherit;
+}
+
 @media (max-width: 768px) {
   .l-bottom-nav {
     display: flex;
