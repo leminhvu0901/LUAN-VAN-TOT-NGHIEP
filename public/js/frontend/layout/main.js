@@ -599,6 +599,15 @@ const updateCartUI = (data) => {
             if (countEl2) countEl2.innerText = '0';
             if (hintEl) hintEl.innerText = '0 đã chọn';
         } else {
+            // Ghi nhớ những món khách đã BỎ chọn TRƯỚC khi vẽ lại danh sách. Mỗi lần bấm +/- hay xóa
+            // món đều vẽ lại toàn bộ giỏ; nếu không nhớ thì mọi checkbox quay về mặc định "đã chọn",
+            // khiến khách tưởng hệ thống tự tích chọn hết. Lưu theo danh sách BỎ chọn (thay vì danh
+            // sách đã chọn) để món mới thêm vào giỏ vẫn được tích sẵn như mong đợi.
+            const unselectedIds = {};
+            document.querySelectorAll('.cart-item-checkbox').forEach(function (chk) {
+                if (!chk.checked) unselectedIds[chk.getAttribute('data-item-id')] = true;
+            });
+
             let html = '';
             data.items.forEach(item => {
                 let formattedPrice = new Intl.NumberFormat('vi-VN').format(item.unit_price) + 'đ';
@@ -633,7 +642,7 @@ const updateCartUI = (data) => {
                         <input type="checkbox" class="cart-item-checkbox"
                                data-item-id="${item.id}"
                                data-item-price="${itemTotal}"
-                               checked
+                               ${unselectedIds[item.id] ? '' : 'checked'}
                                onchange="syncCartSelectionUI()">
                     </label>
                     <img src="/images/${item.image}" alt="${item.name}" onerror="this.src='/images/products/placeholder.jpg'" class="cart-item__img">
@@ -653,6 +662,21 @@ const updateCartUI = (data) => {
                     </div>
                 </div>`;
             });
+            // Quà tặng Mua X tặng Y — dòng chỉ để xem, KHÔNG có checkbox/nút sửa số lượng/xóa, vì
+            // khách không được tự điều chỉnh quà (hệ thống tự tính lại theo số lượng món đã mua).
+            (data.gifts || []).forEach(gift => {
+                html += `
+                <div class="cart-item cart-item--gift">
+                    <div class="cart-item__info">
+                        <h4 class="cart-item__name">${gift.gift_product_name}</h4>
+                        <div class="cart-item__tags">
+                            <span class="cart-item__tag cart-item__tag--topping">🎁 Quà tặng</span>
+                        </div>
+                        <span class="cart-item__price">x${gift.quantity} • Miễn phí</span>
+                    </div>
+                </div>`;
+            });
+
             list.innerHTML = html;
 
             // Hiện thanh "Chọn tất cả" và khởi động trạng thái checkbox

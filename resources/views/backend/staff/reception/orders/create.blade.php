@@ -86,9 +86,25 @@
                             <span id="pos-cart-discount-label">Khuyến mãi</span>
                             <span id="pos-cart-discount">-0đ</span>
                         </div>
+                        <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden" id="pos-cart-membership-row">
+                            <span>Ưu đãi hạng thành viên</span>
+                            <span id="pos-cart-membership-discount">-0đ</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden" id="pos-cart-points-row">
+                            <span>Điểm tích lũy</span>
+                            <span id="pos-cart-points-discount">-0đ</span>
+                        </div>
                         <div class="flex items-center justify-between text-sm text-gray-500 hidden" id="pos-cart-shipping-row">
                             <span>Phí giao hàng</span>
                             <span id="pos-cart-shipping">0đ</span>
+                        </div>
+                        {{-- Quà tặng Mua X Tặng Y: ẩn mặc định, JS hiện khi có dữ liệu --}}
+                        <div id="pos-cart-gifts-row" class="hidden">
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-1 mt-0.5">
+                                <span class="material-symbols-outlined text-[15px]">redeem</span>
+                                Quà tặng kèm
+                            </div>
+                            <ul id="pos-cart-gifts-list" class="space-y-0.5"></ul>
                         </div>
                         <div class="flex items-center justify-between pt-2 border-t border-gray-100">
                             <span class="text-base font-bold text-gray-800">Tổng cộng phải trả</span>
@@ -97,7 +113,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('staff.reception.orders.store') }}" method="POST" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                <form id="pos-order-form" action="{{ route('staff.reception.orders.store') }}" method="POST" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
                     @csrf
 
                     <div>
@@ -135,6 +151,7 @@
                                 <input type="number" name="points_to_redeem" id="pos-points-to-redeem" min="0" step="1" value="0"
                                     class="w-24 px-2 py-1 border border-emerald-200 rounded-lg text-sm">
                             </div>
+                            <p id="pos-points-feedback" class="text-xs"></p>
                         </div>
 
                         <div id="pos-customer-search-wrap" class="relative">
@@ -175,7 +192,7 @@
                         <textarea name="note" rows="2" placeholder="Ví dụ: ít đá, không đường..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></textarea>
                     </div>
 
-                    <button type="submit" class="w-full min-h-[46px] bg-emerald-600 text-white font-bold rounded-xl">Tạo đơn</button>
+                    <button type="submit" id="pos-submit-btn" class="w-full min-h-[46px] bg-emerald-600 text-white font-bold rounded-xl">Tạo đơn</button>
                 </form>
             </div>
         </div>

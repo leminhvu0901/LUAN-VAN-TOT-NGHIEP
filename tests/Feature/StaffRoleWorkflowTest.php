@@ -1286,6 +1286,215 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * previewTotal() (dùng để hiển thị tổng tiền TRƯỚC khi tạo đơn ở giao diện POS) phải tính và trả
+     * về đúng số tiền giảm từ điểm tích lũy khi lễ tân đã chọn khách hàng và nhập số điểm hợp lệ —
+     * trước đây field này hoàn toàn không tồn tại trong phản hồi JSON, khiến giao diện tổng tiền
+     * không bao giờ hiện được số tiền giảm từ điểm dù nhập số điểm hợp lệ.
+     */
+    public function test_pos_preview_total_includes_points_discount(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 50]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson("/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=20");
+
+        $response->assertOk();
+        $response->assertJson([
+            'subtotal' => 100000,
+            'points_discount' => 20,
+            'points_error' => null,
+            'final_amount' => 99980,
+        ]);
+    }
+
+    /**
+     * Khi số điểm nhập không hợp lệ (vượt số dư), previewTotal() phải trả về points_error mô tả rõ
+     * lý do (giống hệt thông báo lúc tạo đơn thật) — để lễ tân biết ngay khi đang gõ, không cần chờ
+     * tới lúc bấm "Tạo đơn" mới phát hiện ra.
+     */
+    public function test_pos_preview_total_reports_points_error_when_over_balance(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 10]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson("/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=20");
+
+        $response->assertOk();
+        $response->assertJsonPath('points_discount', 0);
+        $response->assertJsonPath('points_error', 'Số điểm quy đổi vượt quá số dư hiện có.');
+    }
+
+    /**
+     * Nhập số điểm dưới mức tối thiểu (mặc định 10) phải báo lỗi rõ ràng ngay ở bước xem trước.
+     */
+    public function test_pos_preview_total_reports_points_error_when_below_minimum(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 50]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson("/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=5");
+
+        $response->assertOk();
+        $response->assertJsonPath('points_discount', 0);
+        $response->assertJsonPath('points_error', 'Số điểm tối thiểu để được quy đổi là 10.');
+    }
+
+    /**
+     * Khi chương trình tích điểm bị quản trị viên tạm tắt (loyalty_enabled=0), preview phải báo lỗi
+     * thay vì âm thầm tính discount = 0 không rõ lý do.
+     */
+    public function test_pos_preview_total_reports_points_error_when_loyalty_disabled(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+        \App\Models\Setting::setValue('loyalty_enabled', '0');
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 50]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson("/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=20");
+
+        $response->assertOk();
+        $response->assertJsonPath('points_discount', 0);
+        $response->assertJsonPath('points_error', 'Chương trình tích điểm hiện đang tạm đóng.');
+
+        \App\Models\Setting::setValue('loyalty_enabled', '1');
+    }
+
+    /**
+     * Số điểm quy đổi vượt trần % (loyalty_max_redeem_percent) giá trị đơn phải bị từ chối kèm lý do,
+     * dù khách vẫn còn đủ số dư điểm.
+     */
+    public function test_pos_preview_total_reports_points_error_when_over_max_redeem_percent(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+        \App\Models\Setting::setValue('loyalty_max_redeem_percent', 10);
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        // Subtotal 100.000đ, trần 10% = 10.000đ tối đa được giảm -> 50 điểm (50đ theo point_value=1) vẫn OK,
+        // nhưng 20.000 điểm (giá trị 20.000đ) sẽ vượt trần.
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 20000]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson("/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=20000");
+
+        $response->assertOk();
+        $response->assertJsonPath('points_discount', 0);
+        $response->assertJsonPath('points_error', 'Số điểm quy đổi vượt quá giới hạn tối đa (10%) giá trị đơn hàng.');
+
+        \App\Models\Setting::setValue('loyalty_max_redeem_percent', 100);
+    }
+
+    /**
+     * Preview phải khớp với đơn thật khi kết hợp CẢ mã khuyến mãi lẫn điểm tích lũy cùng lúc (2 loại
+     * giảm giá cộng dồn) — tránh lệch giữa số hiển thị trước khi tạo đơn và số tiền thật sau khi tạo.
+     */
+    public function test_pos_preview_total_combines_coupon_and_points_discount(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 50]);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        \App\Models\Promotion::create([
+            'code' => 'POSPTS10', 'type' => 'percent', 'value' => 10,
+            'scope' => 'order', 'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true,
+            'is_recurring' => false,
+        ]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+
+        $response = $this->getJson(
+            "/staff/reception/orders/preview-total?customer_id={$customer->id}&points_to_redeem=20&coupon_code=POSPTS10"
+        );
+
+        $response->assertOk();
+        // Subtotal 100.000đ - 10% coupon (10.000đ) - 20đ điểm = 89.980đ
+        $this->assertEquals(10000, (float) $response->json('discount'));
+        $this->assertEquals(20, (float) $response->json('points_discount'));
+        $this->assertEquals(89980, (float) $response->json('final_amount'));
+
+        // Tạo đơn thật với cùng tham số phải khớp CHÍNH XÁC số preview vừa hiển thị ở trên.
+        $this->post('/staff/reception/orders', [
+            'payment_method' => 'cash', 'customer_id' => $customer->id,
+            'points_to_redeem' => 20, 'coupon_code' => 'POSPTS10',
+        ])->assertSessionHasNoErrors();
+
+        $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
+        $this->assertEquals(89980, (float) $order->final_amount);
+    }
+
+    /**
+     * Giao diện POS tạo đơn qua fetch (Accept: application/json) — khi tạo đơn thất bại (vd. dùng
+     * điểm cho khách vãng lai), phản hồi phải là JSON 422 kèm lỗi thay vì redirect-back cổ điển, để
+     * JS hiện thông báo mà KHÔNG tải lại trang (tránh mất trạng thái khách hàng đã chọn/điểm đã nhập
+     * — đúng nguyên nhân gây ra triệu chứng "mất thông tin khách hàng" trước đây).
+     */
+    public function test_pos_store_order_returns_json_error_for_ajax_request(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $product = $this->makeProduct(['base_price' => 20000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        $response = $this->postJson('/staff/reception/orders', ['payment_method' => 'cash', 'points_to_redeem' => 20]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('points_to_redeem');
+        $this->assertNull(Order::where('created_by', $receptionist->id)->first());
+    }
+
+    /**
+     * Ngược lại, khi tạo đơn thành công qua fetch, phản hồi JSON phải trả về redirect_url để JS tự
+     * điều hướng — không phải redirect HTTP cổ điển (fetch không tự follow redirect sang trang HTML).
+     */
+    public function test_pos_store_order_returns_redirect_url_json_on_success(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $product = $this->makeProduct(['base_price' => 20000]);
+
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        $response = $this->postJson('/staff/reception/orders', ['payment_method' => 'cash']);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
+        $this->assertNotNull($order);
+        $this->assertStringContainsString((string) $order->id, $response->json('redirect_url'));
+    }
+
+    /**
      * Nhân viên lễ tân đã TỰ TAY tạo đơn tại quầy (created_by) không được xóa cứng dù đơn đó đứng
      * tên khách khác hoặc khách vãng lai (user_id không còn trỏ về lễ tân nữa từ Giai đoạn 2) — vẫn
      * phải giữ dấu vết ai đã bán đơn này.

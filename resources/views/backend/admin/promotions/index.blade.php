@@ -114,35 +114,37 @@
                 </div>
 
                 <div id="filter-wrapper"
-                    class="hidden xl:flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full transition-all">
+                    class="hidden xl:flex flex-col xl:flex-row gap-3 items-start xl:items-center w-full transition-all">
                     <form action="{{ route('admin.promotions.index') }}" method="GET" id="filter-form"
-                        class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full">
+                        class="flex flex-col sm:flex-row flex-wrap xl:flex-nowrap gap-2 items-stretch sm:items-center w-full min-w-0">
 
-                        <div
-                            class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[280px] shrink-0">
-                            <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                        {{-- Ô tìm kiếm --}}
+                        <div class="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 w-full sm:w-auto xl:w-[200px] xl:shrink-0">
+                            <span class="material-symbols-outlined text-gray-400 text-[18px] shrink-0">search</span>
                             <input type="text" name="search" id="search-input" value="{{ request('search') }}"
-                                class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
-                                placeholder="Tìm mã khuyến mãi...">
+                                class="bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none min-w-0"
+                                placeholder="Tìm mã...">
                         </div>
 
+                        {{-- Loại --}}
                         <select name="type"
-                            class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[160px] shrink-0">
+                            class="custom-select-init px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto xl:min-w-0 xl:flex-1">
                             <option value="all">Tất cả loại</option>
-                            <option value="percent" {{ request('type') == 'percent' ? 'selected' : '' }}>Giảm theo %</option>
-                            <option value="fixed" {{ request('type') == 'fixed' ? 'selected' : '' }}>Giảm cố định (VNĐ)
-                            </option>
+                            <option value="percent" {{ request('type') == 'percent' ? 'selected' : '' }}>Giảm %</option>
+                            <option value="fixed" {{ request('type') == 'fixed' ? 'selected' : '' }}>Giảm tiền</option>
                         </select>
 
+                        {{-- Kênh --}}
                         <select name="applies_to"
-                            class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[160px] shrink-0">
+                            class="custom-select-init px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto xl:min-w-0 xl:flex-1">
                             <option value="all">Tất cả kênh</option>
                             <option value="pickup" {{ request('applies_to') == 'pickup' ? 'selected' : '' }}>Tại quầy</option>
                             <option value="delivery" {{ request('applies_to') == 'delivery' ? 'selected' : '' }}>Giao hàng</option>
                         </select>
 
+                        {{-- Trạng thái --}}
                         <select name="status"
-                            class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[160px] shrink-0">
+                            class="custom-select-init px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto xl:min-w-0 xl:flex-1">
                             <option value="all">Tất cả trạng thái</option>
                             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Đang diễn ra</option>
                             <option value="upcoming" {{ request('status') == 'upcoming' ? 'selected' : '' }}>Sắp tới</option>
@@ -150,25 +152,30 @@
                             <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Vô hiệu</option>
                         </select>
 
-                        <select name="sort"
-                            class="custom-select-init px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[180px] shrink-0">
-                            <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Mới nhất
-                            </option>
-                            <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
-                            <option value="value_asc" {{ request('sort') == 'value_asc' ? 'selected' : '' }}>Giá trị: Thấp →
-                                Cao</option>
-                            <option value="value_desc" {{ request('sort') == 'value_desc' ? 'selected' : '' }}>Giá trị: Cao →
-                                Thấp</option>
+                        {{-- Xác nhận --}}
+                        <select name="verification"
+                            class="custom-select-init px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto xl:min-w-0 xl:flex-1">
+                            <option value="all">Tất cả mã</option>
+                            <option value="yes" {{ request('verification') == 'yes' ? 'selected' : '' }}>Cần xác nhận</option>
+                            <option value="no" {{ request('verification') == 'no' ? 'selected' : '' }}>Tự động áp</option>
                         </select>
 
-                        <div class="w-full lg:w-auto shrink-0 lg:ml-auto flex items-center gap-2">
-                            <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
-                                class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow"
-                                style="display: {{ (request('search') || (request('type') && request('type') != 'all') || (request('applies_to') && request('applies_to') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
-                                <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
-                                <span class="whitespace-nowrap font-medium">Xóa lọc</span>
-                            </a>
-                        </div>
+                        {{-- Sắp xếp --}}
+                        <select name="sort"
+                            class="custom-select-init px-2 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-auto xl:min-w-0 xl:flex-1">
+                            <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Mới nhất</option>
+                            <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
+                            <option value="value_asc" {{ request('sort') == 'value_asc' ? 'selected' : '' }}>Giá trị ↑</option>
+                            <option value="value_desc" {{ request('sort') == 'value_desc' ? 'selected' : '' }}>Giá trị ↓</option>
+                        </select>
+
+                        {{-- Nút Xóa lọc — luôn inline trong cùng hàng --}}
+                        <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
+                            class="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors xl:shrink-0 whitespace-nowrap"
+                            style="display: {{ (request('search') || (request('type') && request('type') != 'all') || (request('applies_to') && request('applies_to') != 'all') || (request('status') && request('status') != 'all') || (request('verification') && request('verification') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
+                            <span class="material-symbols-outlined text-[18px] shrink-0">filter_alt_off</span>
+                            <span class="hidden sm:inline font-medium">Xóa lọc</span>
+                        </a>
                     </form>
 
                     <form id="bulk-delete-form" action="{{ route('admin.promotions.bulk_delete') }}" method="POST"

@@ -52,6 +52,7 @@ class SettingController
             'shipping_max_distance_km' => '15',
             'free_shipping_minimum' => '150000',
             'weather_surcharge_enabled' => '0',
+            'weather_override' => 'auto',
             'weather_light_rain_percent' => '5',
             'weather_heavy_rain_percent' => '10',
             'weather_storm_percent' => '15',
@@ -138,7 +139,7 @@ class SettingController
         $allowedKeys = [
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
             'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
-            'shipping' => ['shipping_base_fee', 'shipping_fee_per_km', 'shipping_max_distance_km', 'free_shipping_minimum', 'weather_surcharge_enabled', 'weather_light_rain_percent', 'weather_heavy_rain_percent', 'weather_storm_percent'],
+            'shipping' => ['shipping_base_fee', 'shipping_fee_per_km', 'shipping_max_distance_km', 'free_shipping_minimum', 'weather_surcharge_enabled', 'weather_override', 'weather_light_rain_percent', 'weather_heavy_rain_percent', 'weather_storm_percent'],
             'payment' => ['cod_enabled', 'momo_enabled', 'payment_environment'],
             'loyalty' => ['loyalty_enabled', 'loyalty_money_per_point', 'loyalty_point_value', 'loyalty_max_redeem_percent', 'loyalty_min_points_to_redeem'],
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
@@ -166,6 +167,7 @@ class SettingController
             'shipping_max_distance_km' => 'decimal',
             'free_shipping_minimum' => 'decimal',
             'weather_surcharge_enabled' => 'boolean',
+            'weather_override' => 'string',
             'weather_light_rain_percent' => 'integer',
             'weather_heavy_rain_percent' => 'integer',
             'weather_storm_percent' => 'integer',
@@ -216,6 +218,8 @@ class SettingController
                     'shipping_max_distance_km' => 'required|numeric|min:0',
                     'free_shipping_minimum' => 'required|numeric|min:0',
                     'weather_surcharge_enabled' => 'required|in:0,1',
+                    // 'auto' = đọc thời tiết thật; các giá trị còn lại là ép cứng để trình diễn.
+                    'weather_override' => 'required|in:auto,light_rain,heavy_rain,storm',
                     'weather_light_rain_percent' => 'required|integer|between:0,100',
                     'weather_heavy_rain_percent' => 'required|integer|between:0,100',
                     'weather_storm_percent' => 'required|integer|between:0,100',

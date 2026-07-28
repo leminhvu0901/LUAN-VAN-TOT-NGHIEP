@@ -1044,6 +1044,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Apply coupon
     let discountPercent = 0;
     let maxDiscountAmount = 0;
+    // Phạm vi mã đang áp dụng ('order' | 'product' | 'category') — quyết định calculateTotal() có
+    // được phép tự tính lại số giảm theo % hay phải giữ nguyên số server đã tính (xem calculateTotal).
+    let couponScope = 'order';
     if (applyCouponBtn && couponInput) {
         applyCouponBtn.addEventListener('click', () => {
             const code = couponInput.value.trim().toUpperCase();
@@ -1052,6 +1055,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 discount = 0;
                 discountPercent = 0;
                 maxDiscountAmount = 0;
+                couponScope = 'order';
                 couponMessage.innerText = '';
                 discountRow.classList.add('hidden');
                 document.getElementById('hidden_coupon_code').value = '';
@@ -1080,6 +1084,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     if (data.valid) {
                         discount = parseFloat(data.discount_amount) || 0;
+                        couponScope = data.scope || 'order';
                         if (data.discount_type === 'percent') {
                             discountPercent = data.discount_value;
                             maxDiscountAmount = data.max_discount_amount ? parseFloat(data.max_discount_amount) : 0;
@@ -1088,11 +1093,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             maxDiscountAmount = 0;
                         }
 
-                        couponMessage.innerText = data.message;
+                        // Mã theo sản phẩm/danh mục -> nói rõ áp dụng cho món/danh mục nào.
+                        couponMessage.innerText = data.scope_label
+                            ? data.message + ' ' + data.scope_label
+                            : data.message;
                         couponMessage.className = 'text-xs text-primary font-bold mt-1';
                     } else {
                         discount = 0;
                         discountPercent = 0;
+                        couponScope = 'order';
                         couponMessage.innerText = data.message;
                         couponMessage.className = 'text-xs text-error font-bold mt-1';
                     }
@@ -1192,8 +1201,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         distanceFee = Math.round(distanceFee);
 
-        // Calculate dynamic coupon discount
-        if (discountPercent > 0) {
+        // Tính lại số tiền giảm theo % — CHỈ đúng với mã giảm TOÀN ĐƠN, vì chỉ khi đó phần trăm mới
+        // áp trên toàn bộ subtotal. Với mã theo sản phẩm/danh mục, số giảm phải tính trên riêng phần
+        // hàng hợp lệ (server đã tính sẵn và trả về discount_amount) — tính lại ở đây sẽ ra số lớn
+        // hơn thực tế, hiện sai cho khách. Nên các mã đó giữ nguyên số server trả về.
+        if (discountPercent > 0 && couponScope === 'order') {
             discount = Math.round(subtotal * (discountPercent / 100));
             if (maxDiscountAmount && maxDiscountAmount > 0 && discount > maxDiscountAmount) {
                 discount = maxDiscountAmount;

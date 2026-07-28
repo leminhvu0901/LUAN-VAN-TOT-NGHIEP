@@ -60,6 +60,10 @@
                             <p class="text-xs text-gray-400 mt-1">Tối đa 10 ký tự. Để trống để hệ thống tự sinh mã.</p>
                         </div>
 
+                        <!-- Loại khuyến mãi + Giá trị giảm: CHỈ có ý nghĩa với giảm giá tiền (toàn
+                        đơn/sản phẩm/danh mục) — ẩn hoàn toàn khi chọn "Mua X tặng Y" ở khối phạm vi
+                        bên dưới (xử lý bởi form-common.js). -->
+                        <div id="money-discount-fields">
                         <!-- Loại khuyến mãi -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Loại khuyến mãi <span class="text-red-500">*</span></label>
@@ -113,6 +117,7 @@
                                 <p class="text-xs text-gray-400 mt-1">Giới hạn số tiền giảm tối đa.</p>
                             </div>
                         </div>
+                        </div>
 
                         <!-- Mô tả -->
                         <div>
@@ -124,6 +129,16 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Card: Phạm vi áp dụng -->
+                @include('backend.admin.promotions.partials.scope-fields', [
+                    'products' => $products,
+                    'categories' => $categories,
+                    'selectedScope' => old('scope', 'order'),
+                    'selectedProductIds' => old('product_ids', []),
+                    'selectedCategoryIds' => old('category_ids', []),
+                    'bxgy' => null,
+                ])
 
                 <!-- Card: Điều kiện áp dụng -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
@@ -179,6 +194,24 @@
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
                             <p class="text-xs text-gray-400 mt-1">Để trống = không giới hạn số lần sử dụng.</p>
                         </div>
+                    </div>
+
+                    {{-- Toggle: Yêu cầu nhân viên xác nhận --}}
+                    <div class="mt-5 pt-4 border-t border-gray-100">
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <div class="relative mt-0.5 flex-shrink-0">
+                                <input type="checkbox" name="requires_staff_verification" id="requires_staff_verification"
+                                    value="1"
+                                    {{ old('requires_staff_verification') ? 'checked' : '' }}
+                                    class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-rose-500 transition-colors"></div>
+                                <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700 group-hover:text-rose-600 transition-colors">Yêu cầu nhân viên xác nhận trước khi áp dụng</p>
+                                <p class="text-xs text-gray-400 mt-0.5">Dùng cho mã <strong>Sinh viên</strong>, <strong>Sinh nhật</strong>... — mã sẽ <strong class="text-rose-600">không tự động áp</strong>. Chỉ lễ tân mới nhập tay sau khi khách đã báo và được xác nhận.</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
             </div>

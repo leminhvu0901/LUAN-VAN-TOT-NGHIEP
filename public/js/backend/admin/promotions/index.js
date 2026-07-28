@@ -248,7 +248,7 @@ document.addEventListener("DOMContentLoaded", function () {
             filterForm.reset();
             filterForm.querySelectorAll("select").forEach((s) => {
                 if (s.name === "sort") s.value = "newest";
-                else s.value = "all";
+                else s.value = "all"; // bao gồm cả select[name="verification"]
             });
             if (searchInput) searchInput.value = "";
             fetchPromotions();

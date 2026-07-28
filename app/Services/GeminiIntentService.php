@@ -85,12 +85,17 @@ class GeminiIntentService
                     ],
                     'generationConfig' => [
                         'temperature' => 0,
-                        'maxOutputTokens' => 300,
+                        // PHẢI đủ lớn để chứa CẢ token "thinking" ẩn LẪN JSON trả về — đo thật với
+                        // gemini-3.6-flash: câu hỏi phức tạp tốn ~325 token thinking + ~150 token JSON.
+                        // Để 300 như trước sẽ bị cắt cụt giữa chừng (finishReason=MAX_TOKENS) -> JSON
+                        // hỏng -> classify() trả null -> chatbox báo "hệ thống chưa phản hồi được".
+                        'maxOutputTokens' => 2000,
                         'responseMimeType' => 'application/json',
-                        // Tắt "thinking" — các model Gemini mới mặc định dành phần lớn maxOutputTokens
-                        // cho suy luận ẩn trước khi trả JSON, không cần thiết cho tác vụ phân loại đơn
-                        // giản này (và có thể khiến response bị cắt cụt do hết token trước khi ra JSON).
-                        'thinkingConfig' => ['thinkingBudget' => 0],
+                        // Giảm "thinking" xuống mức thấp nhất cho tác vụ phân loại đơn giản này (đo
+                        // thật: 1.4s so với 3.0s khi để mặc định). LƯU Ý: KHÔNG dùng lại
+                        // ['thinkingBudget' => 0] — tham số đó là của thế hệ Gemini 2.x, nay
+                        // gemini-flash-latest đã trỏ sang Gemini 3.x và trả HTTP 400 INVALID_ARGUMENT.
+                        'thinkingConfig' => ['thinkingLevel' => 'low'],
                     ],
                 ]);
 

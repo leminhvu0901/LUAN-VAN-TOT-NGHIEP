@@ -132,6 +132,12 @@
                                 <span class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
                             </div>
                         @endif
+                        @if($order->points_redeemed > 0)
+                            <div class="flex justify-between text-emerald-600 text-sm">
+                                <span>Đã dùng điểm tích lũy</span>
+                                <span class="font-medium">{{ number_format($order->points_redeemed, 0, ',', '.') }} điểm</span>
+                            </div>
+                        @endif
                         {{-- Tổng tiền cuối cùng khách phải trả --}}
                         <div class="pt-4 mt-2 border-t border-gray-100 flex justify-between items-center">
                             <span class="font-bold text-gray-900 text-lg">Tổng cộng</span>

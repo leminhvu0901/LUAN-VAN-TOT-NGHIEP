@@ -123,6 +123,61 @@ class ShippingQuoteServiceTest extends TestCase
         $this->assertSame(5.0, $quote['distance_km']);
     }
 
+    // Ép thời tiết (dùng khi trình diễn): KHÔNG gọi API Open-Meteo, áp thẳng mức % của nhóm đã chọn.
+    public function test_weather_override_applies_without_calling_api(): void
+    {
+        \App\Models\Setting::setValue('weather_surcharge_enabled', '1', 'shipping', 'boolean');
+        \App\Models\Setting::setValue('weather_override', 'heavy_rain', 'shipping', 'string');
+        \App\Models\Setting::setValue('weather_heavy_rain_percent', '10', 'shipping', 'integer');
+        Http::fake();
+
+        $result = app(ShippingQuoteService::class)->weatherSurcharge(30000, 10.75, 106.68);
+
+        $this->assertSame(3000.0, $result['fee']);   // 10% của 30.000
+        $this->assertSame('heavy_rain', $result['group']);
+        $this->assertSame('Mưa to', $result['label']);
+        Http::assertNothingSent();                   // đã ép -> không hỏi dịch vụ thời tiết
+    }
+
+    // Chế độ tự động: đọc mã thời tiết thật rồi quy ra nhóm tương ứng.
+    public function test_weather_auto_mode_reads_real_weather_code(): void
+    {
+        \App\Models\Setting::setValue('weather_surcharge_enabled', '1', 'shipping', 'boolean');
+        \App\Models\Setting::setValue('weather_override', 'auto', 'shipping', 'string');
+        \App\Models\Setting::setValue('weather_light_rain_percent', '5', 'shipping', 'integer');
+        Http::fake(['api.open-meteo.com/*' => Http::response(['current' => ['weather_code' => 61]], 200)]);
+
+        $result = app(ShippingQuoteService::class)->weatherSurcharge(20000, 10.75, 106.68);
+
+        $this->assertSame(1000.0, $result['fee']);   // 5% của 20.000
+        $this->assertSame('light_rain', $result['group']);
+    }
+
+    // Tắt phụ thu -> luôn bằng 0 dù đang ép mưa bão.
+    public function test_weather_surcharge_disabled_returns_zero(): void
+    {
+        \App\Models\Setting::setValue('weather_surcharge_enabled', '0', 'shipping', 'boolean');
+        \App\Models\Setting::setValue('weather_override', 'storm', 'shipping', 'string');
+        Http::fake();
+
+        $result = app(ShippingQuoteService::class)->weatherSurcharge(30000, 10.75, 106.68);
+
+        $this->assertSame(0.0, $result['fee']);
+        $this->assertSame('none', $result['group']);
+    }
+
+    // Miễn phí giao hàng (phí ship = 0) -> không thu phụ thu, vì phụ thu tính theo % của phí ship.
+    public function test_no_weather_surcharge_when_shipping_is_free(): void
+    {
+        \App\Models\Setting::setValue('weather_surcharge_enabled', '1', 'shipping', 'boolean');
+        \App\Models\Setting::setValue('weather_override', 'storm', 'shipping', 'string');
+        Http::fake();
+
+        $result = app(ShippingQuoteService::class)->weatherSurcharge(0, 10.75, 106.68);
+
+        $this->assertSame(0.0, $result['fee']);
+    }
+
     public function test_quote_is_free_shipping_above_threshold(): void
     {
         \App\Models\Setting::setValue('free_shipping_minimum', '150000', 'shipping', 'decimal');

@@ -34,6 +34,12 @@
                             Lặp lại
                         </span>
                     @endif
+                    @if($promo->requires_staff_verification)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md font-bold text-[10px] uppercase border border-rose-200" title="Mã này không tự động áp — cần nhân viên xác nhận">
+                            <span class="material-symbols-outlined text-[11px]">verified_user</span>
+                            Cần xác nhận
+                        </span>
+                    @endif
                 </div>
                 <input type="checkbox" class="row-checkbox rounded-md border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-5 h-5 shrink-0 transition-colors" value="{{ $promo->id }}">
             </div>
@@ -220,7 +226,15 @@
                     </td>
                     <td class="px-3 py-3">
                         <div class="flex flex-col gap-0.5 max-w-[170px] whitespace-normal">
-                            <span class="font-bold text-gray-800 font-mono tracking-wide text-sm">{{ $promo->code }}</span>
+                            <div class="flex flex-wrap items-center gap-1">
+                                <span class="font-bold text-gray-800 font-mono tracking-wide text-sm">{{ $promo->code }}</span>
+                                @if($promo->requires_staff_verification)
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md font-bold text-[10px] uppercase border border-rose-200" title="Không tự động áp — cần nhân viên xác nhận">
+                                        <span class="material-symbols-outlined text-[11px]">verified_user</span>
+                                        Cần xác nhận
+                                    </span>
+                                @endif
+                            </div>
                             @if($promo->description)
                                 <span class="text-xs text-gray-400 line-clamp-2" title="{{ $promo->description }}">{{ $promo->description }}</span>
                             @endif

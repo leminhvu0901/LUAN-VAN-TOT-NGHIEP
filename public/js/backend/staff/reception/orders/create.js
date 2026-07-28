@@ -54,6 +54,14 @@
 
         clearBtn.addEventListener('click', clearCustomer);
 
+        // Kiểm tra AJAX ngay khi lễ tân gõ số điểm — không cần chờ tới lúc bấm "Tạo đơn" mới biết
+        // có hợp lệ hay không (debounce 400ms để không gọi API dồn dập từng phím gõ).
+        let pointsTimer = null;
+        pointsInput.addEventListener('input', function () {
+            clearTimeout(pointsTimer);
+            pointsTimer = setTimeout(refreshPreviewTotal, 400);
+        });
+
         searchInput.addEventListener('input', function () {
             const query = this.value.trim();
             clearTimeout(searchTimer);
@@ -117,7 +125,7 @@
         if (totalEl) totalEl.textContent = formatMoney(total);
     }
 
-    function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount) {
+    function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts, membershipDiscount, pointsDiscount) {
         document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
         const discountRow = document.getElementById('pos-cart-discount-row');
@@ -129,12 +137,53 @@
             discountRow.classList.add('hidden');
         }
 
+        const membershipRow = document.getElementById('pos-cart-membership-row');
+        if (membershipDiscount > 0) {
+            document.getElementById('pos-cart-membership-discount').textContent = '-' + formatMoney(membershipDiscount);
+            membershipRow.classList.remove('hidden');
+        } else {
+            membershipRow.classList.add('hidden');
+        }
+
+        const pointsRow = document.getElementById('pos-cart-points-row');
+        if (pointsDiscount > 0) {
+            document.getElementById('pos-cart-points-discount').textContent = '-' + formatMoney(pointsDiscount);
+            pointsRow.classList.remove('hidden');
+        } else {
+            pointsRow.classList.add('hidden');
+        }
+
         const shippingRow = document.getElementById('pos-cart-shipping-row');
         if (shippingFee > 0) {
             document.getElementById('pos-cart-shipping').textContent = formatMoney(shippingFee);
             shippingRow.classList.remove('hidden');
         } else {
             shippingRow.classList.add('hidden');
+        }
+
+        // Hiển thị danh sách quà tặng Mua X Tặng Y
+        const giftsRow = document.getElementById('pos-cart-gifts-row');
+        const giftsList = document.getElementById('pos-cart-gifts-list');
+        if (giftsRow && giftsList) {
+            if (gifts && gifts.length > 0) {
+                giftsList.innerHTML = gifts.map(function (g) {
+                    const stockNote = g.stock_limited
+                        ? ' <span class="text-orange-500">(giới hạn kho)</span>'
+                        : '';
+                    return '<li class="flex items-center justify-between text-xs text-gray-600">' +
+                        '<span class="flex items-center gap-1">' +
+                        '<span class="text-amber-500">&#127873;</span>' +
+                        '<span class="font-medium">' + g.gift_product_name + '</span>' +
+                        stockNote +
+                        '</span>' +
+                        '<span class="font-bold text-amber-600">x' + g.quantity + ' Miễn phí</span>' +
+                        '</li>';
+                }).join('');
+                giftsRow.classList.remove('hidden');
+            } else {
+                giftsRow.classList.add('hidden');
+                giftsList.innerHTML = '';
+            }
         }
 
         document.getElementById('pos-cart-total').textContent = formatMoney(finalAmount);
@@ -153,15 +202,24 @@
         const customerIdInput = document.getElementById('pos-customer-id');
         const couponInput = document.getElementById('pos-coupon-code');
         const feedbackEl = document.getElementById('pos-coupon-feedback');
+        const pointsInput = document.getElementById('pos-points-to-redeem');
+        const pointsFeedbackEl = document.getElementById('pos-points-feedback');
 
         const params = new URLSearchParams();
         if (customerIdInput && customerIdInput.value) params.set('customer_id', customerIdInput.value);
         if (couponInput && couponInput.value.trim()) params.set('coupon_code', couponInput.value.trim());
+        // Điểm chỉ có ý nghĩa khi đã chọn khách hàng — khớp với ràng buộc thật ở OrderService::create().
+        if (customerIdInput && customerIdInput.value && pointsInput && Number(pointsInput.value) > 0) {
+            params.set('points_to_redeem', pointsInput.value);
+        }
 
         fetch(window.posPreviewTotalUrl + '?' + params.toString(), { headers: { Accept: 'application/json' } })
             .then(r => r.json())
             .then(data => {
-                updatePreviewTotal(data.subtotal, data.discount, data.promotion_label, data.shipping_fee || 0, data.final_amount);
+                updatePreviewTotal(
+                    data.subtotal, data.discount, data.promotion_label, data.shipping_fee || 0, data.final_amount,
+                    data.gifts || [], data.membership_discount || 0, data.points_discount || 0
+                );
 
                 if (feedbackEl) {
                     if (data.coupon_error) {
@@ -172,6 +230,18 @@
                         feedbackEl.className = 'text-xs mt-1 text-emerald-600';
                     } else {
                         feedbackEl.textContent = '';
+                    }
+                }
+
+                if (pointsFeedbackEl) {
+                    if (data.points_error) {
+                        pointsFeedbackEl.textContent = data.points_error;
+                        pointsFeedbackEl.className = 'text-xs text-red-600';
+                    } else if (pointsInput && Number(pointsInput.value) > 0 && data.points_discount > 0) {
+                        pointsFeedbackEl.textContent = 'Áp dụng thành công: -' + formatMoney(data.points_discount);
+                        pointsFeedbackEl.className = 'text-xs text-emerald-600';
+                    } else {
+                        pointsFeedbackEl.textContent = '';
                     }
                 }
             });
@@ -214,7 +284,7 @@
                     container.innerHTML = '';
                     container.appendChild(emptyEl);
                     lastCartItemCount = 0;
-                    updatePreviewTotal(0, 0, null, 0, 0);
+                    updatePreviewTotal(0, 0, null, 0, 0, [], 0, 0);
                     return;
                 }
 
@@ -531,6 +601,51 @@
     document.querySelectorAll('.pos-order-type-option input[name="order_type"]').forEach(function (radio) {
         radio.addEventListener('change', applyOrderType);
     });
+
+    // ───────────────────────── Tạo đơn (submit qua fetch, không tải lại trang) ─────────────────────────
+    // Trước đây form POST kiểu cổ điển: khi tạo đơn lỗi (vd. điểm vượt số dư, cửa hàng đóng cửa...)
+    // trình duyệt redirect-back và tải lại toàn trang — khách hàng vừa chọn/số điểm vừa nhập biến
+    // mất trắng vì các input đó không dùng old() để khôi phục, tạo cảm giác "mất thông tin khách
+    // hàng" dù thực chất chỉ là lỗi validate bình thường. Submit qua fetch giữ nguyên toàn bộ trạng
+    // thái trên trang khi có lỗi (chỉ hiện thông báo qua showAlert(), giống hệt cách /cart/add xử lý
+    // lỗi), và điều hướng thật (window.location.href) chỉ khi tạo đơn thành công.
+    const orderForm = document.getElementById('pos-order-form');
+    const submitBtn = document.getElementById('pos-submit-btn');
+    if (orderForm) {
+        orderForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (submitBtn) submitBtn.disabled = true;
+
+            fetch(orderForm.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: new FormData(orderForm),
+            })
+                .then(function (response) {
+                    return response.json().then(function (data) { return { status: response.status, data: data }; });
+                })
+                .then(function (result) {
+                    if (result.status >= 400) {
+                        const errors = result.data && result.data.errors ? result.data.errors : {};
+                        const firstError = Object.values(errors)[0];
+                        showAlert((firstError && firstError[0]) || result.data.message || 'Không thể tạo đơn, vui lòng kiểm tra lại.', 'error');
+                        if (submitBtn) submitBtn.disabled = false;
+                        return;
+                    }
+
+                    if (result.data && result.data.redirect_url) {
+                        window.location.href = result.data.redirect_url;
+                        return;
+                    }
+
+                    if (submitBtn) submitBtn.disabled = false;
+                })
+                .catch(function () {
+                    showAlert('Không thể kết nối máy chủ, vui lòng thử lại.', 'error');
+                    if (submitBtn) submitBtn.disabled = false;
+                });
+        });
+    }
 
     refreshCart();
 })();

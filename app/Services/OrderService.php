@@ -18,6 +18,7 @@ class OrderService
         private readonly CartPricingService $cartPricing,
         private readonly ShippingQuoteService $shipping,
         private readonly InventoryService $inventory,
+        private readonly PromotionService $promotions,
     ) {
     }
 
@@ -122,60 +123,36 @@ class OrderService
 
             // Points redemption logic
             $pointsToRedeem = (int) ($payload['points_to_redeem'] ?? 0);
-            $pointsDiscount = 0;
-
-            if ($pointsToRedeem > 0) {
-                if (!$orderOwner) {
-                    throw ValidationException::withMessages(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.']);
-                }
-
-                $loyaltyEnabled = \App\Models\Setting::getValue('loyalty_enabled', '1') == '1';
-                if (!$loyaltyEnabled) {
-                    throw ValidationException::withMessages(['points_to_redeem' => 'Chương trình tích điểm hiện đang tạm đóng.']);
-                }
-
-                $minPointsToRedeem = (int) \App\Models\Setting::getValue('loyalty_min_points_to_redeem', 10);
-                if ($pointsToRedeem < $minPointsToRedeem) {
-                    throw ValidationException::withMessages(['points_to_redeem' => "Số điểm tối thiểu để được quy đổi là {$minPointsToRedeem}."]);
-                }
-
-                // Check actual points balance
-                $pointsBalance = (int) $orderOwner->points;
-                if ($pointsToRedeem > $pointsBalance) {
-                    throw ValidationException::withMessages(['points_to_redeem' => 'Số điểm quy đổi vượt quá số dư hiện có.']);
-                }
-
-                // Check maximum redeem percent
-                $maxRedeemPercent = (float) \App\Models\Setting::getValue('loyalty_max_redeem_percent', 100);
-                $maxDiscountMoney = $subtotal * ($maxRedeemPercent / 100);
-
-                $pointValue = (float) \App\Models\Setting::getValue('loyalty_point_value', 1);
-                $pointsDiscount = $pointsToRedeem * $pointValue;
-
-                if ($pointsDiscount > $maxDiscountMoney) {
-                    throw ValidationException::withMessages(['points_to_redeem' => "Số điểm quy đổi vượt quá giới hạn tối đa ({$maxRedeemPercent}%) giá trị đơn hàng."]);
-                }
-            }
+            $pointsDiscount = $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal);
 
             // Lễ tân có thể nhập mã khuyến mãi thủ công cho đơn tại quầy (thay vì chỉ tự động chọn) —
             // dùng $orderOwner (khách đứng tên đơn) chứ không phải $user (lễ tân) để kiểm tra đúng
             // hạng thành viên/giới hạn "mỗi người 1 lần" của CHÍNH KHÁCH, không phải tài khoản lễ tân.
+            // Tự động chọn mã CHỈ áp dụng cho đơn tại quầy (giữ nguyên hành vi cũ) — đơn giao hàng chỉ
+            // dùng mã khách tự nhập. Ba loại giảm giá tiền (toàn đơn/sản phẩm/danh mục) loại trừ nhau,
+            // PromotionService tự chọn mã lợi nhất; số tiền giảm được tính đúng theo phạm vi (chỉ trên
+            // các dòng sản phẩm/danh mục khớp, không phải luôn toàn đơn — xem PromotionService::eligibleSubtotal).
             $channel = $isPickup ? 'pickup' : 'delivery';
-            if (filled($payload['coupon_code'] ?? null)) {
-                [$promotion, $couponDiscount] = $this->promotionDiscount($payload['coupon_code'], $orderOwner, $subtotal, $channel, $totalQuantity);
-            } elseif ($isPickup) {
-                $promotion = $this->resolveAutoPromotion($subtotal, $totalQuantity);
-                $couponDiscount = $promotion ? $this->calculateDiscount($promotion, $subtotal) : 0;
-            } else {
+            $manualCode = filled($payload['coupon_code'] ?? null) ? $payload['coupon_code'] : null;
+            if ($manualCode === null && !$isPickup) {
                 $promotion = null;
                 $couponDiscount = 0;
+            } else {
+                $result = $this->promotions->resolveBestDiscount(
+                    $items, $subtotal, $orderOwner, $channel, $totalQuantity, $manualCode, lock: true
+                );
+                $promotion = $result['promotion'];
+                $couponDiscount = $result['discount'];
             }
-            $membershipDiscount = match ($orderOwner?->membership_level) {
-                'silver' => round($subtotal * 0.02),
-                'gold' => round($subtotal * 0.05),
-                'diamond' => round($subtotal * 0.10),
-                default => 0,
-            };
+
+            // Mua X tặng Y — ĐỘC LẬP với giảm giá tiền ở trên, được cộng thêm (không cạnh tranh vì bản
+            // chất khác nhau: tặng vật lý chứ không giảm tiền). Tự động áp dụng ở CẢ pickup lẫn
+            // delivery, không cần mã, không cần khách chọn. Tính lại NGAY TRONG transaction bằng đúng
+            // $items đã lock (không tin số đã preview trước transaction) để không ai lợi dụng request
+            // chỉnh sửa mà nhận quà sai điều kiện.
+            $gifts = $this->promotions->resolveGifts($items, $channel);
+
+            $membershipDiscount = $this->membershipDiscount($orderOwner, $subtotal);
             $discount = min($subtotal, $couponDiscount + $membershipDiscount + $pointsDiscount);
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discount);
 
@@ -242,7 +219,34 @@ class OrderService
                 ]);
             }
 
-            $this->inventory->reserveForOrder($order, $items);
+            // Vật chất hóa quà tặng Mua X tặng Y THÀNH dòng OrderItem thật, unit_price=0, đánh dấu
+            // is_gift để không tính vào doanh thu. Không lưu quà vào cart_items — tránh việc khách tự
+            // sửa/xóa/tăng số lượng quà qua các endpoint /cart/update, /cart/remove hiện có (các
+            // endpoint đó không biết khái niệm "quà tặng").
+            $giftInventoryItems = collect();
+            foreach ($gifts as $gift) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $gift['gift_product']->id,
+                    'product_name' => $gift['gift_product']->name,
+                    'product_sku' => $gift['gift_product']->sku,
+                    'product_image' => $gift['gift_product']->image,
+                    'size_name' => null,
+                    'quantity' => $gift['granted_quantity'],
+                    'unit_price' => 0,
+                    'sugar_level' => null,
+                    'ice_level' => null,
+                    'options' => [],
+                    'note' => 'Quà tặng: Mua ' . $gift['rule']->buy_quantity . ' ' . $gift['buy_product']->name
+                        . ' tặng ' . $gift['rule']->gift_quantity . ' ' . $gift['gift_product']->name,
+                    'is_gift' => true,
+                    'source_promotion_id' => $gift['promotion']->id,
+                ]);
+                // reserveForOrder() chỉ cần product_id+quantity — quà tặng vẫn trừ kho như hàng bán thật.
+                $giftInventoryItems->push((object) ['product_id' => $gift['gift_product']->id, 'quantity' => $gift['granted_quantity']]);
+            }
+
+            $this->inventory->reserveForOrder($order, $items->concat($giftInventoryItems));
             // CHỈ xóa những cart_items đã được đưa vào đơn hàng này.
             // Các sản phẩm còn lại trong giỏ (không được chọn) sẽ được giữ nguyên.
             $itemIds = $items->pluck('id');
@@ -250,6 +254,11 @@ class OrderService
             DB::table('cart_items')->whereIn('id', $itemIds)->delete();
             if ($promotion)
                 $promotion->increment('used_count');
+            // Mỗi chương trình Mua X tặng Y đã thực sự tặng quà trong đơn này cũng tính 1 lượt dùng
+            // (dùng collect()->unique() phòng trường hợp hiếm gặp nhiều quy tắc trùng promotion_id).
+            foreach (collect($gifts)->pluck('promotion')->unique('id') as $giftPromotion) {
+                $giftPromotion->increment('used_count');
+            }
 
             if ($pointsToRedeem > 0) {
                 // $orderOwner chắc chắn khác null ở đây (đã chặn ở trên nếu khách vãng lai).
@@ -265,96 +274,100 @@ class OrderService
     /**
      * Xem trước khuyến mãi tự động sẽ áp dụng cho một đơn tại quầy (nếu có) — dùng cho giao diện POS
      * hiển thị tổng tiền thực tế TRƯỚC khi lễ tân bấm "Tạo đơn", không cần tạo đơn thật mới biết được.
+     * $items phải là kết quả CartPricingService::pricedItems() (có product + calculated_unit_price)
+     * để tính đúng số giảm cho khuyến mãi phạm vi sản phẩm/danh mục.
      */
-    public function previewAutoPromotion(float $subtotal, int $totalQuantity = 0): array
+    public function previewAutoPromotion(\Illuminate\Support\Collection $items, float $subtotal, int $totalQuantity = 0): array
     {
-        $promotion = $this->resolveAutoPromotion($subtotal, $totalQuantity);
-        $discount = $promotion ? $this->calculateDiscount($promotion, $subtotal) : 0;
-
-        return ['promotion' => $promotion, 'discount' => $discount];
+        return $this->promotions->resolveBestDiscount($items, $subtotal, null, 'pickup', $totalQuantity);
     }
 
     /**
      * Xem trước 1 mã khuyến mãi NHẬP TAY (không phải tự động chọn) cho đơn tại quầy — dùng cho POS
-     * hiển thị kết quả TRƯỚC khi tạo đơn thật. Ném ValidationException giống hệt lúc tạo đơn thật
-     * (promotionDiscount() dùng chung) nên luôn khớp giữa preview và kết quả tạo đơn.
+     * hiển thị kết quả TRƯỚC khi tạo đơn thật. Dùng chung PromotionService với lúc tạo đơn thật nên
+     * luôn khớp giữa preview và kết quả tạo đơn.
      */
-    public function previewManualCoupon(string $code, ?User $orderOwner, float $subtotal, ?string $deliveryType = null, int $totalQuantity = 0): array
-    {
-        [$promotion, $discount] = $this->promotionDiscount($code, $orderOwner, $subtotal, $deliveryType, $totalQuantity);
-
-        return ['promotion' => $promotion, 'discount' => $discount];
-    }
-
-    private function promotionDiscount(?string $code, ?User $user, float $subtotal, ?string $deliveryType = null, int $totalQuantity = 0): array
-    {
-        if (!filled($code))
-            return [null, 0];
-
-        $promotion = Promotion::query()->where('code', strtoupper(trim($code)))->lockForUpdate()->first();
-        if (!$promotion)
-            throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không tồn tại.']);
-        $validity = $promotion->checkValidity($user, $subtotal, $deliveryType, $totalQuantity);
-        if (!$validity['valid'])
-            throw ValidationException::withMessages(['coupon_code' => $validity['message']]);
-
-        return [$promotion, $this->calculateDiscount($promotion, $subtotal)];
-    }
-
-    private function calculateDiscount(Promotion $promotion, float $subtotal): float
-    {
-        $discount = $promotion->type === 'percent'
-            ? round($subtotal * ((float) $promotion->value / 100))
-            : (float) $promotion->value;
-        if ($promotion->max_discount_amount) {
-            $discount = min($discount, (float) $promotion->max_discount_amount);
-        }
-        return min($discount, $subtotal);
+    public function previewManualCoupon(
+        string $code,
+        \Illuminate\Support\Collection $items,
+        ?User $orderOwner,
+        float $subtotal,
+        ?string $deliveryType = null,
+        int $totalQuantity = 0
+    ): array {
+        return $this->promotions->resolveBestDiscount(
+            $items, $subtotal, $orderOwner, $deliveryType ?? 'pickup', $totalQuantity, $code, lock: true
+        );
     }
 
     /**
-     * Tự động chọn khuyến mãi phù hợp nhất cho đơn tại quầy (không có ô nhập mã trên giao diện POS).
-     * Chỉ xét mã áp dụng cho TẤT CẢ (apply_for=all) — đơn tại quầy tạo dưới tài khoản lễ tân nên
-     * không có khách hàng thật để kiểm tra hạng thành viên hay giới hạn 1 lần/người (checkValidity
-     * sẽ luôn dùng chung tài khoản lễ tân, không phản ánh đúng khách vãng lai thực tế).
-     * Chỉ xét mã áp dụng cho kênh "Tại quầy" hoặc "Tất cả" (applies_to) — mã dành riêng cho giao
-     * hàng (applies_to=delivery) không được tự động áp cho đơn tại quầy.
+     * Xem trước số tiền giảm từ việc dùng điểm tích lũy — dùng CHUNG logic/hạn mức với
+     * resolvePointsDiscount() (nguồn tính toán duy nhất) để preview trên giao diện POS luôn khớp
+     * với kết quả tạo đơn thật, không tự tính riêng một lần nữa dễ bị lệch.
      */
-    private function resolveAutoPromotion(float $subtotal, int $totalQuantity = 0): ?Promotion
+    public function previewPointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): array
     {
-        $now = now();
+        try {
+            return ['discount' => $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal), 'error' => null];
+        } catch (ValidationException $e) {
+            return ['discount' => 0, 'error' => collect($e->errors())->flatten()->first()];
+        }
+    }
 
-        return Promotion::query()
-            ->where('is_active', true)
-            ->where('apply_for', 'all')
-            ->whereIn('applies_to', ['all', 'pickup'])
-            ->where(function ($q) use ($subtotal) {
-                $q->whereNull('min_order_amount')->orWhere('min_order_amount', '<=', $subtotal);
-            })
-            ->where(function ($q) use ($totalQuantity) {
-                $q->whereNull('min_quantity')->orWhere('min_quantity', '<=', $totalQuantity);
-            })
-            ->where(function ($q) {
-                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
-            })
-            ->get()
-            ->filter(function (Promotion $promotion) use ($now) {
-                if ($promotion->is_recurring) {
-                    $nowStr = $now->format('H:i:s');
-                    $currentDay = $now->dayOfWeekIso;
-                    if (is_array($promotion->recurring_days) && count($promotion->recurring_days) > 0
-                        && !in_array($currentDay, $promotion->recurring_days, true)) {
-                        return false;
-                    }
-                    if ($promotion->recurring_start_time && $nowStr < $promotion->recurring_start_time) return false;
-                    if ($promotion->recurring_end_time && $nowStr > $promotion->recurring_end_time) return false;
-                    return true;
-                }
-                if ($promotion->end_at && $now->gt($promotion->end_at)) return false;
-                if ($promotion->start_at && $now->lt($promotion->start_at)) return false;
-                return true;
-            })
-            ->sortByDesc(fn (Promotion $promotion) => $this->calculateDiscount($promotion, $subtotal))
-            ->first();
+    /**
+     * Kiểm tra hạn mức/số dư điểm tích lũy và trả về số tiền được giảm tương ứng. Ném
+     * ValidationException nếu không hợp lệ (khách vãng lai, chương trình tạm đóng, dưới mức tối
+     * thiểu, vượt số dư, hoặc vượt trần % giá trị đơn).
+     */
+    private function resolvePointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): float
+    {
+        if ($pointsToRedeem <= 0) {
+            return 0;
+        }
+
+        if (!$orderOwner) {
+            throw ValidationException::withMessages(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.']);
+        }
+
+        $loyaltyEnabled = \App\Models\Setting::getValue('loyalty_enabled', '1') == '1';
+        if (!$loyaltyEnabled) {
+            throw ValidationException::withMessages(['points_to_redeem' => 'Chương trình tích điểm hiện đang tạm đóng.']);
+        }
+
+        $minPointsToRedeem = (int) \App\Models\Setting::getValue('loyalty_min_points_to_redeem', 10);
+        if ($pointsToRedeem < $minPointsToRedeem) {
+            throw ValidationException::withMessages(['points_to_redeem' => "Số điểm tối thiểu để được quy đổi là {$minPointsToRedeem}."]);
+        }
+
+        $pointsBalance = (int) $orderOwner->points;
+        if ($pointsToRedeem > $pointsBalance) {
+            throw ValidationException::withMessages(['points_to_redeem' => 'Số điểm quy đổi vượt quá số dư hiện có.']);
+        }
+
+        $maxRedeemPercent = (float) \App\Models\Setting::getValue('loyalty_max_redeem_percent', 100);
+        $maxDiscountMoney = $subtotal * ($maxRedeemPercent / 100);
+
+        $pointValue = (float) \App\Models\Setting::getValue('loyalty_point_value', 1);
+        $pointsDiscount = $pointsToRedeem * $pointValue;
+
+        if ($pointsDiscount > $maxDiscountMoney) {
+            throw ValidationException::withMessages(['points_to_redeem' => "Số điểm quy đổi vượt quá giới hạn tối đa ({$maxRedeemPercent}%) giá trị đơn hàng."]);
+        }
+
+        return $pointsDiscount;
+    }
+
+    /**
+     * Giảm giá theo hạng thành viên (silver/gold/diamond) — dùng chung cho lúc tạo đơn thật lẫn
+     * preview POS để 2 nơi luôn khớp nhau.
+     */
+    public function membershipDiscount(?User $orderOwner, float $subtotal): float
+    {
+        return match ($orderOwner?->membership_level) {
+            'silver' => round($subtotal * 0.02),
+            'gold' => round($subtotal * 0.05),
+            'diamond' => round($subtotal * 0.10),
+            default => 0,
+        };
     }
 }

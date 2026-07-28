@@ -102,47 +102,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4. Xử lý các logic phụ thuộc trường (Dependencies)
     
-    // Phụ thuộc 1: Tự động hủy đơn chưa thanh toán
-    const autoCancelToggle = document.getElementById('auto_cancel_unpaid_enabled');
-    const autoCancelMinutes = document.getElementById('auto_cancel_unpaid_minutes');
-    if (autoCancelToggle && autoCancelMinutes) {
-        const handleAutoCancelDependency = () => {
-            const isEnabled = autoCancelToggle.checked;
-            autoCancelMinutes.disabled = !isEnabled;
-            const parentField = autoCancelMinutes.closest('.flex-col');
-            if (parentField) {
-                parentField.style.opacity = isEnabled ? '1' : '0.5';
-                parentField.style.pointerEvents = isEnabled ? 'auto' : 'none';
-            }
-        };
-        autoCancelToggle.addEventListener('change', handleAutoCancelDependency);
-        handleAutoCancelDependency();
-    }
-
-    // Phụ thuộc 2: Phụ thu thời tiết xấu
-    const weatherToggle = document.getElementById('weather_surcharge_enabled');
-    const weatherInputs = [
-        document.getElementById('weather_light_rain_percent'),
-        document.getElementById('weather_heavy_rain_percent'),
-        document.getElementById('weather_storm_percent')
-    ];
-    if (weatherToggle) {
-        const handleWeatherDependency = () => {
-            const isEnabled = weatherToggle.checked;
-            weatherInputs.forEach(input => {
-                if (input) {
-                    input.disabled = !isEnabled;
-                    const parent = input.closest('.flex-col');
-                    if (parent) {
-                        parent.style.opacity = isEnabled ? '1' : '0.5';
-                        parent.style.pointerEvents = isEnabled ? 'auto' : 'none';
-                    }
+    // Làm mờ + khóa sửa các ô phụ thuộc vào một công tắc.
+    // DÙNG readonly, KHÔNG dùng disabled: trình duyệt KHÔNG gửi ô disabled lên server, mà các ô này
+    // đều đang được validate là bắt buộc -> tắt công tắc rồi bấm Lưu sẽ báo "không được để trống"
+    // dù màn hình vẫn hiện số. readonly vẫn gửi giá trị lên nên lưu được bình thường.
+    const bindToggleDependency = (toggle, inputs) => {
+        if (!toggle) return;
+        const apply = () => {
+            const isEnabled = toggle.checked;
+            inputs.forEach(input => {
+                if (!input) return;
+                input.readOnly = !isEnabled;
+                const parent = input.closest('.flex-col');
+                if (parent) {
+                    parent.style.opacity = isEnabled ? '1' : '0.5';
+                    parent.style.pointerEvents = isEnabled ? 'auto' : 'none';
                 }
             });
         };
-        weatherToggle.addEventListener('change', handleWeatherDependency);
-        handleWeatherDependency();
-    }
+        toggle.addEventListener('change', apply);
+        apply();
+    };
+
+    // Phụ thuộc 1: Tự động hủy đơn chưa thanh toán
+    bindToggleDependency(
+        document.getElementById('auto_cancel_unpaid_enabled'),
+        [document.getElementById('auto_cancel_unpaid_minutes')]
+    );
+
+    // Phụ thuộc 2: Phụ thu thời tiết xấu
+    bindToggleDependency(
+        document.getElementById('weather_surcharge_enabled'),
+        [
+            document.getElementById('weather_light_rain_percent'),
+            document.getElementById('weather_heavy_rain_percent'),
+            document.getElementById('weather_storm_percent'),
+            document.getElementById('weather_override')
+        ]
+    );
 
     // 5. Cập nhật preview thời gian thực
     

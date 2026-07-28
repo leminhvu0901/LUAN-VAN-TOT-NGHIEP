@@ -99,35 +99,100 @@ class ShippingQuoteService
         return ['distance_km' => $estimate, 'is_mock' => true];
     }
 
-    private function weatherFee(UserAddress $address, float $shippingFee): float
-    {
-        if (!$address->latitude || !$address->longitude) return 0;
+    // Nhãn hiển thị cho từng nhóm thời tiết (dùng chung cho cả trang checkout lẫn trang cài đặt).
+    public const WEATHER_LABELS = [
+        'none' => 'Bình thường',
+        'light_rain' => 'Mưa nhỏ',
+        'heavy_rain' => 'Mưa to',
+        'storm' => 'Giông bão',
+    ];
 
-        $enabled = \App\Models\Setting::getValue('weather_surcharge_enabled', '0');
-        if ($enabled != '1') {
-            return 0;
+    // Quy mã thời tiết WMO của Open-Meteo về nhóm nội bộ.
+    private function groupForCode($code): string
+    {
+        return match (true) {
+            in_array($code, [51, 53, 55, 61, 63, 80, 81], true) => 'light_rain',
+            in_array($code, [65, 66, 67, 82], true) => 'heavy_rain',
+            in_array($code, [71, 73, 75, 77, 85, 86, 95, 96, 99], true) => 'storm',
+            default => 'none',
+        };
+    }
+
+    // Mức phụ thu (%) của từng nhóm, lấy từ Cài đặt để admin đổi được mà không sửa code.
+    private function percentForGroup(string $group): int
+    {
+        return match ($group) {
+            'light_rain' => (int) \App\Models\Setting::getValue('weather_light_rain_percent', 5),
+            'heavy_rain' => (int) \App\Models\Setting::getValue('weather_heavy_rain_percent', 10),
+            'storm' => (int) \App\Models\Setting::getValue('weather_storm_percent', 15),
+            default => 0,
+        };
+    }
+
+    // Tình trạng thời tiết đang áp dụng.
+    //   - Cài đặt 'weather_override' khác 'auto' -> DÙNG LUÔN giá trị admin ép, KHÔNG gọi API. Đây là
+    //     đường dành cho trình diễn/kiểm thử (không phải lúc nào cũng canh được trời mưa thật).
+    //   - Ngược lại -> đọc thời tiết thật tại tọa độ giao hàng qua Open-Meteo.
+    // Lỗi mạng/thiếu tọa độ đều trả 'none' để không bao giờ chặn luồng đặt hàng.
+    public function currentWeatherGroup(?float $lat, ?float $lng): string
+    {
+        $override = (string) \App\Models\Setting::getValue('weather_override', 'auto');
+        if ($override !== '' && $override !== 'auto') {
+            return array_key_exists($override, self::WEATHER_LABELS) ? $override : 'none';
+        }
+
+        if (!$lat || !$lng) {
+            return 'none';
         }
 
         try {
             $code = Http::timeout(5)->get('https://api.open-meteo.com/v1/forecast', [
-                'latitude' => $address->latitude,
-                'longitude' => $address->longitude,
+                'latitude' => $lat,
+                'longitude' => $lng,
                 'current' => 'weather_code',
             ])->throw()->json('current.weather_code');
 
-            $percent = match (true) {
-                in_array($code, [51, 53, 55, 61, 63, 80, 81], true) => (int)\App\Models\Setting::getValue('weather_light_rain_percent', 5),
-                in_array($code, [65, 66, 67, 82], true) => (int)\App\Models\Setting::getValue('weather_heavy_rain_percent', 10),
-                in_array($code, [71, 73, 75, 77, 85, 86, 95, 96, 99], true) => (int)\App\Models\Setting::getValue('weather_storm_percent', 15),
-                default => 0,
-            };
-            
-            if ($percent > 0) {
-                return round($shippingFee * ($percent / 100));
-            }
-            return 0;
+            return $this->groupForCode($code);
         } catch (\Throwable) {
-            return 0;
+            return 'none';
         }
+    }
+
+    // Phụ thu thời tiết cho một mức phí giao hàng cho trước. NGUỒN TÍNH DUY NHẤT — cả lúc tạo đơn thật
+    // lẫn lúc hiển thị thử ở trang checkout đều gọi hàm này, tránh lệch số giữa màn hình và hóa đơn.
+    // Trả về ['fee' => .., 'group' => .., 'label' => ..].
+    public function weatherSurcharge(float $shippingFee, ?float $lat, ?float $lng): array
+    {
+        $none = ['fee' => 0.0, 'group' => 'none', 'label' => self::WEATHER_LABELS['none']];
+
+        // Miễn phí giao hàng thì không thu phụ thu (phụ thu tính theo % của phí ship).
+        if ($shippingFee <= 0) {
+            return $none;
+        }
+
+        if (\App\Models\Setting::getValue('weather_surcharge_enabled', '0') != '1') {
+            return $none;
+        }
+
+        $group = $this->currentWeatherGroup($lat, $lng);
+        $percent = $this->percentForGroup($group);
+        if ($percent <= 0) {
+            return $none;
+        }
+
+        return [
+            'fee' => round($shippingFee * ($percent / 100)),
+            'group' => $group,
+            'label' => self::WEATHER_LABELS[$group] ?? self::WEATHER_LABELS['none'],
+        ];
+    }
+
+    private function weatherFee(UserAddress $address, float $shippingFee): float
+    {
+        return (float) $this->weatherSurcharge(
+            $shippingFee,
+            $address->latitude ? (float) $address->latitude : null,
+            $address->longitude ? (float) $address->longitude : null,
+        )['fee'];
     }
 }

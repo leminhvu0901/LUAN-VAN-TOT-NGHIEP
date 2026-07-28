@@ -10,6 +10,7 @@ use App\Models\ProductSize;
 use App\Models\Topping;
 use App\Models\UserAddress;
 use App\Services\CartPricingService;
+use App\Services\PromotionService;
 use App\Services\ShippingQuoteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,7 @@ class CartController
     public function __construct(
         private readonly CartPricingService $cartPricing,
         private readonly ShippingQuoteService $shippingQuote,
+        private readonly PromotionService $promotions,
     ) {}
 
     private function getCartIdentifier()
@@ -99,12 +101,21 @@ class CartController
             $total += $item->unit_price * $item->quantity;
         }
 
+        // Xem trước quà tặng Mua X tặng Y ngay ở ngăn kéo giỏ hàng — chỉ để HIỂN THỊ (không phải số
+        // tiền/lưu DB), nên dùng thẳng $items thô (đã có product_id+quantity) không cần CartPricingService.
+        // Kênh 'delivery' vì ngăn kéo giỏ hàng chỉ phục vụ khách tự mua trên website (không phải POS).
+        $gifts = $this->promotions->resolveGifts($items, 'delivery');
+
         return response()->json([
             'success' => true,
             'items' => $items,
             'count' => count($items),
             'total' => $total,
-            'formatted_total' => number_format($total, 0, ',', '.') . 'đ'
+            'formatted_total' => number_format($total, 0, ',', '.') . 'đ',
+            'gifts' => collect($gifts)->map(fn ($g) => [
+                'gift_product_name' => $g['gift_product']->name,
+                'quantity' => $g['granted_quantity'],
+            ])->values(),
         ]);
     }
 
@@ -451,6 +462,10 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
+        // Quà tặng Mua X tặng Y đang đủ điều kiện — chỉ để HIỂN THỊ ở trang checkout, số tiền/quà tặng
+        // thật sự được vật chất hóa lại từ đầu trong OrderService::create() khi đặt hàng thật.
+        $gifts = $this->promotions->resolveGifts($items, 'delivery');
+
         $freeShipThreshold = (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
         if ($user) {
@@ -499,7 +514,7 @@ class CartController
             \App\Models\Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
         }
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken'));
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts'));
     }
 
     public function calculateDistance(Request $request, \App\Services\GeoapifyService $geoapify)
@@ -551,153 +566,113 @@ class CartController
         ]);
     }
 
+    // Giỏ hàng đã tính giá (calculated_unit_price/product load sẵn) + tổng đã chọn, đúng theo cách
+    // checkout() đang dựng danh sách món — dùng CHUNG ở đây để validateCoupon() không còn phải tin số
+    // subtotal/quantity do JS gửi lên (trước đây $subtotal lấy thẳng từ request, có thể bị sửa tùy ý
+    // trong DevTools). Trả collection rỗng nếu chưa có giỏ hàng.
+    private function pricedSelectedItems(): \Illuminate\Support\Collection
+    {
+        $cart = $this->findCart();
+        if (!$cart) {
+            return collect();
+        }
+
+        $selectedIds = session('selected_cart_item_ids');
+        if (!empty($selectedIds)) {
+            $validSelectedIds = CartItem::query()->where('cart_id', $cart->id)->whereIn('id', $selectedIds)->pluck('id')->toArray();
+            $selectedIds = !empty($validSelectedIds) ? $validSelectedIds : null;
+        } else {
+            $selectedIds = null;
+        }
+
+        try {
+            return $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
+        } catch (ValidationException) {
+            return collect();
+        }
+    }
+
     public function validateCoupon(Request $request)
     {
         $code = strtoupper(trim($request->input('coupon_code')));
-        $subtotal = floatval($request->input('subtotal', 0));
-        $coupon = \App\Models\Promotion::query()->where('code', $code)->first();
-
-        if (!$coupon) {
-            return response()->json(['valid' => false, 'message' => 'Mã giảm giá không tồn tại.']);
+        $items = $this->pricedSelectedItems();
+        if ($items->isEmpty()) {
+            return response()->json(['valid' => false, 'message' => 'Giỏ hàng của bạn đang trống.']);
         }
-
+        $subtotal = $this->cartPricing->subtotal($items);
+        $totalQuantity = (int) $items->sum('quantity');
         $user = Auth::check() ? Auth::user() : null;
-        // Trang checkout của khách hàng luôn là đơn giao hàng (không có tùy chọn nhận tại quầy) ->
-        // mã chỉ dành riêng cho "Tại quầy" phải bị từ chối ở đây.
-        $validity = $coupon->checkValidity($user, $subtotal, 'delivery');
 
-        if (!$validity['valid']) {
-            return response()->json(['valid' => false, 'message' => $validity['message']]);
+        try {
+            // Trang checkout của khách hàng luôn là đơn giao hàng (không có tùy chọn nhận tại quầy) ->
+            // mã chỉ dành riêng cho "Tại quầy" bị PromotionService từ chối ở đây (channel='delivery').
+            $result = $this->promotions->resolveBestDiscount($items, $subtotal, $user, 'delivery', $totalQuantity, $code);
+        } catch (ValidationException $e) {
+            return response()->json(['valid' => false, 'message' => collect($e->errors())->flatten()->first()]);
         }
 
-        // Calculate discount
-        $discountAmount = 0;
-        if ($coupon->type === 'percent') {
-            $discountAmount = round($subtotal * ($coupon->value / 100));
-            // Cap at max discount amount if set
-            if ($coupon->max_discount_amount && $discountAmount > $coupon->max_discount_amount) {
-                $discountAmount = $coupon->max_discount_amount;
-            }
-        } else {
-            $discountAmount = $coupon->value;
-        }
-
-        // Ensure discount doesn't exceed subtotal
-        if ($discountAmount > $subtotal) {
-            $discountAmount = $subtotal;
-        }
+        $coupon = $result['promotion'];
 
         return response()->json([
             'valid' => true,
             'message' => 'Áp dụng thành công mã giảm giá ' . $code . '!',
-            'discount_amount' => $discountAmount,
+            'discount_amount' => $result['discount'],
             'coupon_code' => $code,
             'discount_value' => $coupon->value,
             'discount_type' => $coupon->type,
-            'max_discount_amount' => $coupon->max_discount_amount
+            'max_discount_amount' => $coupon->max_discount_amount,
+            // Cho JS hiển thị rõ mã áp dụng cho phạm vi nào (toàn đơn/sản phẩm/danh mục cụ thể).
+            'scope' => $coupon->scope,
+            'scope_label' => match ($coupon->scope) {
+                'product' => 'Áp dụng cho: ' . $coupon->products->pluck('name')->implode(', '),
+                'category' => 'Áp dụng cho danh mục: ' . $coupon->categories->pluck('name')->implode(', '),
+                default => null,
+            },
         ]);
     }
 
+    // Phụ thu thời tiết hiển thị ở trang checkout. TOÀN BỘ phép tính (bật/tắt, mức %, ép thời tiết để
+    // demo, quy tắc miễn ship thì miễn phụ thu) nằm trong ShippingQuoteService::weatherSurcharge() —
+    // ở đây chỉ dựng lại đúng mức phí ship rồi gọi sang, để số hiện trên màn hình luôn khớp số thật
+    // lúc tạo đơn. Trước đây hàm này tự tính riêng (bỏ qua cờ bật/tắt, hard-code 5/10/15% và công thức
+    // phí ship 3.000đ/km) nên có thể hiện một đằng, tính tiền một nẻo.
     public function calculateWeatherFee(Request $request)
     {
-        $addressId = $request->query('address_id');
-        $distanceKm = floatval($request->query('distance_km', 0));
-        $subtotal = floatval($request->query('subtotal', 0));
-        
-        $freeShipThreshold = 150000;
-        $user = Auth::user();
-        if ($user) {
-            switch ($user->membership_level) {
-                case 'silver':
-                    $freeShipThreshold = 120000;
-                    break;
-                case 'gold':
-                    $freeShipThreshold = 90000;
-                    break;
-                case 'diamond':
-                    $freeShipThreshold = 0;
-                    break;
-            }
-        }
-
-        // Nếu đơn hàng >= freeShipThreshold thì miễn phí ship => phụ thu thời tiết cũng = 0
-        $baseShipping = $subtotal >= $freeShipThreshold ? 0 : round($distanceKm * 3000);
-        $userId = Auth::id();
-
         $address = \App\Models\UserAddress::query()
-            ->where('id', $addressId)
-            ->where('user_id', $userId)
+            ->where('id', $request->query('address_id'))
+            ->where('user_id', Auth::id())
             ->first();
 
         if (!$address) {
             return response()->json(['success' => false, 'message' => 'Địa chỉ không hợp lệ', 'fee' => 0], 400);
         }
 
-        $lat = isset($address->latitude) ? $address->latitude : null;
-        $lon = isset($address->longitude) ? $address->longitude : null;
+        $subtotal = (float) $request->query('subtotal', 0);
+        $distanceKm = (float) $request->query('distance_km', 0);
 
-        // Nếu không có tọa độ cụ thể trên địa chỉ, mặc định lấy tọa độ Chánh Hưng, Q8 (10.7433, 106.6738)
-        if (empty($lat) || empty($lon)) {
-            $lat = 10.7433;
-            $lon = 106.6738;
-        }
+        $threshold = match (Auth::user()?->membership_level) {
+            'silver' => 120000.0,
+            'gold' => 90000.0,
+            'diamond' => 0.0,
+            default => (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000),
+        };
 
-        try {
-            $client = new \GuzzleHttp\Client();
-            $url = "https://api.open-meteo.com/v1/forecast?latitude={$lat}&longitude={$lon}&current=weather_code";
+        // Dựng lại phí ship theo ĐÚNG công thức của ShippingQuoteService::quote().
+        $baseFee = (float) \App\Models\Setting::getValue('shipping_base_fee', 15000);
+        $feePerKm = (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000);
+        $shippingFee = $distanceKm <= 2 ? $baseFee : $baseFee + ($distanceKm - 2) * $feePerKm;
+        $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee);
 
-            $response = $client->get($url, [
-                'timeout' => 5
-            ]);
-
-            $data = json_decode($response->getBody()->getContents(), true);
-
-            if (isset($data['current']['weather_code'])) {
-                $code = $data['current']['weather_code'];
-                $fee = 0;
-                $condition = 'Bình thường';
-
-                // WMO Weather interpretation codes
-                // Drizzle (Mưa phùn): 51, 53, 55
-                // Slight/Moderate Rain + Showers (Mưa nhỏ/vừa): 51, 53, 55, 61, 63, 80, 81
-                // Heavy Rain + Violent Showers (Mưa to): 65, 66, 67, 82
-                // Thunderstorm (Giông bão): 95, 96, 99
-                // Snow (Tuyết - hiếm gặp VN): 71, 73, 75, 77, 85, 86
-
-                if (in_array($code, [51, 53, 55, 61, 63, 80, 81])) {
-                    // Mưa nhỏ / mưa phùn / mưa rào nhẹ -> +5%
-                    $fee = round($baseShipping * 0.05);
-                    $condition = 'Mưa nhỏ';
-                } elseif (in_array($code, [65, 66, 67, 82])) {
-                    // Mưa to / mưa rào mạnh -> +10%
-                    $fee = round($baseShipping * 0.10);
-                    $condition = 'Mưa to';
-                } elseif (in_array($code, [95, 96, 99])) {
-                    // Giông bão -> +15%
-                    $fee = round($baseShipping * 0.15);
-                    $condition = 'Giông bão';
-                } elseif (in_array($code, [71, 73, 75, 77, 85, 86])) {
-                    // Tuyết (ít xảy ra ở VN) -> +15%
-                    $fee = round($baseShipping * 0.15);
-                    $condition = 'Có tuyết';
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'fee' => $fee,
-                    'condition' => $condition,
-                    'code' => $code
-                ]);
-            }
-        } catch (\Exception $e) {
-            // Lỗi call API, trả về 0 để không chặn quá trình thanh toán
-        }
+        $result = $this->shippingQuote->weatherSurcharge(
+            $shippingFee,
+            $address->latitude ? (float) $address->latitude : null,
+            $address->longitude ? (float) $address->longitude : null,
+        );
 
         return response()->json([
             'success' => true,
-            'fee' => 0,
-            'condition' => 'Bình thường',
-            'message' => 'Không thể kết nối dịch vụ thời tiết.'
+            'fee' => $result['fee'],
+            'condition' => $result['label'],
         ]);
     }
 }

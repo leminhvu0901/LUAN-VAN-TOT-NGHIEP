@@ -37,6 +37,48 @@ class CommerceWorkflowTest extends TestCase
         $this->assertDatabaseHas('cart_items', ['id' => $item->id]);
     }
 
+    // Mã có min_quantity phải được chấp nhận khi giỏ đủ số ly. Trước đây validateCoupon() không
+    // truyền tổng số lượng vào checkValidity() nên luôn coi là 0 món -> mọi mã min_quantity đều bị
+    // từ chối ở trang checkout dù lúc đặt hàng thật lại hợp lệ.
+    public function test_coupon_with_min_quantity_counts_cart_items(): void
+    {
+        $user = User::factory()->create();
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
+        $product = Product::create(['name' => 'Tea', 'slug' => 'tea', 'sku' => 'TEA-9', 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
+        $cart = Cart::create(['user_id' => $user->id]);
+        CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 3, 'unit_price' => 30000]);
+
+        \App\Models\Promotion::create([
+            'code' => 'GIAM50', 'type' => 'fixed', 'value' => 50000,
+            'min_quantity' => 3, 'is_active' => true, 'apply_for' => 'all', 'applies_to' => 'all',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/checkout/validate-coupon', ['coupon_code' => 'GIAM50', 'subtotal' => 90000])
+            ->assertOk()
+            ->assertJson(['valid' => true]);
+    }
+
+    // Ngược lại: giỏ chưa đủ số ly thì vẫn phải từ chối đúng lý do.
+    public function test_coupon_with_min_quantity_rejected_when_cart_has_too_few_items(): void
+    {
+        $user = User::factory()->create();
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
+        $product = Product::create(['name' => 'Tea', 'slug' => 'tea2', 'sku' => 'TEA-8', 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
+        $cart = Cart::create(['user_id' => $user->id]);
+        CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+
+        \App\Models\Promotion::create([
+            'code' => 'COMBO3', 'type' => 'fixed', 'value' => 50000,
+            'min_quantity' => 3, 'is_active' => true, 'apply_for' => 'all', 'applies_to' => 'all',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/checkout/validate-coupon', ['coupon_code' => 'COMBO3', 'subtotal' => 30000])
+            ->assertOk()
+            ->assertJson(['valid' => false]);
+    }
+
     public function test_completing_order_awards_points_only_once(): void
     {
         \App\Models\Setting::setValue('loyalty_money_per_point', 1000);

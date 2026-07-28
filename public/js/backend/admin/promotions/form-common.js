@@ -188,6 +188,58 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // === PHẠM VI ÁP DỤNG (toàn đơn / sản phẩm / danh mục / mua X tặng Y) ===
+    // Ẩn/hiện các khối trường phụ thuộc phạm vi. Mua X tặng Y không phải giảm giá tiền nên ẩn luôn
+    // cả khối "Loại khuyến mãi"/"Giá trị giảm" (server cũng bỏ qua 2 trường đó với scope này).
+    const scopeOptions = document.querySelectorAll('.scope-option');
+    const scopeProductFields = document.getElementById('scope-product-fields');
+    const scopeCategoryFields = document.getElementById('scope-category-fields');
+    const scopeBxgyFields = document.getElementById('scope-bxgy-fields');
+    const moneyDiscountFields = document.getElementById('money-discount-fields');
+
+    function updateScopeUI(selectedScope) {
+        scopeOptions.forEach(function (option) {
+            const isActive = option.dataset.scope === selectedScope;
+            option.classList.toggle('border-emerald-500', isActive);
+            option.classList.toggle('bg-emerald-50', isActive);
+            option.classList.toggle('border-gray-200', !isActive);
+            option.classList.toggle('bg-white', !isActive);
+        });
+
+        if (scopeProductFields) scopeProductFields.classList.toggle('hidden', selectedScope !== 'product');
+        if (scopeCategoryFields) scopeCategoryFields.classList.toggle('hidden', selectedScope !== 'category');
+        if (scopeBxgyFields) scopeBxgyFields.classList.toggle('hidden', selectedScope !== 'buy_x_get_y');
+        if (moneyDiscountFields) moneyDiscountFields.classList.toggle('hidden', selectedScope === 'buy_x_get_y');
+    }
+
+    function getCurrentScope() {
+        const checked = document.querySelector('input[name="scope"]:checked');
+        return checked ? checked.value : 'order';
+    }
+
+    if (scopeOptions.length > 0) {
+        scopeOptions.forEach(function (option) {
+            option.addEventListener('click', function () {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+                updateScopeUI(this.dataset.scope);
+            });
+        });
+        updateScopeUI(getCurrentScope());
+    }
+
+    // Lọc nhanh danh sách sản phẩm khi chọn phạm vi "theo sản phẩm" (danh sách có thể rất dài).
+    const productSearch = document.getElementById('product-search');
+    if (productSearch) {
+        productSearch.addEventListener('input', function () {
+            const keyword = this.value.trim().toLowerCase();
+            document.querySelectorAll('.product-option').forEach(function (row) {
+                const matched = !keyword || (row.dataset.name || '').includes(keyword);
+                row.classList.toggle('hidden', !matched);
+            });
+        });
+    }
+
     // === NÚT TỰ SINH MÃ ===
     if (btnGenCode && promoCodeInput) {
         // Tạo code ngẫu nhiên khi bấm nút "Tự sinh"
@@ -228,6 +280,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (form) {
         // Chặn submit nếu giá trị giảm không hợp lệ
         form.addEventListener('submit', function (e) {
+            // Mua X tặng Y không có "giá trị giảm" — bỏ qua toàn bộ kiểm tra bên dưới, nếu không sẽ
+            // chặn nhầm mọi lần lưu chương trình tặng quà.
+            if (getCurrentScope() === 'buy_x_get_y') {
+                return;
+            }
+
             const selectedType = getCurrentType();
             const rawValue = hiddenValue ? parseFloat(hiddenValue.value) : NaN;
 

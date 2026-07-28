@@ -29,4 +29,13 @@ class Category extends Model
     {
         return $this->hasMany(Product::class, 'category_id');
     }
+
+    /**
+     * Mối quan hệ Nhiều - Nhiều: các khuyến mãi giảm giá theo danh mục (scope='category') có chọn
+     * danh mục này.
+     */
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_categories');
+    }
 }

@@ -255,7 +255,7 @@
                                                     @endif
                                                 </div>
                                                 @if($item->options)
-                                                    @php $toppingsArr = json_decode($item->options); @endphp
+                                                    @php $toppingsArr = is_array($item->options) ? $item->options : json_decode($item->options, true); @endphp
                                                     @if(!empty($toppingsArr))
                                                         <div class="text-[10px] text-primary font-semibold mt-1.5">+ Toppings: {{ implode(', ', $toppingsArr) }}</div>
                                                     @endif

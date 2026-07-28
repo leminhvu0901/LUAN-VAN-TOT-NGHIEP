@@ -35,6 +35,24 @@ class Product extends Model
         return $this->belongsToMany(Topping::class, 'product_toppings');
     }
 
+    // Khuyến mãi giảm giá theo sản phẩm (scope='product') có chọn sản phẩm này.
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_products');
+    }
+
+    // Các cấu hình "Mua X tặng Y" mà sản phẩm này là sản phẩm PHẢI MUA.
+    public function buyXGetYAsBuyProduct()
+    {
+        return $this->hasMany(PromotionBuyXGetY::class, 'buy_product_id');
+    }
+
+    // Các cấu hình "Mua X tặng Y" mà sản phẩm này là QUÀ TẶNG.
+    public function buyXGetYAsGiftProduct()
+    {
+        return $this->hasMany(PromotionBuyXGetY::class, 'gift_product_id');
+    }
+
     public function hasSufficientMaterials(float $quantity = 1): bool
     {
         $recipes = $this->materials()->where('materials.is_active', true)->get();

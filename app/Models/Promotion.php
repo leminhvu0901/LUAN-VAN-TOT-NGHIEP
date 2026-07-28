@@ -16,6 +16,7 @@ class Promotion extends Model
     protected $casts = [
         'is_recurring' => 'boolean', // Ép kiểu cột is_recurring thành boolean (true/false)
         'recurring_days' => 'array',   // Ép kiểu cột recurring_days thành mảng (Lưu JSON trong DB)
+        'requires_staff_verification' => 'boolean', // Mã cần nhân viên xác nhận — không tự động áp
     ];
 
     /**
@@ -25,6 +26,24 @@ class Promotion extends Model
     public function orders()
     {
         return $this->hasMany(Order::class, 'promotion_id');
+    }
+
+    // Sản phẩm được chọn khi scope='product'. Rỗng với các scope khác.
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'promotion_products');
+    }
+
+    // Danh mục được chọn khi scope='category'. Rỗng với các scope khác.
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'promotion_categories');
+    }
+
+    // Cấu hình mua-tặng khi scope='buy_x_get_y'. null với các scope khác.
+    public function buyXGetYRule()
+    {
+        return $this->hasOne(PromotionBuyXGetY::class, 'promotion_id');
     }
 
 

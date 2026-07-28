@@ -401,7 +401,23 @@
                                     </label>
                                 </div>
                             </div>
-                            
+
+                            {{-- Ép tình trạng thời tiết: dùng khi cần trình diễn/kiểm thử mà ngoài trời không mưa.
+                                 Để "Tự động" thì hệ thống đọc thời tiết thật tại tọa độ giao hàng. --}}
+                            <div class="flex flex-col gap-1.5">
+                                <label for="weather_override" class="text-[11px] font-bold text-gray-500 uppercase">Tình trạng thời tiết áp dụng</label>
+                                @php $weatherOverride = old('weather_override', $settings['weather_override'] ?? 'auto'); @endphp
+                                <select name="weather_override" id="weather_override"
+                                    class="w-full border {{ $errors->has('weather_override') ? 'input-error' : 'border-gray-200' }} rounded-xl px-3 py-2 outline-none text-gray-700 text-xs focus:border-emerald-500 bg-white">
+                                    <option value="auto" {{ $weatherOverride === 'auto' ? 'selected' : '' }}>Tự động theo thời tiết thật</option>
+                                    <option value="light_rain" {{ $weatherOverride === 'light_rain' ? 'selected' : '' }}>Ép: Mưa nhỏ</option>
+                                    <option value="heavy_rain" {{ $weatherOverride === 'heavy_rain' ? 'selected' : '' }}>Ép: Mưa to</option>
+                                    <option value="storm" {{ $weatherOverride === 'storm' ? 'selected' : '' }}>Ép: Giông bão</option>
+                                </select>
+                                <p class="text-[10px] text-gray-400">Chỉ nên chọn "Ép" khi cần trình diễn. Khi đó hệ thống bỏ qua dịch vụ thời tiết và luôn áp mức đã chọn.</p>
+                                @error('weather_override') <p class="text-red-500 text-xs mt-0.5 field-error-msg">{{ $message }}</p> @enderror
+                            </div>
+
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div class="flex flex-col gap-1.5">
                                     <label for="weather_light_rain_percent" class="text-[11px] font-bold text-gray-500 uppercase">Mưa nhỏ</label>

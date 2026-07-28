@@ -16,6 +16,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Controller Quản lý Đơn hàng dành cho Lễ tân (Reception Staff).
@@ -29,7 +30,8 @@ class OrderController
         private readonly OrderWorkflowService $orderWorkflow,
         private readonly OrderService $orderService,
         private readonly CartPricingService $cartPricing,
-    ) {}
+    ) {
+    }
 
     /**
      * Hiển thị danh sách đơn hàng cho Lễ tân.
@@ -233,9 +235,13 @@ class OrderController
      */
     public function createOrder()
     {
-        $products = Product::with(['category', 'sizes', 'toppings' => function ($query) {
-            $query->where('is_available', true);
-        }])->where('is_active', true)->orderBy('name')->get();
+        $products = Product::with([
+            'category',
+            'sizes',
+            'toppings' => function ($query) {
+                $query->where('is_available', true);
+            }
+        ])->where('is_active', true)->orderBy('name')->get();
 
         $categories = \App\Models\Category::query()->where('is_active', true)->orderBy('name')->get();
         // POS chỉ nên cho chọn MoMo nếu admin đã bật kênh này trong Cài đặt (tiền mặt luôn khả dụng
@@ -251,8 +257,6 @@ class OrderController
      * Tính toán tạm tính, kiểm tra áp dụng mã giảm giá nhập tay hoặc tự động chọn ưu đãi tốt nhất,
      * tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy (pickup) nên phí giao hàng = 0.
      *
-     * @param  Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function previewTotal(Request $request)
     {
@@ -261,9 +265,15 @@ class OrderController
 
         if ($items->isEmpty()) {
             return response()->json([
-                'subtotal' => 0, 'discount' => 0, 'shipping_fee' => 0,
-                'promotion_code' => null, 'promotion_label' => null,
-                'final_amount' => 0, 'coupon_error' => null,
+                'subtotal' => 0,
+                'discount' => 0,
+                'shipping_fee' => 0,
+                'promotion_code' => null,
+                'promotion_label' => null,
+                'points_discount' => 0,
+                'points_error' => null,
+                'final_amount' => 0,
+                'coupon_error' => null,
             ]);
         }
 
@@ -279,7 +289,7 @@ class OrderController
 
         if ($couponCode !== '') {
             try {
-                $preview = $this->orderService->previewManualCoupon($couponCode, $orderOwner, $subtotal, 'pickup', $totalQuantity);
+                $preview = $this->orderService->previewManualCoupon($couponCode, $pricedItems, $orderOwner, $subtotal, 'pickup', $totalQuantity);
                 $promotion = $preview['promotion'];
                 $discount = $preview['discount'];
             } catch (\Illuminate\Validation\ValidationException $e) {
@@ -288,21 +298,46 @@ class OrderController
                 $couponError = collect($e->errors())->flatten()->first();
             }
         } else {
-            $preview = $this->orderService->previewAutoPromotion($subtotal, $totalQuantity);
+            $preview = $this->orderService->previewAutoPromotion($pricedItems, $subtotal, $totalQuantity);
             $promotion = $preview['promotion'];
             $discount = $preview['discount'];
         }
 
+        // Xem trước giảm giá theo hạng thành viên — dùng ĐÚNG hàm OrderService::create() dùng thật,
+        // để tổng tiền hiển thị trước khi tạo đơn luôn khớp với đơn thật sau khi tạo.
+        $membershipDiscount = $this->orderService->membershipDiscount($orderOwner, $subtotal);
+
+        // Xem trước số tiền giảm từ điểm tích lũy (nếu lễ tân đã chọn khách hàng và nhập số điểm) —
+        // dùng chung logic/hạn mức với lúc tạo đơn thật (OrderService::previewPointsDiscount()) để
+        // không bao giờ lệch giữa preview và kết quả tạo đơn.
+        $pointsToRedeem = (int) $request->query('points_to_redeem', 0);
+        $pointsPreview = $this->orderService->previewPointsDiscount($pointsToRedeem, $orderOwner, $subtotal);
+        $pointsDiscount = $pointsPreview['discount'];
+        $pointsError = $pointsPreview['error'];
+
+        // Xem trước quà tặng Mua X tặng Y (độc lập với mã giảm giá ở trên) để lễ tân biết trước khi tạo đơn.
+        $gifts = app(\App\Services\PromotionService::class)->resolveGifts($pricedItems, 'pickup');
+
+        $totalDiscount = min($subtotal, $discount + $membershipDiscount + $pointsDiscount);
+
         return response()->json([
             'subtotal' => $subtotal,
             'discount' => $discount,
+            'membership_discount' => $membershipDiscount,
             'shipping_fee' => 0,
             'promotion_code' => $promotion?->code,
             'promotion_label' => $promotion
                 ? ($promotion->type === 'percent' ? "Khuyến mãi -{$promotion->value}%" : 'Khuyến mãi') . " ({$promotion->code})"
                 : null,
-            'final_amount' => max(0, $subtotal - $discount),
+            'points_discount' => $pointsDiscount,
+            'points_error' => $pointsError,
+            'final_amount' => max(0, $subtotal - $totalDiscount),
             'coupon_error' => $couponError,
+            'gifts' => collect($gifts)->map(fn ($g) => [
+                'gift_product_name' => $g['gift_product']->name,
+                'quantity' => $g['granted_quantity'],
+                'stock_limited' => $g['stock_limited'],
+            ])->values(),
         ]);
     }
 
@@ -346,7 +381,11 @@ class OrderController
             : null;
 
         if (!$customer && !empty($validated['points_to_redeem'])) {
-            return back()->withErrors(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.'])->withInput();
+            // Ném ValidationException (thay vì back()->withErrors() thủ công) để Laravel tự thương
+            // lượng định dạng phản hồi đúng theo Accept header: JSON 422 cho request AJAX (giao diện
+            // POS gửi lên qua fetch — không mất trạng thái khách hàng/điểm đã nhập vì trang không tải
+            // lại), redirect-back cho request thường (vd. test cũ dùng $this->post() không phải JSON).
+            throw ValidationException::withMessages(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.']);
         }
 
         $payload = [
@@ -367,14 +406,24 @@ class OrderController
 
         if ($validated['payment_method'] === 'momo') {
             // Chuyển sang cổng MoMo để khách quét QR thanh toán ngay tại quầy.
-            return app(\App\Http\Controllers\Frontend\MomoController::class)->payExistingOrder($request, $order);
+            $response = app(\App\Http\Controllers\Frontend\MomoController::class)->payExistingOrder($request, $order);
+        } else {
+            // Tiền mặt: KHÔNG tự động đánh dấu đã thanh toán ngay ở đây nữa — lễ tân phải nhập số
+            // tiền khách đưa và bấm xác nhận rõ ràng ở trang chi tiết đơn (confirmCashPayment()) sau
+            // khi thực sự đã cầm tiền, tránh in hóa đơn/phiếu pha chế cho đơn chưa thu tiền thật.
+            $response = redirect()->route('staff.reception.orders.show', $order->id)
+                ->with('success', "Đã tạo đơn {$order->order_code}. Vui lòng xác nhận đã thu tiền mặt để hoàn tất.");
         }
 
-        // Tiền mặt: KHÔNG tự động đánh dấu đã thanh toán ngay ở đây nữa — lễ tân phải nhập số tiền
-        // khách đưa và bấm xác nhận rõ ràng ở trang chi tiết đơn (confirmCashPayment()) sau khi thực
-        // sự đã cầm tiền, tránh in hóa đơn/phiếu pha chế cho đơn chưa thu tiền thật.
-        return redirect()->route('staff.reception.orders.show', $order->id)
-            ->with('success', "Đã tạo đơn {$order->order_code}. Vui lòng xác nhận đã thu tiền mặt để hoàn tất.");
+        // Giao diện POS tạo đơn qua fetch (Accept: application/json) — trả URL đích để JS tự điều
+        // hướng bằng window.location.href, thay vì để trình duyệt tự redirect như request thường.
+        // Cờ flash 'success'/'error' (được gắn ở trên hoặc trong payExistingOrder()) vẫn còn nguyên
+        // trong session và sẽ hiển thị đúng khi trang đích tải lại bình thường.
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'redirect_url' => $response->getTargetUrl()]);
+        }
+
+        return $response;
     }
 
     /**
@@ -417,8 +466,6 @@ class OrderController
      *
      * Phục vụ màn hình POS tại quầy để gắn thông tin khách hàng vào đơn và xem số điểm tích lũy hiện có.
      *
-     * @param  Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function searchCustomer(Request $request)
     {
