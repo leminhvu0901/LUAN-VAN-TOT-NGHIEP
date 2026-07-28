@@ -7082,7 +7082,12 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   color: #10b981;
 }
 
-.home-popular__filter-btn--active {
+.home-popular__filter-btn--active,
+.home-popular__filter-btn--active:hover {
+  /* Cần khai báo lại cả state :hover (không chỉ --active) vì trên di động chạm vào nút thường giữ
+     nguyên trạng thái :hover sau khi nhả tay -> luật :hover ở trên (cùng độ ưu tiên CSS, 1 class + 1
+     pseudo-class) đè mất color:#fff của --active, khiến chữ trắng bị đổi thành chữ xanh #10b981 y hệt
+     màu nền -> vô hình. */
   background: #10b981;
   border-color: #10b981;
   color: #fff;
