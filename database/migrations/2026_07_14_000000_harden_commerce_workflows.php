@@ -32,11 +32,13 @@ return new class extends Migration
         }
 
         if (DB::getDriverName() === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
             foreach (['materials', 'material_imports', 'product_materials', 'user_addresses'] as $table) {
                 if (Schema::hasTable($table)) DB::statement("ALTER TABLE `{$table}` ENGINE=InnoDB");
             }
-            if (Schema::hasTable('product_materials')) DB::statement('ALTER TABLE product_materials MODIFY product_id INT NOT NULL');
-            if (Schema::hasTable('user_addresses')) DB::statement('ALTER TABLE user_addresses MODIFY user_id INT NOT NULL');
+            if (Schema::hasTable('product_materials')) DB::statement('ALTER TABLE product_materials MODIFY product_id BIGINT UNSIGNED NOT NULL');
+            if (Schema::hasTable('user_addresses')) DB::statement('ALTER TABLE user_addresses MODIFY user_id BIGINT UNSIGNED NOT NULL');
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         }
 
         if (Schema::hasTable('materials') && Schema::hasTable('material_imports')) {
