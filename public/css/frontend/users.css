@@ -7010,7 +7010,7 @@ animation: dividerPulse 2.5s ease-in-out infinite;
 .home-categories-scrollbar__thumb {
   height: 100%;
   width: 30%;
-  background: #10b981;
+  background: #9e9e9e;
   border-radius: 9999px;
   transform: translateX(0);
 }
