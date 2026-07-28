@@ -181,7 +181,7 @@ class ReviewController
         // nhập khi phải sửa lại — nhưng lúc THÀNH CÔNG vẫn điều hướng thật sang /orders (đúng ý định
         // ban đầu là quay lại danh sách đơn), JS chỉ cần đọc redirect_url rồi tự chuyển trang.
         $redirectUrl = route('orders', ['status' => 'completed']);
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
         }
 

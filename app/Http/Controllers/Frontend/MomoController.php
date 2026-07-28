@@ -40,7 +40,7 @@ class MomoController
      */
     private function checkoutError(Request $request, string $message)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => false, 'message' => $message], 422);
         }
         return redirect()->back()->with('error', $message)->withInput();
@@ -53,7 +53,7 @@ class MomoController
      */
     private function checkoutRedirect(Request $request, string $url)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect_url' => $url]);
         }
         return redirect()->away($url);

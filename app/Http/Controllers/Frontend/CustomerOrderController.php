@@ -76,7 +76,7 @@ class CustomerOrderController
 
         // Trang checkout submit qua fetch (xem checkout.js) -> trả URL đích để JS tự điều hướng, tránh
         // tải lại cả trang một cách đột ngột ngay ở bước cuối cùng của luồng mua hàng.
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'redirect_url' => route('orders'),
@@ -148,12 +148,12 @@ class CustomerOrderController
 
         try {
             $workflow->transition($order, 'cancelled', $reason);
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['success' => true, 'message' => "Đơn hàng #{$order->order_code} đã được hủy thành công!"]);
             }
             return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy thành công!");
         } catch (ValidationException $e) {
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => $e->errors()], 422);
             }
             return redirect()->back()->withErrors($e->errors());
@@ -169,7 +169,7 @@ class CustomerOrderController
      */
     private function cancelError(Request $request, string $message)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => false, 'message' => $message], 422);
         }
         return redirect()->back()->with('error', $message);

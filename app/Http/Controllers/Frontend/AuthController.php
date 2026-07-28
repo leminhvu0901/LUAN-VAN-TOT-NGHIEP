@@ -62,7 +62,7 @@ class AuthController
 
         // 2. Kiểm tra xem Email đăng ký đã tồn tại trong Database chưa
         if (User::where('email', $email)->exists()) {
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => ['register_error' => ['Email đã được sử dụng.']]], 422);
             }
             return back()->withErrors(['register_error' => 'Email đã được sử dụng.'])->withInput();
@@ -96,7 +96,7 @@ class AuthController
 
         // Form đăng ký submit qua fetch (xem register.js) -> trả email để JS tự mở modal OTP tại chỗ
         // (không cần tải lại trang để server render lại cờ show_otp nữa).
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'otp_required' => true, 'email' => $email]);
         }
 
@@ -149,7 +149,7 @@ class AuthController
                 // Đánh dấu người dùng được phép chuyển sang trang đặt lại mật khẩu mới
                 $request->session()->put('can_reset_password', true);
                 $destination = route('reset.password.get');
-                if ($request->ajax()) {
+                if ($request->expectsJson()) {
                     return response()->json(['success' => true, 'redirect_url' => $destination]);
                 }
                 return redirect($destination);
@@ -170,7 +170,7 @@ class AuthController
                 // Dọn dẹp sạch các khóa session tạm thời để tránh rác bộ nhớ
                 $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
                 $request->session()->put('login_method', 'email');
-                if ($request->ajax()) {
+                if ($request->expectsJson()) {
                     return response()->json(['success' => true, 'redirect_url' => url('/')]);
                 }
                 return redirect('/');
@@ -188,7 +188,7 @@ class AuthController
      */
     private function otpError(Request $request, string $message)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => false, 'errors' => ['otp_error' => [$message]]], 422);
         }
         return back()->withErrors(['otp_error' => $message]);
@@ -286,7 +286,7 @@ class AuthController
 
             // Modal đăng nhập submit qua fetch (xem login.js) -> trả URL đích để JS tự điều hướng,
             // giữ đúng logic phân luồng theo vai trò như redirect() cũ.
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['success' => true, 'redirect_url' => $destination]);
             }
             return redirect($destination);
@@ -303,7 +303,7 @@ class AuthController
      */
     private function loginError(Request $request, string $message)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => false, 'errors' => ['login_error' => [$message]]], 422);
         }
         return back()->withErrors(['login_error' => $message])->withInput($request->only('email'));
@@ -414,7 +414,7 @@ class AuthController
 
         // 2. Nếu email nhập vào không tồn tại trong hệ thống
         if (!$user) {
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => ['forgot_error' => ['Email không tồn tại trong hệ thống.']]], 422);
             }
             // Quay về trang chủ và gửi kèm cờ show_forgot để popup Quên mật khẩu tự động bật lên và in lỗi
@@ -439,7 +439,7 @@ class AuthController
 
         // Form quên mật khẩu submit qua fetch (xem forgot-password.js) -> trả email để JS tự mở modal
         // OTP tại chỗ, không cần tải lại trang.
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'otp_required' => true, 'email' => $email]);
         }
 

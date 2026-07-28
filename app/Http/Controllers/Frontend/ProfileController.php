@@ -89,7 +89,7 @@ class ProfileController
 
         // Form submit qua fetch (xem profile.js) -> trả về đúng thông tin vừa lưu để JS cập nhật ngay
         // tên/avatar trên trang (cả sidebar lẫn navbar) mà không cần tải lại cả trang.
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             $user = \App\Models\User::find(\Illuminate\Support\Facades\Auth::id());
             return response()->json([
                 'success' => true,
@@ -472,7 +472,7 @@ class ProfileController
                 'updated_at' => now(),
             ]);
 
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']);
         }
 
@@ -486,7 +486,7 @@ class ProfileController
      */
     private function passwordError(Request $request, string $field, string $message)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             return response()->json(['success' => false, 'errors' => [$field => [$message]]], 422);
         }
         return redirect()->back()->withErrors([$field => $message])->withInput();
