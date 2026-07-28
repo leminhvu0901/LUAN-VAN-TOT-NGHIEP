@@ -7113,7 +7113,11 @@ animation: dividerPulse 2.5s ease-in-out infinite;
 
 .home-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  /* auto-fit (không phải auto-fill) co giãn item hiện có để LẤP ĐẦY hết chỗ trống khi có ÍT item hơn
+     số cột tối đa vừa được — vd. lọc "Mới nhất" chỉ còn đúng 1 sản phẩm khớp thì nó bị kéo giãn to
+     hết cả hàng ngang. auto-fill giữ đúng độ rộng cột đã định, để trống các ô còn lại thay vì kéo
+     giãn item ra, khớp đúng ý muốn hiển thị lưới cố định dù lọc còn ít/nhiều sản phẩm. */
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
   gap: 1.25rem;
 }
 
