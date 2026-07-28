@@ -8016,7 +8016,10 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #f1f5f9;
+  /* Viền cũ (#f1f5f9) gần như trùng màu nền trang -> khung ảnh gần như vô hình. Đậm viền lên +
+     thêm bóng đổ nhẹ để khung tách hẳn khỏi nền, nhìn rõ ranh giới ảnh sản phẩm. */
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.08);
 }
 
 .pd-gallery__img {
