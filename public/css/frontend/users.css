@@ -4616,6 +4616,13 @@ h6>a:hover,
 
 /* Icon kính lúp bên trái */
 .happy-navbar__search-icon {
+  /* Có một định nghĩa .happy-navbar__search-icon KHÁC ở phía trên (dòng ~4429, kiểu icon đè tuyệt
+     đối lên input — thiết kế cũ không còn dùng nhưng chưa xóa) đặt position:absolute và
+     pointer-events:none cho cùng tên class này. CSS không tự "reset" giữa 2 khối trùng selector nên
+     2 thuộc tính đó bị rò rỉ sang đây, phá layout flex hiện tại (icon bị đẩy lệch/mất khỏi vị trí
+     đúng). Khai báo lại tường minh để chặn rò rỉ, không cần xóa khối cũ (đỡ rủi ro ảnh hưởng chỗ khác). */
+  position: static;
+  pointer-events: auto;
   flex-shrink: 0;
   color: #9ca3af;
   display: flex;
