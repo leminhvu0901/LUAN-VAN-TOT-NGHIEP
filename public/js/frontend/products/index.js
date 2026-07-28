@@ -155,6 +155,62 @@ if (sortSelect && grid) {
 }
 
 /**
+ * Dropdown "Sắp xếp theo" tự dựng — chỉ đóng vai trò GIAO DIỆN, mọi thay đổi đều ghi vào <select> ẩn
+ * (#sort-select) rồi bắn sự kiện 'change' để logic sắp xếp sẵn có ở trên chạy y nguyên, không phải
+ * sửa gì. Lý do không dùng thẳng <select>: popup của nó do trình duyệt/hệ điều hành tự vẽ, không giới
+ * hạn được chiều rộng bằng CSS nên tràn ra ngoài khung, vỡ layout trên màn hình hẹp.
+ */
+(function () {
+    const dropdown = document.getElementById('sort-dropdown');
+    const toggle = document.getElementById('sort-dropdown-toggle');
+    const menu = document.getElementById('sort-dropdown-menu');
+    const label = document.getElementById('sort-dropdown-label');
+    if (!dropdown || !toggle || !menu || !label || !sortSelect) return;
+
+    function openMenu() {
+        menu.hidden = false;
+        dropdown.classList.add('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+        menu.hidden = true;
+        dropdown.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    toggle.addEventListener('click', function (event) {
+        event.stopPropagation();
+        if (menu.hidden) openMenu(); else closeMenu();
+    });
+
+    menu.addEventListener('click', function (event) {
+        const option = event.target.closest('.p-sort-dropdown__option');
+        if (!option) return;
+
+        menu.querySelectorAll('.p-sort-dropdown__option').forEach(function (el) {
+            el.classList.remove('is-selected');
+            el.setAttribute('aria-selected', 'false');
+        });
+        option.classList.add('is-selected');
+        option.setAttribute('aria-selected', 'true');
+        label.textContent = option.textContent.trim();
+
+        sortSelect.value = option.dataset.value;
+        sortSelect.dispatchEvent(new Event('change'));
+        closeMenu();
+    });
+
+    // Bấm ra ngoài hoặc nhấn Escape thì đóng — cùng cách các dropdown khác trên site đang làm.
+    document.addEventListener('click', function (event) {
+        if (!menu.hidden && !dropdown.contains(event.target)) closeMenu();
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !menu.hidden) closeMenu();
+    });
+})();
+
+/**
  * Phân trang qua AJAX (mục tiêu: tránh tải lại cả trang gây giật/nhấp nháy khi bấm chuyển trang).
  * Chặn click vào .p-pagination__btn, gọi fetch lấy đúng partial lưới sản phẩm + phân trang mới,
  * thay nội dung tại chỗ, cập nhật URL trên thanh địa chỉ (không tải lại trang), rồi chạy lại sort/filter
@@ -173,11 +229,14 @@ document.addEventListener('click', function (event) {
     if (!url) return;
 
     event.preventDefault();
-    loadProductsPage(url);
+    // Truyền context 'pagination' để loadProductsPage biết đây là chuyển trang
+    // (khác với đổi bộ lọc) và cuộn về đầu danh sách sau khi load xong.
+    loadProductsPage(url, true, 'pagination');
 });
 
-function loadProductsPage(url, updateHistory) {
+function loadProductsPage(url, updateHistory, context) {
     if (updateHistory === undefined) updateHistory = true;
+    if (context === undefined) context = 'filter';
 
     const wrapper = document.getElementById('ajax-product-area');
     if (!wrapper) {
@@ -205,9 +264,19 @@ function loadProductsPage(url, updateHistory) {
             grid = document.getElementById('product-grid');
             if (sortSelect && grid) applySortAndFilter();
 
-            // KHÔNG tự cuộn trang (đã bỏ scrollIntoView) — trước đây mỗi lần đổi bộ lọc/chuyển trang
-            // đều tự cuộn lên đầu lưới sản phẩm, gây cảm giác "nảy" giao diện đột ngột dù người dùng
-            // không hề cuộn. Giữ nguyên đúng vị trí đang xem, giống hệt cảm giác một trang tĩnh bình thường.
+            // Khi chuyển trang phân trang (context === 'pagination'): cuộn viewport về đúng đầu vùng
+            // danh sách sản phẩm để người dùng (đặc biệt trên mobile) thấy ngay sản phẩm đầu tiên của
+            // trang mới thay vì phải tự cuộn lên. Dùng smooth để tránh cảm giác "nảy" đột ngột.
+            // Khi đổi bộ lọc (context === 'filter'): KHÔNG cuộn, giữ nguyên vị trí đang xem.
+            if (context === 'pagination') {
+                const productArea = document.getElementById('ajax-product-area');
+                if (productArea) {
+                    // Lấy vị trí thực của vùng danh sách sản phẩm, trừ thêm 12px padding trên để
+                    // không bị thanh navbar che khuất sản phẩm đầu tiên.
+                    const offsetTop = productArea.getBoundingClientRect().top + window.pageYOffset - 12;
+                    window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+                }
+            }
         })
         .catch(function () {
             // Fetch lỗi (mất mạng, server lỗi...) -> điều hướng thật như link bình thường, không kẹt trang
@@ -219,7 +288,7 @@ function loadProductsPage(url, updateHistory) {
 // tương ứng URL hiện tại thay vì chỉ đổi URL trên thanh địa chỉ mà nội dung trang không đổi theo.
 window.addEventListener('popstate', function () {
     if (document.getElementById('ajax-product-area')) {
-        loadProductsPage(window.location.href, false);
+        loadProductsPage(window.location.href, false, 'pagination');
     }
 });
 
@@ -234,7 +303,8 @@ if (filterForm) {
         event.preventDefault();
         const params = new URLSearchParams(new FormData(filterForm));
         const url = filterForm.action + (params.toString() ? '?' + params.toString() : '');
-        loadProductsPage(url);
+        // context = 'filter': không cuộn trang, chỉ thay nội dung tại chỗ
+        loadProductsPage(url, true, 'filter');
 
         // Trên di động, bộ lọc dạng sidebar trượt ra — đóng lại sau khi áp dụng để thấy ngay kết quả.
         const sidebar = document.querySelector('.p-sidebar');

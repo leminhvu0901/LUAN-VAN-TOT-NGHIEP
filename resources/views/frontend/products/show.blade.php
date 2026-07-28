@@ -264,59 +264,21 @@
             </div>
         </div>
 
-        {{-- Danh sách các bình luận của khách hàng --}}
-        <div class="pd-review-list">
-            @forelse($reviews as $review)
-            <div class="pd-review-item">
-                {{-- Ảnh đại diện (avatar) của người đánh giá, hỗ trợ hiển thị ảnh ngoài (Google) và ảnh tải lên cục bộ --}}
-                <div class="pd-review-avatar">
-                    @if($review->user_avatar)
-                        @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
-                            <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img" referrerpolicy="no-referrer">
-                        @else
-                            <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img">
-                        @endif
-                    @else
-                        <span class="pd-review-avatar__initial">{{ mb_substr($review->user_name, 0, 1) }}</span>
-                    @endif
-                </div>
-                <div class="pd-review-body">
-                    <div class="pd-review-header">
-                        <span class="pd-review-name">{{ $review->user_name }}</span>
-                        <div class="pd-review-stars">
-                            @for($i=1;$i<=5;$i++)
-                                <svg class="pd-star pd-star--sm {{ $i <= $review->rating ? 'pd-star--filled' : 'pd-star--empty' }}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
-                            @endfor
-                        </div>
-                        {{-- Thời gian bình luận: chuyển sang định dạng "khoảng thời gian trước" --}}
-                        <span class="pd-review-date">{{ \Carbon\Carbon::parse($review->created_at)->diffForHumans() }}</span>
-                    </div>
-                    @if($review->comment)
-                    <p class="pd-review-comment">{{ $review->comment }}</p>
-                    @endif
-                    
-                    {{-- Hiển thị các hình ảnh đính kèm bài đánh giá (nếu có) --}}
-                    @if($review->image)
-                    @php
-                        $images = [];
-                        $decoded = json_decode($review->image, true);
-                        if (is_array($decoded)) { $images = $decoded; }
-                        else { $images = [$review->image]; }
-                    @endphp
-                    <div class="pd-review-images mt-2 pd-review-images-wrap">
-                        @foreach($images as $img)
-                            <img src="{{ asset('images/' . $img) }}" alt="Review Image" class="pd-review-image-thumb" onclick="window.open(this.src, '_blank')">
-                        @endforeach
-                    </div>
-                    @endif
-                </div>
+        {{-- Danh sách các bình luận của khách hàng — bọc trong .reviews-app để reviews-filter.js nhận
+        diện, nút lọc + khung danh sách/nút "Xem thêm" đều dùng chung 1 bộ class với trang "Xem đánh
+        giá" (xem public/js/frontend/products/reviews-filter.js). --}}
+        <div class="reviews-app" data-product-id="{{ $product->id }}" data-view="full">
+            <div class="pd-review-filters">
+                <button type="button" class="pd-review-filter-btn review-filter-btn is-active" data-rating="" data-has-image="">Tất cả</button>
+                @for($star = 5; $star >= 1; $star--)
+                    <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
+                @endfor
+                <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
             </div>
-            @empty
-            <div class="pd-reviews-empty">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <p>Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá sản phẩm này!</p>
+
+            <div class="pd-review-list">
+                @include('frontend.products.partials.reviews-list-full', ['reviews' => $reviews])
             </div>
-            @endforelse
         </div>
     </div>
 
@@ -352,5 +314,6 @@
 {{-- Đẩy mã JS của trang chi tiết sản phẩm vào ngăn xếp stack của Layout --}}
 @push('scripts')
 <script src="{{ asset('js/frontend/products/show.js') }}"></script>
+<script src="{{ asset('js/frontend/products/reviews-filter.js') }}"></script>
 @endpush
 @endsection

@@ -195,8 +195,8 @@ class SettingController
                     'store_email' => 'required|email|max:255',
                     'store_phone' => 'required|string|max:20',
                     'store_address' => 'required|string',
-                    'store_open_time' => 'required|date_format:H:i',
-                    'store_close_time' => 'required|date_format:H:i',
+                    'store_open_time' => 'nullable|date_format:H:i',
+                    'store_close_time' => 'nullable|date_format:H:i',
                     'store_facebook_url' => 'nullable|url|max:255',
                     'store_zalo_url' => 'nullable|string|max:255',
                     'store_latitude' => 'required|numeric|between:-90,90',
@@ -278,9 +278,18 @@ class SettingController
 
         // Save keys inside a database transaction
         DB::transaction(function () use ($fields, $section, $types, $request) {
+            // Các trường giờ hoạt động: nếu bỏ trống thì giữ nguyên giá trị cũ trong DB
+            $timeFields = ['store_open_time', 'store_close_time'];
+
             foreach ($fields as $field) {
                 $type = $types[$field] ?? 'string';
                 $val = $request->input($field);
+
+                // Nếu trường giờ bị để trống, giữ lại giá trị hiện tại (không ghi đè)
+                if (in_array($field, $timeFields) && ($val === null || trim((string) $val) === '')) {
+                    continue;
+                }
+
                 if ($type === 'boolean') {
                     $val = ($val == '1' || $val === 'true' || $val === true) ? '1' : '0';
                 }

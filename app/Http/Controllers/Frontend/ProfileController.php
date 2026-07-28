@@ -41,13 +41,14 @@ class ProfileController
     {
         // 1. Validate (Kiểm tra) dữ liệu người dùng nhập vào
         $request->validate([
-            'name' => 'required|string|max:255', // Bắt buộc nhập tên
+            'name' => 'required|string|max:30', // Bắt buộc nhập tên, tối đa 30 ký tự
             // SĐT phải đúng định dạng số điện thoại VN và không được trùng với tài khoản khác (trừ tài khoản hiện tại)
             'phone' => ['nullable', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . \Illuminate\Support\Facades\Auth::id()],
             'address' => 'nullable|string|max:255',
             'cropped_avatar' => 'nullable|string', // Chuỗi ảnh Avatar dạng Base64
         ], [
             'name.required' => 'Vui lòng nhập họ tên.',
+            'name.max' => 'Họ và tên tối đa 30 ký tự.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
             'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
         ]);
@@ -107,6 +108,33 @@ class ProfileController
 
         // Mặc định email không thay đổi qua form này vì liên quan đến login
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
+    }
+
+    /**
+     * Kiểm tra "ngầm" (live, qua AJAX) định dạng + trùng lặp SĐT ngay khi khách đang gõ ở trang Hồ sơ,
+     * KHÔNG đợi đến lúc bấm "Lưu thay đổi" mới biết SĐT không hợp lệ/đã có người dùng. Dùng đúng lại
+     * regex + rule unique giống hệt update() để không bao giờ lệch kết quả giữa 2 nơi.
+     */
+    public function checkPhone(Request $request)
+    {
+        $phone = trim((string) $request->query('phone', ''));
+
+        if ($phone === '') {
+            return response()->json(['valid' => true]);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(['phone' => $phone], [
+            'phone' => ['string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . \Illuminate\Support\Facades\Auth::id()],
+        ], [
+            'phone.regex' => 'Số điện thoại không đúng định dạng.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['valid' => false, 'message' => $validator->errors()->first('phone')]);
+        }
+
+        return response()->json(['valid' => true]);
     }
 
     /**

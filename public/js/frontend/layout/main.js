@@ -421,14 +421,7 @@ window.addToCart = function (productId, quantity = 1, options = {}) {
             }
 
             updateCartUI(data); // Cập nhật lại HTML giỏ hàng
-
-            // Tạo hiệu ứng nẩy nẩy (Pop) trên số lượng của giỏ hàng
-            var badge = document.getElementById('cart-badge');
-            if (badge) {
-                badge.classList.remove('badge-pop');
-                void badge.offsetWidth;
-                badge.classList.add('badge-pop');
-            }
+            triggerCartAddedAnimation(); // Hiệu ứng nẩy số + rung bong bóng giỏ hàng
         })
         .catch(err => console.error(err));
 };
@@ -467,14 +460,7 @@ window.addAllToCart = function () {
             }
             updateCartUI(data);
             alert('Đã thêm tất cả sản phẩm yêu thích vào giỏ hàng!');
-
-            // Hiệu ứng nảy giỏ hàng
-            var badge = document.getElementById('cart-badge');
-            if (badge) {
-                badge.classList.remove('badge-pop');
-                void badge.offsetWidth;
-                badge.classList.add('badge-pop');
-            }
+            triggerCartAddedAnimation(); // Hiệu ứng nẩy số + rung bong bóng giỏ hàng
         })
         .catch(err => console.error(err));
 };
@@ -561,6 +547,25 @@ window.loadCart = function () {
         .catch(err => console.error(err));
 };
 
+// Hiệu ứng phản hồi trực quan khi thêm sản phẩm vào giỏ hàng thành công — nẩy số trên badge của
+// navbar VÀ rung bong bóng nổi "Giỏ hàng" (floating-bubbles.blade.php, nếu trang đang có). Tách hàm
+// dùng chung vì addToCart() và addAllToCart() đều cần gọi y hệt nhau, tránh lặp code 2 nơi.
+function triggerCartAddedAnimation() {
+    var badge = document.getElementById('cart-badge');
+    if (badge) {
+        badge.classList.remove('badge-pop');
+        void badge.offsetWidth; // buộc trình duyệt reflow để animation chạy lại được từ đầu
+        badge.classList.add('badge-pop');
+    }
+
+    var floatingCartBtn = document.getElementById('floating-cart-btn');
+    if (floatingCartBtn) {
+        floatingCartBtn.classList.remove('floating-bubble--shake');
+        void floatingCartBtn.offsetWidth;
+        floatingCartBtn.classList.add('floating-bubble--shake');
+    }
+}
+
 // Hàm cập nhật giao diện Giỏ hàng sau khi nhận phản hồi từ Backend
 const updateCartUI = (data) => {
     if (!data || !data.success) return;
@@ -574,6 +579,14 @@ const updateCartUI = (data) => {
     if (badge) {
         badge.innerText = data.count;
         badge.classList.toggle('cart-badge--hidden', !(data.count > 0));
+    }
+
+    // 1b. Cùng logic ở trên nhưng cho badge trên bong bóng nổi "Giỏ hàng" (floating-bubbles.blade.php) —
+    // 2 badge độc lập, không tự đồng bộ nếu không cập nhật cả 2 ở đây.
+    var floatingBadge = document.getElementById('floating-cart-badge');
+    if (floatingBadge) {
+        floatingBadge.innerText = data.count;
+        floatingBadge.classList.toggle('floating-bubble__badge--hidden', !(data.count > 0));
     }
 
     // 2. Cập nhật câu phụ đề trên ngăn kéo (ví dụ: "3 sản phẩm")

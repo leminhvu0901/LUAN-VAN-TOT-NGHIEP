@@ -127,14 +127,17 @@
                                         {{-- Ô nhập Họ tên --}}
                                         <div class="space-y-1">
                                             <label class="font-label-md text-label-md text-on-surface-variant px-1">Họ và tên</label>
-                                            <input name="name" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ old('name', Auth::user()->name) }}" required>
-                                            @error('name') <small class="text-error mt-1 block">{{ $message }}</small> @enderror
+                                            <input id="name-input-desktop" name="name" maxlength="30" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ old('name', Auth::user()->name) }}" required>
+                                            {{-- Luôn render sẵn (không @if/@error) + toggle bằng class "hidden" — để profile.js tìm thấy
+                                            và điền lỗi vào đây khi submit qua fetch (AJAX không tải lại trang nên @error không tự
+                                            kích hoạt được, chỉ có tác dụng cho lần tải trang đầu/submit cổ điển không JS). --}}
+                                            <small id="name-error-desktop" class="text-error mt-1 block {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
                                         </div>
                                         {{-- Ô nhập Số điện thoại --}}
                                         <div class="space-y-1">
                                             <label class="font-label-md text-label-md text-on-surface-variant px-1">Số điện thoại</label>
-                                            <input name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}">
-                                            @error('phone') <small class="text-error mt-1 block">{{ $message }}</small> @enderror
+                                            <input id="phone-input-desktop" name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}">
+                                            <small id="phone-error-desktop" class="text-error mt-1 block {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
                                         </div>
                                     </div>
                                     {{-- Ô hiển thị Email (Bị khóa không cho sửa đổi trực tiếp) --}}
@@ -356,15 +359,15 @@
                 <div class="space-y-1">
                     <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Họ và tên</label>
                     <div class="relative group">
-                        <input name="name" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ old('name', Auth::user()->name) }}" required/>
-                        @error('name') <small class="text-error block mt-1 ml-1">{{ $message }}</small> @enderror
+                        <input id="name-input-mobile" name="name" maxlength="30" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ old('name', Auth::user()->name) }}" required/>
+                        <small id="name-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
                     </div>
                 </div>
                 <div class="space-y-1">
                     <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Số điện thoại</label>
                     <div class="relative group">
-                        <input name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}"/>
-                        @error('phone') <small class="text-error block mt-1 ml-1">{{ $message }}</small> @enderror
+                        <input id="phone-input-mobile" name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}"/>
+                        <small id="phone-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
                     </div>
                 </div>
                 <div class="space-y-1">
@@ -373,6 +376,12 @@
                         <input class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md opacity-70" type="email" value="{{ Auth::user()->email }}" disabled/>
                     </div>
                 </div>
+                {{-- Ảnh đại diện vừa cắt (JS: cropImage() trong profile.js) — nút sửa avatar ở khối
+                mobile phía trên dùng CHUNG modal cắt ảnh với bản desktop (#avatarInput/#croppedAvatarInput
+                chỉ khai báo 1 lần trong form desktop), nhưng form desktop bị ẩn trên mobile nên
+                new FormData() của form NÀY sẽ không lấy được giá trị từ input nằm ở form khác. Cần 1
+                input ẩn RIÊNG cho form mobile, được cropImage() đồng bộ giá trị song song. --}}
+                <input type="hidden" name="cropped_avatar" id="croppedAvatarInputMobile">
                 <button type="submit" class="w-full h-12 bg-primary-container text-white font-label-md text-label-md rounded-lg active:scale-95 transition-transform shadow-md mt-4 hover:shadow-lg">
                     Lưu thay đổi
                 </button>

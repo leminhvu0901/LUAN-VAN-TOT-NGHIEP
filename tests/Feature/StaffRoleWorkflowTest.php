@@ -193,8 +193,9 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Giao thất bại: bắt buộc nhập lý do, đơn chuyển 'cancelled' kèm delivery_failed_reason/at,
-     * kể cả khi đơn đã thanh toán trước (payment_status=paid) — theo quyết định nghiệp vụ đã duyệt.
+     * Giao thất bại: bắt buộc nhập lý do + loại lý do, đơn chuyển 'cancelled' kèm delivery_failed_reason/at,
+     * kể cả khi đơn đã thanh toán trước (payment_status=paid) — với loại lý do 'customer_unreachable'
+     * (khách không nhận hàng) thì hủy thẳng KHÔNG hoàn tiền, theo quyết định nghiệp vụ đã duyệt.
      */
     public function test_delivery_staff_marks_failed_delivery_with_required_reason(): void
     {
@@ -211,19 +212,145 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($delivery);
 
         // Thiếu lý do -> bị từ chối
-        $this->patch("/staff/delivery/orders/{$order->id}/fail", [])->assertSessionHasErrors('reason');
+        $this->patch("/staff/delivery/orders/{$order->id}/fail", [])->assertSessionHasErrors(['reason', 'failure_type']);
         $this->assertEquals('shipping', $order->fresh()->status);
 
-        // Có lý do -> hủy thẳng dù đã thanh toán (paid)
+        // Có lý do + loại "khách không nhận hàng" -> hủy thẳng dù đã thanh toán (paid), KHÔNG hoàn tiền
+        \Illuminate\Support\Facades\Http::fake();
         $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
             'reason' => 'Khách không nghe máy, không có người nhận',
+            'failure_type' => 'customer_unreachable',
+        ]);
+        $response->assertRedirect();
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+
+        $order = $order->fresh();
+        $this->assertEquals('cancelled', $order->status);
+        $this->assertEquals('paid', $order->payment_status);
+        $this->assertEquals('Khách không nghe máy, không có người nhận', $order->delivery_failed_reason);
+        $this->assertEquals('customer_unreachable', $order->delivery_failure_type);
+        $this->assertNotNull($order->delivery_failed_at);
+    }
+
+    /**
+     * Giao thất bại vì "hàng hư hỏng/đổ vỡ" trên đơn MoMo đã thanh toán -> tự động hoàn tiền MoMo
+     * trước khi hủy đơn, đơn chuyển payment_status=refunded + status=cancelled.
+     */
+    public function test_delivery_staff_marks_failed_delivery_damaged_triggers_refund(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*/v2/gateway/api/refund' => \Illuminate\Support\Facades\Http::response(['resultCode' => 0, 'transId' => 'REFUND-TX-1'], 200),
+        ]);
+
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder([
+            'status' => 'shipping',
+            'delivery_staff_id' => $delivery->id,
+            'assigned_at' => now(),
+            'payment_method' => 'momo',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+            'payment_transaction_id' => 'ORIGINAL-TX-1',
+        ]);
+
+        $this->actingAs($delivery);
+        $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
+            'reason' => 'Trà sữa đổ vỡ trong lúc vận chuyển',
+            'failure_type' => 'damaged',
         ]);
         $response->assertRedirect();
 
         $order = $order->fresh();
         $this->assertEquals('cancelled', $order->status);
-        $this->assertEquals('Khách không nghe máy, không có người nhận', $order->delivery_failed_reason);
-        $this->assertNotNull($order->delivery_failed_at);
+        $this->assertEquals('refunded', $order->payment_status);
+        $this->assertEquals('REFUND-TX-1', $order->refund_transaction_id);
+        $this->assertNotNull($order->refunded_at);
+        $this->assertEquals('damaged', $order->delivery_failure_type);
+    }
+
+    /**
+     * Giao thất bại vì "hàng hư hỏng/đổ vỡ" nhưng MoMo hoàn tiền thất bại -> vẫn hủy đơn (shipper
+     * không thể kẹt ngoài đường chờ retry), nhưng KHÔNG đánh dấu đã hoàn tiền — payment_status vẫn
+     * 'paid' trên đơn 'cancelled' để lễ tân/admin biết cần xử lý hoàn tiền thủ công.
+     */
+    public function test_delivery_staff_marks_failed_delivery_damaged_refund_failure_still_cancels(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*/v2/gateway/api/refund' => \Illuminate\Support\Facades\Http::response(['resultCode' => 99, 'message' => 'Lỗi hệ thống MoMo'], 200),
+        ]);
+
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder([
+            'status' => 'shipping',
+            'delivery_staff_id' => $delivery->id,
+            'assigned_at' => now(),
+            'payment_method' => 'momo',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+            'payment_transaction_id' => 'ORIGINAL-TX-2',
+        ]);
+
+        $this->actingAs($delivery);
+        $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
+            'reason' => 'Trà sữa đổ vỡ trong lúc vận chuyển',
+            'failure_type' => 'damaged',
+        ]);
+        $response->assertRedirect();
+
+        $order = $order->fresh();
+        $this->assertEquals('cancelled', $order->status);
+        $this->assertEquals('paid', $order->payment_status);
+        $this->assertNull($order->refund_transaction_id);
+    }
+
+    /**
+     * Giao thất bại với loại lý do "Khác" trên đơn MoMo đã thanh toán -> giống 'customer_unreachable',
+     * hủy thẳng KHÔNG hoàn tiền (chỉ 'damaged' mới tự động hoàn tiền).
+     */
+    public function test_delivery_staff_marks_failed_delivery_other_reason_does_not_trigger_refund(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder([
+            'status' => 'shipping',
+            'delivery_staff_id' => $delivery->id,
+            'assigned_at' => now(),
+            'payment_method' => 'momo',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+            'payment_transaction_id' => 'ORIGINAL-TX-OTHER',
+        ]);
+
+        $this->actingAs($delivery);
+        $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
+            'reason' => 'Không tìm thấy địa chỉ giao hàng',
+            'failure_type' => 'other',
+        ]);
+        $response->assertRedirect();
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+
+        $order = $order->fresh();
+        $this->assertEquals('cancelled', $order->status);
+        $this->assertEquals('paid', $order->payment_status);
+        $this->assertEquals('other', $order->delivery_failure_type);
+    }
+
+    /**
+     * failure_type sai giá trị (không thuộc damaged/customer_unreachable/other) -> bị từ chối validate.
+     */
+    public function test_delivery_staff_fail_rejects_invalid_failure_type(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder(['status' => 'shipping', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+
+        $this->actingAs($delivery);
+        $this->patch("/staff/delivery/orders/{$order->id}/fail", [
+            'reason' => 'Lý do hợp lệ nhưng loại sai',
+            'failure_type' => 'invalid_type',
+        ])->assertSessionHasErrors('failure_type');
+
+        $this->assertEquals('shipping', $order->fresh()->status);
     }
 
     /**

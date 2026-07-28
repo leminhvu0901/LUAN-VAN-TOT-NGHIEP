@@ -94,6 +94,7 @@
                     @csrf
                     @method('PATCH')
                     <input type="hidden" name="reason">
+                    <input type="hidden" name="failure_type">
                 </form>
             </div>
         @else

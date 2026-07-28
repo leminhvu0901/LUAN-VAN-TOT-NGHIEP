@@ -9,6 +9,10 @@ class Review extends Model
     protected $table = 'reviews';
     protected $guarded = [];
 
+    protected $casts = [
+        'edited_at' => 'datetime',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');

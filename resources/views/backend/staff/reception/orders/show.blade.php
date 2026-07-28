@@ -73,6 +73,11 @@
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
+                // Đơn MoMo đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
+                // (route staff.reception.orders.refund), khác nút "Hủy đơn" thường ở trên.
+                $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
+                    && $order->payment_method === 'momo'
+                    && $order->payment_status === 'paid';
             @endphp
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -112,13 +117,21 @@
                             <input type="hidden" name="cancel_reason" id="cancel_reason_input">
                             <button type="button" id="cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm">Hủy đơn</button>
                         </form>
+                    @elseif($canRefundAndCancel)
+                        <form id="refund-cancel-order-form" action="{{ route('staff.reception.orders.refund', $order->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="cancel_reason" id="refund_cancel_reason_input">
+                            <button type="button" id="refund-cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy đơn
+                            </button>
+                        </form>
                     @endif
 
                     @if($isDeliveryOrder && $order->status === 'shipping')
                         <p class="text-xs text-gray-400">Đơn đang được giao — chỉ nhân viên vận chuyển được cập nhật tiếp.</p>
                     @elseif(in_array($order->status, ['completed', 'cancelled']))
                         <p class="text-xs text-gray-400">Đơn đã kết thúc, không thể thay đổi thêm.</p>
-                    @elseif(!$canCancel && in_array($order->status, ['pending', 'confirmed']))
+                    @elseif(!$canCancel && !$canRefundAndCancel && in_array($order->status, ['pending', 'confirmed']))
                         <p class="text-xs text-gray-400">Đơn đã thanh toán — cần hoàn tiền trước khi hủy.</p>
                     @endif
                 </div>
@@ -327,6 +340,13 @@
                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
                                     </div>
+                                @elseif(($order->payment_status ?? '') === 'refunded')
+                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
+                                    </div>
+                                    @if($order->refunded_at)
+                                        <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
+                                    @endif
                                 @else
                                     <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
@@ -357,7 +377,7 @@
                         </span>
                     </div>
 
-                    @if($order->payment_method === 'momo' && $order->payment_status !== 'paid')
+                    @if($order->payment_method === 'momo' && !in_array($order->payment_status, ['paid', 'refunded'], true))
                         <form action="{{ route('staff.reception.orders.pay_momo', $order->id) }}" method="POST" class="mt-4">
                             @csrf
                             <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">

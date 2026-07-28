@@ -38,6 +38,9 @@ Route::get('/products', [App\Http\Controllers\Frontend\ProductController::class,
 // CHI TIET SAN PHAM
 Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
 
+// Lọc/phân trang đánh giá 1 sản phẩm qua AJAX (dùng chung cho trang chi tiết sản phẩm và trang "Xem đánh giá")
+Route::get('/products/{productId}/reviews', [App\Http\Controllers\Frontend\ProductController::class, 'reviews'])->name('products.reviews');
+
 
 
 // TÀI KHOẢN & XÁC THỰC
@@ -102,6 +105,9 @@ Route::middleware(['auth'])->group(function () {
     // Cập nhật thông tin Hồ sơ (Tên, SĐT, Avatar...)
     Route::post('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
 
+    // Kiểm tra ngầm (AJAX, khi đang gõ) định dạng + trùng lặp SĐT — báo lỗi ngay không cần đợi Lưu
+    Route::get('/profile/check-phone', [App\Http\Controllers\Frontend\ProfileController::class, 'checkPhone'])->name('profile.check_phone');
+
     // Đổi mật khẩu tài khoản
     Route::post('/profile/change-password', [App\Http\Controllers\Frontend\ProfileController::class, 'changePassword'])->name('profile.change-password');
 
@@ -116,6 +122,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Gửi đánh giá (số sao, nhận xét) vào Database
     Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'store'])->name('review.store');
+
+    // Chỉnh sửa đánh giá đã gửi (chỉ trong vòng 7 ngày — xem ReviewController::EDIT_WINDOW_DAYS)
+    Route::put('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'update'])->name('review.update');
 
     // Bật/tắt trạng thái Yêu thích sản phẩm (Thả tim)
     Route::post('/favorite/toggle', [App\Http\Controllers\Frontend\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
@@ -217,6 +226,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Xem chi tiết đơn hàng
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'updateStatus'])->name('orders.status.update');
+    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\MomoController::class, 'refundOrder'])->name('orders.refund');
     Route::delete('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'destroy'])->name('orders.destroy');
     Route::post('/orders/bulk-delete', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'bulkDelete'])->name('orders.bulk_delete');
 
@@ -282,6 +292,7 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     Route::get('/customers/search', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'searchCustomer'])->name('customers.search');
     Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'updateStatus'])->name('orders.status.update');
+    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\MomoController::class, 'refundOrder'])->name('orders.refund');
     Route::post('/orders/{order}/assign-delivery', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'assignDelivery'])->name('orders.assign_delivery');
     Route::post('/orders/{order}/pay-momo', [App\Http\Controllers\Frontend\MomoController::class, 'payExistingOrder'])->name('orders.pay_momo');
     Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');

@@ -83,6 +83,10 @@ class SecureOrderController
             'cancel_reason' => ['nullable', 'string', 'max:500'],
         ]);
         $this->orderWorkflow->transition(Order::findOrFail($id), $validated['status'], $validated['cancel_reason'] ?? null);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã cập nhật trạng thái đơn hàng!']);
+        }
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 

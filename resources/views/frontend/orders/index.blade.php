@@ -274,9 +274,9 @@
                                                     $hasReviewed = $reviewedItems->where('order_id', $order->id)->where('product_id', $item->product_id)->isNotEmpty();
                                                 @endphp
                                                 @if($hasReviewed)
-                                                    <span class="mt-2 text-[10px] md:text-xs text-primary font-bold px-3 py-1 bg-primary/10 rounded-full border border-primary/20">Đã đánh giá</span>
+                                                    <a href="{{ route('review.create', ['orderId' => $order->id, 'productId' => $item->product_id]) }}" class="mt-2 whitespace-nowrap text-[10px] md:text-xs text-primary font-bold px-3 py-1 bg-primary/10 rounded-full border border-primary/20 hover:bg-primary/20 transition-colors">Xem đánh giá</a>
                                                 @else
-                                                    <a href="{{ route('review.create', ['orderId' => $order->id, 'productId' => $item->product_id]) }}" class="mt-2 text-[10px] md:text-xs text-white bg-primary font-bold px-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95">Đánh giá</a>
+                                                    <a href="{{ route('review.create', ['orderId' => $order->id, 'productId' => $item->product_id]) }}" class="mt-2 whitespace-nowrap text-[10px] md:text-xs text-white bg-primary font-bold px-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95">Đánh giá</a>
                                                 @endif
                                             @endif
                                         </div>
@@ -344,4 +344,23 @@
 {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
 @push('scripts')
     <script src="{{ asset('js/frontend/orders/orders.js') }}"></script>
+    @if(session('success'))
+        <script>
+            // Banner ở đầu trang dễ bị JS tự cuộn xuống chi tiết đơn (data-open-order-id) che mất
+            // ngay sau khi tải trang -> thêm toast nổi luôn hiển thị bất kể vị trí cuộn, không tự tắt quá nhanh.
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: @json(session('success')),
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3500,
+                        timerProgressBar: true,
+                    });
+                }
+            });
+        </script>
+    @endif
 @endpush

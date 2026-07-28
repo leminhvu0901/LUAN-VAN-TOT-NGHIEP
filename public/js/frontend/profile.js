@@ -117,9 +117,15 @@ function cropImage() {
         document.getElementById('avatarPreviewMobile').src = base64Image;
     }
 
-    // Nhét nguyên đoạn mã Base64 này vào một thẻ input ẩn (hidden). 
-    // Tí nữa bấm nút Cập Nhật Hồ Sơ, mã này sẽ bay lên Server thay vì cả 1 cục file ảnh to.
-    document.getElementById('croppedAvatarInput').value = base64Image;
+    // Nhét nguyên đoạn mã Base64 này vào thẻ input ẩn (hidden) — CẢ 2 bản desktop lẫn mobile, vì đây
+    // là 2 <form> riêng biệt (không dùng chung DOM node), submit form nào thì chỉ input NẰM TRONG
+    // form đó mới được gửi lên server. Thiếu bước đồng bộ này thì khi khách sửa ảnh đại diện xong bấm
+    // "Lưu thay đổi" ở giao diện mobile, ảnh mới sẽ không hề được gửi lên (dù các trường khác vẫn lưu
+    // bình thường, hiện thông báo "thành công" gây hiểu lầm là ảnh cũng đã lưu).
+    const croppedInputDesktop = document.getElementById('croppedAvatarInput');
+    if (croppedInputDesktop) croppedInputDesktop.value = base64Image;
+    const croppedInputMobile = document.getElementById('croppedAvatarInputMobile');
+    if (croppedInputMobile) croppedInputMobile.value = base64Image;
 
     closeCropperModal(); // Đóng popup
 }
@@ -361,10 +367,12 @@ function getCsrfToken() {
 }
 
 /**
- * Gửi 1 form qua fetch, gọi onSuccess(data)/hiện lỗi qua alert() nếu thất bại — dùng chung cho cả
- * form "Cập nhật thông tin" lẫn "Đổi mật khẩu" (cả bản desktop/mobile).
+ * Gửi 1 form qua fetch, gọi onSuccess(data) nếu thành công. Lúc lỗi: gọi onError(errors) nếu form đó
+ * có truyền vào (để tự hiện lỗi tại đúng vị trí liên quan, vd dưới từng ô nhập), nếu không thì mới
+ * dùng alert() làm phương án dự phòng chung — dùng chung cho cả form "Cập nhật thông tin" lẫn
+ * "Đổi mật khẩu" (cả bản desktop/mobile).
  */
-function submitProfileForm(form, onSuccess) {
+function submitProfileForm(form, onSuccess, onError) {
     const btn = form.querySelector('button[type="submit"]');
     if (btn) btn.disabled = true;
 
@@ -379,6 +387,10 @@ function submitProfileForm(form, onSuccess) {
         .then(function (result) {
             if (result.status >= 400) {
                 const errors = (result.data && result.data.errors) || {};
+                if (onError) {
+                    onError(errors);
+                    return;
+                }
                 const firstError = Object.values(errors)[0];
                 alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Có lỗi xảy ra, vui lòng thử lại.');
                 return;
@@ -393,11 +405,139 @@ function submitProfileForm(form, onSuccess) {
         });
 }
 
+// Ánh xạ tên field validate ở backend (vd "name") -> id của 2 thẻ <small> hiện lỗi (desktop + mobile)
+// tương ứng trong form "Cập nhật thông tin" — xem resources/views/frontend/profile.blade.php.
+const PROFILE_FIELD_ERROR_IDS = {
+    name: ['name-error-desktop', 'name-error-mobile'],
+    phone: ['phone-error-desktop', 'phone-error-mobile'],
+};
+
+// Ẩn hết các dòng lỗi cũ trước mỗi lần submit mới — tránh lỗi lần trước còn sót lại trên màn hình dù
+// lần này đã sửa đúng.
+function clearProfileFieldErrors() {
+    Object.values(PROFILE_FIELD_ERROR_IDS).forEach(function (ids) {
+        ids.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = '';
+                el.classList.add('hidden');
+            }
+        });
+    });
+}
+
+// Hiện lỗi validate ngay bên dưới đúng ô nhập liên quan (cả bản desktop lẫn mobile, đồng bộ như mọi
+// chỗ khác trên trang) thay vì alert() chung chung không rõ lỗi ở ô nào.
+function showProfileFieldErrors(errors) {
+    clearProfileFieldErrors();
+    Object.keys(errors).forEach(function (field) {
+        const ids = PROFILE_FIELD_ERROR_IDS[field];
+        if (!ids) return; // Field không có chỗ hiện lỗi riêng (hiếm gặp) -> bỏ qua, không vỡ layout
+        const message = errors[field] && errors[field][0];
+        if (!message) return;
+        ids.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = message;
+                el.classList.remove('hidden');
+            }
+        });
+    });
+}
+
+function showProfileFieldError(field, message) {
+    const ids = PROFILE_FIELD_ERROR_IDS[field] || [];
+    ids.forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+    });
+}
+
+function hideProfileFieldError(field) {
+    const ids = PROFILE_FIELD_ERROR_IDS[field] || [];
+    ids.forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = '';
+            el.classList.add('hidden');
+        }
+    });
+}
+
+// ==========================================
+// 8. KIỂM TRA "NGẦM" (live) — báo lỗi ngay khi đang gõ, không cần đợi bấm "Lưu thay đổi".
+// Họ tên: kiểm tra thuần JS (độ dài), không cần hỏi server. Số điện thoại: kiểm tra định dạng thuần
+// JS ngay lập tức + gọi AJAX (debounce) hỏi server xem SĐT đã bị người khác đăng ký chưa (cái này
+// KHÔNG thể biết được nếu chỉ kiểm tra ở trình duyệt, phải hỏi server).
+// ==========================================
+(function () {
+    const MAX_NAME_LENGTH = 30;
+    // Giống hệt regex phía backend (ProfileController::update()/checkPhone()) — tránh 2 nơi lệch nhau.
+    const PHONE_REGEX = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+
+    ['name-input-desktop', 'name-input-mobile'].forEach(function (id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', function () {
+            if (input.value.length > MAX_NAME_LENGTH) {
+                showProfileFieldError('name', 'Họ và tên tối đa ' + MAX_NAME_LENGTH + ' ký tự.');
+            } else {
+                hideProfileFieldError('name');
+            }
+        });
+    });
+
+    let phoneCheckTimer = null;
+    let phoneCheckToken = 0; // hủy kết quả của lần gõ trước nếu người dùng gõ tiếp nhanh hơn AJAX trả về
+
+    function checkPhoneLive(value) {
+        const myToken = ++phoneCheckToken;
+        fetch('/profile/check-phone?phone=' + encodeURIComponent(value), {
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (myToken !== phoneCheckToken) return; // đã có lần gõ mới hơn, bỏ kết quả cũ
+                if (data && data.valid === false) {
+                    showProfileFieldError('phone', data.message || 'Số điện thoại không hợp lệ.');
+                } else {
+                    hideProfileFieldError('phone');
+                }
+            })
+            .catch(function () { /* Mất mạng lúc kiểm tra ngầm -> im lặng, server vẫn kiểm tra lại lúc bấm Lưu */ });
+    }
+
+    ['phone-input-desktop', 'phone-input-mobile'].forEach(function (id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', function () {
+            const value = input.value.trim();
+            if (phoneCheckTimer) clearTimeout(phoneCheckTimer);
+
+            if (value === '') {
+                hideProfileFieldError('phone');
+                return;
+            }
+            if (!PHONE_REGEX.test(value)) {
+                // Sai định dạng thì báo ngay, không cần chờ hỏi server làm gì.
+                showProfileFieldError('phone', 'Số điện thoại không đúng định dạng.');
+                return;
+            }
+            // Đúng định dạng rồi -> debounce hỏi server xem có bị trùng với tài khoản khác không.
+            phoneCheckTimer = setTimeout(function () { checkPhoneLive(value); }, 500);
+        });
+    });
+})();
+
 // Form "Cập nhật thông tin" (desktop + mobile) — action kết thúc bằng "/profile" (không tính
 // "/profile/change-password", vì đó là action khác kết thúc bằng "/change-password").
 document.querySelectorAll('form[action$="/profile"]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
         event.preventDefault();
+        clearProfileFieldErrors();
         submitProfileForm(form, function (data) {
             const user = (data && data.user) || {};
             // Cập nhật tên hiển thị ở cả 2 bản desktop/mobile (form nào submit cũng đồng bộ cả 2, vì
@@ -418,7 +558,7 @@ document.querySelectorAll('form[action$="/profile"]').forEach(function (form) {
             }
 
             alert((data && data.message) || 'Cập nhật thông tin thành công!');
-        });
+        }, showProfileFieldErrors);
     });
 });
 

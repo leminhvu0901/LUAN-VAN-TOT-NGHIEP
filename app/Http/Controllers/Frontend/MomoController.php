@@ -17,6 +17,7 @@ class MomoController
     private string $accessKey;
     private string $secretKey;
     private string $endpoint;
+    private string $refundEndpoint;
     private bool $isProduction;
     private bool $configValid;
 
@@ -29,6 +30,7 @@ class MomoController
         $this->accessKey = (string) ($momoConfig['access_key'] ?? '');
         $this->secretKey = (string) ($momoConfig['secret_key'] ?? '');
         $this->endpoint = (string) ($momoConfig['endpoint'] ?? '');
+        $this->refundEndpoint = (string) ($momoConfig['refund_endpoint'] ?? '');
 
         $this->configValid = $this->partnerCode !== '' && $this->accessKey !== '' && $this->secretKey !== '';
     }
@@ -399,6 +401,119 @@ class MomoController
             Log::error('MoMo API error: ' . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Gọi API hoàn tiền MoMo cho một đơn đã thanh toán (transId = payment_transaction_id gốc).
+     * Mirror cấu trúc requestPayUrl() nhưng field set riêng của refund API. Public (không private) vì
+     * Delivery\OrderController cũng cần gọi trực tiếp cho case "hàng hư hỏng" — cùng tiền lệ với
+     * payExistingOrder() đã được gọi cross-controller từ Reception\OrderController::storeOrder().
+     * Không mở transaction DB / lock đơn ở đây — chỉ gọi API thuần, việc cập nhật DB nguyên tử diễn ra
+     * SAU KHI đã có kết quả (xem OrderWorkflowService::refundAndCancel/markDeliveryFailedWithRefund),
+     * để không giữ lock trong lúc chờ mạng.
+     *
+     * @return array{success: bool, transId: ?string, message: string}
+     */
+    public function requestRefund(\App\Models\Order $order): array
+    {
+        $requestId = 'RF' . $order->order_code . '_' . time();
+        $refundOrderId = $requestId;
+        $amountStr = (string) (int) round((float) $order->final_amount);
+        $description = 'Hoan tien don hang ' . $order->order_code;
+        $transId = (string) $order->payment_transaction_id;
+
+        $rawHash = "accessKey={$this->accessKey}"
+            . "&amount={$amountStr}"
+            . "&description={$description}"
+            . "&orderId={$refundOrderId}"
+            . "&partnerCode={$this->partnerCode}"
+            . "&requestId={$requestId}"
+            . "&transId={$transId}";
+
+        $signature = hash_hmac('sha256', $rawHash, $this->secretKey);
+
+        $payload = [
+            'partnerCode' => $this->partnerCode,
+            'orderId' => $refundOrderId,
+            'requestId' => $requestId,
+            'amount' => $amountStr,
+            'transId' => $transId,
+            'lang' => 'vi',
+            'description' => $description,
+            'signature' => $signature,
+        ];
+
+        try {
+            $httpClient = Http::timeout(30);
+            if (!$this->isProduction) {
+                $httpClient = $httpClient->withoutVerifying();
+            }
+            $response = $httpClient->post($this->refundEndpoint, $payload);
+            $result = $response->json();
+
+            Log::info('MoMo refund response', $result ?? []);
+
+            if ((int) ($result['resultCode'] ?? -1) === 0) {
+                return [
+                    'success' => true,
+                    'transId' => (string) ($result['transId'] ?? $refundOrderId),
+                    'message' => 'OK',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'transId' => null,
+                'message' => (string) ($result['message'] ?? 'Lỗi không xác định từ MoMo.'),
+            ];
+        } catch (\Exception $e) {
+            Log::error('MoMo refund API error: ' . $e->getMessage());
+            return ['success' => false, 'transId' => null, 'message' => 'Không thể kết nối cổng thanh toán MoMo.'];
+        }
+    }
+
+    /**
+     * Lễ tân/admin bấm "Hoàn tiền & Hủy đơn" cho một đơn MoMo đã thanh toán — dùng chung cho cả 2 route
+     * (staff.reception.orders.refund / admin.orders.refund), tương tự payExistingOrder() dùng chung.
+     * Chỉ hủy đơn NẾU hoàn tiền MoMo thành công — không bao giờ hủy "chay" một đơn đã thanh toán.
+     */
+    public function refundOrder(Request $request, \App\Models\Order $order)
+    {
+        if (!$this->configValid) {
+            return response()->json(['success' => false, 'message' => 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng liên hệ quản trị viên.'], 422);
+        }
+
+        $validated = $request->validate([
+            'cancel_reason' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'cancel_reason.required' => 'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự).',
+            'cancel_reason.min' => 'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự).',
+        ]);
+
+        if ($order->payment_method !== 'momo' || $order->payment_status !== 'paid') {
+            return response()->json(['success' => false, 'message' => 'Đơn hàng này không cần hoàn tiền MoMo.'], 422);
+        }
+        if (!in_array($order->status, ['pending', 'confirmed'], true)) {
+            return response()->json(['success' => false, 'message' => 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.'], 422);
+        }
+        if (!$order->payment_transaction_id) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy mã giao dịch gốc để hoàn tiền.'], 422);
+        }
+
+        $result = $this->requestRefund($order);
+
+        if (!$result['success']) {
+            Log::error('MoMo refund failed', ['orderId' => $order->order_code, 'message' => $result['message']]);
+            return response()->json(['success' => false, 'message' => 'Hoàn tiền MoMo thất bại: ' . $result['message']], 422);
+        }
+
+        try {
+            $this->orderWorkflow->refundAndCancel($order, $result['transId'], $validated['cancel_reason']);
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => collect($e->errors())->flatten()->first()], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Đã hoàn tiền và hủy đơn hàng thành công!']);
     }
 
     /**

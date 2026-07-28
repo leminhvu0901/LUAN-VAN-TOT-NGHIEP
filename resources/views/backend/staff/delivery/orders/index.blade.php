@@ -90,6 +90,7 @@
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="reason">
+                            <input type="hidden" name="failure_type">
                         </form>
                     @else
                         <span class="inline-block text-xs font-bold px-2 py-1 rounded-lg {{ $order->status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700' }}">

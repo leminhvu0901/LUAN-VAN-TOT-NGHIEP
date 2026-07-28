@@ -121,14 +121,37 @@
                             <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
                             <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
                         </div>
-                        {{-- Dropdown lựa chọn tiêu chí sắp xếp --}}
-                        <select class="p-sort-select" id="sort-select" aria-label="Sắp xếp">
-                            <option value="popular">Sắp xếp theo: Phổ biến nhất</option>
-                            <option value="price-asc">Giá: Thấp đến cao</option>
-                            <option value="price-desc">Giá: Cao đến thấp</option>
-                            <option value="newest">Mới nhất</option>
-                            <option value="rating">Đánh giá cao nhất</option>
-                        </select>
+                        {{-- Dropdown lựa chọn tiêu chí sắp xếp.
+                        Dùng dropdown tự dựng thay vì <select> hiển thị trực tiếp: popup của <select>
+                        do trình duyệt/hệ điều hành tự vẽ, KHÔNG thể giới hạn chiều rộng bằng CSS nên
+                        trên màn hình hẹp nó tràn ra ngoài khung, vỡ layout. <select> vẫn được giữ lại
+                        (ẩn đi) làm nguồn dữ liệu duy nhất để logic sắp xếp sẵn có trong index.js
+                        (đọc sortSelect.value + nghe sự kiện 'change') chạy y nguyên, không phải sửa. --}}
+                        <div class="p-sort-dropdown" id="sort-dropdown">
+                            <button type="button" class="p-sort-dropdown__toggle" id="sort-dropdown-toggle"
+                                aria-haspopup="listbox" aria-expanded="false">
+                                <span id="sort-dropdown-label">Sắp xếp theo: Phổ biến nhất</span>
+                                <svg class="p-sort-dropdown__arrow" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
+                            <ul class="p-sort-dropdown__menu" id="sort-dropdown-menu" role="listbox" hidden>
+                                <li class="p-sort-dropdown__option is-selected" role="option" aria-selected="true" data-value="popular">Sắp xếp theo: Phổ biến nhất</li>
+                                <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-asc">Giá: Thấp đến cao</li>
+                                <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-desc">Giá: Cao đến thấp</li>
+                                <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="newest">Mới nhất</li>
+                                <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="rating">Đánh giá cao nhất</li>
+                            </ul>
+
+                            <select class="p-sort-select-hidden" id="sort-select" aria-hidden="true" tabindex="-1">
+                                <option value="popular">Sắp xếp theo: Phổ biến nhất</option>
+                                <option value="price-asc">Giá: Thấp đến cao</option>
+                                <option value="price-desc">Giá: Cao đến thấp</option>
+                                <option value="newest">Mới nhất</option>
+                                <option value="rating">Đánh giá cao nhất</option>
+                            </select>
+                        </div>
                     </div>
 
                     @include('frontend.products.partials.grid')

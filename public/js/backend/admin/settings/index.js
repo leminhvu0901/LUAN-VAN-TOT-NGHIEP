@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (timePickers.length && typeof flatpickr !== 'undefined') {
         timePickers.forEach(picker => {
+            const currentVal = picker.value ? picker.value.trim() : '';
             flatpickr(picker, {
                 enableTime: true,
                 noCalendar: true,
@@ -175,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 minuteIncrement: 5,
                 allowInput: true,
                 disableMobile: true,
-                locale: 'vn',
+                defaultDate: currentVal || null,
                 onChange: function() {
                     updateHoursPreview();
                 }

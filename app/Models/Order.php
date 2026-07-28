@@ -16,6 +16,7 @@ class Order extends Model
         'inventory_reserved_at' => 'datetime',
         'inventory_released_at' => 'datetime',
         'cod_settled_at' => 'datetime',
+        'refunded_at' => 'datetime',
     ];
 
     public function items()

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Backend\Staff\Delivery;
 
+use App\Http\Controllers\Frontend\MomoController;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 // Nhân viên vận chuyển CHỈ được xem/xử lý đơn được phân công cho chính mình.
 // Không có method destroy/bulkDelete/export hay bất kỳ thao tác admin-only nào.
@@ -71,11 +73,41 @@ class OrderController
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:500'],
+            'failure_type' => ['required', 'in:damaged,customer_unreachable,other'],
         ], [
             'reason.required' => 'Vui lòng nhập lý do giao thất bại.',
+            'failure_type.required' => 'Vui lòng chọn loại lý do giao thất bại.',
         ]);
 
-        $this->orderWorkflow->markDeliveryFailed($order, $validated['reason']);
+        // "Hàng hư hỏng/đổ vỡ" trên đơn MoMo đã thanh toán -> hoàn tiền khách trước khi hủy. Các lý do
+        // khác (khách không nhận hàng/khác) giữ nguyên hành vi cũ: hủy thẳng, không hoàn tiền.
+        $needsRefund = $validated['failure_type'] === 'damaged'
+            && $order->payment_method === 'momo'
+            && $order->payment_status === 'paid';
+
+        if ($needsRefund) {
+            if (!$order->payment_transaction_id) {
+                Log::error('MoMo refund skipped: missing payment_transaction_id', ['orderId' => $order->order_code]);
+                $this->orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
+                return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại. Không tìm thấy mã giao dịch gốc để hoàn tiền — vui lòng báo lễ tân xử lý hoàn tiền thủ công.');
+            }
+
+            $refundResult = app(MomoController::class)->requestRefund($order);
+
+            if ($refundResult['success']) {
+                $this->orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']);
+                return $this->success($request, 'history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
+            }
+
+            // Hoàn tiền thất bại: vẫn hủy đơn để shipper hoàn thành lượt giao (không thể kẹt ngoài
+            // đường chờ retry) nhưng KHÔNG đánh dấu đã hoàn tiền — payment_status vẫn 'paid' trên đơn
+            // đã 'cancelled' là dấu hiệu bất thường dễ nhận ra khi lễ tân/admin rà soát để xử lý thủ công.
+            Log::error('MoMo refund failed on delivery-failed (damaged)', ['orderId' => $order->order_code, 'message' => $refundResult['message']]);
+            $this->orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
+            return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại. Hoàn tiền MoMo thất bại — vui lòng báo lễ tân xử lý hoàn tiền thủ công.');
+        }
+
+        $this->orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
 
         return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại.');
     }

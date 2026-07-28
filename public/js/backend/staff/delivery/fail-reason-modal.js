@@ -25,6 +25,9 @@
         currentForm = form;
         textarea.value = '';
         hint.classList.add('hidden'); // Ẩn thông báo lỗi nếu có từ lần mở trước
+        // Reset về lựa chọn mặc định "Khách không nhận hàng/không liên lạc được" mỗi lần mở modal.
+        const defaultRadio = document.querySelector('input[name="fail-reason-type"][value="customer_unreachable"]');
+        if (defaultRadio) defaultRadio.checked = true;
         backdrop.classList.remove('hidden'); // Hiển thị modal
         setTimeout(() => textarea.focus(), 50); // Tự động con trỏ vào ô nhập
     }
@@ -78,10 +81,12 @@
 
                 if (!currentForm) return;
 
-                // Gán lý do nhập từ textarea vào ô input ẩn trong form gốc và tiến hành submit qua
-                // fetch (xem order-actions.js) — không dùng currentForm.submit() cổ điển nữa để tránh
-                // tải lại cả trang giữa chừng thao tác của shipper.
+                // Gán lý do nhập từ textarea + loại lý do đã chọn vào các ô input ẩn trong form gốc và
+                // tiến hành submit qua fetch (xem order-actions.js) — không dùng currentForm.submit()
+                // cổ điển nữa để tránh tải lại cả trang giữa chừng thao tác của shipper.
+                const selectedType = document.querySelector('input[name="fail-reason-type"]:checked');
                 currentForm.querySelector('input[name="reason"]').value = reason;
+                currentForm.querySelector('input[name="failure_type"]').value = selectedType ? selectedType.value : 'other';
                 closeModal();
                 if (typeof window.submitDeliveryActionForm === 'function') {
                     window.submitDeliveryActionForm(currentForm);

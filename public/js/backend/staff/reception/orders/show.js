@@ -114,6 +114,41 @@ function initOrderShowPage() {
         });
     }
 
+    // Xử lý nút "Hoàn tiền & Hủy đơn" (đơn MoMo đã thanh toán) — cùng cấu trúc prompt với nút Hủy đơn
+    // thường ở trên, chỉ khác nội dung cảnh báo vì hành động này sẽ gọi API hoàn tiền MoMo thật.
+    const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
+    if (refundCancelBtn) {
+        refundCancelBtn.addEventListener('click', function () {
+            const form = document.getElementById('refund-cancel-order-form');
+            const reasonInput = document.getElementById('refund_cancel_reason_input');
+
+            if (window.AdminAlert && window.AdminAlert.prompt) {
+                window.AdminAlert.prompt(
+                    'Hoàn tiền & hủy đơn hàng?',
+                    'Hệ thống sẽ gọi hoàn tiền MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
+                    'Nhập lý do hủy đơn...',
+                    function (reason, isConfirmed) {
+                        if (isConfirmed && reason && reason.trim().length >= 5) {
+                            reasonInput.value = reason.trim();
+                            submitOrderActionForm(form);
+                        }
+                    },
+                    'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự)!',
+                    'Xác nhận',
+                    5
+                );
+            } else {
+                const reason = prompt('Hệ thống sẽ gọi hoàn tiền MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):');
+                if (reason && reason.trim().length >= 5) {
+                    reasonInput.value = reason.trim();
+                    submitOrderActionForm(form);
+                } else if (reason !== null) {
+                    showOrderActionMessage('Lý do hủy đơn phải có ít nhất 5 ký tự.', 'error');
+                }
+            }
+        });
+    }
+
     // "Xác nhận đơn"/"Hoàn thành" (form đơn giản, không cần xử lý gì thêm trước khi submit) và form
     // "Phân công giao hàng" — tất cả submit qua fetch thay vì tải lại cả trang, trang này trước đây
     // hoàn toàn KHÔNG có chỗ hiển thị lỗi (không @error, không $errors->any()) nên mỗi lần thao tác

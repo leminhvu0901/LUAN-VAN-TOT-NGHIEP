@@ -7,7 +7,22 @@
             </button>
         </div>
 
-        <p class="text-sm text-gray-500">Vui lòng nhập lý do (tối thiểu 5 ký tự) — thông tin này sẽ được lễ tân/quản trị viên xem lại.</p>
+        <div class="space-y-2">
+            <label class="flex items-start gap-2 text-sm text-gray-700">
+                <input type="radio" name="fail-reason-type" value="damaged" class="mt-0.5">
+                <span>Hàng hư hỏng/đổ vỡ trong quá trình giao <span class="text-xs text-emerald-600">(sẽ tự động hoàn tiền nếu đơn đã thanh toán MoMo)</span></span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-gray-700">
+                <input type="radio" name="fail-reason-type" value="customer_unreachable" class="mt-0.5" checked>
+                <span>Khách không nhận hàng / không liên lạc được</span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-gray-700">
+                <input type="radio" name="fail-reason-type" value="other" class="mt-0.5">
+                <span>Lý do khác</span>
+            </label>
+        </div>
+
+        <p class="text-sm text-gray-500">Vui lòng nhập lý do chi tiết (tối thiểu 5 ký tự) — thông tin này sẽ được lễ tân/quản trị viên xem lại.</p>
 
         <textarea id="fail-reason-textarea" rows="3" maxlength="500" placeholder="Ví dụ: khách không nghe máy, không có ai nhận hàng..."
             class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-200"></textarea>

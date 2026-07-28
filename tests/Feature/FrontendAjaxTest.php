@@ -266,6 +266,286 @@ class FrontendAjaxTest extends TestCase
         $this->assertDatabaseHas('reviews', ['order_id' => $order->id, 'product_id' => $product->id, 'rating' => 5]);
     }
 
+    /**
+     * Trước đây truy cập lại trang đánh giá sau khi đã đánh giá rồi sẽ bị chặn (redirect kèm lỗi) —
+     * không có nơi nào để bấm "Xem đánh giá". Giờ trang phải hiển thị lại ĐÚNG nội dung đã gửi ở chế
+     * độ chỉ xem thay vì chặn, để làm đích đến cho nút "Xem đánh giá" ở trang đơn hàng.
+     */
+    public function test_review_page_shows_readonly_content_when_already_reviewed(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 4, 'comment' => 'Trà sữa ngon, giao nhanh', 'is_visible' => 1,
+        ]);
+
+        $response = $this->actingAs($user)->get("/orders/{$order->id}/products/{$product->id}/review");
+
+        $response->assertOk(); // không còn bị redirect chặn nữa
+        $response->assertSee('Trà sữa ngon, giao nhanh');
+        $response->assertSee('Đánh giá của bạn');
+        $response->assertDontSee('Viết đánh giá của bạn');
+        $response->assertDontSee('Gửi đánh giá');
+    }
+
+    /**
+     * Chưa đánh giá thì trang vẫn hiển thị form nhập bình thường như cũ (không đổi hành vi).
+     */
+    public function test_review_page_shows_form_when_not_yet_reviewed(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+
+        $response = $this->actingAs($user)->get("/orders/{$order->id}/products/{$product->id}/review");
+
+        $response->assertOk();
+        $response->assertSee('Viết đánh giá của bạn');
+        $response->assertSee('Gửi đánh giá');
+    }
+
+    /**
+     * Trong vòng 7 ngày kể từ lúc đánh giá -> trang chỉ xem có thêm nút "Chỉnh sửa đánh giá".
+     */
+    public function test_review_page_shows_edit_button_within_edit_window(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 4, 'comment' => 'Ổn', 'is_visible' => 1,
+        ]);
+
+        $response = $this->actingAs($user)->get("/orders/{$order->id}/products/{$product->id}/review");
+
+        $response->assertOk();
+        $response->assertSee('Chỉnh sửa đánh giá');
+        $response->assertDontSee('không thể chỉnh sửa nữa');
+    }
+
+    /**
+     * Sau 7 ngày -> KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, thay bằng ghi chú đã hết hạn.
+     */
+    public function test_review_page_hides_edit_button_after_edit_window_expires(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $review = \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 4, 'comment' => 'Ổn', 'is_visible' => 1,
+        ]);
+        DB::table('reviews')->where('id', $review->id)->update(['created_at' => now()->subDays(8)]);
+
+        $response = $this->actingAs($user)->get("/orders/{$order->id}/products/{$product->id}/review");
+
+        $response->assertOk();
+        $response->assertDontSee('Chỉnh sửa đánh giá');
+        $response->assertSee('không thể chỉnh sửa nữa');
+    }
+
+    public function test_review_update_ajax_success_within_edit_window(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $review = \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 3, 'comment' => 'Bình thường', 'is_visible' => 1,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Giờ thấy ngon hơn']);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+        $this->assertNotNull($response->json('redirect_url'));
+        $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => 'Giờ thấy ngon hơn']);
+        $this->assertNotNull($review->fresh()->edited_at);
+    }
+
+    /**
+     * Chỉ được sửa ĐÚNG 1 LẦN cho mỗi đánh giá — sửa lần 2 (dù vẫn còn trong hạn 7 ngày) phải bị chặn.
+     */
+    public function test_review_update_ajax_blocked_on_second_edit_attempt(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $review = \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 3, 'comment' => 'Bình thường', 'is_visible' => 1,
+        ]);
+
+        // Lần sửa thứ nhất -> thành công.
+        $this->actingAs($user)
+            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ'])
+            ->assertOk();
+
+        // Lần sửa thứ hai -> bị chặn, nội dung KHÔNG đổi thêm nữa.
+        $response = $this->actingAs($user)
+            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 1, 'comment' => 'Đổi ý lần 2']);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ']);
+    }
+
+    /**
+     * Đã sửa 1 lần rồi thì trang chỉ xem KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, dù vẫn còn trong hạn
+     * 7 ngày — kèm ghi chú lý do đúng ("đã dùng lượt sửa"), khác thông báo hết hạn 7 ngày.
+     */
+    public function test_review_page_hides_edit_button_after_already_edited_once(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 4, 'comment' => 'Ổn', 'is_visible' => 1, 'edited_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get("/orders/{$order->id}/products/{$product->id}/review");
+
+        $response->assertOk();
+        $response->assertDontSee('Chỉnh sửa đánh giá');
+        $response->assertSee('đã sử dụng lượt sửa đó rồi');
+        $response->assertDontSee('không thể chỉnh sửa nữa'); // không nhầm sang lý do "hết hạn 7 ngày"
+    }
+
+    public function test_review_update_ajax_blocked_after_edit_window_expires(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $review = \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 3, 'comment' => 'Bình thường', 'is_visible' => 1,
+        ]);
+        DB::table('reviews')->where('id', $review->id)->update(['created_at' => now()->subDays(8)]);
+
+        $response = $this->actingAs($user)
+            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Sửa trễ']);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 3, 'comment' => 'Bình thường']);
+    }
+
+    public function test_review_update_ajax_returns_422_when_rating_missing(): void
+    {
+        $user = User::factory()->create();
+        $product = $this->makeProduct();
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 30000, 'discount_amount' => 0,
+            'final_amount' => 30000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $product->id, 'order_id' => $order->id,
+            'rating' => 3, 'comment' => 'Bình thường', 'is_visible' => 1,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['comment' => 'Sửa nhưng quên chọn sao']);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('rating');
+    }
+
+    /**
+     * Trang danh sách đơn hàng: sản phẩm CHƯA đánh giá hiện nút "Đánh giá" trỏ tới review.create; sản
+     * phẩm ĐÃ đánh giá hiện link "Xem đánh giá" trỏ tới ĐÚNG cùng route đó (không còn là <span> tĩnh
+     * không bấm được như trước).
+     */
+    public function test_orders_page_shows_review_and_view_review_links_correctly(): void
+    {
+        $user = User::factory()->create();
+        $reviewedProduct = $this->makeProduct(['name' => 'Trà sữa đã đánh giá']);
+        $unreviewedProduct = $this->makeProduct(['name' => 'Trà sữa chưa đánh giá']);
+        $order = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 60000, 'discount_amount' => 0,
+            'final_amount' => 60000, 'payment_status' => 'paid', 'payment_method' => 'cod',
+            'status' => 'completed', 'delivery_type' => 'delivery',
+        ]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $reviewedProduct->id, 'quantity' => 1, 'unit_price' => 30000]);
+        OrderItem::create(['order_id' => $order->id, 'product_id' => $unreviewedProduct->id, 'quantity' => 1, 'unit_price' => 30000]);
+        \App\Models\Review::create([
+            'user_id' => $user->id, 'product_id' => $reviewedProduct->id, 'order_id' => $order->id,
+            'rating' => 5, 'comment' => 'Rất ngon', 'is_visible' => 1,
+        ]);
+
+        $response = $this->actingAs($user)->get('/orders?status=completed');
+
+        $response->assertOk();
+        $response->assertSee('Xem đánh giá');
+        $response->assertSee(route('review.create', ['orderId' => $order->id, 'productId' => $reviewedProduct->id]), false);
+        $response->assertSee('>Đánh giá<', false);
+        $response->assertDontSee('>Đã đánh giá<', false);
+    }
+
     // ───────────────────────── Auth: login/register/forgot-password/otp ─────────────────────────
 
     public function test_login_ajax_returns_422_on_wrong_credentials(): void

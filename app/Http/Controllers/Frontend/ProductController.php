@@ -55,15 +55,17 @@ class ProductController
             ->select('toppings.*')
             ->get();
 
-        // 4. Lấy tối đa 10 lượt đánh giá mới nhất kèm thông tin người dùng (chỉ lấy đánh giá công khai)
+        // 4. Lấy trang đầu tiên các lượt đánh giá mới nhất kèm thông tin người dùng (chỉ lấy đánh giá
+        // công khai) — dùng paginate() (không phải limit()->get()) để cùng 1 partial reviews-list-full
+        // vừa render được lần tải trang đầu tiên vừa render được kết quả fetch từ reviews-filter.js
+        // (cả 2 đều gọi $reviews->hasMorePages()/currentPage()).
         $reviews = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
             ->where('reviews.is_visible', 1)
             ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar')
             ->orderBy('reviews.created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate(self::REVIEWS_PER_PAGE);
 
         // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu lượt đánh giá 1 sao, 2 sao, ..., 5 sao)
         $ratingDistribution = \App\Models\Review::query()
@@ -73,6 +75,13 @@ class ProductController
             ->groupBy('rating')
             ->pluck('count', 'rating')
             ->toArray();
+
+        // Số đánh giá có kèm hình ảnh — dùng cho nút lọc "Có hình ảnh".
+        $hasImageCount = \App\Models\Review::query()
+            ->where('product_id', $product->id)
+            ->where('is_visible', 1)
+            ->whereNotNull('image')
+            ->count();
 
         // 6. Tìm các sản phẩm liên quan (cùng danh mục, loại trừ sản phẩm hiện tại)
         // Sắp xếp theo mức độ phổ biến (bán chạy nhất) để gợi ý và giới hạn lấy tối đa 4 sản phẩm
@@ -125,6 +134,7 @@ class ProductController
             'toppings',
             'reviews',
             'ratingDistribution',
+            'hasImageCount',
             'relatedProducts',
             'isFavorite',
             'isHot',
@@ -234,5 +244,51 @@ class ProductController
 
         // Trả dữ liệu sang view danh sách sản phẩm
         return view('frontend.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
+    }
+
+    // Số đánh giá tải mỗi lần (trang đầu + mỗi lần bấm "Xem thêm đánh giá").
+    private const REVIEWS_PER_PAGE = 5;
+
+    /**
+     * Lọc + phân trang đánh giá của 1 sản phẩm qua AJAX — dùng chung cho cả trang chi tiết sản phẩm
+     * (view=full, class pd-review-*) và trang "Xem đánh giá" (view=compact, class Tailwind riêng).
+     * Luôn trả về HTML đã render sẵn (không bọc JSON) vì endpoint này CHỈ được gọi qua fetch từ JS,
+     * không có chế độ "trang đầy đủ" — JS tự thay/nối vào danh sách hiện có.
+     */
+    public function reviews($productId, Request $request)
+    {
+        $product = \App\Models\Product::query()->find($productId);
+        if (!$product) {
+            abort(404);
+        }
+
+        $query = \App\Models\Review::query()
+            ->join('users', 'reviews.user_id', '=', 'users.id')
+            ->where('reviews.product_id', $productId)
+            ->where('reviews.is_visible', 1)
+            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar');
+
+        $rating = $request->query('rating');
+        if (in_array($rating, ['1', '2', '3', '4', '5'], true)) {
+            $query->where('reviews.rating', (int) $rating);
+        }
+
+        if ($request->boolean('has_image')) {
+            $query->whereNotNull('reviews.image');
+        }
+
+        $reviews = $query->orderBy('reviews.created_at', 'desc')
+            ->paginate(self::REVIEWS_PER_PAGE)
+            ->withQueryString();
+
+        // Đang có bộ lọc đang áp dụng hay không -> quyết định thông báo "trống" đúng ngữ cảnh (không
+        // có đánh giá nào phù hợp bộ lọc, khác với chưa có đánh giá nào cho sản phẩm này).
+        $isFiltered = $request->filled('rating') || $request->boolean('has_image');
+
+        $view = $request->query('view') === 'full'
+            ? 'frontend.products.partials.reviews-list-full'
+            : 'frontend.products.partials.reviews-list-compact';
+
+        return view($view, compact('reviews', 'isFiltered'));
     }
 }

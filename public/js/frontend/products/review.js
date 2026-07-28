@@ -1,6 +1,9 @@
     const stars = document.querySelectorAll('#star-rating-container span');
     const ratingInput = document.getElementById('rating-input');
-    let currentRating = 0;
+    // Form sửa đánh giá được server render sẵn giá trị rating cũ vào ratingInput.value (khác form tạo
+    // mới luôn bắt đầu từ rỗng) — đồng bộ currentRating theo giá trị có sẵn đó, nếu không hover chuột
+    // ra ngoài lần đầu sẽ vô tình xóa sạch highlight sao đã chọn (currentRating mặc định 0).
+    let currentRating = (ratingInput && ratingInput.value) ? parseInt(ratingInput.value, 10) : 0;
 
     stars.forEach(star => {
         star.addEventListener('mouseover', function() { highlightStars(this.getAttribute('data-value')); });
@@ -24,6 +27,17 @@
             }
         });
     }
+
+    // Chuyển qua lại giữa khối "chỉ xem" và khối "form sửa" đánh giá đã gửi — thuần đổi class ẩn/hiện,
+    // không tải lại trang, không mất dữ liệu khách vừa nhập nếu bấm nhầm rồi bấm lại "Chỉnh sửa".
+    function toggleReviewEditMode(showEdit) {
+        const viewMode = document.getElementById('review-view-mode');
+        const editMode = document.getElementById('review-edit-mode');
+        if (!viewMode || !editMode) return;
+        viewMode.classList.toggle('hidden', showEdit);
+        editMode.classList.toggle('hidden', !showEdit);
+    }
+    window.toggleReviewEditMode = toggleReviewEditMode;
 
     function previewImages(input) {
         const previewContainer = document.getElementById('image-preview-container');

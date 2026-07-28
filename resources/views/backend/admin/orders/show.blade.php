@@ -35,6 +35,82 @@
             </div>
         </div>
 
+        {{-- PHẦN 1.6: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG --}}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+            @php
+                $isDeliveryOrder = $order->delivery_type !== 'pickup';
+                // Không cho hủy khi: đơn đã thanh toán (phải hoàn tiền trước — theo rule OrderWorkflowService),
+                // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đó).
+                $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
+                    && $order->payment_status !== 'paid';
+                // Đơn MoMo đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
+                $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
+                    && $order->payment_method === 'momo'
+                    && $order->payment_status === 'paid';
+                $statusLabels2 = [
+                    'pending' => ['Chờ xác nhận', 'badge-pending'],
+                    'confirmed' => ['Đã xác nhận', 'badge-confirmed'],
+                    'shipping' => ['Đang giao', 'badge-shipping'],
+                    'completed' => ['Hoàn thành', 'badge-completed'],
+                    'cancelled' => ['Đã hủy', 'badge-cancelled'],
+                ];
+                [$statusLabel2, $statusBadgeClass2] = $statusLabels2[$order->status] ?? [$order->status, ''];
+            @endphp
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-gray-400">sync_alt</span>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
+                        <span class="badge-status {{ $statusBadgeClass2 }} font-bold text-xs mt-1 inline-block px-2.5 py-1">{{ $statusLabel2 }}</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($order->status === 'pending')
+                        <form action="{{ route('admin.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="status" value="confirmed">
+                            <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
+                        </form>
+                    @endif
+
+                    @if($order->delivery_type === 'pickup' && in_array($order->status, ['confirmed', 'shipping'], true))
+                        <form action="{{ route('admin.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="min-h-[40px] px-4 bg-emerald-600 text-white font-bold rounded-lg text-sm">Hoàn thành</button>
+                        </form>
+                    @endif
+
+                    @if($canCancel)
+                        <form id="cancel-order-form" action="{{ route('admin.orders.status.update', $order->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="status" value="cancelled">
+                            <input type="hidden" name="cancel_reason" id="cancel_reason_input">
+                            <button type="button" id="cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm">Hủy đơn</button>
+                        </form>
+                    @elseif($canRefundAndCancel)
+                        <form id="refund-cancel-order-form" action="{{ route('admin.orders.refund', $order->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="cancel_reason" id="refund_cancel_reason_input">
+                            <button type="button" id="refund-cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy đơn
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($isDeliveryOrder && $order->status === 'shipping')
+                        <p class="text-xs text-gray-400">Đơn đang được giao — chỉ nhân viên vận chuyển được cập nhật tiếp.</p>
+                    @elseif(in_array($order->status, ['completed', 'cancelled']))
+                        <p class="text-xs text-gray-400">Đơn đã kết thúc, không thể thay đổi thêm.</p>
+                    @elseif(!$canCancel && !$canRefundAndCancel && in_array($order->status, ['pending', 'confirmed']))
+                        <p class="text-xs text-gray-400">Đơn đã thanh toán — cần hoàn tiền trước khi hủy.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         {{-- PHẦN 1.5: THÔNG BÁO LÝ DO HỦY ĐƠN (Chỉ hiện khi trạng thái là cancelled và có lý do) --}}
         @if($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
@@ -210,6 +286,13 @@
                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
                                     </div>
+                                @elseif(($order->payment_status ?? '') === 'refunded')
+                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
+                                        <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
+                                    </div>
+                                    @if($order->refunded_at)
+                                        <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
+                                    @endif
                                 @else
                                     <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
