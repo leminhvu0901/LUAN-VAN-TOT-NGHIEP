@@ -50,3 +50,43 @@
             previewContainer.appendChild(clearDiv);
         }
     }
+
+    // Submit qua fetch thay vì form POST cổ điển — trước đây nhập sai (bình luận quá dài, ảnh quá
+    // dung lượng...) thì tải lại cả trang, người dùng phải chọn sao + chọn lại ảnh từ đầu. Lúc THÀNH
+    // CÔNG vẫn điều hướng thật sang trang đơn hàng (redirect_url server trả về) — chỉ riêng lúc lỗi
+    // mới ở lại trang để sửa, không mất những gì đã chọn.
+    const reviewForm = document.querySelector('form[action*="/review"]');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const btn = reviewForm.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            fetch(reviewForm.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: new FormData(reviewForm),
+            })
+                .then(function (response) {
+                    return response.json().then(function (data) { return { status: response.status, data: data }; });
+                })
+                .then(function (result) {
+                    if (result.status >= 400) {
+                        const errors = (result.data && result.data.errors) || {};
+                        const firstError = Object.values(errors)[0];
+                        alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi đánh giá, vui lòng kiểm tra lại.');
+                        if (btn) btn.disabled = false;
+                        return;
+                    }
+                    if (result.data && result.data.redirect_url) {
+                        window.location.href = result.data.redirect_url;
+                        return;
+                    }
+                    if (btn) btn.disabled = false;
+                })
+                .catch(function () {
+                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (btn) btn.disabled = false;
+                });
+        });
+    }

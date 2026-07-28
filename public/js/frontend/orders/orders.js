@@ -66,11 +66,45 @@ window.confirmCancelOrder = function(orderId, orderCode) {
     const form = document.getElementById('cancel-order-form');
     const input = document.getElementById('cancel-reason-input');
 
-    if (form && input) {
-        form.action = '/orders/' + orderId + '/cancel';
-        input.value = cleanReason;
-        form.submit();
-    } else {
+    if (!form || !input) {
         alert('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.');
+        return;
     }
+
+    form.action = '/orders/' + orderId + '/cancel';
+    input.value = cleanReason;
+
+    // Gửi qua fetch thay vì form.submit() cổ điển — hủy đơn ở ngay trang danh sách đơn, tải lại cả
+    // trang mỗi lần hủy cảm giác giật, trong khi giỏ hàng (xóa món) đã mượt từ trước, gây thiếu nhất
+    // quán. Thành công thì cập nhật ngay huy hiệu trạng thái + ẩn nút "Hủy đơn" tại chỗ.
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    fetch(form.action, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: new FormData(form),
+    })
+        .then(function (response) {
+            return response.json().then(function (data) { return { status: response.status, data: data }; });
+        })
+        .then(function (result) {
+            if (result.status >= 400) {
+                const errors = (result.data && result.data.errors) || {};
+                const firstError = Object.values(errors)[0];
+                alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể hủy đơn hàng.');
+                return;
+            }
+
+            const statusBadge = document.getElementById('order-status-' + orderId);
+            if (statusBadge) {
+                statusBadge.className = 'px-2.5 py-1 md:px-4 md:py-1.5 bg-error-container text-on-error-container rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider';
+                statusBadge.textContent = 'Đã hủy';
+            }
+            const cancelBtn = document.getElementById('cancel-btn-' + orderId);
+            if (cancelBtn) cancelBtn.remove();
+
+            alert((result.data && result.data.message) || 'Đơn hàng đã được hủy thành công!');
+        })
+        .catch(function () {
+            alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+        });
 };

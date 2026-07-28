@@ -105,7 +105,81 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 1000);
     }
+
+    // Cho phép openOtpModal() (gọi khi mở modal bằng JS thuần sau khi đăng ký/quên mật khẩu submit
+    // qua fetch, không tải lại trang) khởi động lại đúng bộ đếm ngược này.
+    window.startOtpTimer = startTimer;
+
+    // Submit form nhập mã OTP qua fetch — trước đây nhập sai/hết hạn thì tải lại cả trang, phải gõ
+    // lại từ đầu. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng thì điều hướng thật tới đích
+    // server trả về (trang đặt lại mật khẩu, hoặc trang chủ sau khi tự đăng nhập).
+    const otpForm = otpModal ? otpModal.querySelector('form') : null;
+    if (otpForm) {
+        otpForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const btn = otpForm.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+
+            fetch(otpForm.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: new FormData(otpForm),
+            })
+                .then(function (response) {
+                    return response.json().then(function (data) { return { status: response.status, data: data }; });
+                })
+                .then(function (result) {
+                    if (result.status >= 400) {
+                        const errors = (result.data && result.data.errors) || {};
+                        const firstError = Object.values(errors)[0];
+                        const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Mã OTP không chính xác.';
+                        const errorEl = document.getElementById('otp-error-alert');
+                        if (errorEl) {
+                            errorEl.textContent = message;
+                            errorEl.classList.remove('hidden');
+                        } else {
+                            alert(message);
+                        }
+                        if (btn) btn.disabled = false;
+                        return;
+                    }
+                    if (result.data && result.data.redirect_url) {
+                        window.location.href = result.data.redirect_url;
+                        return;
+                    }
+                    if (btn) btn.disabled = false;
+                })
+                .catch(function () {
+                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (btn) btn.disabled = false;
+                });
+        });
+    }
 });
+
+// Mở modal OTP bằng JS thuần (không tải lại trang) — dùng chung cho cả luồng "Đăng ký" và "Quên mật
+// khẩu" ngay sau khi form tương ứng submit thành công qua fetch (xem register.js/forgot-password.js).
+// Trước đây phải tải lại trang để server render lại cờ show_otp + session('verify_email'); giờ JS tự
+// mở modal + tự điền email vừa nhập, không cần vòng qua server thêm lần nữa.
+window.openOtpModal = function (email) {
+    const otpModal = document.getElementById('otp-modal');
+    if (!otpModal) return;
+
+    const emailDisplay = document.getElementById('otp-email-display');
+    if (emailDisplay && email) emailDisplay.textContent = email;
+
+    document.querySelectorAll('.otp-input').forEach(function (input) { input.value = ''; });
+    const errorEl = document.getElementById('otp-error-alert');
+    if (errorEl) errorEl.classList.add('hidden');
+
+    otpModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    const firstInput = otpModal.querySelector('.otp-input');
+    if (firstInput) setTimeout(function () { firstInput.focus(); }, 100);
+
+    if (typeof window.startOtpTimer === 'function') window.startOtpTimer();
+};
 
 // Hàm gửi yêu cầu AJAX để xóa session OTP khi người dùng tắt modal hoặc hủy xác thực
 function cancelOTPSession() {

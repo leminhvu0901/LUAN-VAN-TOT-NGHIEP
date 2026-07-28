@@ -66,3 +66,52 @@ document.addEventListener('click', function(e) {
         return;
     }
 });
+
+// Submit form đăng nhập qua fetch — trước đây sai email/mật khẩu thì tải lại cả trang (bất kể đang ở
+// trang nào khi mở modal), rồi phải tự phát hiện cờ data-show-login để mở lại modal + hiện lỗi. Giờ
+// submit qua fetch: sai thì modal đứng yên tại chỗ, hiện lỗi ngay; đúng thì điều hướng thật tới đích
+// server trả về (trang chủ/dashboard tùy vai trò — y hệt logic cũ, chỉ chuyển từ redirect() sang JSON).
+document.addEventListener('DOMContentLoaded', function () {
+    const loginForm = document.querySelector('#login-modal form');
+    if (!loginForm) return;
+
+    loginForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const btn = loginForm.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+
+        fetch(loginForm.action, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: new FormData(loginForm),
+        })
+            .then(function (response) {
+                return response.json().then(function (data) { return { status: response.status, data: data }; });
+            })
+            .then(function (result) {
+                if (result.status >= 400) {
+                    const errors = (result.data && result.data.errors) || {};
+                    const firstError = Object.values(errors)[0];
+                    const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Đăng nhập thất bại, vui lòng thử lại.';
+                    const errorEl = document.getElementById('login-error-alert');
+                    if (errorEl) {
+                        errorEl.textContent = message;
+                        errorEl.classList.remove('hidden');
+                    } else {
+                        alert(message);
+                    }
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+                if (result.data && result.data.redirect_url) {
+                    window.location.href = result.data.redirect_url;
+                    return;
+                }
+                if (btn) btn.disabled = false;
+            })
+            .catch(function () {
+                alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                if (btn) btn.disabled = false;
+            });
+    });
+});

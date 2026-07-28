@@ -62,6 +62,9 @@ class AuthController
 
         // 2. Kiểm tra xem Email đăng ký đã tồn tại trong Database chưa
         if (User::where('email', $email)->exists()) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'errors' => ['register_error' => ['Email đã được sử dụng.']]], 422);
+            }
             return back()->withErrors(['register_error' => 'Email đã được sử dụng.'])->withInput();
         }
 
@@ -90,6 +93,12 @@ class AuthController
         \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
             $message->to($email)->subject('Mã xác minh tài khoản');
         });
+
+        // Form đăng ký submit qua fetch (xem register.js) -> trả email để JS tự mở modal OTP tại chỗ
+        // (không cần tải lại trang để server render lại cờ show_otp nữa).
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'otp_required' => true, 'email' => $email]);
+        }
 
         // Đưa người dùng quay lại và đính kèm cờ show_otp để giao diện hiển thị Popup nhập mã OTP
         return back()->with('show_otp', true);
@@ -132,14 +141,18 @@ class AuthController
         if ($enteredOtp == $sessionOtp) {
             // Kiểm tra mã OTP xem đã quá hạn 60 giây hay chưa
             if (now()->diffInSeconds($sessionTime) > 60) {
-                return back()->withErrors(['otp_error' => 'Mã OTP đã hết hạn (quá 60 giây). Vui lòng nhấn Gửi lại để nhận mã mới.']);
+                return $this->otpError($request, 'Mã OTP đã hết hạn (quá 60 giây). Vui lòng nhấn Gửi lại để nhận mã mới.');
             }
-            
+
             // TH1: Nếu đây là quá trình xác thực phục vụ việc Quên mật khẩu
             if ($request->session()->get('is_forgot_password')) {
                 // Đánh dấu người dùng được phép chuyển sang trang đặt lại mật khẩu mới
                 $request->session()->put('can_reset_password', true);
-                return redirect()->route('reset.password.get');
+                $destination = route('reset.password.get');
+                if ($request->ajax()) {
+                    return response()->json(['success' => true, 'redirect_url' => $destination]);
+                }
+                return redirect($destination);
             }
 
             // TH2: Nếu đây là quá trình xác thực Đăng ký tài khoản mới
@@ -149,20 +162,36 @@ class AuthController
             } else {
                 $user = User::where('email', $email)->first();
             }
-            
+
             if ($user) {
                 // Tự động đăng nhập luôn cho User vừa được tạo
                 Auth::login($user);
-                
+
                 // Dọn dẹp sạch các khóa session tạm thời để tránh rác bộ nhớ
                 $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
                 $request->session()->put('login_method', 'email');
+                if ($request->ajax()) {
+                    return response()->json(['success' => true, 'redirect_url' => url('/')]);
+                }
                 return redirect('/');
             }
         }
 
         // Nếu mã OTP không khớp, quay lại và báo lỗi
-        return back()->withErrors(['otp_error' => 'Mã OTP không chính xác. Vui lòng thử lại.']);
+        return $this->otpError($request, 'Mã OTP không chính xác. Vui lòng thử lại.');
+    }
+
+    /**
+     * Trả lỗi xác thực OTP đúng định dạng theo kiểu request: JSON 422 cho fetch (modal OTP submit qua
+     * AJAX, xem verify-otp.js) để JS hiện lỗi ngay trong modal không cần tải lại trang; redirect-back
+     * cổ điển cho request thường.
+     */
+    private function otpError(Request $request, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'errors' => ['otp_error' => [$message]]], 422);
+        }
+        return back()->withErrors(['otp_error' => $message]);
     }
 
     /**
@@ -235,11 +264,9 @@ class AuthController
             // Tài khoản đã bị khóa (is_active = 0): không cho vào, đăng xuất ngay lập tức
             if (!$user->is_active) {
                 Auth::logout();
-                return back()->withErrors([
-                    'login_error' => $user->lock_reason
-                        ? "Tài khoản của bạn đã bị khóa: {$user->lock_reason}"
-                        : 'Tài khoản của bạn đã bị khóa.',
-                ])->withInput($request->only('email'));
+                return $this->loginError($request, $user->lock_reason
+                    ? "Tài khoản của bạn đã bị khóa: {$user->lock_reason}"
+                    : 'Tài khoản của bạn đã bị khóa.');
             }
 
             // Đăng nhập thành công: Làm mới ID Session để chống tấn công cố định phiên (Session Fixation)
@@ -248,22 +275,38 @@ class AuthController
 
             // Nếu tài khoản có vai trò là quản trị viên -> đưa thẳng vào trang tổng quan
             if ($user->role === 'admin') {
-                return redirect()->route('admin.dashboard');
+                $destination = route('admin.dashboard');
+            } elseif ($user->role === 'staff') {
+                // Nhân viên -> đưa vào đúng khu vực theo loại nhân viên (mặc định lễ tân nếu chưa gán loại)
+                $destination = route($user->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
+            } else {
+                // Người dùng thường thì quay về trang chủ
+                $destination = url('/');
             }
 
-            // Nhân viên -> đưa vào đúng khu vực theo loại nhân viên (mặc định lễ tân nếu chưa gán loại)
-            if ($user->role === 'staff') {
-                return redirect()->route($user->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
+            // Modal đăng nhập submit qua fetch (xem login.js) -> trả URL đích để JS tự điều hướng,
+            // giữ đúng logic phân luồng theo vai trò như redirect() cũ.
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'redirect_url' => $destination]);
             }
-
-            // Người dùng thường thì quay về trang chủ
-            return redirect('/');
+            return redirect($destination);
         }
 
         // Đăng nhập thất bại: Quay lại trang trước, đính kèm thông báo lỗi và giữ lại email cũ đã nhập nháp
-        return back()->withErrors([
-            'login_error' => 'Thông tin đăng nhập không chính xác.',
-        ])->withInput($request->only('email'));
+        return $this->loginError($request, 'Thông tin đăng nhập không chính xác.');
+    }
+
+    /**
+     * Trả lỗi đăng nhập đúng định dạng theo kiểu request: JSON 422 cho fetch (modal đăng nhập submit
+     * qua AJAX, xem login.js) để JS hiện lỗi ngay trong modal không cần tải lại trang; redirect-back
+     * cổ điển (kèm withInput()) cho request thường.
+     */
+    private function loginError(Request $request, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'errors' => ['login_error' => [$message]]], 422);
+        }
+        return back()->withErrors(['login_error' => $message])->withInput($request->only('email'));
     }
 
     /**
@@ -371,6 +414,9 @@ class AuthController
 
         // 2. Nếu email nhập vào không tồn tại trong hệ thống
         if (!$user) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'errors' => ['forgot_error' => ['Email không tồn tại trong hệ thống.']]], 422);
+            }
             // Quay về trang chủ và gửi kèm cờ show_forgot để popup Quên mật khẩu tự động bật lên và in lỗi
             return redirect('/')->with('show_forgot', true)->withErrors(['forgot_error' => 'Email không tồn tại trong hệ thống.'])->withInput();
         }
@@ -390,6 +436,12 @@ class AuthController
         \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
             $message->to($email)->subject('Khôi phục mật khẩu');
         });
+
+        // Form quên mật khẩu submit qua fetch (xem forgot-password.js) -> trả email để JS tự mở modal
+        // OTP tại chỗ, không cần tải lại trang.
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'otp_required' => true, 'email' => $email]);
+        }
 
         // Quay lại kèm cờ show_otp để hiển thị popup nhập mã xác thực OTP
         return back()->with('show_otp', true);

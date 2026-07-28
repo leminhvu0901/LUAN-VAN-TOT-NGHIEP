@@ -1012,6 +1012,48 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Đặt hàng qua fetch thay vì form POST cổ điển — trước đây khi tạo đơn thất bại (hết hàng, cửa
+    // hàng đóng cửa, phiên thanh toán hết hạn...) trình duyệt tải lại cả trang checkout đột ngột, mất
+    // vị trí cuộn/trạng thái đang thao tác dở. Submit thành công (COD lẫn MoMo) đều kết thúc bằng điều
+    // hướng thật (sang /orders hoặc sang cổng MoMo) nên vẫn giữ đúng trải nghiệm "đi tới trang khác",
+    // chỉ riêng trường hợp LỖI mới ở lại trang hiện tại thay vì tải lại toàn bộ.
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const btn = document.getElementById('order-submit-btn');
+            if (btn) btn.disabled = true;
+
+            fetch(checkoutForm.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: new FormData(checkoutForm),
+            })
+                .then(function (response) {
+                    return response.json().then(function (data) { return { status: response.status, data: data }; });
+                })
+                .then(function (result) {
+                    if (result.status >= 400) {
+                        const errors = result.data && result.data.errors ? result.data.errors : {};
+                        const firstError = Object.values(errors)[0];
+                        alert((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.');
+                        if (btn) btn.disabled = false;
+                        return;
+                    }
+
+                    if (result.data && result.data.redirect_url) {
+                        window.location.href = result.data.redirect_url;
+                        return;
+                    }
+
+                    if (btn) btn.disabled = false;
+                })
+                .catch(function () {
+                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (btn) btn.disabled = false;
+                });
+        });
+    }
+
     paymentRadios.forEach(radio => {
         radio.addEventListener('change', () => {
             updateBorders(paymentRadios);

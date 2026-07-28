@@ -174,9 +174,17 @@ class ReviewController
             'updated_at' => now()
         ]);
 
-        return redirect()->route('orders', ['status' => 'completed'])->with([
-            'success' => 'Cảm ơn bạn đã đánh giá sản phẩm!',
-            'open_order_id' => $orderId
-        ]);
+        session()->flash('success', 'Cảm ơn bạn đã đánh giá sản phẩm!');
+        session()->flash('open_order_id', $orderId);
+
+        // Form submit qua fetch khi lỗi validate (xem review.js) để không mất ảnh/sao/bình luận vừa
+        // nhập khi phải sửa lại — nhưng lúc THÀNH CÔNG vẫn điều hướng thật sang /orders (đúng ý định
+        // ban đầu là quay lại danh sách đơn), JS chỉ cần đọc redirect_url rồi tự chuyển trang.
+        $redirectUrl = route('orders', ['status' => 'completed']);
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
+        }
+
+        return redirect($redirectUrl);
     }
 }

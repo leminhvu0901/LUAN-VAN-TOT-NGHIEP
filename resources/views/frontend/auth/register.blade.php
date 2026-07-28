@@ -36,12 +36,11 @@
                 {{-- Token bảo mật bắt buộc của Laravel để phòng chống tấn công giả mạo CSRF --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi tổng quát khi có lỗi xảy ra từ máy chủ --}}
-                @if($errors->has('register_error'))
-                    <div class="l-error-alert">
-                        {{ $errors->first('register_error') }}
-                    </div>
-                @endif
+                {{-- Hiển thị thông báo lỗi tổng quát khi có lỗi xảy ra từ máy chủ. Luôn render sẵn (ẩn
+                mặc định) vì form submit qua fetch (xem register.js), JS cần chỗ có sẵn để tự hiện lỗi. --}}
+                <div id="register-error-alert" class="l-error-alert {{ $errors->has('register_error') ? '' : 'hidden' }}">
+                    {{ $errors->first('register_error') }}
+                </div>
 
                 {{-- Ô nhập thông tin Họ và tên của người dùng --}}
                 <div class="l-form-group">

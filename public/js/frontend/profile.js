@@ -347,3 +347,88 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Cho phép các sự kiện onClick từ HTML (như href hoặc onclick) có thể gọi được hàm showTab
 window.showTab = showTab;
+
+// ==========================================
+// 7. SUBMIT FORM QUA FETCH (Cập nhật thông tin / Đổi mật khẩu)
+// ==========================================
+// Trước đây 2 form này POST cổ điển -> mỗi lần lưu (kể cả khi lỗi) đều tải lại cả trang, mất vị trí
+// tab đang xem (showTab) và cảm giác giật. Submit qua fetch giữ nguyên trạng thái trang, chỉ cập
+// nhật đúng phần cần thiết (tên/avatar hiển thị, hoặc xóa trắng ô mật khẩu khi đổi thành công).
+
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+/**
+ * Gửi 1 form qua fetch, gọi onSuccess(data)/hiện lỗi qua alert() nếu thất bại — dùng chung cho cả
+ * form "Cập nhật thông tin" lẫn "Đổi mật khẩu" (cả bản desktop/mobile).
+ */
+function submitProfileForm(form, onSuccess) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': getCsrfToken() },
+        body: new FormData(form),
+    })
+        .then(function (response) {
+            return response.json().then(function (data) { return { status: response.status, data: data }; });
+        })
+        .then(function (result) {
+            if (result.status >= 400) {
+                const errors = (result.data && result.data.errors) || {};
+                const firstError = Object.values(errors)[0];
+                alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Có lỗi xảy ra, vui lòng thử lại.');
+                return;
+            }
+            if (onSuccess) onSuccess(result.data);
+        })
+        .catch(function () {
+            alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+        })
+        .finally(function () {
+            if (btn) btn.disabled = false;
+        });
+}
+
+// Form "Cập nhật thông tin" (desktop + mobile) — action kết thúc bằng "/profile" (không tính
+// "/profile/change-password", vì đó là action khác kết thúc bằng "/change-password").
+document.querySelectorAll('form[action$="/profile"]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitProfileForm(form, function (data) {
+            const user = (data && data.user) || {};
+            // Cập nhật tên hiển thị ở cả 2 bản desktop/mobile (form nào submit cũng đồng bộ cả 2, vì
+            // chỉ 1 trong 2 tab đang hiển thị nhưng tab kia có thể được xem ngay sau khi đổi màn hình).
+            const nameDesktop = document.getElementById('profileNameDisplayDesktop');
+            const nameMobile = document.getElementById('profileNameDisplayMobile');
+            if (nameDesktop && user.name) nameDesktop.textContent = user.name;
+            if (nameMobile && user.name) nameMobile.textContent = user.name;
+
+            // Cập nhật avatar ở mọi nơi đang hiển thị trên trang (preview lớn, preview mobile, navbar).
+            if (user.avatar_url) {
+                ['avatarPreview', 'avatarPreviewMobile'].forEach(function (id) {
+                    const img = document.getElementById(id);
+                    if (img) img.src = user.avatar_url;
+                });
+                const navbarAvatar = document.querySelector('.navbar-avatar');
+                if (navbarAvatar) navbarAvatar.src = user.avatar_url;
+            }
+
+            alert((data && data.message) || 'Cập nhật thông tin thành công!');
+        });
+    });
+});
+
+// Form "Đổi mật khẩu" (desktop + mobile) — action kết thúc bằng "/change-password".
+document.querySelectorAll('form[action$="/change-password"]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        submitProfileForm(form, function (data) {
+            form.reset(); // Xóa trắng 3 ô mật khẩu sau khi đổi thành công — không để lộ lại trên màn hình
+            alert((data && data.message) || 'Đổi mật khẩu thành công!');
+        });
+    });
+});

@@ -73,6 +73,16 @@ class CustomerOrderController
         session()->forget('checkout_token');
         // Xóa session lọc sản phẩm đã chọn sau khi đặt hàng thành công
         session()->forget('selected_cart_item_ids');
+
+        // Trang checkout submit qua fetch (xem checkout.js) -> trả URL đích để JS tự điều hướng, tránh
+        // tải lại cả trang một cách đột ngột ngay ở bước cuối cùng của luồng mua hàng.
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('orders'),
+            ]);
+        }
+
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
 
@@ -128,7 +138,7 @@ class CustomerOrderController
         abort_unless($order->user_id === Auth::id(), 404);
 
         if ($order->status !== 'pending') {
-            return redirect()->back()->with('error', 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
+            return $this->cancelError($request, 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
         }
 
         $reason = $request->input('cancel_reason', 'Khách hàng tự hủy đơn hàng.');
@@ -138,12 +148,31 @@ class CustomerOrderController
 
         try {
             $workflow->transition($order, 'cancelled', $reason);
+            if ($request->ajax()) {
+                return response()->json(['success' => true, 'message' => "Đơn hàng #{$order->order_code} đã được hủy thành công!"]);
+            }
             return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy thành công!");
         } catch (ValidationException $e) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+            }
             return redirect()->back()->withErrors($e->errors());
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
+            return $this->cancelError($request, 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Trả lỗi hủy đơn đúng định dạng theo kiểu request: JSON 422 cho fetch (nút "Hủy đơn" gửi qua
+     * AJAX, xem orders.js) để JS hiện lỗi tại chỗ không cần tải lại trang; redirect-back cổ điển cho
+     * request thường.
+     */
+    private function cancelError(Request $request, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+        return redirect()->back()->with('error', $message);
     }
 
     private function assertCheckoutToken(string $token): void

@@ -34,6 +34,32 @@ class MomoController
     }
 
     /**
+     * Trả lỗi đúng định dạng theo kiểu request: JSON 422 cho fetch (trang checkout submit qua AJAX,
+     * xem checkout.js) để JS hiện lỗi tại chỗ không cần tải lại trang; redirect-back cổ điển cho
+     * request thường (không mất thông tin khách đã nhập nhờ withInput()).
+     */
+    private function checkoutError(Request $request, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+        return redirect()->back()->with('error', $message)->withInput();
+    }
+
+    /**
+     * Điều hướng đúng định dạng theo kiểu request — dùng cho các đích đến "thành công" (sang cổng
+     * MoMo, hoặc quay lại trang đăng nhập). AJAX nhận URL để tự window.location.href, request thường
+     * nhận redirect thật.
+     */
+    private function checkoutRedirect(Request $request, string $url)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'redirect_url' => $url]);
+        }
+        return redirect()->away($url);
+    }
+
+    /**
      * Được gọi khi khách chọn MoMo và bấm "Đặt hàng".
      * Tạo đơn hàng trong DB (payment_status = unpaid) rồi điều hướng sang cổng MoMo.
      * Theo mẫu: php/PayMoMo/init_payment.php từ github.com/momo-wallet/payment
@@ -41,11 +67,11 @@ class MomoController
     public function createPayment(Request $request)
     {
         if (!Auth::check()) {
-            return redirect()->route('login');
+            return $this->checkoutRedirect($request, route('login'));
         }
 
         if (!$this->configValid) {
-            return redirect()->back()->with('error', 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng liên hệ quản trị viên.')->withInput();
+            return $this->checkoutError($request, 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng liên hệ quản trị viên.');
         }
 
         $userId = Auth::id();
@@ -54,7 +80,7 @@ class MomoController
         $now = now()->timezone('Asia/Ho_Chi_Minh');
         $timeString = $now->format('H:i:s');
         if ($timeString < '07:00:00' || $timeString >= '23:00:00') {
-            return redirect()->back()->with('error', 'Cửa hàng chỉ cho phép đặt hàng từ 07:00 đến 23:00. Hiện tại cửa hàng đã đóng cửa.')->withInput();
+            return $this->checkoutError($request, 'Cửa hàng chỉ cho phép đặt hàng từ 07:00 đến 23:00. Hiện tại cửa hàng đã đóng cửa.');
         }
 
         // ── 1. Validate ────────────────────────────────────────────────────────
@@ -76,7 +102,7 @@ class MomoController
             ->first();
 
         if (!$address) {
-            return redirect()->back()->with('error', 'Địa chỉ giao hàng không hợp lệ.');
+            return $this->checkoutError($request, 'Địa chỉ giao hàng không hợp lệ.');
         }
 
         // ── 3. Xóa đơn MoMo cũ còn pending/unpaid (user đã hủy trước đó) ─────
@@ -98,7 +124,7 @@ class MomoController
         // ── 4. Lấy giỏ hàng ───────────────────────────────────────────────────
         $cart = \App\Models\Cart::query()->where('user_id', $userId)->first();
         if (!$cart) {
-            return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
+            return $this->checkoutError($request, 'Giỏ hàng của bạn đang trống.');
         }
 
         $cartItemQuery = \App\Models\CartItem::query()->where('cart_id', $cart->id);
@@ -112,7 +138,7 @@ class MomoController
 
         $cartItems = $cartItemQuery->get();
         if ($cartItems->isEmpty()) {
-            return redirect()->back()->with('error', 'Giỏ hàng của bạn đang trống.');
+            return $this->checkoutError($request, 'Giỏ hàng của bạn đang trống.');
         }
 
         // Kiểm tra sản phẩm hết hàng trong giỏ
@@ -124,7 +150,7 @@ class MomoController
             ->toArray();
         if (!empty($outOfStockProducts)) {
             $names = implode(', ', $outOfStockProducts);
-            return redirect()->back()->with('error', 'Sản phẩm đã hết hàng: ' . $names . '. Vui lòng xóa khỏi giỏ hàng trước khi đặt.');
+            return $this->checkoutError($request, 'Sản phẩm đã hết hàng: ' . $names . '. Vui lòng xóa khỏi giỏ hàng trước khi đặt.');
         }
 
 
@@ -289,7 +315,7 @@ class MomoController
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Có lỗi khi tạo đơn hàng: ' . $e->getMessage())->withInput();
+            return $this->checkoutError($request, 'Có lỗi khi tạo đơn hàng: ' . $e->getMessage());
         }
 
         // ── 7. Gọi API MoMo (theo mẫu PayMoMo/init_payment.php) ─────────────
@@ -299,7 +325,7 @@ class MomoController
 
         if ($payUrl) {
             // ✅ MoMo trả payUrl → chuyển sang trang MoMo (CHƯA xóa giỏ hàng, chờ xác nhận thanh toán)
-            return redirect()->away($payUrl);
+            return $this->checkoutRedirect($request, $payUrl);
         }
 
         // ❌ MoMo không trả payUrl → hủy đơn hàng đã tạo (giỏ hàng vẫn còn)
@@ -309,7 +335,7 @@ class MomoController
             \App\Models\Promotion::query()->where('id', $promotionId)->decrement('used_count');
         }
 
-        return redirect()->route('checkout')->with('error', 'MoMo: Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
+        return $this->checkoutError($request, 'MoMo: Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
     }
 
     /**

@@ -45,8 +45,10 @@ function clearSearchAndSubmit() {
     if (searchInput) searchInput.value = '';
     const navSearchInput = document.getElementById('search-input');
     if (navSearchInput) navSearchInput.value = '';
-    // Trên màn hình máy tính (> 640px) -> tự động gửi form khi thay đổi tích chọn danh mục
-    if (window.innerWidth > 640) document.getElementById('filter-form').submit();
+    // Trên màn hình máy tính (> 640px) -> tự động gửi form khi thay đổi tích chọn danh mục.
+    // Dùng requestSubmit() (không phải submit()) vì submit() KHÔNG bắn sự kiện 'submit' — nếu dùng
+    // submit() thì listener AJAX gắn ở dưới (chặn submit để gọi fetch) sẽ không bao giờ được gọi tới.
+    if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
 }
 
 /**
@@ -54,7 +56,7 @@ function clearSearchAndSubmit() {
  */
 function submitFilterForm() {
     // Trên máy tính -> Tự động submit. Trên điện thoại -> Người dùng phải bấm nút Áp dụng
-    if (window.innerWidth > 640) document.getElementById('filter-form').submit();
+    if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
 }
 
 // Tham chiếu các phần tử điều khiển sắp xếp và lưới sản phẩm
@@ -218,3 +220,22 @@ window.addEventListener('popstate', function () {
         loadProductsPage(window.location.href, false);
     }
 });
+
+/**
+ * Đổi bộ lọc (danh mục/giá/đánh giá/tìm kiếm) qua AJAX thay vì tải lại cả trang — tái sử dụng đúng
+ * loadProductsPage() đã dùng cho phân trang, tránh trùng lặp logic thay DOM/chống lỗi tham chiếu cũ.
+ * Đổi bộ lọc luôn quay về trang 1 (không giữ tham số page cũ, khớp hành vi form GET thông thường).
+ */
+const filterForm = document.getElementById('filter-form');
+if (filterForm) {
+    filterForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const params = new URLSearchParams(new FormData(filterForm));
+        const url = filterForm.action + (params.toString() ? '?' + params.toString() : '');
+        loadProductsPage(url);
+
+        // Trên di động, bộ lọc dạng sidebar trượt ra — đóng lại sau khi áp dụng để thấy ngay kết quả.
+        const sidebar = document.querySelector('.p-sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+    });
+}

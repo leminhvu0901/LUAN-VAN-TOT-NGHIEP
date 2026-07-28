@@ -100,7 +100,7 @@
                                 {{-- Input ẩn lưu chuỗi ảnh Base64 sau khi cắt bằng thư viện Cropper.js --}}
                                 <input type="hidden" name="cropped_avatar" id="croppedAvatarInput">
                             </div>
-                            <h3 class="font-headline-md text-headline-md text-on-surface">{{ Auth::user()->name }}</h3>
+                            <h3 id="profileNameDisplayDesktop" class="font-headline-md text-headline-md text-on-surface">{{ Auth::user()->name }}</h3>
                             <p class="font-body-md text-body-md text-on-surface-variant mb-stack_md">Thành viên từ {{ Auth::user()->created_at ? Auth::user()->created_at->format('Y') : '2023' }}</p>
                             
                             {{-- Thống kê nhanh đơn hàng và điểm thưởng --}}
@@ -327,7 +327,7 @@
                 </button>
             </div>
             
-            <h2 class="font-headline text-headline-md text-on-surface">{{ Auth::user()->name }}</h2>
+            <h2 id="profileNameDisplayMobile" class="font-headline text-headline-md text-on-surface">{{ Auth::user()->name }}</h2>
             <span class="mt-1 px-3 py-1 bg-secondary-container text-on-secondary-fixed-variant rounded-full font-label-md text-label-md">
                 @switch(Auth::user()->membership_level ?? 'new')
                     @case('silver') Thành viên hạng Bạc @break

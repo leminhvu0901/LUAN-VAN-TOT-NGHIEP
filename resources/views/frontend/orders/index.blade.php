@@ -84,19 +84,19 @@
                         {{-- Hiển thị trạng thái đơn hàng --}}
                         @switch($order->status)
                             @case('pending')
-                                <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Chờ xác nhận</span>
+                                <span id="order-status-{{ $order->id }}" class="px-2.5 py-1 md:px-4 md:py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Chờ xác nhận</span>
                                 @break
                             @case('confirmed')
-                                <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đã xác nhận</span>
+                                <span id="order-status-{{ $order->id }}" class="px-2.5 py-1 md:px-4 md:py-1.5 bg-blue-100 text-blue-800 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đã xác nhận</span>
                                 @break
                             @case('shipping')
-                                <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-green-100 md:bg-primary-container/20 text-green-800 md:text-primary rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đang giao</span>
+                                <span id="order-status-{{ $order->id }}" class="px-2.5 py-1 md:px-4 md:py-1.5 bg-green-100 md:bg-primary-container/20 text-green-800 md:text-primary rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đang giao</span>
                                 @break
                             @case('completed')
-                                <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-secondary-container text-on-secondary-container rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Hoàn thành</span>
+                                <span id="order-status-{{ $order->id }}" class="px-2.5 py-1 md:px-4 md:py-1.5 bg-secondary-container text-on-secondary-container rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Hoàn thành</span>
                                 @break
                             @case('cancelled')
-                                <span class="px-2.5 py-1 md:px-4 md:py-1.5 bg-error-container text-on-error-container rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đã hủy</span>
+                                <span id="order-status-{{ $order->id }}" class="px-2.5 py-1 md:px-4 md:py-1.5 bg-error-container text-on-error-container rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider">Đã hủy</span>
                                 @break
                         @endswitch
                     </div>
@@ -155,7 +155,7 @@
                             <div class="flex gap-2 md:gap-3 shrink-0">
                                 <button type="button" data-toggle-order="{{ $order->id }}" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
                                 @if($order->status === 'pending')
-                                    <button type="button"
+                                    <button type="button" id="cancel-btn-{{ $order->id }}"
                                         onclick="confirmCancelOrder('{{ $order->id }}', '{{ $order->order_code ?? 'HPY-' . $order->id }}')"
                                         class="px-4 py-1.5 md:px-6 md:py-2.5 bg-red-50 border border-red-300 text-red-600 font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-red-100 transition-all active:scale-95 whitespace-nowrap">
                                         Hủy đơn

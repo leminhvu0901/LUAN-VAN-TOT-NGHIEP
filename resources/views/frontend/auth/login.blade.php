@@ -27,12 +27,13 @@
                 {{-- Token bảo mật CSRF bắt buộc của Laravel để chống tấn công giả mạo yêu cầu --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi chung nếu đăng nhập thất bại (sai tài khoản/mật khẩu) --}}
-                @if($errors->has('login_error'))
-                    <div class="l-error-alert">
-                        {{ $errors->first('login_error') }}
-                    </div>
-                @endif
+                {{-- Hiển thị thông báo lỗi chung nếu đăng nhập thất bại (sai tài khoản/mật khẩu). Luôn
+                render sẵn (ẩn mặc định bằng "hidden") thay vì chỉ render khi có lỗi từ server, vì form
+                giờ submit qua fetch (xem login.js) -> JS cần 1 chỗ có sẵn để tự hiện lỗi, không tải
+                lại trang để server render lại khối này nữa. --}}
+                <div id="login-error-alert" class="l-error-alert {{ $errors->has('login_error') ? '' : 'hidden' }}">
+                    {{ $errors->first('login_error') }}
+                </div>
 
                 {{-- Ô nhập địa chỉ Email --}}
                 <div class="l-form-group">

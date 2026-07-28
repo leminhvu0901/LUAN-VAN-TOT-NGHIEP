@@ -38,7 +38,7 @@
             <p class="otp-desc">
                 Nhập mã OTP đã được gửi đến<br>
                 {{-- Hiển thị Email đang chờ xác thực được lưu trong Session của Laravel, mặc định là "email" --}}
-                email của bạn: <span class="otp-email">{{ session('verify_email', 'email') }}</span>
+                email của bạn: <span class="otp-email" id="otp-email-display">{{ session('verify_email', 'email') }}</span>
             </p>
 
             {{-- Biểu mẫu gửi mã OTP xác nhận, thực hiện qua phương thức POST gửi đến Route verify.otp.post --}}
@@ -46,14 +46,14 @@
                 {{-- Token bảo mật CSRF bắt buộc của Laravel nhằm chống tấn công giả mạo --}}
                 @csrf
                 
-                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác nhận mã OTP --}}
-                @if($errors->has('otp_error'))
-                    <div class="otp-error">{{ $errors->first('otp_error') }}</div>
-                @endif
-                {{-- Thông báo lỗi định dạng nếu mã nhập vào không đủ số ký tự yêu cầu --}}
-                @if($errors->has('otp') || $errors->has('otp.*'))
-                    <div class="otp-error">Vui lòng nhập đủ 4 số OTP.</div>
-                @endif
+                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác nhận mã OTP. Luôn render sẵn (ẩn
+                mặc định) vì form submit qua fetch (xem verify-otp.js), JS cần chỗ có sẵn để tự hiện lỗi. --}}
+                @php
+                    $otpErrorMsg = $errors->has('otp_error')
+                        ? $errors->first('otp_error')
+                        : (($errors->has('otp') || $errors->has('otp.*')) ? 'Vui lòng nhập đủ 4 số OTP.' : '');
+                @endphp
+                <div id="otp-error-alert" class="otp-error {{ $otpErrorMsg ? '' : 'hidden' }}">{{ $otpErrorMsg }}</div>
 
                 {{-- Hộp chứa 4 ô nhập số OTP tương ứng với 4 chữ số mã xác thực --}}
                 <div class="otp-inputs">

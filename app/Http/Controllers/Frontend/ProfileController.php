@@ -87,6 +87,24 @@ class ProfileController
             ->where('id', \Illuminate\Support\Facades\Auth::id())
             ->update($updateData);
 
+        // Form submit qua fetch (xem profile.js) -> trả về đúng thông tin vừa lưu để JS cập nhật ngay
+        // tên/avatar trên trang (cả sidebar lẫn navbar) mà không cần tải lại cả trang.
+        if ($request->ajax()) {
+            $user = \App\Models\User::find(\Illuminate\Support\Facades\Auth::id());
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật thông tin thành công!',
+                'user' => [
+                    'name' => $user->name,
+                    'phone' => $user->phone,
+                    'address' => $user->address,
+                    'avatar_url' => $user->avatar
+                        ? (str_starts_with($user->avatar, 'http') ? $user->avatar : asset('images/avatars/' . $user->avatar))
+                        : 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=006e01&color=fff',
+                ],
+            ]);
+        }
+
         // Mặc định email không thay đổi qua form này vì liên quan đến login
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
     }
@@ -438,16 +456,12 @@ class ProfileController
 
         // 2. Kiểm tra Mật khẩu cũ có đúng không (dùng Hash::check vì pass lưu trong DB đã bị mã hóa)
         if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
-            return redirect()->back()
-                ->withErrors(['current_password' => 'Mật khẩu hiện tại không chính xác.'])
-                ->withInput();
+            return $this->passwordError($request, 'current_password', 'Mật khẩu hiện tại không chính xác.');
         }
 
         // 3. Mật khẩu mới không được giống hệt mật khẩu cũ
         if ($request->input('current_password') === $request->input('new_password')) {
-            return redirect()->back()
-                ->withErrors(['new_password' => 'Mật khẩu mới phải khác mật khẩu hiện tại.'])
-                ->withInput();
+            return $this->passwordError($request, 'new_password', 'Mật khẩu mới phải khác mật khẩu hiện tại.');
         }
 
         // 4. Mã hóa (Hash) mật khẩu mới và lưu xuống Database
@@ -458,6 +472,23 @@ class ProfileController
                 'updated_at' => now(),
             ]);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']);
+        }
+
         return redirect()->back()->with('success', 'Đổi mật khẩu thành công!');
+    }
+
+    /**
+     * Trả lỗi đổi mật khẩu đúng định dạng theo kiểu request: JSON 422 cho fetch (form submit qua
+     * AJAX, xem profile.js) để JS hiện lỗi tại chỗ không cần tải lại trang; redirect-back cổ điển
+     * (kèm withInput()) cho request thường.
+     */
+    private function passwordError(Request $request, string $field, string $message)
+    {
+        if ($request->ajax()) {
+            return response()->json(['success' => false, 'errors' => [$field => [$message]]], 422);
+        }
+        return redirect()->back()->withErrors([$field => $message])->withInput();
     }
 }

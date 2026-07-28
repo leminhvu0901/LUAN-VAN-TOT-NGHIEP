@@ -43,3 +43,57 @@ document.addEventListener('click', function(e) {
         return;
     }
 });
+
+// Submit form đăng ký qua fetch — trước đây sai (email đã dùng, mật khẩu không đủ mạnh...) thì tải
+// lại cả trang mới thấy lỗi, phải gõ lại toàn bộ. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng
+// thì JS tự chuyển sang modal OTP luôn (openOtpModal(), định nghĩa ở verify-otp.js) không cần tải lại
+// trang để server render lại cờ show_otp nữa.
+document.addEventListener('DOMContentLoaded', function () {
+    const registerForm = document.querySelector('#register-modal form');
+    if (!registerForm) return;
+
+    registerForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const btn = registerForm.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+
+        fetch(registerForm.action, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: new FormData(registerForm),
+        })
+            .then(function (response) {
+                return response.json().then(function (data) { return { status: response.status, data: data }; });
+            })
+            .then(function (result) {
+                if (result.status >= 400) {
+                    const errors = (result.data && result.data.errors) || {};
+                    const firstError = Object.values(errors)[0];
+                    const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Đăng ký thất bại, vui lòng kiểm tra lại.';
+                    const errorEl = document.getElementById('register-error-alert');
+                    if (errorEl) {
+                        errorEl.textContent = message;
+                        errorEl.classList.remove('hidden');
+                    } else {
+                        alert(message);
+                    }
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+
+                if (result.data && result.data.otp_required) {
+                    const registerModal = document.getElementById('register-modal');
+                    if (registerModal) registerModal.style.display = 'none';
+                    if (typeof window.openOtpModal === 'function') window.openOtpModal(result.data.email);
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+
+                if (btn) btn.disabled = false;
+            })
+            .catch(function () {
+                alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                if (btn) btn.disabled = false;
+            });
+    });
+});

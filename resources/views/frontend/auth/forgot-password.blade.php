@@ -44,12 +44,11 @@
                 {{-- Token bảo mật CSRF bắt buộc của Laravel để chống tấn công giả mạo yêu cầu --}}
                 @csrf
                 
-                {{-- Hiển thị thông báo lỗi chung nếu việc gửi yêu cầu quên mật khẩu bị lỗi trên server --}}
-                @error('forgot_error')
-                    <div class="l-error-alert">
-                        {{ $message }}
-                    </div>
-                @enderror
+                {{-- Hiển thị thông báo lỗi chung nếu việc gửi yêu cầu quên mật khẩu bị lỗi trên server.
+                Luôn render sẵn (ẩn mặc định) vì form submit qua fetch (xem forgot-password.js). --}}
+                <div id="forgot-error-alert" class="l-error-alert {{ $errors->has('forgot_error') ? '' : 'hidden' }}">
+                    {{ $errors->first('forgot_error') }}
+                </div>
 
                 {{-- Ô nhập Email để khôi phục tài khoản --}}
                 <div class="l-form-group">
