@@ -205,7 +205,9 @@ function loadProductsPage(url, updateHistory) {
             grid = document.getElementById('product-grid');
             if (sortSelect && grid) applySortAndFilter();
 
-            outerParent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // KHÔNG tự cuộn trang (đã bỏ scrollIntoView) — trước đây mỗi lần đổi bộ lọc/chuyển trang
+            // đều tự cuộn lên đầu lưới sản phẩm, gây cảm giác "nảy" giao diện đột ngột dù người dùng
+            // không hề cuộn. Giữ nguyên đúng vị trí đang xem, giống hệt cảm giác một trang tĩnh bình thường.
         })
         .catch(function () {
             // Fetch lỗi (mất mạng, server lỗi...) -> điều hướng thật như link bình thường, không kẹt trang

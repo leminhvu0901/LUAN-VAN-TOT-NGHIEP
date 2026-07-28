@@ -24,7 +24,7 @@
                 wrapper.innerHTML = html;
                 wrapper.style.opacity = '';
                 if (updateHistory) history.pushState({}, '', url);
-                wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // KHÔNG tự cuộn trang — tránh cảm giác "nảy" giao diện đột ngột khi đổi bộ lọc/trang.
             })
             .catch(function () {
                 window.location.href = url;
