@@ -23,12 +23,14 @@
 
     /**
      * Hàm tính toán và cập nhật giá hiển thị trên giao diện theo công thức:
-     * Tổng tiền = (Giá gốc + Giá size chênh lệch + Tổng giá topping) * Số lượng
+     * Đơn giá = Giá gốc + Giá size chênh lệch + Tổng giá topping
+     * KHÔNG nhân theo số lượng ở đây — giá lớn này là đơn giá cố định (khớp với giá hiển thị ở trang
+     * danh sách sản phẩm), số lượng chỉ ảnh hưởng tới tổng tiền khi đã ở trong giỏ hàng.
      */
     function updatePrice() {
-        const total = (basePrice + sizeAdj + toppingAdj) * qty;
+        const unitPrice = basePrice + sizeAdj + toppingAdj;
         // Định dạng số tiền theo tiêu chuẩn Việt Nam (Ví dụ: 50.000đ)
-        document.getElementById('pd-price').textContent = total.toLocaleString('vi-VN') + 'đ';
+        document.getElementById('pd-price').textContent = unitPrice.toLocaleString('vi-VN') + 'đ';
     }
 
     /**
