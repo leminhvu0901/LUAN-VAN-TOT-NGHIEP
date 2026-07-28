@@ -201,6 +201,7 @@
                                             <div class="space-y-1">
                                                 <label class="text-xs font-bold text-on-surface-variant ml-1">Số điện thoại</label>
                                                 <input type="tel" id="addr_phone" class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" placeholder="Nhập SĐT">
+                                                <p id="addr_phone_error" class="text-xs text-error ml-1 hidden">Số điện thoại không đúng định dạng.</p>
                                             </div>
                                         </div>
 

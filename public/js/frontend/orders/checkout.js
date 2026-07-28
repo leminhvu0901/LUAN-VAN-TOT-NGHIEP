@@ -677,6 +677,12 @@ function updateSaveButtonState() {
     const locationOk = hasCoords || locationMethod === 'manual';
     const notLoading = !provincesLoading && !wardsLoading;
 
+    // Chỉ báo lỗi SĐT khi khách ĐÃ gõ gì đó mà sai định dạng — không báo ngay khi ô còn trống, tránh
+    // dọa người dùng trước khi họ kịp gõ. Trước đây nút Lưu chỉ âm thầm bị disable, không giải thích
+    // lý do, khiến người dùng gõ sai mà không biết vì sao không lưu được.
+    const phoneErrorEl = document.getElementById('addr_phone_error');
+    if (phoneErrorEl) phoneErrorEl.classList.toggle('hidden', phone === '' || phoneOk);
+
     btn.disabled = !(fullname && phoneOk && areaOk && specific && locationOk && notLoading);
 }
 
