@@ -117,7 +117,7 @@ shadow-sm: đổ bóng nhẹ phía dưới
             --}}
             <form action="{{ url('/products') }}" method="GET" class="l-nav-search hidden md:flex">
                 <button type="submit"
-                    class="text-gray-400 mr-2 flex-shrink-0 bg-transparent border-none p-0 cursor-pointer"
+                    class="happy-navbar__search-icon--desktop mr-2 flex-shrink-0 bg-transparent border-none p-0 cursor-pointer"
                     aria-label="Tìm kiếm">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8" />
