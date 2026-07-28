@@ -5,7 +5,14 @@
 
 @section('content')
 
-
+@php
+    // Đăng nhập Google lưu avatar là URL đầy đủ (https://lh3.googleusercontent.com/...), còn avatar tự
+    // tải lên chỉ lưu tên file trong storage cục bộ -> phải phân biệt, không thể luôn ghép
+    // asset('images/avatars/'.avatar) (khớp cách các trang admin đã xử lý ở str_starts_with pattern).
+    $userAvatarUrl = Auth::user()->avatar
+        ? (str_starts_with(Auth::user()->avatar, 'http') ? Auth::user()->avatar : asset('images/avatars/' . Auth::user()->avatar))
+        : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=006e01&color=fff';
+@endphp
 
 <!-- ============================================== -->
 <!-- 1. GIAO DIỆN TRÊN MÁY TÍNH (DESKTOP VIEW)      -->
@@ -19,13 +26,7 @@
             <div class="flex items-center gap-3 mb-4">
                 {{-- Hiển thị Ảnh đại diện (Avatar) hình tròn của người dùng đang đăng nhập --}}
                 <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary bg-white">
-                    @if(Auth::user()->avatar)
-                        {{-- Nếu đã tải lên avatar cá nhân thì hiển thị ảnh từ thư mục lưu trữ --}}
-                        <img alt="User profile avatar" class="w-full h-full object-cover" src="{{ asset('images/avatars/' . Auth::user()->avatar) }}">
-                    @else
-                        {{-- Nếu chưa có ảnh, tự động sinh ảnh có chữ cái đầu từ API ui-avatars.com --}}
-                        <img alt="User profile avatar" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=006e01&color=fff">
-                    @endif
+                    <img alt="User profile avatar" class="w-full h-full object-cover" src="{{ $userAvatarUrl }}">
                 </div>
                 <div>
                     {{-- Tên người dùng và Hạng thành viên --}}
@@ -88,11 +89,7 @@
                             <div class="relative group mb-stack_md">
                                 {{-- Preview hình ảnh Avatar hiện tại --}}
                                 <div class="w-40 h-40 rounded-full overflow-hidden border-4 border-surface-container p-1 ring-2 ring-primary/20 bg-white">
-                                    @if(Auth::user()->avatar)
-                                        <img id="avatarPreview" alt="Large User Avatar" class="w-full h-full object-cover rounded-full" src="{{ asset('images/avatars/' . Auth::user()->avatar) }}">
-                                    @else
-                                        <img id="avatarPreview" alt="Large User Avatar" class="w-full h-full object-cover rounded-full" src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=006e01&color=fff">
-                                    @endif
+                                    <img id="avatarPreview" alt="Large User Avatar" class="w-full h-full object-cover rounded-full" src="{{ $userAvatarUrl }}">
                                 </div>
                                 {{-- Nút bút chì màu xanh: Nhấp vào để kích hoạt hành động chọn file từ input ẩn --}}
                                 <button type="button" class="absolute bottom-1 right-1 bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95" onclick="document.getElementById('avatarInput').click()">
@@ -323,11 +320,7 @@
         <section class="flex flex-col items-center mb-8">
             <div class="relative mb-4">
                 <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
-                    @if(Auth::user()->avatar)
-                        <img id="avatarPreviewMobile" class="w-full h-full object-cover" src="{{ asset('images/avatars/' . Auth::user()->avatar) }}"/>
-                    @else
-                        <img id="avatarPreviewMobile" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=006e01&color=fff"/>
-                    @endif
+                    <img id="avatarPreviewMobile" class="w-full h-full object-cover" src="{{ $userAvatarUrl }}"/>
                 </div>
                 <button type="button" class="absolute bottom-0 right-0 bg-primary-container p-1.5 rounded-full text-white shadow-sm ring-2 ring-white active:scale-90 transition-transform" onclick="document.getElementById('avatarInput').click()">
                     <span class="material-symbols-outlined text-sm material-filled">edit</span>
