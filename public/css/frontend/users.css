@@ -6993,6 +6993,28 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   display: none;
 }
 
+/* Thanh chỉ báo vị trí cuộn ngang cho .home-categories — .home-categories ẩn thanh cuộn gốc của
+   trình duyệt (scrollbar-width:none ở trên) nên không còn gợi ý nào cho biết khối này vuốt được sang
+   phải; ẩn mặc định trên desktop (thường đủ chỗ hiện hết danh mục, không cần cuộn), chỉ hiện trên
+   mobile/tablet trong @media (max-width: 1024px) bên dưới. Vị trí/độ rộng "thumb" tính động theo tỉ
+   lệ cuộn thật qua JS, xem home.js. */
+.home-categories-scrollbar {
+  display: none;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+}
+
+.home-categories-scrollbar__thumb {
+  height: 100%;
+  width: 30%;
+  background: #10b981;
+  border-radius: 9999px;
+  transform: translateX(0);
+}
+
 .home-cat-card {
   display: flex;
   flex-direction: column;
@@ -7463,6 +7485,10 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   .home-categories {
     -webkit-overflow-scrolling: touch;
     gap: 1rem;
+  }
+
+  .home-categories-scrollbar {
+    display: block;
   }
 
   .home-cat-card {

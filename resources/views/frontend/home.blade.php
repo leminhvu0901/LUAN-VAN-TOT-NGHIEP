@@ -148,7 +148,7 @@
             <!-- <a href="/categories" class="home-section__link">Xem tất cả →</a> -->
         </div>
 
-        <div class="home-categories">
+        <div class="home-categories" id="home-categories">
             @php
                 // Map icons and colors for specific category IDs (1: Cà phê, 2: Trà sữa, 3: Sữa chua, 4: Trà trái cây, 5: Đồ uống khác)
                 $catStyles = [
@@ -176,6 +176,13 @@
                     <span class="home-cat-card__count">{{ $cat->product_count }} món</span>
                 </a>
             @endforeach
+        </div>
+
+        {{-- Thanh chỉ báo vị trí cuộn ngang — chỉ hiện trên mobile/tablet (xem CSS .home-categories-scrollbar,
+        scoped trong @media max-width:1024px), vì .home-categories ẩn thanh cuộn gốc của trình duyệt
+        (scrollbar-width:none) nên không còn gợi ý nào cho biết khối này kéo/vuốt được sang phải. --}}
+        <div class="home-categories-scrollbar" id="home-categories-scrollbar" aria-hidden="true">
+            <div class="home-categories-scrollbar__thumb" id="home-categories-scrollbar-thumb"></div>
         </div>
     </section>
 

@@ -225,3 +225,41 @@ if (navbar) {
     // Start auto slider on load
     startAutoSlide();
 })();
+
+// Thanh chỉ báo vị trí cuộn ngang cho khối "Danh mục nổi bật" (.home-categories) — khối này ẩn thanh
+// cuộn gốc của trình duyệt (xem CSS .home-categories { scrollbar-width: none }) nên trên mobile/tablet
+// không còn gợi ý nào cho biết còn danh mục ở bên phải để vuốt sang. Tính lại width/vị trí "thumb"
+// theo đúng tỉ lệ cuộn thật (scrollLeft / (scrollWidth - clientWidth)) mỗi khi cuộn, đổi kích thước
+// màn hình, hoặc số danh mục thay đổi.
+(function () {
+    var track = document.getElementById('home-categories');
+    var scrollbar = document.getElementById('home-categories-scrollbar');
+    var thumb = document.getElementById('home-categories-scrollbar-thumb');
+    if (!track || !scrollbar || !thumb) return;
+
+    function updateThumb() {
+        var scrollableWidth = track.scrollWidth - track.clientWidth;
+
+        // Nội dung vừa đủ khung nhìn (không cần cuộn, thường gặp ở tablet/màn rộng) -> ẩn hẳn thanh
+        // chỉ báo, tránh hiện một thanh chỉ báo "giả" không có tác dụng gì.
+        if (scrollableWidth <= 0) {
+            scrollbar.style.visibility = 'hidden';
+            return;
+        }
+        scrollbar.style.visibility = 'visible';
+
+        // Độ rộng "thumb" tỉ lệ với phần khung nhìn đang thấy được so với tổng chiều rộng nội dung —
+        // giống hệt cách thanh cuộn trình duyệt gốc hoạt động (cuộn ngang căn dài đường, cuộn ngang ít
+        // thì thumb dài, cuộn ngang nhiều thì thumb ngắn).
+        var thumbWidthPct = Math.max(15, Math.min(100, (track.clientWidth / track.scrollWidth) * 100));
+        var maxTranslatePct = 100 - thumbWidthPct;
+        var scrolledPct = (track.scrollLeft / scrollableWidth) * maxTranslatePct;
+
+        thumb.style.width = thumbWidthPct + '%';
+        thumb.style.transform = 'translateX(' + (scrolledPct / thumbWidthPct * 100) + '%)';
+    }
+
+    track.addEventListener('scroll', updateThumb, { passive: true });
+    window.addEventListener('resize', updateThumb);
+    updateThumb();
+})();
