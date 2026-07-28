@@ -198,6 +198,15 @@ class OrderController
 
         $this->orderWorkflow->transition($order, $validated['status'], $validated['cancel_reason'] ?? null);
 
+        // Trang chi tiết đơn (show.js) submit qua fetch -> báo thành công để JS tự tải lại trang.
+        // Trước đây trang này KHÔNG có bất kỳ khối hiển thị lỗi nào (không @error, không $errors->any())
+        // nên khi validate/transition thất bại, lễ tân không thấy thông báo gì cả — chỉ có cảm giác
+        // "bấm không ăn thua". Response JSON ở đây (và ở nhánh lỗi tại updateStatus không tồn tại vì
+        // exception tự nhảy ra ngoài, được Laravel tự trả 422 JSON đúng định dạng nhờ expectsJson()).
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã cập nhật trạng thái đơn hàng!']);
+        }
+
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
@@ -221,6 +230,10 @@ class OrderController
             (int) $validated['delivery_staff_id'],
             \Illuminate\Support\Facades\Auth::id()
         );
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã phân công nhân viên giao hàng!']);
+        }
 
         return back()->with('success', 'Đã phân công nhân viên giao hàng!');
     }
@@ -420,6 +433,13 @@ class OrderController
         // Cờ flash 'success'/'error' (được gắn ở trên hoặc trong payExistingOrder()) vẫn còn nguyên
         // trong session và sẽ hiển thị đúng khi trang đích tải lại bình thường.
         if ($request->expectsJson()) {
+            // payExistingOrder() giờ CŨNG tự nhận biết expectsJson() (dùng chung cho cả trang chi
+            // tiết đơn của lễ tân) -> với request MoMo đang AJAX, nó đã trả sẵn JsonResponse đúng
+            // định dạng (kể cả trường hợp lỗi, vd chưa cấu hình MoMo) -> chỉ cần trả thẳng ra, KHÔNG
+            // gọi getTargetUrl() (không tồn tại trên JsonResponse, sẽ lỗi 500 nếu gọi nhầm).
+            if ($response instanceof \Illuminate\Http\JsonResponse) {
+                return $response;
+            }
             return response()->json(['success' => true, 'redirect_url' => $response->getTargetUrl()]);
         }
 
@@ -439,6 +459,9 @@ class OrderController
     public function confirmCashPayment(Request $request, Order $order)
     {
         if ($order->payment_method !== 'cash' || $order->payment_status === 'paid') {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Đơn này không cần xác nhận thanh toán tiền mặt.'], 422);
+            }
             return redirect()->route('staff.reception.orders.show', $order->id)
                 ->with('error', 'Đơn này không cần xác nhận thanh toán tiền mặt.');
         }
@@ -451,11 +474,18 @@ class OrderController
         ]);
 
         if ((float) $validated['amount_tendered'] < (float) $order->final_amount) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => ['amount_tendered' => ['Số tiền khách đưa không đủ để thanh toán đơn hàng.']]], 422);
+            }
             return back()->withErrors(['amount_tendered' => 'Số tiền khách đưa không đủ để thanh toán đơn hàng.']);
         }
 
         $order->forceFill(['amount_tendered' => $validated['amount_tendered']])->save();
         $this->orderWorkflow->markPaid($order, 'CASH-' . $order->order_code, (float) $order->final_amount);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã xác nhận thu tiền mặt thành công!']);
+        }
 
         return redirect()->route('staff.reception.orders.show', $order->id)
             ->with('success', 'Đã xác nhận thu tiền mặt thành công!');

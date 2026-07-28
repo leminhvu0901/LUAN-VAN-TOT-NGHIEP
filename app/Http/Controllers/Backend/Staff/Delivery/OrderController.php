@@ -51,20 +51,18 @@ class OrderController
     }
 
     // "Nhận đơn giao" — chuyển từ confirmed (đã phân công, chờ lấy hàng) sang shipping (đang giao).
-    public function ship(Order $order)
+    public function ship(Request $request, Order $order)
     {
         $this->authorizeOwnership($order);
         $this->orderWorkflow->transition($order, 'shipping');
-        return redirect()->route('staff.delivery.orders.index', ['tab' => 'shipping'])
-            ->with('success', 'Đã nhận đơn và chuyển sang đang giao!');
+        return $this->success($request, 'shipping', 'Đã nhận đơn và chuyển sang đang giao!');
     }
 
-    public function complete(Order $order)
+    public function complete(Request $request, Order $order)
     {
         $this->authorizeOwnership($order);
         $this->orderWorkflow->transition($order, 'completed');
-        return redirect()->route('staff.delivery.orders.index', ['tab' => 'history'])
-            ->with('success', 'Đã xác nhận giao hàng thành công!');
+        return $this->success($request, 'history', 'Đã xác nhận giao hàng thành công!');
     }
 
     public function fail(Request $request, Order $order)
@@ -79,8 +77,21 @@ class OrderController
 
         $this->orderWorkflow->markDeliveryFailed($order, $validated['reason']);
 
-        return redirect()->route('staff.delivery.orders.index', ['tab' => 'history'])
-            ->with('success', 'Đã ghi nhận giao hàng thất bại.');
+        return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại.');
+    }
+
+    /**
+     * Trả kết quả đúng định dạng theo kiểu request: JSON cho fetch (nút bấm ở danh sách/chi tiết đơn
+     * submit qua AJAX, xem order-actions.js) để JS tự điều hướng + không mất trạng thái nút bấm giữa
+     * chừng trên mạng di động chập chờn; redirect cổ điển cho request thường.
+     */
+    private function success(Request $request, string $tab, string $message)
+    {
+        $redirectUrl = route('staff.delivery.orders.index', ['tab' => $tab]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'redirect_url' => $redirectUrl]);
+        }
+        return redirect($redirectUrl)->with('success', $message);
     }
 
     private function authorizeOwnership(Order $order): void

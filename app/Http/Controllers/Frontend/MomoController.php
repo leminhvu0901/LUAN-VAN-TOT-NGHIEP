@@ -409,14 +409,17 @@ class MomoController
      */
     public function payExistingOrder(Request $request, \App\Models\Order $order)
     {
+        // show.js (trang chi tiết đơn của lễ tân) submit nút "Thanh toán MoMo" qua fetch — dùng lại
+        // đúng 2 helper checkoutError()/checkoutRedirect() đã có ở trên (chung logic AJAX-aware cho
+        // cả 2 luồng MoMo: khách tự checkout lẫn lễ tân thanh toán hộ đơn tại quầy).
+        $showUrl = route('staff.reception.orders.show', $order->id);
+
         if (!$this->configValid) {
-            return redirect()->route('staff.reception.orders.show', $order->id)
-                ->with('error', 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng chọn thanh toán tiền mặt hoặc liên hệ quản trị viên.');
+            return $this->checkoutError($request, 'Chưa cấu hình MoMo cho môi trường chính thức. Vui lòng chọn thanh toán tiền mặt hoặc liên hệ quản trị viên.');
         }
 
         if ($order->payment_method !== 'momo' || $order->payment_status === 'paid') {
-            return redirect()->route('staff.reception.orders.show', $order->id)
-                ->with('error', 'Đơn hàng này không cần thanh toán qua MoMo.');
+            return $this->checkoutError($request, 'Đơn hàng này không cần thanh toán qua MoMo.');
         }
 
         // Dùng payWithMethod để MoMo hiện đầy đủ các phương thức: ví MoMo, ATM, thẻ tín dụng...
@@ -424,11 +427,10 @@ class MomoController
         $payUrl = $this->requestPayUrl($order->order_code, (float) $order->final_amount, 'Thanh toan don hang ' . $order->order_code, 'payWithMethod');
 
         if (!$payUrl) {
-            return redirect()->route('staff.reception.orders.show', $order->id)
-                ->with('error', 'Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
+            return $this->checkoutError($request, 'Không thể kết nối cổng thanh toán MoMo. Vui lòng thử lại.');
         }
 
-        return redirect()->away($payUrl);
+        return $this->checkoutRedirect($request, $payUrl);
     }
 
     /**

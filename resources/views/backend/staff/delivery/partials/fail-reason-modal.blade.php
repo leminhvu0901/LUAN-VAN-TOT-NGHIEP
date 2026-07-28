@@ -21,5 +21,6 @@
 </div>
 
 @push('scripts')
+    <script src="{{ asset('js/backend/staff/delivery/order-actions.js') }}"></script>
     <script src="{{ asset('js/backend/staff/delivery/fail-reason-modal.js') }}"></script>
 @endpush

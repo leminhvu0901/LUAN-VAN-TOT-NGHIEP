@@ -41,7 +41,7 @@
                             </div>
                             @if($group['unsettled_orders']->isNotEmpty())
                                 <form action="{{ route('staff.reception.cod_settlement.settle_all', $group['staff']->id) }}" method="POST"
-                                    onsubmit="return confirm('Xác nhận đã nhận đủ {{ number_format($group['unsettled_total'], 0, ',', '.') }}đ từ {{ $group['staff']->name }}?');">
+                                    data-confirm-message="Xác nhận đã nhận đủ {{ number_format($group['unsettled_total'], 0, ',', '.') }}đ từ {{ $group['staff']->name }}?">
                                     @csrf
                                     <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm whitespace-nowrap">
                                         Nộp tất cả ({{ $group['unsettled_orders']->count() }})
@@ -69,7 +69,7 @@
                                     <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0">
                                         <span class="font-bold text-gray-900 text-sm">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
                                         <form action="{{ route('staff.reception.cod_settlement.settle_one', $order->id) }}" method="POST"
-                                            onsubmit="return confirm('Xác nhận đã nhận {{ number_format($order->final_amount, 0, ',', '.') }}đ tiền mặt cho đơn {{ $order->order_code }}?');">
+                                            data-confirm-message="Xác nhận đã nhận {{ number_format($order->final_amount, 0, ',', '.') }}đ tiền mặt cho đơn {{ $order->order_code }}?">
                                             @csrf
                                             <button type="submit" class="min-h-[36px] px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs whitespace-nowrap flex items-center gap-1 transition-colors">
                                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Xác nhận đã nộp
@@ -88,4 +88,8 @@
             @endforelse
         </div>
     </div>
+
+    @push('scripts')
+        <script src="{{ asset('js/backend/staff/reception/cod-settlement.js') }}"></script>
+    @endpush
 @endsection

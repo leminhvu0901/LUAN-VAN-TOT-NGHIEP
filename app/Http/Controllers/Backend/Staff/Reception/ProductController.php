@@ -26,6 +26,12 @@ class ProductController
 
         $products = $query->paginate(20)->withQueryString();
 
+        // Lọc/chuyển trang gửi lên qua fetch (xem products-filter.js) -> chỉ trả về đúng phần lưới +
+        // phân trang, không render lại toàn bộ trang, tránh tải lại cả trang khi đổi từ khóa/trạng thái.
+        if ($request->expectsJson()) {
+            return view('backend.staff.reception.products.partials.grid', compact('products'))->render();
+        }
+
         return view('backend.staff.reception.products.index', compact('products'));
     }
 }

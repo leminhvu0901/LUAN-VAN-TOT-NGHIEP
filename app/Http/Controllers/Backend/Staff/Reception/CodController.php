@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend\Staff\Reception;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\OrderWorkflowService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 // Đối soát tiền COD: nhân viên vận chuyển thu tiền mặt từ khách khi hoàn thành đơn, sau đó phải
@@ -42,23 +43,35 @@ class CodController
         return view('backend.staff.reception.cod-settlement.index', compact('groups'));
     }
 
-    public function settleOne(Order $order)
+    public function settleOne(Request $request, Order $order)
     {
         $this->orderWorkflow->settleCod($order, Auth::id());
+        $message = "Đã xác nhận nhận tiền COD cho đơn {$order->order_code}.";
 
-        return back()->with('success', "Đã xác nhận nhận tiền COD cho đơn {$order->order_code}.");
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return back()->with('success', $message);
     }
 
-    public function settleAll(User $deliveryStaff)
+    public function settleAll(Request $request, User $deliveryStaff)
     {
         abort_unless($deliveryStaff->role === 'staff' && $deliveryStaff->staff_type === 'delivery', 404);
 
         $count = $this->orderWorkflow->settleAllCodForDeliveryStaff($deliveryStaff->id, Auth::id());
 
         if ($count === 0) {
-            return back()->with('info', "{$deliveryStaff->name} không có đơn COD nào cần đối soát.");
+            $message = "{$deliveryStaff->name} không có đơn COD nào cần đối soát.";
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => $message]);
+            }
+            return back()->with('info', $message);
         }
 
-        return back()->with('success', "Đã xác nhận nộp quầy {$count} đơn COD từ {$deliveryStaff->name}.");
+        $message = "Đã xác nhận nộp quầy {$count} đơn COD từ {$deliveryStaff->name}.";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return back()->with('success', $message);
     }
 }
