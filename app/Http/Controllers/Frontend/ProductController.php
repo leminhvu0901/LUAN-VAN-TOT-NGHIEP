@@ -196,8 +196,12 @@ class ProductController
             $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
         }
 
-        // Thực thi lấy toàn bộ kết quả sản phẩm và mặc định sắp xếp theo trạng thái (còn hàng trước, hết hàng sau) và độ bán chạy (total_sold)
-        $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')->get();
+        // Thực thi lấy kết quả sản phẩm, phân trang 15 sản phẩm/trang (khớp lưới 5 cột x 3 hàng ở
+        // desktop, xem .p-product-grid trong users.css) và mặc định sắp xếp theo trạng thái (còn hàng
+        // trước, hết hàng sau) và độ bán chạy (total_sold). withQueryString() giữ nguyên các tham số
+        // lọc (category/max_price/rating/search) khi chuyển trang.
+        $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')
+            ->paginate(15)->withQueryString();
 
         // 3. Lấy danh sách ID các sản phẩm đã được người dùng hiện tại yêu thích (để hiển thị nút thả tim)
         $favoriteProductIds = [];

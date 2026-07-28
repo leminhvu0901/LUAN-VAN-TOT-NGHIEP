@@ -215,6 +215,32 @@
                         @endforelse
 
                     </div><!-- end .p-product-grid -->
+
+                    {{-- Phân trang — giữ nguyên các tham số lọc hiện tại (category/max_price/rating/search)
+                    nhờ withQueryString() ở ProductController::index(). Tự viết markup thay vì dùng
+                    $products->links() mặc định của Laravel vì trang này không nạp Tailwind CSS. --}}
+                    @if($products->hasPages())
+                        <nav class="p-pagination" aria-label="Phân trang sản phẩm">
+                            <a href="{{ $products->previousPageUrl() }}"
+                               class="p-pagination__btn {{ $products->onFirstPage() ? 'p-pagination__btn--disabled' : '' }}"
+                               @if($products->onFirstPage()) aria-disabled="true" tabindex="-1" @endif>
+                                <span class="material-symbols-outlined">chevron_left</span>
+                            </a>
+
+                            @foreach(range(1, $products->lastPage()) as $page)
+                                <a href="{{ $products->url($page) }}"
+                                   class="p-pagination__btn {{ $page === $products->currentPage() ? 'p-pagination__btn--active' : '' }}">
+                                    {{ $page }}
+                                </a>
+                            @endforeach
+
+                            <a href="{{ $products->nextPageUrl() }}"
+                               class="p-pagination__btn {{ !$products->hasMorePages() ? 'p-pagination__btn--disabled' : '' }}"
+                               @if(!$products->hasMorePages()) aria-disabled="true" tabindex="-1" @endif>
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </a>
+                        </nav>
+                    @endif
                 </div><!-- end .p-product-area -->
             </div><!-- end .p-main-layout -->
         </div><!-- end .p-page-wrapper -->
