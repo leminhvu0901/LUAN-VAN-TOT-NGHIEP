@@ -274,7 +274,7 @@ class OrderController
                 'points_error' => null,
                 'final_amount' => 0,
                 'coupon_error' => null,
-            ]);
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
         }
 
         $pricedItems = $this->cartPricing->pricedItems($cart);
@@ -338,7 +338,7 @@ class OrderController
                 'quantity' => $g['granted_quantity'],
                 'stock_limited' => $g['stock_limited'],
             ])->values(),
-        ]);
+        ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
     /**

@@ -212,8 +212,12 @@
         if (customerIdInput && customerIdInput.value && pointsInput && Number(pointsInput.value) > 0) {
             params.set('points_to_redeem', pointsInput.value);
         }
+        // Chống cache: khi khách/mã/điểm không đổi, URL gọi lại y hệt lần trước (vd. sau khi xóa 1 món
+        // trong giỏ) — nếu không có tham số phân biệt, trình duyệt hoặc proxy trung gian có thể trả về
+        // response JSON CŨ thay vì gọi lại server, khiến tổng tiền không cập nhật dù giỏ hàng đã đổi.
+        params.set('_ts', Date.now());
 
-        fetch(window.posPreviewTotalUrl + '?' + params.toString(), { headers: { Accept: 'application/json' } })
+        fetch(window.posPreviewTotalUrl + '?' + params.toString(), { headers: { Accept: 'application/json' }, cache: 'no-store' })
             .then(r => r.json())
             .then(data => {
                 updatePreviewTotal(
