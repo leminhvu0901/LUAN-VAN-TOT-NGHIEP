@@ -127,13 +127,13 @@
                                         {{-- Ô nhập Họ tên --}}
                                         <div class="space-y-1">
                                             <label class="font-label-md text-label-md text-on-surface-variant px-1">Họ và tên</label>
-                                            <input name="name" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ Auth::user()->name }}" required>
+                                            <input name="name" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ old('name', Auth::user()->name) }}" required>
                                             @error('name') <small class="text-error mt-1 block">{{ $message }}</small> @enderror
                                         </div>
                                         {{-- Ô nhập Số điện thoại --}}
                                         <div class="space-y-1">
                                             <label class="font-label-md text-label-md text-on-surface-variant px-1">Số điện thoại</label>
-                                            <input name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ Auth::user()->phone ?? '' }}">
+                                            <input name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}">
                                             @error('phone') <small class="text-error mt-1 block">{{ $message }}</small> @enderror
                                         </div>
                                     </div>
@@ -356,14 +356,14 @@
                 <div class="space-y-1">
                     <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Họ và tên</label>
                     <div class="relative group">
-                        <input name="name" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ Auth::user()->name }}" required/>
+                        <input name="name" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ old('name', Auth::user()->name) }}" required/>
                         @error('name') <small class="text-error block mt-1 ml-1">{{ $message }}</small> @enderror
                     </div>
                 </div>
                 <div class="space-y-1">
                     <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Số điện thoại</label>
                     <div class="relative group">
-                        <input name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ Auth::user()->phone ?? '' }}"/>
+                        <input name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}"/>
                         @error('phone') <small class="text-error block mt-1 ml-1">{{ $message }}</small> @enderror
                     </div>
                 </div>
