@@ -1,5 +1,21 @@
-{{-- Khung bao ngoài chứa toàn bộ bố cục trang, giới hạn chiều rộng trên thiết bị lớn --}}
-<div class="reset-container">
+{{-- Trang này KHÔNG @extends layout chung (chỉ dùng riêng cho bước đặt lại mật khẩu, tách khỏi hệ
+thống modal) nên phải tự có khung HTML + link CSS đầy đủ - trước đây thiếu hẳn phần này khiến trang
+hiện ra không có style gì (font mặc định trình duyệt, không màu, không canh giữa). --}}
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Đặt lại mật khẩu - Happy Tea</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('images/favicon/favicon.ico') }}" />
+    <link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}?v={{ filemtime(public_path('css/frontend/users.css')) }}">
+</head>
+
+<body>
+
+    {{-- Khung bao ngoài chứa toàn bộ bố cục trang, giới hạn chiều rộng trên thiết bị lớn --}}
+    <div class="reset-container">
     {{-- Header của trang gồm nút quay về trang chủ '/' và tiêu đề chính --}}
     <div class="reset-header">
         <a href="/" class="reset-back">
@@ -88,7 +104,11 @@
             <button type="submit" class="reset-submit">Đặt lại mật khẩu</button>
         </div>
     </form>
-</div>
+    </div>
 
-{{-- Nhúng mã JS xử lý logic ẩn/hiện mật khẩu (hàm toggleVisibility) --}}
-<script src="{{ asset('js/frontend/auth/reset-password.js') }}"></script>
+    {{-- Nhúng mã JS xử lý logic ẩn/hiện mật khẩu (hàm toggleVisibility) --}}
+    <script src="{{ asset('js/frontend/auth/reset-password.js') }}?v={{ filemtime(public_path('js/frontend/auth/reset-password.js')) }}"></script>
+
+</body>
+
+</html>
