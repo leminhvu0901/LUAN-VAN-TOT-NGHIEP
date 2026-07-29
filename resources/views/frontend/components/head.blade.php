@@ -15,7 +15,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@6.2.5/dist/simplebar.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/tiny-slider.css" />
-<link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}" />
+{{-- ?v=filemtime: ép trình duyệt tải lại CSS mới mỗi khi file này thay đổi, tránh bị cache bản cũ trên web đã deploy --}}
+<link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}?v={{ filemtime(public_path('css/frontend/users.css')) }}" />
 
 {{-- Tailwind + extra fonts (chỉ load trên các trang cần thiết) --}}
 @if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout') || request()->routeIs('review.*'))

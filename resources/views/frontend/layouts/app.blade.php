@@ -56,7 +56,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Code Javascript tự viết chung cho cả hệ thống (Giỏ hàng, Yêu thích, thông báo toast...) -->
-    <script src="{{ asset('js/frontend/layout/main.js') }}"></script>
+    {{-- ?v=filemtime: ép trình duyệt tải lại JS mới mỗi khi file này thay đổi, tránh bị cache bản cũ trên web đã deploy --}}
+    <script src="{{ asset('js/frontend/layout/main.js') }}?v={{ filemtime(public_path('js/frontend/layout/main.js')) }}"></script>
 
     <!-- Các script plugin tĩnh được đặt trong thư mục public/js/vendors -->
     <script src="{{ asset('js/vendors/countdown.js') }}"></script>
