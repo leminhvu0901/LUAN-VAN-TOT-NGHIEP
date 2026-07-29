@@ -297,10 +297,16 @@
                                         </label>
                                     </div>
 
-                                    <!-- Right: Map (mode gps/map; ẩn ở mode manual) -->
+                                    <!-- Right: Map — hiện ở CẢ 3 mode (kể cả 'manual'): trước đây mode 'manual' ẩn bản đồ,
+                                    gửi mù toạ độ để backend tự dò khi lưu -> khách không biết hệ thống có hiểu đúng
+                                    địa chỉ hay không, dẫn tới tính sai khoảng cách/phí ship. Giờ gõ địa chỉ xong, hệ
+                                    thống tự dò và ghim lên bản đồ ngay để khách nhìn thấy + kéo chỉnh nếu sai, giống
+                                    hệt cách mode "Chọn trên bản đồ" đã làm (xem scheduleManualForwardGeocode() ở
+                                    checkout.js). -->
                                     <div id="mapColumn" class="flex flex-col h-full space-y-3">
                                         <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản đồ</label>
                                         <p id="mapHint" class="text-xs text-on-surface-variant ml-1 hidden">Chạm vào bản đồ hoặc kéo ghim đến đúng vị trí giao hàng, rồi bấm "Xác nhận vị trí này".</p>
+                                        <p id="manualMapHint" class="text-xs text-on-surface-variant ml-1 hidden">Hệ thống tự dò vị trí từ địa chỉ bạn nhập. Vui lòng kiểm tra ghim trên bản đồ — nếu chưa đúng, chạm vào bản đồ hoặc kéo ghim để chỉnh lại.</p>
                                         <div id="addressMap" class="w-full flex-1 min-h-[250px] max-h-[60vh] rounded-xl border border-outline-variant z-10"></div>
                                         <input type="hidden" id="addr_lat">
                                         <input type="hidden" id="addr_lng">

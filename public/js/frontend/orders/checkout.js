@@ -44,7 +44,7 @@ function setLocStatus(state, extraText) {
 
     const map = {
         idle: ['location_searching', 'Chưa xác định vị trí', 'text-on-surface-variant'],
-        manual: ['edit_location_alt', 'Nhập địa chỉ thủ công — hệ thống sẽ tự xác định vị trí khi lưu', 'text-on-surface-variant'],
+        manual: ['edit_location_alt', 'Nhập đầy đủ khu vực + địa chỉ cụ thể — hệ thống sẽ tự ghim vị trí lên bản đồ để bạn kiểm tra', 'text-on-surface-variant'],
         locating: ['pending', 'Đang xác định vị trí...', 'text-amber-600'],
         ok: ['check_circle', 'Đã xác định vị trí', 'text-primary'],
         notfound: ['error', 'Không tìm thấy địa chỉ', 'text-error'],
@@ -76,32 +76,36 @@ function setLocationMethod(method) {
     const gpsBlock = document.getElementById('gpsBlock');
     const mapColumn = document.getElementById('mapColumn');
     const mapHint = document.getElementById('mapHint');
+    const manualMapHint = document.getElementById('manualMapHint');
     const grid = document.getElementById('addressGrid');
     const confirmBtn = document.getElementById('btnConfirmMapLocation');
 
     if (gpsBlock) gpsBlock.classList.toggle('hidden', method !== 'gps');
     if (mapHint) mapHint.classList.toggle('hidden', method !== 'map');
+    if (manualMapHint) manualMapHint.classList.toggle('hidden', method !== 'manual');
     if (confirmBtn) confirmBtn.classList.add('hidden');
 
+    // Bản đồ giờ hiện ở CẢ 3 mode (kể cả 'manual') — trước đây mode 'manual' ẩn bản đồ đi và gửi mù
+    // toạ độ để backend tự dò khi lưu, khách không có cách nào biết hệ thống hiểu đúng địa chỉ hay
+    // chưa (nguyên nhân chính gây tính sai khoảng cách/phí ship). Xem scheduleManualForwardGeocode().
+    if (mapColumn) mapColumn.classList.remove('hidden');
+    if (grid) { grid.classList.add('lg:grid-cols-2'); grid.classList.remove('lg:grid-cols-1'); }
+    setTimeout(function () {
+        initMapIfNeeded();
+        if (map) {
+            map.invalidateSize();
+            const lat = parseFloat(document.getElementById('addr_lat').value) || 10.73809;
+            const lng = parseFloat(document.getElementById('addr_lng').value) || 106.67812;
+            map.setView([lat, lng], 15);
+            if (marker) marker.setLatLng([lat, lng]);
+        }
+    }, 50);
+
     if (method === 'manual') {
-        // Ẩn bản đồ, form mở rộng toàn chiều rộng.
-        if (mapColumn) mapColumn.classList.add('hidden');
-        if (grid) { grid.classList.remove('lg:grid-cols-2'); grid.classList.add('lg:grid-cols-1'); }
-        setLocStatus('manual');
+        setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'manual');
+        // Đủ dữ liệu sẵn rồi (vd quay lại mode này, hoặc mở form Sửa) -> dò lại luôn không cần đợi gõ thêm.
+        scheduleManualForwardGeocode();
     } else {
-        if (mapColumn) mapColumn.classList.remove('hidden');
-        if (grid) { grid.classList.add('lg:grid-cols-2'); grid.classList.remove('lg:grid-cols-1'); }
-        // Bản đồ vừa hiện lại -> tính lại kích thước (Leaflet).
-        setTimeout(function () {
-            initMapIfNeeded();
-            if (map) {
-                map.invalidateSize();
-                const lat = parseFloat(document.getElementById('addr_lat').value) || 10.73809;
-                const lng = parseFloat(document.getElementById('addr_lng').value) || 106.67812;
-                map.setView([lat, lng], 15);
-                if (marker) marker.setLatLng([lat, lng]);
-            }
-        }, 50);
         // Trạng thái: đã có tọa độ -> ok, chưa có -> idle.
         setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'idle');
     }
@@ -177,6 +181,96 @@ function confirmMapLocation() {
         setLocStatus('ok', 'Đã xác định vị trí trên bản đồ');
     }
     updateSaveButtonState();
+}
+
+// ==============================================================================================
+// MODE 'manual': trước đây gõ xong địa chỉ là gửi mù, chỉ có backend tự dò tọa độ lúc lưu (khách
+// không thấy được kết quả dò đúng hay sai -> hay bị tính sai khoảng cách/phí ship). Giờ tự dò NGAY
+// khi khách gõ đủ khu vực + địa chỉ cụ thể, ghim lên bản đồ (đã hiện sẵn ở mode này) để khách nhìn
+// thấy và TỰ kéo ghim chỉnh lại nếu sai — cùng cơ chế commit-ngay-khi-kéo mà onMapPointPicked() đã
+// có sẵn cho mode 'gps' (không cần bấm "Xác nhận" thêm lần nữa, vì gõ địa chỉ tay đã là 1 lần xác nhận).
+// ==============================================================================================
+let manualGeocodeTimer = null;
+// Cùng ngưỡng với backend (ProfileController::GEOCODE_MIN_CONFIDENCE) — dưới mức này vẫn ghim (để
+// khách còn thấy mà tự sửa) nhưng cảnh báo rõ là chưa chắc đúng, thay vì âm thầm coi như đã đúng.
+const MANUAL_GEOCODE_MIN_CONFIDENCE = 0.3;
+
+// Ghép chuỗi địa chỉ để forward-geocode — CÙNG QUY TẮC với backend (resolveLocation() trong
+// ProfileController): bỏ "Phường <số>" (Geoapify hiểu sai dạng số), luôn thêm "Việt Nam" ở cuối
+// (thiếu quốc gia dễ ra 0 kết quả hoặc lạc sang nước khác).
+function buildManualAddressQuery() {
+    const specific = (document.getElementById('addr_specific').value || '').trim();
+    const wardName = (document.getElementById('addr_ward_search').value || '').trim();
+    const provinceName = (document.getElementById('addr_province_search').value || '').trim();
+    if (!specific || !wardName || !provinceName) return null;
+
+    let query = [specific, wardName, provinceName].join(', ');
+    query = query.replace(/phường\s*\d+/giu, '');
+    query = query.replace(/,\s*,/g, ',');
+    query = query.replace(/,\s*$/, '').trim() + ', Việt Nam';
+    return query;
+}
+
+function scheduleManualForwardGeocode() {
+    if (locationMethod !== 'manual') return;
+    if (manualGeocodeTimer) clearTimeout(manualGeocodeTimer);
+    manualGeocodeTimer = setTimeout(runManualForwardGeocode, 900);
+}
+
+function runManualForwardGeocode() {
+    if (locationMethod !== 'manual') return;
+    const query = buildManualAddressQuery();
+    if (!query) return;
+
+    const key = geoapifyKey();
+    if (!key) return;
+
+    const cfg = window.checkoutConfig || {};
+    const biasLat = cfg.shopLat || 10.73809;
+    const biasLng = cfg.shopLng || 106.67812;
+
+    setLocStatus('locating', 'Đang xác định vị trí từ địa chỉ đã nhập...');
+
+    const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&lang=vi&limit=1&bias=proximity:${biasLng},${biasLat}&apiKey=${key}`;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            // Khách đã đổi sang mode khác trong lúc chờ mạng trả về -> bỏ qua kết quả trễ này.
+            if (locationMethod !== 'manual') return;
+
+            const props = data && data.features && data.features[0] && data.features[0].properties;
+            if (!props || props.lat === undefined || props.lon === undefined) {
+                setLocStatus('notfound', 'Không tìm thấy vị trí cho địa chỉ này. Vui lòng kiểm tra lại hoặc chạm/kéo ghim trên bản đồ bên dưới để chọn thủ công.');
+                return;
+            }
+
+            const lat = props.lat;
+            const lng = props.lon;
+            const confidence = (props.rank && props.rank.confidence) || 0;
+
+            initMapIfNeeded();
+            if (map) {
+                map.setView([lat, lng], 16);
+                if (marker) marker.setLatLng([lat, lng]);
+            }
+            document.getElementById('addr_lat').value = lat.toFixed(6);
+            document.getElementById('addr_lng').value = lng.toFixed(6);
+            document.getElementById('addr_formatted').value = props.formatted || '';
+
+            if (flagOutOfRange(lat, lng)) {
+                // flagOutOfRange() đã tự đặt locStatus phù hợp.
+            } else if (confidence < MANUAL_GEOCODE_MIN_CONFIDENCE) {
+                setLocStatus('locating', 'Chưa chắc chắn vị trí này đúng — vui lòng nhìn kỹ ghim trên bản đồ, kéo lại nếu chưa đúng.');
+            } else {
+                setLocStatus('ok', 'Đã xác định vị trí — kiểm tra ghim trên bản đồ, kéo chỉnh nếu chưa đúng.');
+            }
+            updateSaveButtonState();
+        })
+        .catch(() => {
+            if (locationMethod !== 'manual') return;
+            setLocStatus('notfound', 'Không thể xác định vị trí lúc này. Vui lòng chạm/kéo ghim trên bản đồ để chọn thủ công.');
+        });
 }
 
 // Khoảng cách đường chim bay (km) — CHỈ để cảnh báo mềm "ngoài phạm vi" ở modal, KHÔNG dùng tính phí
@@ -607,6 +701,9 @@ function onWardChange() {
     document.getElementById('addr_ward_code').value = sel && sel.value ? sel.value : '';
     showAreaError('ward', '');
     updateSaveButtonState();
+    // Chọn xong Phường/Xã là địa chỉ đã đủ 3 phần (khu vực + địa chỉ cụ thể) -> dò vị trí luôn, không
+    // cần đợi khách gõ thêm gì (trường hợp khách gõ "Địa chỉ cụ thể" TRƯỚC rồi mới chọn khu vực sau).
+    scheduleManualForwardGeocode();
 }
 
 // Reset 2 select về trạng thái ban đầu (chế độ Thêm mới).
@@ -938,7 +1035,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const specificEl = document.getElementById('addr_specific');
     if (specificEl) {
         // Khách tự gõ ô "Địa chỉ cụ thể" -> đánh dấu, để reverseGeocode() không tự điền đè lên nữa.
-        specificEl.addEventListener('input', function () { specificUserEdited = true; });
+        specificEl.addEventListener('input', function () {
+            specificUserEdited = true;
+            scheduleManualForwardGeocode();
+        });
     }
     const provSel = document.getElementById('addr_province_select');
     if (provSel) provSel.addEventListener('change', function () { onProvinceChange(); updateSaveButtonState(); });
