@@ -313,7 +313,7 @@
 
 {{-- Đẩy mã JS của trang chi tiết sản phẩm vào ngăn xếp stack của Layout --}}
 @push('scripts')
-<script src="{{ asset('js/frontend/products/show.js') }}"></script>
-<script src="{{ asset('js/frontend/products/reviews-filter.js') }}"></script>
+<script src="{{ asset('js/frontend/products/show.js') }}?v={{ filemtime(public_path('js/frontend/products/show.js')) }}"></script>
+<script src="{{ asset('js/frontend/products/reviews-filter.js') }}?v={{ filemtime(public_path('js/frontend/products/reviews-filter.js')) }}"></script>
 @endpush
 @endsection

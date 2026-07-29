@@ -33,5 +33,5 @@
 </div>
 
 @push('scripts')
-    <script src="{{ asset('js/frontend/layout/floating-bubbles.js') }}"></script>
+    <script src="{{ asset('js/frontend/layout/floating-bubbles.js') }}?v={{ filemtime(public_path('js/frontend/layout/floating-bubbles.js')) }}"></script>
 @endpush

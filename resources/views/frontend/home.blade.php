@@ -381,6 +381,6 @@
     @include('frontend.components.bottom-nav')
 
     @push('scripts')
-        <script src="{{ asset('js/frontend/home.js') }}"></script>
+        <script src="{{ asset('js/frontend/home.js') }}?v={{ filemtime(public_path('js/frontend/home.js')) }}"></script>
     @endpush
 @endsection

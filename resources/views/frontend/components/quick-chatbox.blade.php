@@ -201,5 +201,5 @@
 </div>
 
 @push('scripts')
-    <script src="{{ asset('js/frontend/layout/quick-chatbox.js') }}"></script>
+    <script src="{{ asset('js/frontend/layout/quick-chatbox.js') }}?v={{ filemtime(public_path('js/frontend/layout/quick-chatbox.js')) }}"></script>
 @endpush

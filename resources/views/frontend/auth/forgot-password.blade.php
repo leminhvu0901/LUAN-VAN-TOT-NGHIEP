@@ -91,7 +91,7 @@
 </div>
 
 {{-- Nạp script điều khiển ẩn hiện và chuyển đổi popup quên mật khẩu --}}
-<script src="{{ asset('js/frontend/auth/forgot-password.js') }}"></script>
+<script src="{{ asset('js/frontend/auth/forgot-password.js') }}?v={{ filemtime(public_path('js/frontend/auth/forgot-password.js')) }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         {{-- Nếu Session có cờ báo hiển thị trực tiếp popup quên mật khẩu (sau khi redirect) --}}

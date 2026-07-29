@@ -79,4 +79,4 @@
 </div>
 
 {{-- Nhúng tệp tin Script JS xử lý tương tác nhập mã OTP và đếm ngược thời gian --}}
-<script src="{{ asset('js/frontend/auth/verify-otp.js') }}"></script>
+<script src="{{ asset('js/frontend/auth/verify-otp.js') }}?v={{ filemtime(public_path('js/frontend/auth/verify-otp.js')) }}"></script>

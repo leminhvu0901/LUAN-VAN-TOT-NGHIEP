@@ -243,8 +243,8 @@
 </div>
 
 @push('scripts')
-<script src="{{ asset('js/frontend/products/review.js') }}"></script>
-<script src="{{ asset('js/frontend/products/reviews-filter.js') }}"></script>
+<script src="{{ asset('js/frontend/products/review.js') }}?v={{ filemtime(public_path('js/frontend/products/review.js')) }}"></script>
+<script src="{{ asset('js/frontend/products/reviews-filter.js') }}?v={{ filemtime(public_path('js/frontend/products/reviews-filter.js')) }}"></script>
 @endpush
 
 @include('frontend.components.bottom-nav')

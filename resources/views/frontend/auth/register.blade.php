@@ -146,4 +146,4 @@
 </div>
 
 {{-- Nạp script điều khiển ẩn hiện và chuyển đổi modal đăng ký/đăng nhập --}}
-<script src="{{ asset('js/frontend/auth/register.js') }}"></script>
+<script src="{{ asset('js/frontend/auth/register.js') }}?v={{ filemtime(public_path('js/frontend/auth/register.js')) }}"></script>

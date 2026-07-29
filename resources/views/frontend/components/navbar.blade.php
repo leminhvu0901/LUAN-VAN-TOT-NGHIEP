@@ -412,5 +412,5 @@ Mở/đóng được điều khiển bởi navbar.js
 navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
 --}}
 @push('scripts')
-    <script src="{{ asset('js/frontend/layout/navbar.js') }}"></script>
+    <script src="{{ asset('js/frontend/layout/navbar.js') }}?v={{ filemtime(public_path('js/frontend/layout/navbar.js')) }}"></script>
 @endpush

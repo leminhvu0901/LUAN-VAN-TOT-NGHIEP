@@ -27,5 +27,5 @@
     @if(request()->routeIs('profile'))
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     @endif
-    <script src="{{ asset('js/frontend/layout/tailwind-config-profile.js') }}"></script>
+    <script src="{{ asset('js/frontend/layout/tailwind-config-profile.js') }}?v={{ filemtime(public_path('js/frontend/layout/tailwind-config-profile.js')) }}"></script>
 @endif

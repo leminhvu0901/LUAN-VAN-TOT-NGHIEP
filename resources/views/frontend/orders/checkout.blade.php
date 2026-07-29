@@ -566,5 +566,5 @@
         shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
     };
 </script>
-<script src="{{ asset('js/frontend/orders/checkout.js') }}"></script>
+<script src="{{ asset('js/frontend/orders/checkout.js') }}?v={{ filemtime(public_path('js/frontend/orders/checkout.js')) }}"></script>
 @endsection

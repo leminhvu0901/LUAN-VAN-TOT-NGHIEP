@@ -94,7 +94,7 @@
         <script>window.lockedUserData = @json($lockedUserData);</script>
         
         {{-- Chạy logic giao diện --}}
-        <script src="{{ asset('js/frontend/layout/locked-account.js') }}"></script>
+        <script src="{{ asset('js/frontend/layout/locked-account.js') }}?v={{ filemtime(public_path('js/frontend/layout/locked-account.js')) }}"></script>
     @endif
 
 </body>

@@ -162,5 +162,5 @@
     @include('frontend.components.bottom-nav')
 
     {{-- Nhúng tệp tin Script JS điều khiển sắp xếp sản phẩm phía Client --}}
-    <script src="{{ asset('js/frontend/products/index.js') }}"></script>
+    <script src="{{ asset('js/frontend/products/index.js') }}?v={{ filemtime(public_path('js/frontend/products/index.js')) }}"></script>
 @endsection
