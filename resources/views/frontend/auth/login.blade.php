@@ -50,7 +50,13 @@
                 {{-- Ô nhập Mật khẩu --}}
                 <div class="l-form-group">
                     <label class="l-label">Mật khẩu</label>
-                    <input type="password" name="password" placeholder="Nhập mật khẩu" class="l-input @error('password') is-invalid @enderror" required>
+                    <div class="l-input-wrap">
+                        <input type="password" id="login-password" name="password" placeholder="Nhập mật khẩu" class="l-input has-password-toggle @error('password') is-invalid @enderror" required>
+                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js) --}}
+                        <button type="button" class="toggle-password toggle-password-visibility" data-target="login-password" aria-label="Hiện/ẩn mật khẩu">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                        </button>
+                    </div>
                     {{-- Hiển thị lỗi validate chi tiết của trường Mật khẩu (nếu có) --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
