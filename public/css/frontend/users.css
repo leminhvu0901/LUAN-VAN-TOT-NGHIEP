@@ -11120,7 +11120,10 @@ xác thực khác (login/register/forgot) */
 
 .p-sort-bar-flex {
   display: flex;
-  justify-content: space-between;
+  /* flex-end chứ không phải space-between: thanh này trước đây có 2 phần tử (cụm nút lọc nhanh bên
+     trái + dropdown sắp xếp bên phải). Sau khi bỏ cụm nút lọc, space-between với DUY NHẤT 1 phần tử
+     lại dồn dropdown về bên TRÁI, lệch hẳn so với bố cục cũ. */
+  justify-content: flex-end;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
