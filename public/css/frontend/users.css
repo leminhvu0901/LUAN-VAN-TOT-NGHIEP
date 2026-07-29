@@ -12165,7 +12165,10 @@ html {
 .floating-bubbles {
   position: fixed;
   right: 20px;
-  bottom: 84px;
+  /* Nâng cả cụm 3 bong bóng (giỏ hàng/Zalo/chatbot) lên 28px so với trước: ở vị trí cũ chúng đè lên
+     dòng giá của thẻ sản phẩm nằm sát mép dưới. Mọi giá trị bottom của .quick-chatbox (nút + panel)
+     bên dưới cũng cộng thêm đúng 28px để 3 bong bóng giữ nguyên khoảng cách với nhau. */
+  bottom: 112px;
   z-index: 9985;
   display: flex;
   flex-direction: column;
@@ -12287,12 +12290,12 @@ html {
 @media (max-width: 768px) {
   .floating-bubbles {
     right: 12px;
-    bottom: 70px;
+    bottom: 98px;
     gap: 10px;
   }
 
   .floating-bubbles--has-bottom-nav {
-    bottom: 142px;
+    bottom: 170px;
   }
 
   .floating-bubble {
@@ -12314,7 +12317,8 @@ html {
 .quick-chatbox {
   position: fixed;
   right: 20px;
-  bottom: 20px;
+  /* +28px cùng đợt nâng với .floating-bubbles ở trên (xem chú thích tại đó) */
+  bottom: 48px;
   z-index: 9990;
 }
 
@@ -12359,11 +12363,13 @@ html {
 .quick-chatbox__panel {
   position: fixed;
   right: 20px;
-  bottom: 90px;
+  /* +28px theo nút chatbot (.quick-chatbox) để panel không tụt xuống đè lên chính nút bấm của nó;
+     max-height trừ thêm đúng 28px tương ứng để panel không bị tràn khỏi màn hình. */
+  bottom: 118px;
   width: 372px;
   max-width: calc(100vw - 24px);
   height: 540px;
-  max-height: calc(100vh - 110px);
+  max-height: calc(100vh - 138px);
   background: #f8f9ff;
   border: 1px solid #bccbb4;
   border-radius: 16px;
@@ -12725,11 +12731,11 @@ html {
 @media (max-width: 768px) {
   .quick-chatbox {
     right: 12px;
-    bottom: 12px;
+    bottom: 40px;
   }
 
   .quick-chatbox--has-bottom-nav {
-    bottom: 84px;
+    bottom: 112px;
   }
 
   .quick-chatbox__toggle {
@@ -12740,15 +12746,16 @@ html {
   .quick-chatbox__panel {
     right: 12px;
     left: 12px;
-    bottom: 84px;
+    bottom: 112px;
     width: auto;
     max-width: none;
-    height: 78vh;
-    max-height: 78vh;
+    /* 78vh -> 72vh: panel bị đẩy lên cao 28px, giữ nguyên chiều cao cũ sẽ chạm/tràn mép trên màn hình */
+    height: 72vh;
+    max-height: 72vh;
   }
 
   .quick-chatbox--has-bottom-nav .quick-chatbox__panel {
-    bottom: 148px;
+    bottom: 176px;
   }
 
   .quick-chatbox__option,
