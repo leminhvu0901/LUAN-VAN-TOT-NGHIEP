@@ -169,14 +169,18 @@
                                 </div>
                                 
                                 <!-- Segmented control: 3 phương thức xác định vị trí độc lập (gps/map/manual) -->
+                                {{-- Icon xếp TRÊN chữ trên mobile (flex-col), xếp NGANG lại như cũ từ sm trở lên
+                                (sm:flex-row): 3 nút cùng hàng ngang với chữ 2-3 từ quá chật trên màn hình hẹp,
+                                khiến chữ xuống dòng lệch lạc rất xấu. Xếp dọc trên mobile giải quyết dứt điểm mà
+                                không phải rút ngắn nhãn hay đổi cỡ chữ. --}}
                                 <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4" role="tablist" aria-label="Phương thức xác định vị trí">
-                                    <button type="button" data-method="gps" onclick="setLocationMethod('gps')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                    <button type="button" data-method="gps" onclick="setLocationMethod('gps')" class="loc-method-btn min-h-[44px] rounded-lg text-[11px] sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 text-center leading-tight transition-all">
                                         <span class="material-symbols-outlined text-[18px]">my_location</span> Vị trí hiện tại
                                     </button>
-                                    <button type="button" data-method="map" onclick="setLocationMethod('map')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                    <button type="button" data-method="map" onclick="setLocationMethod('map')" class="loc-method-btn min-h-[44px] rounded-lg text-[11px] sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 text-center leading-tight transition-all">
                                         <span class="material-symbols-outlined text-[18px]">map</span> Chọn trên bản đồ
                                     </button>
-                                    <button type="button" data-method="manual" onclick="setLocationMethod('manual')" class="loc-method-btn min-h-[44px] rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all">
+                                    <button type="button" data-method="manual" onclick="setLocationMethod('manual')" class="loc-method-btn min-h-[44px] rounded-lg text-[11px] sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 text-center leading-tight transition-all">
                                         <span class="material-symbols-outlined text-[18px]">edit_location_alt</span> Nhập địa chỉ
                                     </button>
                                 </div>
