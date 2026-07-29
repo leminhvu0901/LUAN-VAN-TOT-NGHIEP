@@ -59,6 +59,15 @@
     {{-- ?v=filemtime: ép trình duyệt tải lại JS mới mỗi khi file này thay đổi, tránh bị cache bản cũ trên web đã deploy --}}
     <script src="{{ asset('js/frontend/layout/main.js') }}?v={{ filemtime(public_path('js/frontend/layout/main.js')) }}"></script>
 
+    {{-- Hiện toast cho flash message session('success') dùng CHUNG cho mọi trang - tránh phải tự thêm
+    @if(session('success')) + gọi FrontendAlert riêng lẻ ở từng trang (dễ quên, dễ sót như đã xảy ra
+    với trang đăng ký/xác nhận OTP). Chỉ áp dụng cho 'success': 'error' KHÔNG đưa vào đây vì
+    orders/index.blade.php và checkout.blade.php đã tự hiển thị session('error') riêng bằng banner
+    tĩnh, thêm toast nữa sẽ bị hiện trùng 2 lần. --}}
+    @if(session('success'))
+        <script>window.FrontendAlert.success(@json(session('success')), 3500);</script>
+    @endif
+
     <!-- Các script plugin tĩnh được đặt trong thư mục public/js/vendors -->
     <script src="{{ asset('js/vendors/countdown.js') }}"></script>
     <script src="{{ asset('js/vendors/tns-slider.js') }}"></script>

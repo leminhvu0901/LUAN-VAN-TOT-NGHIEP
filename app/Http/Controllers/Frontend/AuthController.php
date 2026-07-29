@@ -207,6 +207,13 @@ class AuthController
                 // Tự động đăng nhập luôn cho User vừa được tạo
                 Auth::login($user);
 
+                // Thông báo thành công cho trang chủ sau khi chuyển hướng - register.js điều hướng
+                // bằng window.location.href (tải trang mới hoàn toàn) nên phải dùng flash session,
+                // không thể show toast ngay tại đây (modal sẽ đóng/mất trước khi kịp thấy).
+                if ($registerData) {
+                    $request->session()->flash('success', 'Đăng ký tài khoản thành công! Chào mừng bạn đến với Happy Tea.');
+                }
+
                 // Dọn dẹp sạch các khóa session tạm thời để tránh rác bộ nhớ
                 $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
                 $request->session()->put('login_method', 'email');

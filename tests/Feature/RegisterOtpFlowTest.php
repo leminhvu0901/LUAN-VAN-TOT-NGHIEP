@@ -34,6 +34,10 @@ class RegisterOtpFlowTest extends TestCase
         $verify->assertOk()->assertJson(['success' => true]);
         $this->assertDatabaseHas('users', ['email' => 'newcustomer@gmail.com']);
         $this->assertAuthenticated();
+
+        // register.js navigates via window.location.href (a fresh page load), so the confirmation
+        // must survive as a flash message for the home page to pick up and show as a toast.
+        $this->assertNotEmpty(session('success'));
     }
 
     public function test_otp_is_rejected_after_expiry_window(): void

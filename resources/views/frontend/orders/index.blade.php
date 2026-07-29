@@ -344,15 +344,6 @@
 {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
 @push('scripts')
     <script src="{{ asset('js/frontend/orders/orders.js') }}"></script>
-    @if(session('success'))
-        <script>
-            // Banner ở đầu trang dễ bị JS tự cuộn xuống chi tiết đơn (data-open-order-id) che mất
-            // ngay sau khi tải trang -> thêm toast nổi luôn hiển thị bất kể vị trí cuộn, không tự tắt quá nhanh.
-            document.addEventListener('DOMContentLoaded', function () {
-                if (window.FrontendAlert) {
-                    window.FrontendAlert.success(@json(session('success')), 3500);
-                }
-            });
-        </script>
-    @endif
+    {{-- Toast cho session('success') giờ hiện dùng chung ở layouts/app.blade.php cho MỌI trang, không
+    cần lặp lại riêng ở đây nữa (tránh hiện trùng 2 lần). --}}
 @endpush
