@@ -96,7 +96,10 @@ class AuthController
             \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản');
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // \Throwable (không chỉ \Exception): cấu hình SMTP thiếu (vd MAIL_HOST rỗng) có thể khiến
+            // Symfony Mailer văng TypeError (kế thừa \Error, không phải \Exception) - phải bắt cả 2 loại
+            // thì mới không lọt ra ngoài thành lỗi 500 "Server Error" chung chung không rõ nguyên nhân.
             \Illuminate\Support\Facades\Log::error('Register OTP mail send failed: ' . $e->getMessage());
             $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
             if ($request->expectsJson()) {
@@ -233,7 +236,9 @@ class AuthController
             \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // \Throwable: xem giải thích ở postRegister() - SMTP thiếu cấu hình có thể văng TypeError
+            // (\Error) thay vì \Exception, cần bắt cả 2 mới không lọt ra thành lỗi 500 chung chung.
             \Illuminate\Support\Facades\Log::error('Resend OTP mail send failed: ' . $e->getMessage());
             return $this->otpError($request, 'Không thể gửi lại email xác minh lúc này, vui lòng thử lại sau.');
         }
@@ -457,7 +462,9 @@ class AuthController
             \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
                 $message->to($email)->subject('Khôi phục mật khẩu');
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // \Throwable: xem giải thích ở postRegister() - SMTP thiếu cấu hình có thể văng TypeError
+            // (\Error) thay vì \Exception, cần bắt cả 2 mới không lọt ra thành lỗi 500 chung chung.
             \Illuminate\Support\Facades\Log::error('Forgot password OTP mail send failed: ' . $e->getMessage());
             $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
             if ($request->expectsJson()) {
