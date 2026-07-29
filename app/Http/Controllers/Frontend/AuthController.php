@@ -160,11 +160,17 @@ class AuthController
 
         // 2. So khớp mã OTP người dùng nhập với mã đã gửi
         if ($enteredOtp == $sessionOtp) {
-            // Kiểm tra mã OTP đã quá hạn hay chưa. Lưu ý: Carbon 3 trả về giá trị CÓ DẤU, nên
-            // now()->diffInSeconds($sessionTime) với $sessionTime ở quá khứ luôn ra số ÂM -> điều kiện
-            // "> 60" cũ không bao giờ đúng, tức mã OTP thực tế không bao giờ hết hạn. Đảo lại đúng
-            // chiều ($sessionTime->diffInSeconds(now())) để so sánh ra số dương như mong đợi.
-            if (!$sessionTime || $sessionTime->diffInSeconds(now()) > self::OTP_LIFETIME_SECONDS) {
+            // Kiểm tra mã OTP đã quá hạn hay chưa.
+            // (1) Carbon 3 trả về giá trị CÓ DẤU, nên now()->diffInSeconds($sessionTime) với
+            //     $sessionTime ở quá khứ luôn ra số ÂM -> điều kiện "> 60" cũ không bao giờ đúng,
+            //     tức mã OTP thực tế không bao giờ hết hạn. Phải so sánh đúng chiều.
+            // (2) BẮT BUỘC parse lại: config/session.php dùng serialization 'json', mà JSON không
+            //     giữ được object PHP -> khi đọc ra từ session (driver database/file trên thật),
+            //     $sessionTime là CHUỖI chứ không phải Carbon. Gọi thẳng ->diffInSeconds() trên
+            //     chuỗi sẽ văng fatal error 500. Bộ test không lộ ra lỗi này vì phpunit.xml đặt
+            //     SESSION_DRIVER=array (giữ nguyên object trong bộ nhớ, không qua JSON).
+            $otpIssuedAt = $sessionTime ? \Illuminate\Support\Carbon::parse($sessionTime) : null;
+            if (!$otpIssuedAt || $otpIssuedAt->diffInSeconds(now()) > self::OTP_LIFETIME_SECONDS) {
                 return $this->otpError($request, 'Mã OTP đã hết hạn. Vui lòng nhấn Gửi lại để nhận mã mới.');
             }
 

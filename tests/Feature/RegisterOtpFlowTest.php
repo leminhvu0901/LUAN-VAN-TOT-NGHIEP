@@ -58,6 +58,58 @@ class RegisterOtpFlowTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * config/session.php uses 'serialization' => 'json', which cannot preserve PHP objects — so on
+     * any real driver (database/file) verify_otp_time comes back out of the session as a STRING,
+     * not a Carbon instance. The suite normally hides this because phpunit.xml pins
+     * SESSION_DRIVER=array, which keeps the object in memory untouched. Pin the string form
+     * explicitly so the expiry check can never again assume it got an object.
+     */
+    public function test_verify_otp_works_when_issue_time_is_a_string_as_json_sessions_store_it(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/register', [
+            'full_name' => 'Nguyen Van D',
+            'email' => 'stringtime@gmail.com',
+            'password' => 'Leminhvu9124@',
+            'password_confirmation' => 'Leminhvu9124@',
+        ])->assertOk();
+
+        $otp = session('verify_otp');
+        $digits = str_split((string) $otp);
+
+        session(['verify_otp_time' => now()->toDateTimeString()]);
+
+        $this->postJson('/verify-otp', ['otp' => $digits])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('users', ['email' => 'stringtime@gmail.com']);
+        $this->assertAuthenticated();
+    }
+
+    public function test_expired_otp_is_rejected_when_issue_time_is_a_string(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/register', [
+            'full_name' => 'Nguyen Van E',
+            'email' => 'stringexpired@gmail.com',
+            'password' => 'Leminhvu9124@',
+            'password_confirmation' => 'Leminhvu9124@',
+        ])->assertOk();
+
+        $otp = session('verify_otp');
+        $digits = str_split((string) $otp);
+
+        session(['verify_otp_time' => now()->subMinutes(30)->toDateTimeString()]);
+
+        $this->postJson('/verify-otp', ['otp' => $digits])->assertStatus(422);
+        $this->assertDatabaseMissing('users', ['email' => 'stringexpired@gmail.com']);
+        $this->assertGuest();
+    }
+
     public function test_verify_otp_handles_email_taken_between_register_and_verify_gracefully(): void
     {
         Mail::fake();
