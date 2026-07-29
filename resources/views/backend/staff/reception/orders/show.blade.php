@@ -293,7 +293,11 @@
                                 @elseif($order->status === 'confirmed')
                                     <form action="{{ route('staff.reception.orders.assign_delivery', $order->id) }}" method="POST" class="flex flex-col gap-2 mt-1">
                                         @csrf
-                                        <select name="delivery_staff_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                                        {{-- custom-select-init (public/js/backend/admin/layout.js) thay khung sổ xuống
+                                             mặc định của trình duyệt bằng dropdown tự vẽ theo đúng giao diện chung -
+                                             native <select> để trần trên mobile hiện thanh xanh dương mặc định của hệ
+                                             điều hành, lệch hẳn với phần còn lại của trang. --}}
+                                        <select name="delivery_staff_id" required class="custom-select-init w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                                             <option value="">-- Chọn nhân viên giao hàng --</option>
                                             @foreach($availableDeliveryStaff as $staff)
                                                 <option value="{{ $staff->id }}">{{ $staff->name }}{{ $staff->phone ? ' — ' . $staff->phone : '' }}</option>
