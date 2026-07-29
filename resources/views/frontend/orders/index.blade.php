@@ -107,7 +107,7 @@
                             {{-- Giao diện di động: Chỉ hiển thị hình ảnh của sản phẩm đầu tiên --}}
                             <div class="md:hidden w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-outline-variant">
                                 @if($order->items->first())
-                                    <img src="{{ asset('images/' . $order->items->first()->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" alt="Product" class="w-full h-full object-cover">
+                                    <img src="{{ $order->items->first()->product_image_url }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" alt="Product" class="w-full h-full object-cover">
                                 @else
                                     <img src="{{ asset('images/products/placeholder.jpg') }}" alt="Product" class="w-full h-full object-cover">
                                 @endif
@@ -116,7 +116,7 @@
                             {{-- Giao diện máy tính: Xếp lớp ảnh đại diện các sản phẩm nếu có nhiều món --}}
                             <div class="hidden md:flex -space-x-3 overflow-hidden">
                                 @foreach($order->items->take(2) as $item)
-                                    <img alt="{{ $item->product_name }}" class="inline-block h-16 w-16 rounded-lg ring-4 ring-white object-cover bg-surface-container-low border border-outline-variant" src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                                    <img alt="{{ $item->product_name }}" class="inline-block h-16 w-16 rounded-lg ring-4 ring-white object-cover bg-surface-container-low border border-outline-variant" src="{{ $item->product_image_url }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                                 @endforeach
                                 @if($order->items->count() > 2)
                                     <div class="h-16 w-16 rounded-lg ring-4 ring-white bg-surface-container-highest flex items-center justify-center text-xs font-bold text-primary border border-outline-variant">+{{ $order->items->count() - 2 }}</div>
@@ -240,7 +240,7 @@
                                         <div class="flex items-center gap-3">
                                             {{-- Hình ảnh sản phẩm --}}
                                             <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-outline-variant">
-                                                <img src="{{ asset('images/' . $item->product_image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
+                                                <img src="{{ $item->product_image_url }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
                                             </div>
                                             {{-- Tên và các tùy chọn (Size, đường, đá, topping) --}}
                                             <div>

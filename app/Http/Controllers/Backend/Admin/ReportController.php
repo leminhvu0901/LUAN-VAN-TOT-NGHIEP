@@ -258,13 +258,9 @@ class ReportController
         $totalProductRevenue = $topProducts->sum('total_revenue') ?: 1;
         foreach ($topProducts as $p) {
             $p->percentage = round(($p->total_revenue / $totalProductRevenue) * 100, 1);
-            if (empty($p->image)) {
-                $p->image_url = asset('images/products/placeholder.jpg');
-            } elseif (str_starts_with($p->image, 'storage/')) {
-                $p->image_url = asset($p->image);
-            } else {
-                $p->image_url = asset('images/' . $p->image);
-            }
+            // upload_url() trỏ đúng cả ảnh cũ (public/images/) lẫn ảnh tải lên mới (public/uploads/ -
+            // gắn Railway Volume); ghép cứng 'images/' sẽ tạo ra /images/uploads/... và ảnh bị vỡ.
+            $p->image_url = upload_url($p->image) ?: asset('images/products/placeholder.jpg');
         }
 
         // 8. Báo cáo doanh thu theo danh mục

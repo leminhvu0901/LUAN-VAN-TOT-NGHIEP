@@ -154,7 +154,7 @@
                             <div class="p-5 flex gap-4">
                                 <div class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
                                     @if($item->product_image)
-                                        <img src="{{ asset('images/' . $item->product_image) }}" alt="{{ $item->product_name }}"
+                                        <img src="{{ $item->product_image_url }}" alt="{{ $item->product_name }}"
                                             class="w-full h-full object-cover"
                                             data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
                                     @else

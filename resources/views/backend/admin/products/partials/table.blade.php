@@ -26,7 +26,7 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden {{ !$product->is_active ? 'grayscale opacity-60' : '' }}">
                                         @php
-                                            $imageUrl = $product->image ? asset('images/' . $product->image) : '';
+                                            $imageUrl = $product->image ? $product->image_url : '';
                                         @endphp
 
                                         @if($imageUrl)
@@ -100,7 +100,7 @@
 
                 @forelse($products as $product)
                     @php
-                        $imageUrl = $product->image ? asset('images/' . $product->image) : '';
+                        $imageUrl = $product->image ? $product->image_url : '';
                     @endphp
                     <div class="mobile-card relative group w-full {{ !$product->is_active ? 'opacity-75' : '' }}">
                         <div class="absolute top-4 right-4 z-10">

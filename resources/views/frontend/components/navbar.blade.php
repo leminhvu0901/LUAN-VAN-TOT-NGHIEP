@@ -298,7 +298,7 @@ Mở/đóng được điều khiển bởi navbar.js
         @forelse($favoriteProducts as $item)
             <div class="wl-item">
                 {{-- Ảnh sản phẩm, nếu lỗi thì thay bằng ảnh placeholder --}}
-                <img src="{{ asset('images/' . $item->image) }}" alt="{{ $item->name }}" class="wl-item__img"
+                <img src="{{ upload_url($item->image) }}" alt="{{ $item->name }}" class="wl-item__img"
                     onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 <div class="wl-item__info">
                     <p class="wl-item__name">{{ $item->name }}</p>

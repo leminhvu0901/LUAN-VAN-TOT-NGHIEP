@@ -38,4 +38,14 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
+
+    /**
+     * URL ảnh sản phẩm đã chụp lại (snapshot) lúc đặt hàng. Dùng upload_url() để trỏ đúng cả ảnh cũ
+     * (public/images/) lẫn ảnh tải lên mới (public/uploads/ - gắn Railway Volume); ghép cứng tiền tố
+     * 'images/' sẽ tạo ra /images/uploads/... và ảnh bị vỡ. Trả về ảnh mặc định khi chưa có ảnh.
+     */
+    public function getProductImageUrlAttribute()
+    {
+        return upload_url($this->product_image) ?: asset('images/products/placeholder.jpg');
+    }
 }

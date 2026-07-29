@@ -399,7 +399,7 @@
                             @foreach($items as $item)
                                 <div class="flex gap-4 py-4 first:pt-0 last:pb-0">
                                     <div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container flex-shrink-0 border border-outline-variant/60">
-                                        <img src="{{ str_starts_with($item->image, 'storage/') ? asset($item->image) : asset('images/' . $item->image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
+                                        <img src="{{ upload_url($item->image) }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'" class="w-full h-full object-cover">
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <h4 class="font-bold text-on-surface text-sm truncate" title="{{ $item->name }}">{{ $item->name }}</h4>
