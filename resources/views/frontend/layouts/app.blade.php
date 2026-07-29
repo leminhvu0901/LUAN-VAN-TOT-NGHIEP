@@ -36,6 +36,7 @@
     @include('frontend.auth.register')
     @include('frontend.auth.forgot-password')
     @include('frontend.auth.verify-otp')
+    @include('frontend.auth.reset-password')
 
     {{-- Bong bóng nổi Giỏ hàng + Zalo — xếp ngay phía trên bong bóng chatbox bên dưới --}}
     @include('frontend.components.floating-bubbles')

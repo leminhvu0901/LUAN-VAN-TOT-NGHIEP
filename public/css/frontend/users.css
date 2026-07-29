@@ -11016,6 +11016,24 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   text-align: center;
 }
 
+/* Modal Đặt lại mật khẩu - trước đây là 1 trang riêng, nay dùng chung cơ chế hiện/ẩn với các modal
+xác thực khác (login/register/forgot) */
+#reset-password-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+#reset-password-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 .l-register-terms-text {
   font-size: 0.85rem;
   color: #6b7280;

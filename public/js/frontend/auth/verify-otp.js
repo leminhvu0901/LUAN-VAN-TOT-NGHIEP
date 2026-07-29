@@ -111,8 +111,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.startOtpTimer = startTimer;
 
     // Submit form nhập mã OTP qua fetch — trước đây nhập sai/hết hạn thì tải lại cả trang, phải gõ
-    // lại từ đầu. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng thì điều hướng thật tới đích
-    // server trả về (trang đặt lại mật khẩu, hoặc trang chủ sau khi tự đăng nhập).
+    // lại từ đầu. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng thì tùy trường hợp: luồng quên
+    // mật khẩu chuyển thẳng sang modal Đặt lại mật khẩu bằng JS (không tải lại trang, xem
+    // reset-password.js), luồng đăng ký điều hướng thật tới trang chủ (đã tự đăng nhập).
     const otpForm = otpModal ? otpModal.querySelector('form') : null;
     if (otpForm) {
         otpForm.addEventListener('submit', function (event) {
@@ -140,6 +141,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             alert(message);
                         }
+                        if (btn) btn.disabled = false;
+                        return;
+                    }
+                    if (result.data && result.data.show_reset_password) {
+                        otpModal.style.display = 'none';
+                        if (typeof window.openResetPasswordModal === 'function') window.openResetPasswordModal();
                         if (btn) btn.disabled = false;
                         return;
                     }

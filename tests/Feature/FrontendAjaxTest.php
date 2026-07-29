@@ -664,4 +664,51 @@ class FrontendAjaxTest extends TestCase
         $response->assertOk();
         $response->assertJson(['success' => true, 'otp_required' => true, 'email' => 'forgot@test.com']);
     }
+
+    /**
+     * Reset-password used to be its own full page (GET /reset-password) that verify-otp.js navigated
+     * to via redirect_url. It's now a modal included on every page, opened directly by JS
+     * (window.openResetPasswordModal()) - so postVerifyOtp() must signal that with show_reset_password
+     * instead of a redirect_url, and postResetPassword() must accept JSON like the other auth forms.
+     */
+    public function test_forgot_password_full_flow_signals_reset_modal_instead_of_redirect(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        User::create([
+            'name' => 'Test', 'email' => 'fullflow@test.com', 'password' => bcrypt('OldPassword1@'),
+            'role' => 'customer', 'is_active' => 1,
+        ]);
+
+        $this->postJson('/forgot-password', ['recovery_contact' => 'fullflow@test.com'])->assertOk();
+
+        $otp = session('verify_otp');
+        $digits = str_split((string) $otp);
+
+        $verify = $this->postJson('/verify-otp', ['otp' => $digits]);
+        $verify->assertOk()->assertJson(['success' => true, 'show_reset_password' => true]);
+        $this->assertArrayNotHasKey('redirect_url', $verify->json());
+        $this->assertGuest();
+
+        $reset = $this->postJson('/reset-password', [
+            'password' => 'NewPassword1@',
+            'password_confirmation' => 'NewPassword1@',
+        ]);
+
+        $reset->assertOk()->assertJson(['success' => true, 'redirect_url' => url('/')]);
+        $this->assertAuthenticated();
+        $this->assertSame('fullflow@test.com', auth()->user()->email);
+        $this->assertNotEmpty(session('success'));
+    }
+
+    public function test_reset_password_rejects_direct_access_without_otp_verification(): void
+    {
+        $response = $this->postJson('/reset-password', [
+            'password' => 'NewPassword1@',
+            'password_confirmation' => 'NewPassword1@',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('errors.reset_error.0', 'Phiên xác thực đã hết hạn, vui lòng thực hiện lại thao tác quên mật khẩu.');
+        $this->assertGuest();
+    }
 }

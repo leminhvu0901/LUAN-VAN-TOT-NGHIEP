@@ -176,13 +176,15 @@ class AuthController
 
             // TH1: Nếu đây là quá trình xác thực phục vụ việc Quên mật khẩu
             if ($request->session()->get('is_forgot_password')) {
-                // Đánh dấu người dùng được phép chuyển sang trang đặt lại mật khẩu mới
+                // Đánh dấu người dùng được phép đặt lại mật khẩu mới
                 $request->session()->put('can_reset_password', true);
-                $destination = route('reset.password.get');
+                // Modal Đặt lại mật khẩu (trước đây là trang riêng /reset-password) giờ mở ngay tại chỗ
+                // bằng JS (xem verify-otp.js gọi window.openResetPasswordModal()), không điều hướng
+                // sang trang khác - giống hệt cách modal OTP tự mở sau khi đăng ký/quên mật khẩu.
                 if ($request->expectsJson()) {
-                    return response()->json(['success' => true, 'redirect_url' => $destination]);
+                    return response()->json(['success' => true, 'show_reset_password' => true]);
                 }
-                return redirect($destination);
+                return back()->with('show_reset_password', true);
             }
 
             // TH2: Nếu đây là quá trình xác thực Đăng ký tài khoản mới
@@ -521,11 +523,12 @@ class AuthController
      */
     public function getResetPassword(Request $request)
     {
-        // Nếu session không chứa cờ xác thực OTP thành công -> chặn lại không cho đổi mật khẩu
+        // Modal Đặt lại mật khẩu giờ tự mở qua JS ngay sau khi xác nhận OTP (xem verify-otp.js), không
+        // còn view riêng nữa. Route này chỉ còn là lối dự phòng nếu ai đó điều hướng thẳng tới đây.
         if (!$request->session()->has('can_reset_password')) {
             return redirect('/');
         }
-        return view('frontend.auth.reset-password');
+        return redirect('/')->with('show_reset_password', true);
     }
 
     /**
@@ -535,7 +538,11 @@ class AuthController
     {
         // Chặn nếu người dùng cố tình truy cập trực tiếp bằng POST mà chưa qua bước xác thực OTP
         if (!$request->session()->has('can_reset_password')) {
-            return redirect('/');
+            $message = 'Phiên xác thực đã hết hạn, vui lòng thực hiện lại thao tác quên mật khẩu.';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => ['reset_error' => [$message]]], 422);
+            }
+            return redirect('/')->withErrors(['reset_error' => $message]);
         }
 
         // 1. Kiểm tra tính hợp lệ và độ mạnh của mật khẩu mới nhập vào
@@ -572,9 +579,18 @@ class AuthController
             // Tự động đăng nhập luôn cho người dùng sau khi đổi mật khẩu thành công
             Auth::login($user);
             $request->session()->put('login_method', 'email');
+            $request->session()->flash('success', 'Đặt lại mật khẩu thành công! Bạn đã được đăng nhập.');
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'redirect_url' => url('/')]);
+            }
             return redirect('/');
         }
 
-        return redirect('/');
+        $message = 'Không tìm thấy tài khoản, vui lòng thực hiện lại thao tác quên mật khẩu.';
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'errors' => ['reset_error' => [$message]]], 422);
+        }
+        return redirect('/')->withErrors(['reset_error' => $message]);
     }
 }
