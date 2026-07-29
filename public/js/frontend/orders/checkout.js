@@ -690,7 +690,7 @@ function updateSaveButtonState() {
 function getCurrentLocation() {
     if (!navigator.geolocation) {
         setLocStatus('notfound', 'Trình duyệt không hỗ trợ định vị GPS');
-        alert('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn trên bản đồ hoặc nhập địa chỉ.');
+        if (window.FrontendAlert) window.FrontendAlert.error('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn trên bản đồ hoặc nhập địa chỉ.'); else alert('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn trên bản đồ hoặc nhập địa chỉ.');
         return;
     }
 
@@ -731,7 +731,7 @@ function getCurrentLocation() {
                 msg = 'Không lấy được vị trí (thiết bị/mạng không hỗ trợ). Vui lòng chọn trên bản đồ / nhập địa chỉ.';
             }
             setLocStatus('notfound', 'Không lấy được vị trí GPS');
-            alert(msg);
+            if (window.FrontendAlert) window.FrontendAlert.error(msg); else alert(msg);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -848,7 +848,7 @@ function saveAddress() {
     const wardCode = document.getElementById('addr_ward_code').value;
 
     if (!fullname || !phone || !specific) {
-        alert('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể.');
+        if (window.FrontendAlert) window.FrontendAlert.error('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể.'); else alert('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể.');
         return;
     }
     if (!provinceCode || !wardCode) {
@@ -858,7 +858,7 @@ function saveAddress() {
     }
     // gps/map bắt buộc phải có tọa độ; manual để backend tự geocode khi lưu.
     if (method !== 'manual' && !lat) {
-        alert('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".');
+        if (window.FrontendAlert) window.FrontendAlert.error('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".'); else alert('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".');
         return;
     }
 
@@ -902,13 +902,13 @@ function saveAddress() {
             } else {
                 // Backend không geocode được (mode manual mơ hồ) -> báo trạng thái + gợi ý, không đóng modal.
                 setLocStatus('notfound', 'Không tìm thấy địa chỉ');
-                alert(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.');
+                if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.'); else alert(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.');
                 updateSaveButtonState();
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Có lỗi xảy ra, vui lòng thử lại.');
+            if (window.FrontendAlert) window.FrontendAlert.error('Có lỗi xảy ra, vui lòng thử lại.'); else alert('Có lỗi xảy ra, vui lòng thử lại.');
             updateSaveButtonState();
         });
 }
@@ -1035,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (result.status >= 400) {
                         const errors = result.data && result.data.errors ? result.data.errors : {};
                         const firstError = Object.values(errors)[0];
-                        alert((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.');
+                        if (window.FrontendAlert) window.FrontendAlert.error((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.'); else alert((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.');
                         if (btn) btn.disabled = false;
                         return;
                     }
@@ -1048,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (btn) btn.disabled = false;
                 })
                 .catch(function () {
-                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
                     if (btn) btn.disabled = false;
                 });
         });
@@ -1464,7 +1464,7 @@ async function deleteAddressCheckout(id) {
         if (json.success) {
             window.location.reload();
         } else {
-            alert(json.message || "Có lỗi xảy ra");
+            if (window.FrontendAlert) window.FrontendAlert.error(json.message || "Có lỗi xảy ra"); else alert(json.message || "Có lỗi xảy ra");
         }
-    } catch (e) { alert("Có lỗi xảy ra"); }
+    } catch (e) { if (window.FrontendAlert) window.FrontendAlert.error("Có lỗi xảy ra"); else alert("Có lỗi xảy ra"); }
 }

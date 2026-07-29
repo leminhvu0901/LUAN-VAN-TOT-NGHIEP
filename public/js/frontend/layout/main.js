@@ -427,7 +427,7 @@ window.addToCart = function (productId, quantity = 1, options = {}) {
 
             // Thông báo khi backend từ chối (ví dụ: sản phẩm hết hàng)
             if (data.success === false) {
-                alert(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
+                if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.'); else alert(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
                 return;
             }
 
@@ -466,11 +466,11 @@ window.addAllToCart = function () {
         .then(data => {
             if (!data) return;
             if (data.success === false) {
-                alert(data.message || 'Có lỗi xảy ra');
+                if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Có lỗi xảy ra'); else alert(data.message || 'Có lỗi xảy ra');
                 return;
             }
             updateCartUI(data);
-            alert('Đã thêm tất cả sản phẩm yêu thích vào giỏ hàng!');
+            if (window.FrontendAlert) window.FrontendAlert.success('Đã thêm tất cả sản phẩm yêu thích vào giỏ hàng!'); else alert('Đã thêm tất cả sản phẩm yêu thích vào giỏ hàng!');
             triggerCartAddedAnimation(); // Hiệu ứng nẩy số + rung bong bóng giỏ hàng
         })
         .catch(err => console.error(err));
@@ -840,34 +840,34 @@ window.cartProceedToCheckout = function () {
         },
         body: JSON.stringify({ selected_item_ids: ids })
     })
-    .then(function (res) {
-        if (res.status === 401) {
-            // Chưa đăng nhập: mở modal login
-            var loginModal = document.getElementById('login-modal');
-            if (loginModal) {
-                loginModal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            } else {
-                window.location.href = '/login';
+        .then(function (res) {
+            if (res.status === 401) {
+                // Chưa đăng nhập: mở modal login
+                var loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    window.location.href = '/login';
+                }
+                return null;
             }
-            return null;
-        }
-        return res.json();
-    })
-    .then(function (data) {
-        if (!data) return;
-        if (data.success) {
-            // Thành công → điều hướng sang trang thanh toán
+            return res.json();
+        })
+        .then(function (data) {
+            if (!data) return;
+            if (data.success) {
+                // Thành công → điều hướng sang trang thanh toán
+                window.location.href = '/checkout';
+            } else {
+                console.error('set-selected error', data);
+                // Fallback: vẫn cho qua
+                window.location.href = '/checkout';
+            }
+        })
+        .catch(function (err) {
+            console.error('cartProceedToCheckout error:', err);
+            // Fallback khi lỗi mạng
             window.location.href = '/checkout';
-        } else {
-            console.error('set-selected error', data);
-            // Fallback: vẫn cho qua
-            window.location.href = '/checkout';
-        }
-    })
-    .catch(function (err) {
-        console.error('cartProceedToCheckout error:', err);
-        // Fallback khi lỗi mạng
-        window.location.href = '/checkout';
-    });
+        });
 };

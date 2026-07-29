@@ -59,7 +59,7 @@ window.confirmCancelOrder = function(orderId, orderCode) {
 
     const cleanReason = reason.trim();
     if (cleanReason.length < 5) {
-        alert('Lý do hủy đơn hàng phải có ít nhất 5 ký tự!');
+        if (window.FrontendAlert) window.FrontendAlert.error('Lý do hủy đơn hàng phải có ít nhất 5 ký tự!'); else alert('Lý do hủy đơn hàng phải có ít nhất 5 ký tự!');
         return;
     }
 
@@ -67,7 +67,7 @@ window.confirmCancelOrder = function(orderId, orderCode) {
     const input = document.getElementById('cancel-reason-input');
 
     if (!form || !input) {
-        alert('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.');
+        if (window.FrontendAlert) window.FrontendAlert.error('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.'); else alert('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.');
         return;
     }
 
@@ -90,7 +90,7 @@ window.confirmCancelOrder = function(orderId, orderCode) {
             if (result.status >= 400) {
                 const errors = (result.data && result.data.errors) || {};
                 const firstError = Object.values(errors)[0];
-                alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể hủy đơn hàng.');
+                if (window.FrontendAlert) window.FrontendAlert.error((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể hủy đơn hàng.'); else alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể hủy đơn hàng.');
                 return;
             }
 
@@ -102,9 +102,9 @@ window.confirmCancelOrder = function(orderId, orderCode) {
             const cancelBtn = document.getElementById('cancel-btn-' + orderId);
             if (cancelBtn) cancelBtn.remove();
 
-            alert((result.data && result.data.message) || 'Đơn hàng đã được hủy thành công!');
+            if (window.FrontendAlert) window.FrontendAlert.success((result.data && result.data.message) || 'Đơn hàng đã được hủy thành công!'); else alert((result.data && result.data.message) || 'Đơn hàng đã được hủy thành công!');
         })
         .catch(function () {
-            alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+            if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
         });
 };

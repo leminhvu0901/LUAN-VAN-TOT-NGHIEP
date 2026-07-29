@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             errorEl.textContent = message;
                             errorEl.classList.remove('hidden');
                         } else {
-                            alert(message);
+                            if (window.FrontendAlert) window.FrontendAlert.error(message); else alert(message);
                         }
                         if (btn) btn.disabled = false;
                         return;
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (btn) btn.disabled = false;
                 })
                 .catch(function () {
-                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
                     if (btn) btn.disabled = false;
                 });
         });

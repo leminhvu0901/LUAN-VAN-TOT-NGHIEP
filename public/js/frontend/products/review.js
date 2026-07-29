@@ -43,10 +43,10 @@
         const previewContainer = document.getElementById('image-preview-container');
         previewContainer.innerHTML = '';
         if (input.files && input.files.length > 0) {
-            if (input.files.length > 5) { alert('Chỉ được phép chọn tối đa 5 hình ảnh.'); input.value = ''; return; }
+            if (input.files.length > 5) { if (window.FrontendAlert) window.FrontendAlert.error('Chỉ được phép chọn tối đa 5 hình ảnh.'); else alert('Chỉ được phép chọn tối đa 5 hình ảnh.'); input.value = ''; return; }
             let hasLargeFile = false;
             Array.from(input.files).forEach(file => { if (file.size > 2 * 1024 * 1024) hasLargeFile = true; });
-            if (hasLargeFile) { alert('Dung lượng mỗi hình ảnh không được vượt quá 2MB.'); input.value = ''; return; }
+            if (hasLargeFile) { if (window.FrontendAlert) window.FrontendAlert.error('Dung lượng mỗi hình ảnh không được vượt quá 2MB.'); else alert('Dung lượng mỗi hình ảnh không được vượt quá 2MB.'); input.value = ''; return; }
             Array.from(input.files).forEach((file) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -88,7 +88,7 @@
                     if (result.status >= 400) {
                         const errors = (result.data && result.data.errors) || {};
                         const firstError = Object.values(errors)[0];
-                        alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi đánh giá, vui lòng kiểm tra lại.');
+                        if (window.FrontendAlert) window.FrontendAlert.error((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi đánh giá, vui lòng kiểm tra lại.'); else alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi đánh giá, vui lòng kiểm tra lại.');
                         if (btn) btn.disabled = false;
                         return;
                     }
@@ -99,7 +99,7 @@
                     if (btn) btn.disabled = false;
                 })
                 .catch(function () {
-                    alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                    if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
                     if (btn) btn.disabled = false;
                 });
         });

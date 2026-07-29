@@ -54,7 +54,7 @@ function previewAvatar(event) {
             if (window.FrontendAlert) {
                 window.FrontendAlert.error('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
             } else {
-                alert('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+                if (window.FrontendAlert) window.FrontendAlert.error('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.'); else alert('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
             }
             input.value = '';
             return;
@@ -384,7 +384,7 @@ function submitProfileForm(form, onSuccess, onError) {
                 if (window.FrontendAlert) {
                     window.FrontendAlert.error(message);
                 } else {
-                    alert(message);
+                    if (window.FrontendAlert) window.FrontendAlert.error(message); else alert(message);
                 }
                 return;
             }
@@ -394,7 +394,7 @@ function submitProfileForm(form, onSuccess, onError) {
             if (window.FrontendAlert) {
                 window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.');
             } else {
-                alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+                if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
             }
         })
         .finally(function () {
@@ -558,7 +558,7 @@ document.querySelectorAll('form[action$="/profile"]').forEach(function (form) {
             if (window.FrontendAlert) {
                 window.FrontendAlert.success(successMessage);
             } else {
-                alert(successMessage);
+                if (window.FrontendAlert) window.FrontendAlert.error(successMessage); else alert(successMessage);
             }
         }, showProfileFieldErrors);
     });
@@ -574,7 +574,7 @@ document.querySelectorAll('form[action$="/change-password"]').forEach(function (
             if (window.FrontendAlert) {
                 window.FrontendAlert.success(successMessage);
             } else {
-                alert(successMessage);
+                if (window.FrontendAlert) window.FrontendAlert.error(successMessage); else alert(successMessage);
             }
         });
     });
