@@ -181,9 +181,21 @@ window.openOtpModal = function (email) {
     if (typeof window.startOtpTimer === 'function') window.startOtpTimer();
 };
 
-// Hàm gửi yêu cầu AJAX để xóa session OTP khi người dùng tắt modal hoặc hủy xác thực
+// Hàm gửi yêu cầu để xóa session OTP khi người dùng tắt modal hoặc hủy xác thực
 function cancelOTPSession() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    // Ưu tiên sendBeacon: nếu người dùng bấm Đóng rồi F5/điều hướng đi ngay lập tức, một fetch() thường
+    // có thể bị trình duyệt hủy giữa chừng trước khi server kịp xóa session, khiến modal OTP hiện lại
+    // sau khi tải lại trang (session('verify_email') vẫn còn). sendBeacon được trình duyệt đảm bảo gửi
+    // đi dù trang đang unload. Không set được header tùy ý nên gửi _token qua body để CSRF vẫn hợp lệ
+    // (Laravel đọc _token từ input trước khi xét tới header X-CSRF-TOKEN).
+    if (navigator.sendBeacon) {
+        const body = new URLSearchParams({ _token: csrfToken || '' });
+        navigator.sendBeacon('/cancel-otp', body);
+        return;
+    }
+
     fetch('/cancel-otp', {
         method: 'POST',
         headers: {
