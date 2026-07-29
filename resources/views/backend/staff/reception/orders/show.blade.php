@@ -26,10 +26,11 @@
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
             <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
-                {{-- Chỉ cho in khi đơn ĐÃ THANH TOÁN THẬT — tránh in hóa đơn/phiếu pha chế cho đơn
-                     còn "chờ thu tiền" (đặc biệt đơn tiền mặt từ Giai đoạn 3, không còn tự động paid
-                     ngay lúc tạo đơn nữa). --}}
-                @if($order->payment_status === 'paid')
+                {{-- Cho in ngay khi đơn đã XÁC NHẬN (không chờ payment_status=paid nữa) - pha chế cần
+                     phiếu để bắt đầu làm đồ ngay, không thể chờ thu tiền xong mới in, áp dụng như nhau
+                     cho cả đơn tại quầy và đơn đặt online/giao hàng. Chỉ chặn khi đơn còn "chờ xác nhận"
+                     (chưa chắc sẽ nhận) hoặc đã hủy. --}}
+                @if(in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
                     <button id="print-prep-ticket-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
                         <span class="material-symbols-outlined text-[18px]">receipt_long</span>
@@ -41,7 +42,7 @@
                         Hóa đơn khách
                     </button>
                 @else
-                    <span class="text-xs text-gray-400 italic">Xác nhận thanh toán để in hóa đơn/phiếu pha chế</span>
+                    <span class="text-xs text-gray-400 italic">Xác nhận đơn để in hóa đơn/phiếu pha chế</span>
                 @endif
             </div>
         </div>

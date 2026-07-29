@@ -703,10 +703,11 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Nút in hóa đơn/phiếu pha chế chỉ xuất hiện khi đơn đã thanh toán thật (payment_status=paid) —
-     * đơn tiền mặt còn "chờ thu tiền" thì không được in.
+     * Nút in hóa đơn/phiếu pha chế xuất hiện ngay khi đơn được XÁC NHẬN (status), không còn chờ
+     * payment_status=paid nữa - pha chế cần phiếu để bắt đầu làm đồ, không thể chờ thu tiền xong mới
+     * in. Đơn tiền mặt tại quầy còn "chờ xác nhận" (pending) thì vẫn chưa cho in.
      */
-    public function test_print_buttons_only_appear_after_payment_confirmed(): void
+    public function test_print_buttons_appear_once_order_is_confirmed_regardless_of_payment(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
 
@@ -721,9 +722,31 @@ class StaffRoleWorkflowTest extends TestCase
         $response = $this->get("/staff/reception/orders/{$order->id}");
         $response->assertDontSee('print-prep-ticket-btn', false);
         $response->assertDontSee('print-invoice-btn', false);
-        $response->assertSee('Xác nhận thanh toán để in');
+        $response->assertSee('Xác nhận đơn để in');
 
-        $this->post("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => $order->final_amount]);
+        // Xác nhận đơn (status -> confirmed) - CHƯA xác nhận thu tiền mặt (payment_status vẫn unpaid).
+        $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
+        $this->assertSame('unpaid', $order->fresh()->payment_status);
+
+        $response = $this->get("/staff/reception/orders/{$order->id}");
+        $response->assertSee('print-prep-ticket-btn', false);
+        $response->assertSee('print-invoice-btn', false);
+    }
+
+    /**
+     * Cùng hành vi cho đơn ĐẶT ONLINE (giao hàng, COD) - không riêng gì đơn tại quầy.
+     */
+    public function test_print_buttons_appear_for_confirmed_online_delivery_order_too(): void
+    {
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $order = $this->makeOrder(['delivery_type' => 'delivery', 'payment_method' => 'cod', 'status' => 'pending']);
+
+        $response = $this->actingAs($receptionist)->get("/staff/reception/orders/{$order->id}");
+        $response->assertDontSee('print-prep-ticket-btn', false);
+        $response->assertDontSee('print-invoice-btn', false);
+
+        $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
+        $this->assertSame('unpaid', $order->fresh()->payment_status);
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
         $response->assertSee('print-prep-ticket-btn', false);
