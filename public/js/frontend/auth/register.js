@@ -55,7 +55,13 @@ document.addEventListener('DOMContentLoaded', function () {
     registerForm.addEventListener('submit', function (event) {
         event.preventDefault();
         const btn = registerForm.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = true;
+        // Lưu lại chữ gốc để khôi phục sau — nếu không có bước này, khi SMTP chậm/lỗi thì nút bấm chỉ
+        // disable im lìm không có phản hồi gì, người dùng tưởng web bị đứng.
+        const originalBtnText = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Đang xử lý...';
+        }
 
         fetch(registerForm.action, {
             method: 'POST',
@@ -77,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else {
                         alert(message);
                     }
-                    if (btn) btn.disabled = false;
+                    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
                     return;
                 }
 
@@ -85,15 +91,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     const registerModal = document.getElementById('register-modal');
                     if (registerModal) registerModal.style.display = 'none';
                     if (typeof window.openOtpModal === 'function') window.openOtpModal(result.data.email);
-                    if (btn) btn.disabled = false;
+                    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
                     return;
                 }
 
-                if (btn) btn.disabled = false;
+                if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
             })
             .catch(function () {
                 alert('Không thể kết nối máy chủ, vui lòng thử lại.');
-                if (btn) btn.disabled = false;
+                if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
             });
     });
 });
