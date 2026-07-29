@@ -5657,7 +5657,10 @@ dù chiều cao input có lệch vài pixel giữa các hệ CSS khác nhau tron
   top: calc(100% + 4px);
   right: 0;
   z-index: 30;
-  min-width: 100%;
+  /* Rộng tối thiểu 240px CHỨ KHÔNG phải 100% bề rộng nút: nút co giãn theo tiêu chí đang chọn, nếu
+     bảng chọn bám theo nút thì khi chọn mục ngắn (vd "Mới nhất") bảng bị bóp lại, các dòng dài hơn
+     phải xuống dòng lắt nhắt trông vỡ layout. */
+  min-width: max(100%, 240px);
   /* Không bao giờ rộng quá khung nhìn — đây chính là điều không làm được với popup <select> gốc. */
   max-width: min(280px, calc(100vw - 2rem));
   margin: 0;

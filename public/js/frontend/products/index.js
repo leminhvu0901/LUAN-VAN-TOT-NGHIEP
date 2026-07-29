@@ -65,11 +65,9 @@ const sortSelect = document.getElementById('sort-select');
 // chuyển trang qua AJAX bên dưới -> node cũ bị gỡ khỏi DOM, phải gán lại biến này trỏ sang node MỚI,
 // nếu không applySortAndFilter() sẽ thao tác nhầm lên node đã "chết", không còn hiển thị trên trang.
 let grid = document.getElementById('product-grid');
-const pillButtons = document.querySelectorAll('#product-pill-filters .home-popular__filter-btn');
-let currentPillFilter = 'all'; // Bộ lọc tag mặc định (Tất cả)
 
 /**
- * Thực thi sắp xếp (Sort) và lọc (Filter) sản phẩm ngay tại client
+ * Thực thi sắp xếp (Sort) sản phẩm ngay tại client
  */
 function applySortAndFilter() {
     if (!sortSelect || !grid) return;
@@ -87,20 +85,9 @@ function applySortAndFilter() {
         return 0;
     });
 
-    let visibleCount = 0; // Đếm số sản phẩm đang hiển thị
-    
-    // Duyệt qua từng thẻ sản phẩm để sắp xếp lại vị trí DOM và ẩn/hiện theo bộ lọc tag nhanh
+    // Duyệt qua từng thẻ sản phẩm để sắp xếp lại vị trí trong DOM
     cards.forEach(card => {
         grid.appendChild(card); // Đắp lại phần tử vào lưới theo thứ tự mới đã sort
-        
-        let isMatch = true;
-        // Kiểm tra điều kiện lọc tag nhanh
-        if (currentPillFilter === 'hot') isMatch = card.dataset.isHot === '1';
-        else if (currentPillFilter === 'new') isMatch = card.dataset.isNew === '1';
-        
-        // Ẩn hoặc hiển thị sản phẩm
-        card.style.display = isMatch ? '' : 'none';
-        if (isMatch) visibleCount++;
 
         // Điều chỉnh nhãn (badge) hiển thị tối ưu theo kiểu sắp xếp
         const hotBadge = card.querySelector('.home-prod-card__badge--hot');
@@ -114,42 +101,17 @@ function applySortAndFilter() {
         }
     });
 
-    // Quản lý hiển thị thông báo rỗng khi không có sản phẩm nào khớp bộ lọc
-    let emptyMsg = document.getElementById('empty-product-msg');
-    if (visibleCount === 0) {
-        if (!emptyMsg) {
-            emptyMsg = document.createElement('div');
-            emptyMsg.id = 'empty-product-msg';
-            // Sử dụng class CSS chuẩn đã định nghĩa trong users.css thay vì viết code style inline
-            emptyMsg.className = 'p-product-grid-empty';
-            emptyMsg.textContent = 'Không tìm thấy sản phẩm nào phù hợp với bộ lọc.';
-            grid.appendChild(emptyMsg);
-        } else {
-            emptyMsg.style.display = '';
-            grid.appendChild(emptyMsg);
-        }
-    } else if (emptyMsg) {
-        emptyMsg.style.display = 'none';
-    }
+    // Không cần tự dựng thông báo "không tìm thấy sản phẩm" ở đây nữa: sau khi bỏ bộ lọc tag nhanh,
+    // JS không còn ẩn thẻ nào, nên lưới rỗng chỉ xảy ra khi bộ lọc phía server không ra kết quả —
+    // trường hợp đó grid.blade.php đã tự render sẵn khối .p-product-grid-empty rồi (khối JS cũ còn
+    // gây hiện thông báo LẶP 2 lần trong đúng tình huống này).
 }
 
 // Đăng ký sự kiện lắng nghe tương tác nếu tồn tại các phần tử điều khiển trên trang
 if (sortSelect && grid) {
     // Lắng nghe sự thay đổi của hộp chọn Sắp xếp
     sortSelect.addEventListener('change', applySortAndFilter);
-    
-    // Gắn sự kiện click cho các nút lọc tag nhanh (Tất cả, Bán chạy, Mới nhất)
-    pillButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Gỡ bỏ class active cũ và kích hoạt màu nổi bật cho nút vừa nhấp
-            pillButtons.forEach(b => b.classList.remove('home-popular__filter-btn--active'));
-            this.classList.add('home-popular__filter-btn--active');
-            currentPillFilter = this.dataset.filter;
-            // Thực thi lọc lại danh sách sản phẩm
-            applySortAndFilter();
-        });
-    });
-    
+
     // Tự động chạy sắp xếp mặc định lần đầu khi tải trang
     applySortAndFilter();
 }
@@ -166,6 +128,9 @@ if (sortSelect && grid) {
     const menu = document.getElementById('sort-dropdown-menu');
     const label = document.getElementById('sort-dropdown-label');
     if (!dropdown || !toggle || !menu || !label || !sortSelect) return;
+
+    // Tiền tố cố định của nhãn nút — chữ trong danh sách chọn không kèm sẵn (xem chú thích ở index.blade.php)
+    const SORT_LABEL_PREFIX = 'Sắp xếp theo: ';
 
     function openMenu() {
         menu.hidden = false;
@@ -194,7 +159,9 @@ if (sortSelect && grid) {
         });
         option.classList.add('is-selected');
         option.setAttribute('aria-selected', 'true');
-        label.textContent = option.textContent.trim();
+        // Luôn ghép tiền tố để nút giữ nguyên ngữ cảnh ("Sắp xếp theo: Mới nhất" thay vì chỉ "Mới nhất")
+        // và không bị co lại quá ngắn mỗi lần đổi tiêu chí.
+        label.textContent = SORT_LABEL_PREFIX + option.textContent.trim();
 
         sortSelect.value = option.dataset.value;
         sortSelect.dispatchEvent(new Event('change'));

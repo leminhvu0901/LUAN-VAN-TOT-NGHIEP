@@ -115,12 +115,6 @@
                 <div class="p-product-area">
                     <!-- Sort & Filter Pills (Thanh sắp xếp và nút lọc thẻ nhanh) -->
                     <div class="p-sort-bar p-sort-bar-flex">
-                        {{-- Các nút tab lọc nhanh: Tất cả, Bán chạy, Mới nhất --}}
-                        <div class="home-popular__filter" id="product-pill-filters">
-                            <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất cả</button>
-                            <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
-                            <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
-                        </div>
                         {{-- Dropdown lựa chọn tiêu chí sắp xếp.
                         Dùng dropdown tự dựng thay vì <select> hiển thị trực tiếp: popup của <select>
                         do trình duyệt/hệ điều hành tự vẽ, KHÔNG thể giới hạn chiều rộng bằng CSS nên
@@ -136,8 +130,12 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
                                 </svg>
                             </button>
+                            {{-- Chữ trong danh sách KHÔNG kèm tiền tố "Sắp xếp theo:" — phần tiền tố do
+                            index.js tự ghép vào nhãn của nút. Trước đây chỉ mục đầu tiên có tiền tố nên
+                            khi chọn mục khác, nút thu lại chỉ còn vài chữ (vd "Mới nhất"), vừa mất ngữ
+                            cảnh vừa làm bảng chọn (rộng theo nút) bị bóp lại khiến chữ xuống dòng lung tung. --}}
                             <ul class="p-sort-dropdown__menu" id="sort-dropdown-menu" role="listbox" hidden>
-                                <li class="p-sort-dropdown__option is-selected" role="option" aria-selected="true" data-value="popular">Sắp xếp theo: Phổ biến nhất</li>
+                                <li class="p-sort-dropdown__option is-selected" role="option" aria-selected="true" data-value="popular">Phổ biến nhất</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-asc">Giá: Thấp đến cao</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-desc">Giá: Cao đến thấp</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="newest">Mới nhất</li>
@@ -145,7 +143,7 @@
                             </ul>
 
                             <select class="p-sort-select-hidden" id="sort-select" aria-hidden="true" tabindex="-1">
-                                <option value="popular">Sắp xếp theo: Phổ biến nhất</option>
+                                <option value="popular">Phổ biến nhất</option>
                                 <option value="price-asc">Giá: Thấp đến cao</option>
                                 <option value="price-desc">Giá: Cao đến thấp</option>
                                 <option value="newest">Mới nhất</option>
