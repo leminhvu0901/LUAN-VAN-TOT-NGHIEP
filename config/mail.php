@@ -46,9 +46,11 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             // Mặc định null = dùng timeout hệ thống (có thể tới 60s+), khiến form đăng ký/quên mật khẩu
-            // "đứng im" rất lâu nếu MAIL_HOST cấu hình sai/không phản hồi trên production. Giới hạn ngắn
-            // lại để nếu SMTP có vấn đề thì báo lỗi nhanh thay vì treo UI.
-            'timeout' => (int) env('MAIL_TIMEOUT', 10),
+            // "đứng im" rất lâu nếu MAIL_HOST cấu hình sai/không phản hồi trên production. Giới hạn lại
+            // để nếu SMTP có vấn đề thì báo lỗi nhanh thay vì treo UI - nhưng 10s (thử trước đó) lại QUÁ
+            // NGẮN: kết nối TLS thật từ Railway sang Gmail nhiều lúc mất hơn 10s để bắt tay xong, khiến
+            // các lượt gửi email lẽ ra thành công lại bị cắt ngang giữa chừng thành lỗi. Nới lên 25s.
+            'timeout' => (int) env('MAIL_TIMEOUT', 25),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
