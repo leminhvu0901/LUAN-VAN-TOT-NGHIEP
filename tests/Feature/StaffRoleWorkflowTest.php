@@ -704,8 +704,11 @@ class StaffRoleWorkflowTest extends TestCase
 
     /**
      * Nút in hóa đơn/phiếu pha chế xuất hiện ngay khi đơn được XÁC NHẬN (status), không còn chờ
-     * payment_status=paid nữa - pha chế cần phiếu để bắt đầu làm đồ, không thể chờ thu tiền xong mới
-     * in. Đơn tiền mặt tại quầy còn "chờ xác nhận" (pending) thì vẫn chưa cho in.
+     * payment_status=paid ở BƯỚC IN nữa - pha chế cần phiếu để bắt đầu làm đồ. Nhưng với đơn tiền mặt
+     * tại quầy, việc xác nhận ĐƠN tự nó lại đòi hỏi phải thu tiền trước (OrderWorkflowService::transition())
+     * - khách đứng ngay quầy nên phải đưa tiền xong mới xác nhận, tránh xác nhận rồi mới phát hiện
+     * chưa thu tiền. Vậy nên với đơn cash, in vẫn "gián tiếp" chờ thu tiền, chỉ là chờ ở bước xác nhận
+     * đơn thay vì ở bước in.
      */
     public function test_print_buttons_appear_once_order_is_confirmed_regardless_of_payment(): void
     {
@@ -724,9 +727,16 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('print-invoice-btn', false);
         $response->assertSee('Xác nhận đơn để in');
 
-        // Xác nhận đơn (status -> confirmed) - CHƯA xác nhận thu tiền mặt (payment_status vẫn unpaid).
-        $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
-        $this->assertSame('unpaid', $order->fresh()->payment_status);
+        // Đơn tiền mặt CHƯA thu tiền -> không được phép xác nhận đơn (chặn ở transition()).
+        $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed'])
+            ->assertSessionHasErrors('status');
+        $this->assertSame('pending', $order->fresh()->status);
+
+        // Thu tiền mặt xong -> giờ mới xác nhận đơn được, và in xuất hiện ngay (không cần thêm bước nào khác).
+        $this->post("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => $order->final_amount]);
+        $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('confirmed', $order->fresh()->status);
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
         $response->assertSee('print-prep-ticket-btn', false);

@@ -79,6 +79,9 @@
                 $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_method === 'momo'
                     && $order->payment_status === 'paid';
+                // Đơn tiền mặt tại quầy: phải thu tiền (khối "Thanh toán" ngay bên dưới) TRƯỚC khi được
+                // xác nhận - khớp rule server-side ở OrderWorkflowService::transition().
+                $cashNotYetCollected = $order->payment_method === 'cash' && $order->payment_status !== 'paid';
             @endphp
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -91,7 +94,12 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    @if($order->status === 'pending')
+                    @if($order->status === 'pending' && $cashNotYetCollected)
+                        <p class="text-xs text-amber-600 font-medium flex items-center gap-1.5 max-w-xs">
+                            <span class="material-symbols-outlined text-[16px] shrink-0">info</span>
+                            Cần xác nhận đã thu tiền mặt (khối "Thanh toán" bên dưới) trước khi xác nhận đơn.
+                        </p>
+                    @elseif($order->status === 'pending')
                         <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
                             @csrf
                             @method('PATCH')
@@ -137,6 +145,91 @@
                     @endif
                 </div>
             </div>
+        </div>
+
+        {{-- PHẦN 1.7: TÌNH TRẠNG THANH TOÁN — đưa lên ngay dưới khối trạng thái/xác nhận đơn (thay vì
+             nằm cuối cột phải) vì lễ tân phải xử lý thu tiền TRƯỚC khi xác nhận đơn (đơn tiền mặt),
+             không thể để mục này khuất bên dưới toàn bộ chi tiết món/khách hàng/giao hàng. --}}
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+            <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-gray-400">payments</span>
+                Thanh toán
+            </h3>
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-bold text-gray-900 uppercase">
+                        {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                    </div>
+                    @if($order->payment_method === 'momo')
+                        @if(($order->payment_status ?? '') === 'paid')
+                            <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
+                                <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
+                            </div>
+                        @elseif(($order->payment_status ?? '') === 'refunded')
+                            <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
+                                <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
+                            </div>
+                            @if($order->refunded_at)
+                                <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
+                            @endif
+                        @else
+                            <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
+                                <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
+                            </div>
+                        @endif
+                    @elseif($order->payment_method === 'cash')
+                        @if($order->payment_status === 'paid')
+                            <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
+                                <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thu tiền mặt
+                            </div>
+                            @if($order->amount_tendered !== null)
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Khách đưa: {{ number_format($order->amount_tendered, 0, ',', '.') }}đ
+                                    · Thối lại: {{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ
+                                </p>
+                            @endif
+                        @else
+                            <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
+                                <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thu tiền
+                            </div>
+                        @endif
+                    @else
+                        <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
+                    @endif
+                </div>
+                <span class="material-symbols-outlined text-4xl text-gray-200">
+                    {{ ($order->payment_method ?? '') === 'momo' ? 'account_balance_wallet' : 'money' }}
+                </span>
+            </div>
+
+            @if($order->payment_method === 'momo' && !in_array($order->payment_status, ['paid', 'refunded'], true))
+                <form action="{{ route('staff.reception.orders.pay_momo', $order->id) }}" method="POST" class="mt-4">
+                    @csrf
+                    <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
+                        Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)
+                    </button>
+                </form>
+            @endif
+
+            @if($order->payment_method === 'cash' && $order->payment_status !== 'paid')
+                <form action="{{ route('staff.reception.orders.confirm_cash', $order->id) }}" method="POST" class="mt-4 space-y-2 pt-4 border-t border-gray-100">
+                    @csrf
+                    <label class="block text-sm font-medium text-gray-700">Tiền khách đưa</label>
+                    <input type="text" id="cash-amount-tendered-display"
+                         value="{{ old('amount_tendered', (int) $order->final_amount) }}"
+                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
+                    <input type="hidden" name="amount_tendered" id="cash-amount-tendered" value="{{ old('amount_tendered', (int) $order->final_amount) }}">
+                    @error('amount_tendered') <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500">Tiền thừa</span>
+                        <span id="cash-change-preview" class="font-bold text-gray-900">0đ</span>
+                    </div>
+                    <input type="hidden" id="cash-final-amount" value="{{ (int) $order->final_amount }}">
+                    <button type="submit" class="w-full min-h-[44px] bg-emerald-600 text-white font-bold rounded-xl">
+                        Xác nhận đã thu tiền
+                    </button>
+                </form>
+            @endif
         </div>
 
         {{-- PHẦN 2: LƯỚI GIAO DIỆN CHÍNH --}}
@@ -243,7 +336,7 @@
                 </div>
             </div>
 
-            {{-- CỘT PHẢI (Chiếm 1/3 không gian): Khách hàng, Giao hàng, Thanh toán --}}
+            {{-- CỘT PHẢI (Chiếm 1/3 không gian): Khách hàng, Giao hàng --}}
             <div class="flex flex-col gap-6">
 
                 {{-- Khối 3: Thông tin Khách hàng --}}
@@ -329,88 +422,6 @@
                     </div>
                 </div>
 
-                {{-- Khối 5: Tình trạng Thanh toán --}}
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">payments</span>
-                        Thanh toán
-                    </h3>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="font-bold text-gray-900 uppercase">
-                                {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'cash' => 'Tiền mặt', default => 'COD' } }}
-                            </div>
-                            @if($order->payment_method === 'momo')
-                                @if(($order->payment_status ?? '') === 'paid')
-                                    <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
-                                    </div>
-                                @elseif(($order->payment_status ?? '') === 'refunded')
-                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
-                                    </div>
-                                    @if($order->refunded_at)
-                                        <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
-                                    @endif
-                                @else
-                                    <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
-                                    </div>
-                                @endif
-                            @elseif($order->payment_method === 'cash')
-                                @if($order->payment_status === 'paid')
-                                    <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thu tiền mặt
-                                    </div>
-                                    @if($order->amount_tendered !== null)
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            Khách đưa: {{ number_format($order->amount_tendered, 0, ',', '.') }}đ
-                                            · Thối lại: {{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ
-                                        </p>
-                                    @endif
-                                @else
-                                    <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thu tiền
-                                    </div>
-                                @endif
-                            @else
-                                <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
-                            @endif
-                        </div>
-                        <span class="material-symbols-outlined text-4xl text-gray-200">
-                            {{ ($order->payment_method ?? '') === 'momo' ? 'account_balance_wallet' : 'money' }}
-                        </span>
-                    </div>
-
-                    @if($order->payment_method === 'momo' && !in_array($order->payment_status, ['paid', 'refunded'], true))
-                        <form action="{{ route('staff.reception.orders.pay_momo', $order->id) }}" method="POST" class="mt-4">
-                            @csrf
-                            <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
-                                Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)
-                            </button>
-                        </form>
-                    @endif
-
-                    @if($order->payment_method === 'cash' && $order->payment_status !== 'paid')
-                        <form action="{{ route('staff.reception.orders.confirm_cash', $order->id) }}" method="POST" class="mt-4 space-y-2 pt-4 border-t border-gray-100">
-                            @csrf
-                            <label class="block text-sm font-medium text-gray-700">Tiền khách đưa</label>
-                            <input type="text" id="cash-amount-tendered-display" 
-                                 value="{{ old('amount_tendered', (int) $order->final_amount) }}"
-                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
-                            <input type="hidden" name="amount_tendered" id="cash-amount-tendered" value="{{ old('amount_tendered', (int) $order->final_amount) }}">
-                            @error('amount_tendered') <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-gray-500">Tiền thừa</span>
-                                <span id="cash-change-preview" class="font-bold text-gray-900">0đ</span>
-                            </div>
-                            <input type="hidden" id="cash-final-amount" value="{{ (int) $order->final_amount }}">
-                            <button type="submit" class="w-full min-h-[44px] bg-emerald-600 text-white font-bold rounded-xl">
-                                Xác nhận đã thu tiền
-                            </button>
-                        </form>
-                    @endif
-                </div>
             </div>
         </div>
     </div>

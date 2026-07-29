@@ -43,6 +43,14 @@ class OrderWorkflowService
                 throw ValidationException::withMessages(['status' => "Không thể chuyển từ {$locked->status} sang {$newStatus}."]);
             }
 
+            // Đơn tiền mặt tại quầy: khách đứng ngay đó, tiền phải được thu TRƯỚC khi lễ tân xác nhận
+            // đơn (chuyển cho pha chế) - tránh việc xác nhận đơn xong rồi mới phát hiện chưa thu tiền.
+            // Không áp dụng cho momo (thanh toán qua cổng riêng) hay cod (thu khi giao, không phải lúc
+            // xác nhận).
+            if ($newStatus === 'confirmed' && $locked->payment_method === 'cash' && $locked->payment_status !== 'paid') {
+                throw ValidationException::withMessages(['status' => 'Cần xác nhận đã thu tiền mặt trước khi xác nhận đơn hàng.']);
+            }
+
             if ($newStatus === 'cancelled') {
                 if (mb_strlen(trim((string) $cancelReason)) < 5) {
                     throw ValidationException::withMessages(['cancel_reason' => 'Vui lòng nhập lý do hủy ít nhất 5 ký tự.']);
