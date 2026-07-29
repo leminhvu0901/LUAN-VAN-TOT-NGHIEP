@@ -128,7 +128,9 @@
 
                                 <div class="mb-4">
                                     <label class="block text-xs font-semibold text-gray-700 mb-2">Cảm nhận của bạn:</label>
-                                    <textarea name="comment" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé...">{{ $existingReview->comment }}</textarea>
+                                    <textarea name="comment" id="comment-edit" rows="3" maxlength="150" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé...">{{ $existingReview->comment }}</textarea>
+                                    {{-- Đếm ký tự trực tiếp khi gõ (xem review.js) --}}
+                                    <p class="text-[11px] text-gray-400 mt-1 text-right" id="comment-edit-counter">0/150</p>
                                     @error('comment')
                                         <p class="text-error text-xs mt-1">{{ $message }}</p>
                                     @enderror
@@ -181,7 +183,9 @@
 
                         <div class="mb-4">
                             <label class="block text-xs font-semibold text-gray-700 mb-2">Cảm nhận của bạn:</label>
-                            <textarea name="comment" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé..."></textarea>
+                            <textarea name="comment" id="comment-new" rows="3" maxlength="150" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé..."></textarea>
+                            {{-- Đếm ký tự trực tiếp khi gõ (xem review.js) --}}
+                            <p class="text-[11px] text-gray-400 mt-1 text-right" id="comment-new-counter">0/150</p>
                             @error('comment')
                                 <p class="text-error text-xs mt-1">{{ $message }}</p>
                             @enderror

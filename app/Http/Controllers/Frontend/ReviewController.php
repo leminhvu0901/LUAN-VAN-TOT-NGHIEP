@@ -109,7 +109,7 @@ class ReviewController
         // 1. Validations
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
+            'comment' => 'nullable|string|max:150',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ], [
@@ -117,7 +117,7 @@ class ReviewController
             'rating.integer' => 'Số sao đánh giá không hợp lệ.',
             'rating.min' => 'Số sao tối thiểu là 1.',
             'rating.max' => 'Số sao tối đa là 5.',
-            'comment.max' => 'Cảm nhận của bạn quá dài (tối đa 1000 ký tự).',
+            'comment.max' => 'Cảm nhận của bạn quá dài (tối đa 150 ký tự).',
             'images.max' => 'Bạn chỉ được tải lên tối đa 5 hình ảnh.',
             'images.*.image' => 'File tải lên phải là hình ảnh.',
             'images.*.mimes' => 'Hình ảnh chỉ hỗ trợ định dạng: jpeg, png, jpg, gif.',
@@ -256,7 +256,7 @@ class ReviewController
 
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
+            'comment' => 'nullable|string|max:150',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ], [
@@ -264,7 +264,7 @@ class ReviewController
             'rating.integer' => 'Số sao đánh giá không hợp lệ.',
             'rating.min' => 'Số sao tối thiểu là 1.',
             'rating.max' => 'Số sao tối đa là 5.',
-            'comment.max' => 'Cảm nhận của bạn quá dài (tối đa 1000 ký tự).',
+            'comment.max' => 'Cảm nhận của bạn quá dài (tối đa 150 ký tự).',
             'images.max' => 'Bạn chỉ được tải lên tối đa 5 hình ảnh.',
             'images.*.image' => 'File tải lên phải là hình ảnh.',
             'images.*.mimes' => 'Hình ảnh chỉ hỗ trợ định dạng: jpeg, png, jpg, gif.',

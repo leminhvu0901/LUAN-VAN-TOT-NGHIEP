@@ -104,3 +104,17 @@
                 });
         });
     }
+
+    // Đếm ký tự trực tiếp cho ô "Cảm nhận của bạn" (giới hạn maxlength=150 trong HTML) — dùng chung
+    // cho cả 2 form (tạo mới #comment-new và sửa #comment-edit).
+    [['comment-new', 'comment-new-counter'], ['comment-edit', 'comment-edit-counter']].forEach(function (pair) {
+        var textarea = document.getElementById(pair[0]);
+        var counter = document.getElementById(pair[1]);
+        if (!textarea || !counter) return;
+
+        function updateCounter() {
+            counter.textContent = textarea.value.length + '/150';
+        }
+        updateCounter(); // Form sửa có sẵn nội dung cũ ngay khi tải trang, cần đếm luôn từ đầu
+        textarea.addEventListener('input', updateCounter);
+    });
