@@ -181,8 +181,18 @@ class AuthController
 
             // TH2: Nếu đây là quá trình xác thực Đăng ký tài khoản mới
             if ($registerData) {
-                // Tạo mới bản ghi User thực sự vào trong Database
-                $user = User::create($registerData);
+                // Có thể xảy ra race condition hiếm: 2 tab/2 lần bấm đăng ký cùng email trước khi tài
+                // khoản thực sự được tạo (postRegister() chỉ kiểm tra trùng email tại thời điểm ĐÓ, chưa
+                // tạo User ngay) -> tới bước xác nhận OTP mới thực sự INSERT thì có thể đụng unique
+                // constraint. Bọc try/catch để báo lỗi rõ ràng thay vì văng 500 "Server Error" không rõ
+                // nguyên nhân.
+                try {
+                    $user = User::create($registerData);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Verify OTP - create user failed: ' . $e->getMessage());
+                    $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
+                    return $this->otpError($request, 'Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.');
+                }
             } else {
                 $user = User::where('email', $email)->first();
             }

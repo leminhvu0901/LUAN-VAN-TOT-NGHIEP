@@ -57,4 +57,29 @@ class RegisterOtpFlowTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'expired@gmail.com']);
         $this->assertGuest();
     }
+
+    public function test_verify_otp_handles_email_taken_between_register_and_verify_gracefully(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/register', [
+            'full_name' => 'Nguyen Van C',
+            'email' => 'racecondition@gmail.com',
+            'password' => 'Leminhvu9124@',
+            'password_confirmation' => 'Leminhvu9124@',
+        ])->assertOk();
+
+        $otp = session('verify_otp');
+        $digits = str_split((string) $otp);
+
+        // Simulate the account having been created in the gap between register and verify
+        // (e.g. a duplicate submit in another tab) so User::create() below hits the unique
+        // constraint on email instead of succeeding.
+        User::factory()->create(['email' => 'racecondition@gmail.com']);
+
+        $response = $this->postJson('/verify-otp', ['otp' => $digits]);
+
+        $response->assertStatus(422);
+        $this->assertGuest();
+    }
 }
