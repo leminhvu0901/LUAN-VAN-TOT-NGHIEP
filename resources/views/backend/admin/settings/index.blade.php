@@ -474,13 +474,18 @@
                             <!-- Chế độ môi trường -->
                             <div class="flex flex-col gap-2">
                                 <label for="payment_environment" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Môi trường thanh toán</label>
+                                {{-- 2 nút LUÔN xếp cố định 2 dòng (tên chính + tên tiếng Anh nhỏ hơn) thay vì 1 dòng
+                                     text tự do: "Chính thức (Production)" dài hơn "Thử nghiệm (Sandbox)" nên ở màn
+                                     hẹp nó tự xuống dòng còn nút kia thì không, làm 2 nút cao thấp lệch nhau. --}}
                                 <div class="relative bg-gray-100 p-1 rounded-xl flex w-full max-w-md">
                                     <input type="hidden" name="payment_environment" id="payment_environment" value="{{ old('payment_environment', $settings['payment_environment'] ?? 'sandbox') }}">
-                                    <button type="button" data-val="sandbox" class="env-toggle-btn flex-1 text-center py-2.5 text-xs font-bold rounded-lg transition-all focus:outline-none">
-                                        Thử nghiệm (Sandbox)
+                                    <button type="button" data-val="sandbox" class="env-toggle-btn flex-1 flex flex-col items-center justify-center text-center py-2 px-1 rounded-lg transition-all focus:outline-none leading-tight">
+                                        <span class="text-xs font-bold whitespace-nowrap">Thử nghiệm</span>
+                                        <span class="text-[10px] font-medium opacity-70 whitespace-nowrap">(Sandbox)</span>
                                     </button>
-                                    <button type="button" data-val="production" class="env-toggle-btn flex-1 text-center py-2.5 text-xs font-bold rounded-lg transition-all focus:outline-none">
-                                        Chính thức (Production)
+                                    <button type="button" data-val="production" class="env-toggle-btn flex-1 flex flex-col items-center justify-center text-center py-2 px-1 rounded-lg transition-all focus:outline-none leading-tight">
+                                        <span class="text-xs font-bold whitespace-nowrap">Chính thức</span>
+                                        <span class="text-[10px] font-medium opacity-70 whitespace-nowrap">(Production)</span>
                                     </button>
                                 </div>
                             </div>
