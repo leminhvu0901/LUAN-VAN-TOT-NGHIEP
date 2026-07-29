@@ -256,6 +256,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
     // BÁO CÁO & THỐNG KÊ
     Route::get('reports', [App\Http\Controllers\Backend\Admin\ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [App\Http\Controllers\Backend\Admin\ReportController::class, 'export'])->name('reports.export');
 
     // CẤU HÌNH HỆ THỐNG
     Route::get('settings', [App\Http\Controllers\Backend\Admin\SettingController::class, 'index'])->name('settings.index');

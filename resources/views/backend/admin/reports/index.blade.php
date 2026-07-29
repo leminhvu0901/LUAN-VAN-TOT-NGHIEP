@@ -15,9 +15,9 @@
             <div class="flex items-center w-full sm:w-auto justify-end">
                 <button type="button" id="export-btn"
                     class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-all border border-emerald-600 shadow-sm min-h-[44px]"
-                    title="Xuất báo cáo PDF/Excel">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">download</span>
-                    <span class="whitespace-nowrap">Xuất báo cáo</span>
+                    title="Xuất báo cáo ra file Excel (.xlsx)">
+                    <span class="material-symbols-outlined text-[20px] shrink-0">table_view</span>
+                    <span class="whitespace-nowrap">Xuất Excel</span>
                 </button>
             </div>
         </div>
@@ -155,6 +155,7 @@
     <script>
         window.reportsConfig = {
             indexUrl: "{{ route('admin.reports.index') }}",
+            exportUrl: "{{ route('admin.reports.export') }}",
             revenueChartData: {!! json_encode($revenueChartData) !!},
             orderStatusChartData: {!! json_encode($orderStatusChartData) !!},
             channelRevenueChartData: {!! json_encode($channelRevenueChartData) !!},

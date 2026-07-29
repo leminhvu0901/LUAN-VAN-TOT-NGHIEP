@@ -10,10 +10,296 @@ use App\Models\Material;
 use App\Models\MaterialImport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController
 {
     public function index(Request $request)
+    {
+        $data = $this->buildReportData($request);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'html' =>  view('backend.admin.reports.partials.content', $data)->render(),
+                'revenueChartData' => $data['revenueChartData'],
+                'orderStatusChartData' => $data['orderStatusChartData'],
+                'channelRevenueChartData' => $data['channelRevenueChartData'],
+                'channelOrdersChartData' => $data['channelOrdersChartData'],
+            ]);
+        }
+
+        return  view('backend.admin.reports.index', $data);
+    }
+
+    /**
+     * Xuất báo cáo ra file Excel (.xlsx) gồm nhiều sheet, dùng đúng khoảng thời gian đang lọc trên
+     * giao diện (nhận lại qua query string preset/date_from/date_to).
+     *
+     * Ghi bằng StreamedResponse thay vì tạo file tạm rồi trả về: không để lại rác trong storage và
+     * không phụ thuộc quyền ghi đĩa (Railway dùng container ổ đĩa tạm).
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $data = $this->buildReportData($request);
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getProperties()
+            ->setCreator('Happy Tea')
+            ->setTitle('Báo cáo kinh doanh')
+            ->setDescription('Xuất từ trang Báo cáo & Thống kê');
+
+        $periodLabel = $data['start']->format('d/m/Y') . ' - ' . $data['end']->format('d/m/Y');
+
+        $this->buildOverviewSheet($spreadsheet->getActiveSheet(), $data, $periodLabel);
+        $this->buildRevenueByDaySheet($spreadsheet->createSheet(), $data, $periodLabel);
+        $this->buildTopProductsSheet($spreadsheet->createSheet(), $data, $periodLabel);
+        $this->buildCategorySheet($spreadsheet->createSheet(), $data, $periodLabel);
+        $this->buildTopCustomersSheet($spreadsheet->createSheet(), $data, $periodLabel);
+        $this->buildInventorySheet($spreadsheet->createSheet(), $data, $periodLabel);
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $fileName = 'bao-cao-happy-tea_' . $data['start']->format('Ymd') . '-' . $data['end']->format('Ymd') . '.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            (new Xlsx($spreadsheet))->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        ]);
+    }
+
+    /**
+     * Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu mỗi sheet, trả về số dòng tiếp theo.
+     */
+    private function writeSheetHeading(Worksheet $sheet, string $title, string $periodLabel, string $lastColumn): int
+    {
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:' . $lastColumn . '1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+
+        $sheet->setCellValue('A2', 'Kỳ báo cáo: ' . $periodLabel . '  |  Xuất lúc: ' . now()->format('d/m/Y H:i'));
+        $sheet->mergeCells('A2:' . $lastColumn . '2');
+        $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('A2')->getFont()->getColor()->setARGB('FF6B7280');
+
+        return 4;
+    }
+
+    /**
+     * Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có viền) + bật auto filter và cố định dòng.
+     */
+    private function styleHeaderRow(Worksheet $sheet, int $row, string $lastColumn): void
+    {
+        $range = 'A' . $row . ':' . $lastColumn . $row;
+        $sheet->getStyle($range)->getFont()->setBold(true);
+        $sheet->getStyle($range)->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet->getStyle($range)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF059669');
+        $sheet->getStyle($range)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle($range)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getRowDimension($row)->setRowHeight(22);
+        $sheet->setAutoFilter($range);
+        $sheet->freezePane('A' . ($row + 1));
+    }
+
+    /**
+     * Kẻ viền vùng dữ liệu và tự giãn bề rộng cột cho dễ đọc khi mở file.
+     */
+    private function finishSheet(Worksheet $sheet, int $headerRow, int $lastRow, string $lastColumn): void
+    {
+        if ($lastRow > $headerRow) {
+            $sheet->getStyle('A' . ($headerRow + 1) . ':' . $lastColumn . $lastRow)
+                ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
+
+        foreach (range('A', $lastColumn) as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+    }
+
+    private function buildOverviewSheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Tổng quan');
+        $row = $this->writeSheetHeading($sheet, 'BÁO CÁO TỔNG QUAN', $periodLabel, 'C');
+
+        $headerRow = $row;
+        $sheet->fromArray(['Chỉ số', 'Giá trị', 'So với kỳ trước'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'C');
+
+        $row++;
+        foreach ($data['overviewStats'] as $stat) {
+            $sheet->fromArray([$stat['label'], $stat['value'], $stat['trend']['text']], null, 'A' . $row);
+            $row++;
+        }
+
+        $sheet->setCellValue('A' . $row, 'Giá trị tồn kho ước tính');
+        $sheet->setCellValue('B' . $row, number_format($data['estimatedInventoryValue'], 0, ',', '.') . 'đ');
+
+        $this->finishSheet($sheet, $headerRow, $row, 'C');
+    }
+
+    private function buildRevenueByDaySheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Doanh thu theo ngày');
+        $row = $this->writeSheetHeading($sheet, 'DOANH THU THEO NGÀY', $periodLabel, 'C');
+
+        $headerRow = $row;
+        $sheet->fromArray(['Ngày', 'Doanh thu (đ)', 'Số đơn hoàn thành'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'C');
+
+        $row++;
+        $chart = $data['revenueChartData'];
+        foreach ($chart['labels'] as $index => $label) {
+            $sheet->setCellValue('A' . $row, $label);
+            // Ghi số THÔ (không format chuỗi) để Excel còn tính tổng/vẽ biểu đồ được.
+            $sheet->setCellValue('B' . $row, (float) ($chart['revenue'][$index] ?? 0));
+            $sheet->setCellValue('C' . $row, (int) ($chart['orders'][$index] ?? 0));
+            $row++;
+        }
+
+        $lastRow = $row - 1;
+        if ($lastRow >= $headerRow + 1) {
+            $sheet->getStyle('B' . ($headerRow + 1) . ':B' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->setCellValue('A' . $row, 'TỔNG CỘNG');
+            $sheet->setCellValue('B' . $row, '=SUM(B' . ($headerRow + 1) . ':B' . $lastRow . ')');
+            $sheet->setCellValue('C' . $row, '=SUM(C' . ($headerRow + 1) . ':C' . $lastRow . ')');
+            $sheet->getStyle('A' . $row . ':C' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('B' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $this->finishSheet($sheet, $headerRow, $row, 'C');
+    }
+
+    private function buildTopProductsSheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Sản phẩm bán chạy');
+        $row = $this->writeSheetHeading($sheet, 'TOP SẢN PHẨM BÁN CHẠY', $periodLabel, 'E');
+
+        $headerRow = $row;
+        $sheet->fromArray(['#', 'Tên sản phẩm', 'Giá bán (đ)', 'Số lượng bán', 'Doanh thu (đ)'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'E');
+
+        $row++;
+        foreach ($data['topProducts'] as $index => $product) {
+            $sheet->fromArray([
+                $index + 1,
+                $product->name,
+                (float) $product->price,
+                (int) $product->total_qty,
+                (float) $product->total_revenue,
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        $lastRow = $row - 1;
+        if ($lastRow >= $headerRow + 1) {
+            $sheet->getStyle('C' . ($headerRow + 1) . ':C' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle('E' . ($headerRow + 1) . ':E' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
+    }
+
+    private function buildCategorySheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Doanh thu theo danh mục');
+        $row = $this->writeSheetHeading($sheet, 'DOANH THU THEO DANH MỤC', $periodLabel, 'D');
+
+        $headerRow = $row;
+        $sheet->fromArray(['Danh mục', 'Số lượng bán', 'Doanh thu (đ)', 'Tỷ trọng (%)'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'D');
+
+        $row++;
+        foreach ($data['categoryStats'] as $category) {
+            $sheet->fromArray([
+                $category->name,
+                (int) $category->total_qty,
+                (float) $category->total_revenue,
+                (float) $category->percentage,
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        $lastRow = $row - 1;
+        if ($lastRow >= $headerRow + 1) {
+            $sheet->getStyle('C' . ($headerRow + 1) . ':C' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
+    }
+
+    private function buildTopCustomersSheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Khách hàng thân thiết');
+        $row = $this->writeSheetHeading($sheet, 'TOP KHÁCH HÀNG CHI TIÊU NHIỀU NHẤT', $periodLabel, 'D');
+
+        $headerRow = $row;
+        $sheet->fromArray(['#', 'Khách hàng', 'Số điện thoại', 'Số đơn', 'Tổng chi tiêu (đ)'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'E');
+
+        $row++;
+        foreach ($data['topCustomers'] as $index => $customer) {
+            $sheet->fromArray([
+                $index + 1,
+                $customer->customer_name ?: 'Khách vãng lai',
+                // Ghi SĐT dạng chuỗi để Excel không cắt số 0 ở đầu (0912... -> 912...).
+                (string) $customer->customer_phone,
+                (int) $customer->total_orders,
+                (float) $customer->total_spend,
+            ], null, 'A' . $row);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('@');
+            $row++;
+        }
+
+        $lastRow = $row - 1;
+        if ($lastRow >= $headerRow + 1) {
+            $sheet->getStyle('E' . ($headerRow + 1) . ':E' . $lastRow)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
+    }
+
+    private function buildInventorySheet(Worksheet $sheet, array $data, string $periodLabel): void
+    {
+        $sheet->setTitle('Tồn kho nguyên liệu');
+        $row = $this->writeSheetHeading($sheet, 'CẢNH BÁO TỒN KHO NGUYÊN LIỆU', $periodLabel, 'D');
+
+        $headerRow = $row;
+        $sheet->fromArray(['Nguyên liệu', 'Tồn hiện tại', 'Đơn vị', 'Tình trạng'], null, 'A' . $headerRow);
+        $this->styleHeaderRow($sheet, $headerRow, 'D');
+
+        $row++;
+        foreach ($data['outOfStockMaterials'] as $material) {
+            $sheet->fromArray([$material->name, (float) $material->current_stock, $material->unit, 'Đã hết hàng'], null, 'A' . $row);
+            $sheet->getStyle('D' . $row)->getFont()->getColor()->setARGB('FFDC2626');
+            $row++;
+        }
+        foreach ($data['lowStockMaterials'] as $material) {
+            $sheet->fromArray([$material->name, (float) $material->current_stock, $material->unit, 'Sắp hết'], null, 'A' . $row);
+            $sheet->getStyle('D' . $row)->getFont()->getColor()->setARGB('FFD97706');
+            $row++;
+        }
+
+        $lastRow = $row - 1;
+        if ($lastRow < $headerRow + 1) {
+            $sheet->setCellValue('A' . $row, 'Không có nguyên liệu nào sắp hết hoặc đã hết.');
+            $lastRow = $row;
+        }
+
+        $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
+    }
+
+    /**
+     * Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc. Tách riêng để trang xem (index)
+     * và file Excel (export) luôn dùng CHUNG một nguồn số liệu, tránh lệch số giữa 2 nơi.
+     */
+    private function buildReportData(Request $request): array
     {
         $preset = $request->input('preset', '30_days');
         $now = Carbon::now();
@@ -345,7 +631,7 @@ class ReportController
             });
 
         // Các biến dữ liệu dùng cho render partial hoặc view chính
-        $data = compact(
+        return compact(
             'preset',
             'start',
             'end',
@@ -362,17 +648,5 @@ class ReportController
             'estimatedInventoryValue',
             'recentOrders'
         );
-
-        if ($request->ajax()) {
-            return response()->json([
-                'html' =>  view('backend.admin.reports.partials.content', $data)->render(),
-                'revenueChartData' => $revenueChartData,
-                'orderStatusChartData' => $orderStatusChartData,
-                'channelRevenueChartData' => $channelRevenueChartData,
-                'channelOrdersChartData' => $channelOrdersChartData,
-            ]);
-        }
-
-        return  view('backend.admin.reports.index', $data);
     }
 }

@@ -536,20 +536,33 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 6. Xử lý xuất báo cáo
+    // 6. Xử lý xuất báo cáo ra file Excel (.xlsx)
     if (exportBtn) {
+        // Lấy bộ lọc từ chính form (giống submitFilterAjax) thay vì đọc URL: bộ lọc được áp dụng
+        // bằng AJAX nên form luôn là nguồn chuẩn, kể cả khi người dùng chưa bấm "Áp dụng".
+        function buildExportUrl() {
+            const url = new URL(window.reportsConfig.exportUrl, window.location.origin);
+            if (filterForm) {
+                url.search = new URLSearchParams(new FormData(filterForm)).toString();
+            }
+            return url.toString();
+        }
+
+        function downloadReport() {
+            // Điều hướng cả tab: server trả Content-Disposition: attachment nên trình duyệt tải file
+            // về mà KHÔNG rời khỏi trang báo cáo đang xem.
+            window.location.href = buildExportUrl();
+        }
+
         exportBtn.addEventListener('click', function () {
             if (window.AdminAlert) {
                 window.AdminAlert.confirm(
-                    'Hệ thống đang chuẩn bị dữ liệu báo cáo để in hoặc tải xuống. Bạn có muốn tiếp tục?',
-                    function () {
-                        // Kích hoạt chức năng in của trình duyệt (Browser Print to PDF) làm phương thức xuất dự phòng
-                        window.print();
-                    },
-                    'Xuất báo cáo thành PDF?'
+                    'Hệ thống sẽ tạo file Excel (.xlsx) theo đúng khoảng thời gian đang lọc. Bạn có muốn tải xuống?',
+                    downloadReport,
+                    'Xuất báo cáo ra Excel?'
                 );
             } else {
-                window.print();
+                downloadReport();
             }
         });
     }
