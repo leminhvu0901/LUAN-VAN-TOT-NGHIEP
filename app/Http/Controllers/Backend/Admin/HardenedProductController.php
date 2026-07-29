@@ -113,7 +113,7 @@ class HardenedProductController
             throw $exception;
         }
         if (isset($data['image']) && $oldMainImage && !str_contains($oldMainImage, 'placeholder')) {
-            $this->deleteFiles(['images/' . $oldMainImage]);
+            $this->deleteFiles([$oldMainImage]);
         }
         return redirect($this->safeReturnUrl($request))->with('success', 'Cập nhật sản phẩm thành công!');
     }
@@ -198,7 +198,7 @@ class HardenedProductController
     public function deleteGalleryImage($id)
     {
         $image = ProductImage::findOrFail($id);
-        $path = 'images/' . $image->image_path;
+        $path = $image->image_path;
         $image->delete();
         $this->deleteFiles([$path]);
         return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']);
@@ -274,8 +274,8 @@ class HardenedProductController
 
     private function deleteProduct(Product $product): array
     {
-        $files = $product->images->pluck('image_path')->map(fn ($path) => 'images/' . $path)->all();
-        if ($product->image && !str_contains($product->image, 'placeholder')) $files[] = 'images/' . $product->image;
+        $files = $product->images->pluck('image_path')->all();
+        if ($product->image && !str_contains($product->image, 'placeholder')) $files[] = $product->image;
         DB::table('favorites')->where('product_id', $product->id)->delete();
         DB::table('reviews')->where('product_id', $product->id)->delete();
         DB::table('cart_items')->where('product_id', $product->id)->delete();
@@ -285,6 +285,12 @@ class HardenedProductController
 
     private function deleteFiles(array $paths): void
     {
-        foreach (array_unique($paths) as $path) if ($path && is_file(public_path($path))) @unlink(public_path($path));
+        // upload_path() (không phải public_path() trần) để xoá đúng file dù đường dẫn lưu ở DB là định
+        // dạng CŨ ("products/x.jpg", nằm ở public/images/) hay MỚI ("uploads/products/x.jpg", nằm ở
+        // public/uploads/ - gắn Railway Volume bền vững). Xem app/helpers.php::upload_url().
+        foreach (array_unique($paths) as $path) {
+            $full = upload_path($path);
+            if ($full && is_file($full)) @unlink($full);
+        }
     }
 }

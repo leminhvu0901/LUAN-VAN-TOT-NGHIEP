@@ -282,11 +282,29 @@ class ReviewController
     }
 
     /**
+     * Xóa các file ảnh (JSON array đường dẫn) gắn với 1 đánh giá - gọi trước khi xóa DB
+     * để tránh mồ côi file trên Railway Volume (public/uploads/reviews).
+     */
+    private function deleteReviewImageFiles(Review $review): void
+    {
+        $images = $review->image ? json_decode($review->image, true) : [];
+        if (!is_array($images)) return;
+
+        foreach ($images as $image) {
+            $path = upload_path($image);
+            if ($path && is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    /**
      * Xóa một đánh giá (hỗ trợ AJAX và redirect thông thường).
      */
     public function destroy(Request $request, $id)
     {
         $review = Review::findOrFail($id);
+        $this->deleteReviewImageFiles($review);
         $review->delete();
 
         if ($request->ajax()) {
@@ -317,7 +335,11 @@ class ReviewController
                 ->with('error', 'Vui lòng chọn ít nhất một đánh giá.');
         }
 
-        $count = Review::whereIn('id', $ids)->count();
+        $reviewsToDelete = Review::whereIn('id', $ids)->get();
+        foreach ($reviewsToDelete as $review) {
+            $this->deleteReviewImageFiles($review);
+        }
+        $count = $reviewsToDelete->count();
         Review::whereIn('id', $ids)->delete();
 
         if ($request->ajax()) {

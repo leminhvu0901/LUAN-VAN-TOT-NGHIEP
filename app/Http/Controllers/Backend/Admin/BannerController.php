@@ -166,6 +166,11 @@ class BannerController
             $uploaded = [];
             $data['image_url'] = $this->storeImage($request->file('image'), $uploaded);
         }
+        // Cột "image" (khác "image_url") là cột CŨ từ migration gốc, vẫn còn ràng buộc NOT NULL nhưng
+        // controller chưa từng ghi vào từ khi chuyển sang "image_url" — INSERT thiếu cột này sẽ báo
+        // lỗi constraint. Không còn ai đọc cột "image" nữa nên chỉ cần điền cùng giá trị cho hợp lệ,
+        // không cần thêm migration đổi schema.
+        $data['image'] = $data['image_url'] ?? '';
 
         Banner::create($data);
 

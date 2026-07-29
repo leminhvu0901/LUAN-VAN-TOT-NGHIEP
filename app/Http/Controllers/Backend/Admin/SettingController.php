@@ -306,7 +306,9 @@ class SettingController
             if ($request->hasFile('store_logo')) {
                 $file = $request->file('store_logo');
                 $extension = $file->getClientOriginalExtension();
-                $fileName = 'logo_' . time() . '.' . $extension;
+                // Dùng UUID thay vì time() (chỉ chính xác tới giây) - 2 lần upload trong cùng 1 giây
+                // trùng tên file sẽ khiến bước xoá logo cũ bên dưới xoá NHẦM chính file vừa ghi.
+                $fileName = 'logo_' . (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
 
                 // Ghi vào public/uploads/ (Railway Volume bền vững) thay vì public/images/ -
                 // xem app/helpers.php::upload_url(). Giá trị lưu DB là đường dẫn tuyệt đối nên
