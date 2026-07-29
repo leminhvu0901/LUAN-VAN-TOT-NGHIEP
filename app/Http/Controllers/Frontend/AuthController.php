@@ -13,6 +13,13 @@ use Laravel\Socialite\Facades\Socialite;
 class AuthController
 {
     /**
+     * Thời gian hiệu lực của mã OTP (giây). Trước đây ghi 60 giây nhưng thực tế email đi qua Gmail
+     * thường mất vài giây tới vài chục giây mới tới nơi, cộng thêm thời gian người dùng mở mail và gõ
+     * mã -> 60 giây quá ngắn, rất dễ hết hạn oan.
+     */
+    private const OTP_LIFETIME_SECONDS = 300;
+
+    /**
      * Xử lý yêu cầu Đăng ký tài khoản mới từ phía người dùng.
      */
     public function postRegister(Request $request)
@@ -93,7 +100,7 @@ class AuthController
         // (vd cấu hình SMTP sai/thiếu trên môi trường production) thì exception văng thẳng ra thành
         // lỗi 500 không rõ ràng, khiến nút "Đăng Ký Tài Khoản" có bấm cũng như không, không hiểu vì sao.
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản');
             });
         } catch (\Throwable $e) {
@@ -153,9 +160,12 @@ class AuthController
 
         // 2. So khớp mã OTP người dùng nhập với mã đã gửi
         if ($enteredOtp == $sessionOtp) {
-            // Kiểm tra mã OTP xem đã quá hạn 60 giây hay chưa
-            if (now()->diffInSeconds($sessionTime) > 60) {
-                return $this->otpError($request, 'Mã OTP đã hết hạn (quá 60 giây). Vui lòng nhấn Gửi lại để nhận mã mới.');
+            // Kiểm tra mã OTP đã quá hạn hay chưa. Lưu ý: Carbon 3 trả về giá trị CÓ DẤU, nên
+            // now()->diffInSeconds($sessionTime) với $sessionTime ở quá khứ luôn ra số ÂM -> điều kiện
+            // "> 60" cũ không bao giờ đúng, tức mã OTP thực tế không bao giờ hết hạn. Đảo lại đúng
+            // chiều ($sessionTime->diffInSeconds(now())) để so sánh ra số dương như mong đợi.
+            if (!$sessionTime || $sessionTime->diffInSeconds(now()) > self::OTP_LIFETIME_SECONDS) {
+                return $this->otpError($request, 'Mã OTP đã hết hạn. Vui lòng nhấn Gửi lại để nhận mã mới.');
             }
 
             // TH1: Nếu đây là quá trình xác thực phục vụ việc Quên mật khẩu
@@ -233,7 +243,7 @@ class AuthController
         // ở trên: gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi
         // 500 không rõ ràng.
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
             });
         } catch (\Throwable $e) {
@@ -459,7 +469,7 @@ class AuthController
         // gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi 500 không
         // rõ ràng khiến nút bấm "có bấm cũng như không".
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Khôi phục mật khẩu');
             });
         } catch (\Throwable $e) {
