@@ -57,7 +57,9 @@
                         </div>
 
                         @if($existingReview->comment)
-                            <p class="text-sm text-gray-700 leading-relaxed mb-2">{{ $existingReview->comment }}</p>
+                            {{-- break-words: chuỗi dài không khoảng trắng (vd "hhhhhh...") mặc định
+                            không tự xuống dòng, tràn ra khỏi khung thẻ thay vì bị cắt/gói lại. --}}
+                            <p class="text-sm text-gray-700 leading-relaxed mb-2 break-words">{{ $existingReview->comment }}</p>
                         @endif
 
                         @if($existingReview->image)

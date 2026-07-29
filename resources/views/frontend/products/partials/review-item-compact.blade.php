@@ -34,7 +34,7 @@
     </div>
 
     @if($review->comment)
-        <p class="text-sm text-gray-700 leading-relaxed">{{ $review->comment }}</p>
+        <p class="text-sm text-gray-700 leading-relaxed break-words">{{ $review->comment }}</p>
     @endif
 
     @if($review->image)

@@ -8837,6 +8837,10 @@ chuyển ra đây để mobile thu gọn lại được) */
   color: #4b5563;
   line-height: 1.65;
   margin: 0;
+  /* Chuỗi dài không khoảng trắng (vd "hhhhhh...") mặc định không tự xuống dòng, tràn ra khỏi khung
+  thẻ đánh giá thay vì bị gói lại. */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .pd-reviews-empty {
