@@ -117,8 +117,9 @@ class StaffAccountController
         $avatarFilename = null;
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
-            $avatarFilename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $avatarFilename);
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/avatars'), $filename);
+            $avatarFilename = 'uploads/avatars/' . $filename;
         }
 
         User::create([
@@ -198,15 +199,15 @@ class StaffAccountController
         }
         if ($request->hasFile('avatar')) {
             if ($staff->avatar && !str_starts_with($staff->avatar, 'http')) {
-                $oldPath = public_path('images/avatars/' . $staff->avatar);
-                if (file_exists($oldPath)) {
+                $oldPath = avatar_path($staff->avatar);
+                if ($oldPath && file_exists($oldPath)) {
                     @unlink($oldPath);
                 }
             }
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $staff->avatar = $filename;
+            $file->move(public_path('uploads/avatars'), $filename);
+            $staff->avatar = 'uploads/avatars/' . $filename;
         }
         $staff->save();
 

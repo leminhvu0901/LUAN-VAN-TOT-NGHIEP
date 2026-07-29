@@ -7,7 +7,7 @@
                     @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
                         <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" class="w-full h-full object-cover" referrerpolicy="no-referrer">
                     @else
-                        <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" class="w-full h-full object-cover">
+                        <img src="{{ avatar_url($review->user_avatar) }}" alt="{{ $review->user_name }}" class="w-full h-full object-cover">
                     @endif
                 @else
                     {{ mb_substr($review->user_name, 0, 2) }}
@@ -46,7 +46,7 @@
         @endphp
         <div class="mt-3 flex flex-wrap gap-2">
             @foreach($images as $img)
-                <img src="{{ asset('images/' . $img) }}" class="w-20 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
+                <img src="{{ upload_url($img) }}" class="w-20 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
             @endforeach
         </div>
     @endif

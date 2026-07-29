@@ -165,8 +165,8 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('images/reviews'), $imageName);
-                    $imageNames[] = 'reviews/' . $imageName;
+                    $image->move(public_path('uploads/reviews'), $imageName);
+                    $imageNames[] = 'uploads/reviews/' . $imageName;
                 }
             }
         }
@@ -283,8 +283,8 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('images/reviews'), $imageName);
-                    $newImageNames[] = 'reviews/' . $imageName;
+                    $image->move(public_path('uploads/reviews'), $imageName);
+                    $newImageNames[] = 'uploads/reviews/' . $imageName;
                 }
             }
         }
@@ -310,8 +310,8 @@ class ReviewController
                 $oldImages = $locked->image ? json_decode($locked->image, true) : [];
                 if (is_array($oldImages)) {
                     foreach ($oldImages as $oldImage) {
-                        $path = public_path('images/' . $oldImage);
-                        if (file_exists($path)) {
+                        $path = upload_path($oldImage);
+                        if ($path && file_exists($path)) {
                             @unlink($path);
                         }
                     }
@@ -330,8 +330,8 @@ class ReviewController
         if (!$result['success']) {
             // Đã thua trong race hiếm gặp -> dọn ảnh vừa upload (không dùng tới) để không rác ổ đĩa.
             foreach ($newImageNames as $img) {
-                $path = public_path('images/' . $img);
-                if (file_exists($path)) {
+                $path = upload_path($img);
+                if ($path && file_exists($path)) {
                     @unlink($path);
                 }
             }

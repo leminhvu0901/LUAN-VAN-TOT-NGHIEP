@@ -148,8 +148,8 @@ class CustomerController
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $data['avatar'] = $filename;
+            $file->move(public_path('uploads/avatars'), $filename);
+            $data['avatar'] = 'uploads/avatars/' . $filename;
         }
 
         User::create($data);
@@ -321,16 +321,16 @@ class CustomerController
         if ($request->hasFile('avatar')) {
             // Delete old avatar if it's not a remote URL and not empty
             if ($customer->avatar && !str_starts_with($customer->avatar, 'http')) {
-                $oldPath = public_path('images/avatars/' . $customer->avatar);
-                if (file_exists($oldPath)) {
+                $oldPath = avatar_path($customer->avatar);
+                if ($oldPath && file_exists($oldPath)) {
                     @unlink($oldPath);
                 }
             }
             
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $data['avatar'] = $filename;
+            $file->move(public_path('uploads/avatars'), $filename);
+            $data['avatar'] = 'uploads/avatars/' . $filename;
         }
 
         $customer->update($data);

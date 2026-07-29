@@ -71,7 +71,7 @@
                             @endphp
                             <div class="flex flex-wrap gap-2 mb-2">
                                 @foreach($existingImages as $img)
-                                    <img src="{{ asset('images/' . $img) }}" class="w-14 h-14 md:w-16 md:h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
+                                    <img src="{{ upload_url($img) }}" class="w-14 h-14 md:w-16 md:h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
                                 @endforeach
                             </div>
                         @endif

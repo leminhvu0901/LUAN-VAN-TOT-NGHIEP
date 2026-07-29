@@ -74,10 +74,6 @@ class Product extends Model
             return asset('images/products/placeholder.jpg');
         }
 
-        if (str_starts_with($this->image, 'storage/')) {
-            return asset($this->image);
-        }
-
-        return asset('images/' . $this->image);
+        return upload_url($this->image);
     }
 }

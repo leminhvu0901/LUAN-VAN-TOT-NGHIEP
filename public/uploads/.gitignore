@@ -1,0 +1,6 @@
+# Thư mục này chứa file do người dùng/quản trị TẢI LÊN lúc chạy, được gắn Railway Volume (ổ đĩa bền
+# vững) nên KHÔNG commit nội dung vào git. Chỉ giữ lại cấu trúc thư mục để ứng dụng ghi file được ngay.
+*
+!.gitignore
+!*/
+!*/.gitkeep

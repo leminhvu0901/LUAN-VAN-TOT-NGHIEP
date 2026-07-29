@@ -6,7 +6,7 @@
             @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
                 <img src="{{ $review->user_avatar }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img" referrerpolicy="no-referrer">
             @else
-                <img src="{{ asset('images/avatars/' . $review->user_avatar) }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img">
+                <img src="{{ avatar_url($review->user_avatar) }}" alt="{{ $review->user_name }}" class="pd-review-avatar-img">
             @endif
         @else
             <span class="pd-review-avatar__initial">{{ mb_substr($review->user_name, 0, 1) }}</span>
@@ -42,7 +42,7 @@
         @endphp
         <div class="pd-review-images mt-2 pd-review-images-wrap">
             @foreach($images as $img)
-                <img src="{{ asset('images/' . $img) }}" alt="Review Image" class="pd-review-image-thumb" onclick="window.open(this.src, '_blank')">
+                <img src="{{ upload_url($img) }}" alt="Review Image" class="pd-review-image-thumb" onclick="window.open(this.src, '_blank')">
             @endforeach
         </div>
         @endif

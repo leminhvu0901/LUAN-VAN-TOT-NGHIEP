@@ -103,8 +103,8 @@
                                         @foreach($images as $index => $img)
                                             <div class="group relative w-24 h-24 rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm transition-all" id="review-image-{{ $index }}">
                                                 <!-- Link xem ảnh gốc -->
-                                                <a href="{{ asset('images/' . $img) }}" target="_blank" class="block w-full h-full">
-                                                    <img src="{{ asset('images/' . $img) }}" class="w-full h-full object-cover group-hover:opacity-80 transition-opacity">
+                                                <a href="{{ upload_url($img) }}" target="_blank" class="block w-full h-full">
+                                                    <img src="{{ upload_url($img) }}" class="w-full h-full object-cover group-hover:opacity-80 transition-opacity">
                                                 </a>
                                                 
                                                 <!-- Nút X góc phải trên (Xóa bằng AJAX) -->

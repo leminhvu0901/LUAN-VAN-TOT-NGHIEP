@@ -2037,8 +2037,8 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Tạo nhân viên kèm ảnh đại diện: file được lưu vào public/images/avatars và tên file lưu
-     * đúng vào cột users.avatar.
+     * Tạo nhân viên kèm ảnh đại diện: file được lưu vào public/uploads/avatars (Railway Volume
+     * bền vững) và đường dẫn kèm tiền tố 'uploads/avatars/' lưu đúng vào cột users.avatar.
      */
     public function test_admin_can_upload_avatar_when_creating_staff(): void
     {
@@ -2057,7 +2057,8 @@ class StaffRoleWorkflowTest extends TestCase
 
         $staff = User::where('email', 'nv-avatar@happytea.com')->firstOrFail();
         $this->assertNotNull($staff->avatar);
-        $path = public_path('images/avatars/' . $staff->avatar);
+        $this->assertStringStartsWith('uploads/avatars/', $staff->avatar);
+        $path = avatar_path($staff->avatar);
         $this->assertFileExists($path);
         @unlink($path);
     }
@@ -2065,6 +2066,8 @@ class StaffRoleWorkflowTest extends TestCase
     /**
      * Sửa nhân viên kèm đổi ảnh đại diện: ảnh cũ bị xóa khỏi đĩa, ảnh mới được lưu và cập nhật
      * vào cột users.avatar.
+     * Ảnh cũ ở đây cố tình dựng theo ĐỊNH DẠNG CŨ (tên file trần trong public/images/avatars) để
+     * đồng thời kiểm tra avatar_path() vẫn xoá đúng dữ liệu có từ trước khi chuyển sang uploads/.
      */
     public function test_admin_updating_staff_avatar_replaces_old_file(): void
     {
@@ -2088,7 +2091,8 @@ class StaffRoleWorkflowTest extends TestCase
         $staff = $staff->fresh();
         $this->assertNotEquals($oldAvatarName, $staff->avatar);
         $this->assertFileDoesNotExist($oldPath);
-        $newPath = public_path('images/avatars/' . $staff->avatar);
+        $this->assertStringStartsWith('uploads/avatars/', $staff->avatar);
+        $newPath = avatar_path($staff->avatar);
         $this->assertFileExists($newPath);
         @unlink($newPath);
     }

@@ -25,7 +25,7 @@
                 <div class="relative w-28 h-28 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden mb-3 group">
                     @php
                         if ($staff->avatar) {
-                            $avatarUrl = str_starts_with($staff->avatar, 'http') ? $staff->avatar : asset('images/avatars/' . $staff->avatar);
+                            $avatarUrl = avatar_url($staff->avatar);
                         } else {
                             $avatarUrl = '';
                         }

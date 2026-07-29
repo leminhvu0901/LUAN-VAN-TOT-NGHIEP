@@ -184,7 +184,7 @@ shadow-sm: đổ bóng nhẹ phía dưới
                                 {{-- Ảnh avatar đã upload, CSS class .navbar-avatar định dạng tròn. Đăng nhập Google
                                 lưu avatar là URL đầy đủ (https://lh3.googleusercontent.com/...), avatar tự tải lên
                                 chỉ lưu tên file cục bộ -> phải phân biệt, không thể luôn ghép asset('images/avatars/'.avatar). --}}
-                                <img src="{{ str_starts_with(Auth::user()->avatar, 'http') ? Auth::user()->avatar : asset('images/avatars/' . Auth::user()->avatar) }}" alt="Avatar"
+                                <img src="{{ avatar_url(Auth::user()->avatar) }}" alt="Avatar"
                                     class="navbar-avatar">
                             @else
                                 {{-- Icon người dùng mặc định khi chưa có avatar --}}

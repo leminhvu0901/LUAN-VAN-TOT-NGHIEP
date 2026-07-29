@@ -10,7 +10,7 @@
     // tải lên chỉ lưu tên file trong storage cục bộ -> phải phân biệt, không thể luôn ghép
     // asset('images/avatars/'.avatar) (khớp cách các trang admin đã xử lý ở str_starts_with pattern).
     $userAvatarUrl = Auth::user()->avatar
-        ? (str_starts_with(Auth::user()->avatar, 'http') ? Auth::user()->avatar : asset('images/avatars/' . Auth::user()->avatar))
+        ? (avatar_url(Auth::user()->avatar))
         : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=006e01&color=fff';
 @endphp
 

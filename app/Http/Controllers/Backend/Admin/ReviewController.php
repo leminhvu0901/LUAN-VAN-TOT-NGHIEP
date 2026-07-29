@@ -158,8 +158,8 @@ class ReviewController
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
                     $filename = 'review_' . time() . '_' . uniqid() . '.' . $ext;
-                    $file->move(public_path('images/reviews'), $filename);
-                    $images[] = 'reviews/' . $filename;
+                    $file->move(public_path('uploads/reviews'), $filename);
+                    $images[] = 'uploads/reviews/' . $filename;
                 }
             }
         }
@@ -208,8 +208,8 @@ class ReviewController
             foreach ($request->delete_images as $delImg) {
                 if (($key = array_search($delImg, $images)) !== false) {
                     unset($images[$key]);
-                    if (file_exists(public_path('images/' . $delImg))) {
-                        unlink(public_path('images/' . $delImg));
+                    if (file_exists(upload_path($delImg))) {
+                        unlink(upload_path($delImg));
                     }
                 }
             }
@@ -226,8 +226,8 @@ class ReviewController
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
                     $filename = 'review_' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
-                    $file->move(public_path('images/reviews'), $filename);
-                    $images[] = 'reviews/' . $filename;
+                    $file->move(public_path('uploads/reviews'), $filename);
+                    $images[] = 'uploads/reviews/' . $filename;
                     $currentCount++;
                 }
             }
@@ -266,8 +266,8 @@ class ReviewController
             unset($images[$key]);
 
             // Xóa file thực tế
-            if (file_exists(public_path('images/' . $imageToDelete))) {
-                unlink(public_path('images/' . $imageToDelete));
+            if (file_exists(upload_path($imageToDelete))) {
+                unlink(upload_path($imageToDelete));
             }
 
             // Cập nhật database

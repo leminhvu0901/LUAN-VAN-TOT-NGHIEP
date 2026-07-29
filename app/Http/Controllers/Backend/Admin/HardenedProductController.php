@@ -257,10 +257,12 @@ class HardenedProductController
 
     private function storeImage($file, string $directory, array &$uploaded): string
     {
+        // Ghi vào public/uploads/ (gắn Railway Volume bền vững) thay vì public/images/ (chỉ có nội
+        // dung commit sẵn trong code) - xem app/helpers.php::upload_url() để biết lý do đầy đủ.
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        $file->move(public_path('images/' . $directory), $filename);
-        $uploaded[] = 'images/' . $directory . '/' . $filename;
-        return $directory . '/' . $filename;
+        $file->move(public_path('uploads/' . $directory), $filename);
+        $uploaded[] = 'uploads/' . $directory . '/' . $filename;
+        return 'uploads/' . $directory . '/' . $filename;
     }
 
     private function storeGallery(Product $product, array $files, array &$uploaded): void

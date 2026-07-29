@@ -14,9 +14,7 @@
                 <div class="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shrink-0 select-none overflow-hidden">
                     @if ($review->user && $review->user->avatar)
                         @php
-                            $avatarUrl = str_starts_with($review->user->avatar, 'http') 
-                                ? $review->user->avatar 
-                                : asset('images/avatars/' . $review->user->avatar);
+                            $avatarUrl = avatar_url($review->user->avatar);
                         @endphp
                         <img src="{{ $avatarUrl }}" alt="{{ $review->user->name }}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerText='{{ strtoupper(substr($review->user?->name ?? 'K', 0, 1)) }}'">
                     @else

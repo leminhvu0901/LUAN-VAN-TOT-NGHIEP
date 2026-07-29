@@ -15,7 +15,7 @@
                 <div class="flex items-center gap-3 w-[calc(100%-2rem)]">
                     @php
                         if ($review->user->avatar) {
-                            $avatarUrl = str_starts_with($review->user->avatar, 'http') ? $review->user->avatar : asset('images/avatars/' . $review->user->avatar);
+                            $avatarUrl = avatar_url($review->user->avatar);
                         } else {
                             $avatarUrl = 'https://ui-avatars.com/api/?name='.urlencode($review->user->name).'&background=random';
                         }
@@ -71,8 +71,8 @@
                 @if(is_array($images) && count($images) > 0)
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
                         @foreach($images as $img)
-                            <a href="{{ asset('images/' . $img) }}" target="_blank" class="block w-full h-24 sm:h-28 rounded-lg overflow-hidden border border-gray-200/80 shadow-sm relative group">
-                                <img src="{{ asset('images/' . $img) }}" alt="Review image" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
+                            <a href="{{ upload_url($img) }}" target="_blank" class="block w-full h-24 sm:h-28 rounded-lg overflow-hidden border border-gray-200/80 shadow-sm relative group">
+                                <img src="{{ upload_url($img) }}" alt="Review image" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
                                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
                             </a>
                         @endforeach
@@ -149,7 +149,7 @@
                         <div class="flex items-center gap-3">
                             @php
                                 if ($review->user->avatar) {
-                                    $avatarUrl = str_starts_with($review->user->avatar, 'http') ? $review->user->avatar : asset('images/avatars/' . $review->user->avatar);
+                                    $avatarUrl = avatar_url($review->user->avatar);
                                 } else {
                                     $avatarUrl = 'https://ui-avatars.com/api/?name='.urlencode($review->user->name).'&background=random';
                                 }
@@ -193,7 +193,7 @@
                                     <div class="flex items-center gap-1.5 mt-1">
                                         <div class="flex -space-x-2 overflow-hidden">
                                             @foreach(array_slice($images, 0, 3) as $img)
-                                                <img class="inline-block h-6 w-6 rounded-md ring-2 ring-white object-cover border border-gray-200" src="{{ asset('images/' . $img) }}" alt="img">
+                                                <img class="inline-block h-6 w-6 rounded-md ring-2 ring-white object-cover border border-gray-200" src="{{ upload_url($img) }}" alt="img">
                                             @endforeach
                                         </div>
                                         <span class="text-[11px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{{ count($images) }} ảnh</span>

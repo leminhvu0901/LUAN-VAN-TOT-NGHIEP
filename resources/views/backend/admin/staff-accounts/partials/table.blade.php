@@ -7,7 +7,7 @@
                     <div class="flex items-center gap-3 min-w-0">
                         @php
                             $avatarUrl = $staff->avatar
-                                ? (str_starts_with($staff->avatar, 'http') ? $staff->avatar : asset('images/avatars/' . $staff->avatar))
+                                ? (avatar_url($staff->avatar))
                                 : 'https://ui-avatars.com/api/?name='.urlencode($staff->name).'&background=random';
                         @endphp
                         <img src="{{ $avatarUrl }}" alt="{{ $staff->name }}" class="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm shrink-0">
@@ -99,7 +99,7 @@
                             <div class="flex items-center gap-3 min-w-0">
                                 @php
                                     $avatarUrl = $staff->avatar
-                                        ? (str_starts_with($staff->avatar, 'http') ? $staff->avatar : asset('images/avatars/' . $staff->avatar))
+                                        ? (avatar_url($staff->avatar))
                                         : 'https://ui-avatars.com/api/?name='.urlencode($staff->name).'&background=random';
                                 @endphp
                                 <img src="{{ $avatarUrl }}" alt="{{ $staff->name }}" class="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0">

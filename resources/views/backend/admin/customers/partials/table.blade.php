@@ -15,7 +15,7 @@
                     <div class="flex items-center gap-3">
                         @php
                             if ($customer->avatar) {
-                                $avatarUrl = str_starts_with($customer->avatar, 'http') ? $customer->avatar : asset('images/avatars/' . $customer->avatar);
+                                $avatarUrl = avatar_url($customer->avatar);
                             } else {
                                 $avatarUrl = 'https://ui-avatars.com/api/?name='.urlencode($customer->name).'&background=random';
                             }
@@ -142,7 +142,7 @@
                             <div class="flex items-center gap-3">
                                 @php
                                     if ($customer->avatar) {
-                                        $avatarUrl = str_starts_with($customer->avatar, 'http') ? $customer->avatar : asset('images/avatars/' . $customer->avatar);
+                                        $avatarUrl = avatar_url($customer->avatar);
                                     } else {
                                         $avatarUrl = 'https://ui-avatars.com/api/?name='.urlencode($customer->name).'&background=random';
                                     }

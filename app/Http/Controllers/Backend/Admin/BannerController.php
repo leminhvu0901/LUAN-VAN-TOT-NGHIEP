@@ -217,7 +217,7 @@ class BannerController
 
             // Xóa ảnh cũ
             if ($banner->image_url) {
-                $oldPath = public_path('images/' . $banner->image_url);
+                $oldPath = upload_path($banner->image_url);
                 if (is_file($oldPath)) {
                     @unlink($oldPath);
                 }
@@ -236,7 +236,7 @@ class BannerController
     public function destroy(Banner $banner)
     {
         if ($banner->image_url) {
-            $oldPath = public_path('images/' . $banner->image_url);
+            $oldPath = upload_path($banner->image_url);
             if (is_file($oldPath)) {
                 @unlink($oldPath);
             }
@@ -301,7 +301,7 @@ class BannerController
         $deletedCount = 0;
         foreach ($banners as $banner) {
             if ($banner->image_url) {
-                $oldPath = public_path('images/' . $banner->image_url);
+                $oldPath = upload_path($banner->image_url);
                 if (is_file($oldPath)) {
                     @unlink($oldPath);
                 }
@@ -364,8 +364,9 @@ class BannerController
     private function storeImage($file, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        $file->move(public_path('images/banners'), $filename);
-        $uploaded[] = 'images/banners/' . $filename;
-        return 'banners/' . $filename;
+        // Ghi vào public/uploads/ (Railway Volume bền vững) - xem app/helpers.php::upload_url()
+        $file->move(public_path('uploads/banners'), $filename);
+        $uploaded[] = 'uploads/banners/' . $filename;
+        return 'uploads/banners/' . $filename;
     }
 }

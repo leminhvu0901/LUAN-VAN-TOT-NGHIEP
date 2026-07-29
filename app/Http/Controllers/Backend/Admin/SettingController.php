@@ -93,17 +93,20 @@ class SettingController
             'momo' => (!empty($momoEnvConfig['partner_code']) && !empty($momoEnvConfig['access_key']) && !empty($momoEnvConfig['secret_key'])),
         ];
 
-        // Scan existing logo files from public/images/logo/
-        $logoDir = public_path('images/logo');
+        // Quét logo từ CẢ 2 nơi: images/logo (ảnh mặc định đi kèm mã nguồn) và uploads/logo
+        // (logo admin tự tải lên, nằm trên Railway Volume nên không mất khi deploy lại).
         $existingLogos = [];
         $allowedLogoExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
-        if (is_dir($logoDir)) {
+        foreach (['/images/logo/' => public_path('images/logo'), '/uploads/logo/' => public_path('uploads/logo')] as $urlPrefix => $logoDir) {
+            if (!is_dir($logoDir)) {
+                continue;
+            }
             foreach (scandir($logoDir) as $file) {
                 if ($file === '.' || $file === '..')
                     continue;
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                 if (in_array($ext, $allowedLogoExts)) {
-                    $existingLogos[] = '/images/logo/' . $file;
+                    $existingLogos[] = $urlPrefix . $file;
                 }
             }
         }
@@ -305,9 +308,11 @@ class SettingController
                 $extension = $file->getClientOriginalExtension();
                 $fileName = 'logo_' . time() . '.' . $extension;
 
-                // Move file to public/images/logo/
-                $file->move(public_path('images/logo'), $fileName);
-                $logoPath = '/images/logo/' . $fileName;
+                // Ghi vào public/uploads/ (Railway Volume bền vững) thay vì public/images/ -
+                // xem app/helpers.php::upload_url(). Giá trị lưu DB là đường dẫn tuyệt đối nên
+                // asset($shopLogo) ở các view dùng lại được y nguyên, không phải sửa gì thêm.
+                $file->move(public_path('uploads/logo'), $fileName);
+                $logoPath = '/uploads/logo/' . $fileName;
 
                 // Delete old logo file safely
                 $oldLogo = Setting::getValue('store_logo');

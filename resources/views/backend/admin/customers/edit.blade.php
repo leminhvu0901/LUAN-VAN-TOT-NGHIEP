@@ -113,7 +113,7 @@
                         <div class="relative w-32 h-32 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden mb-4 group">
                             @php
                                 if ($customer->avatar) {
-                                    $avatarUrl = str_starts_with($customer->avatar, 'http') ? $customer->avatar : asset('images/avatars/' . $customer->avatar);
+                                    $avatarUrl = avatar_url($customer->avatar);
                                 } else {
                                     $avatarUrl = '';
                                 }

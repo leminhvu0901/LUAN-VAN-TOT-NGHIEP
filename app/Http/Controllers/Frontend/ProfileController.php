@@ -75,9 +75,14 @@ class ProfileController
                     if ($decodedData !== false) {
                         // Đặt tên file ảnh ngẫu nhiên để tránh trùng lặp
                         $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $type;
-                        // Lưu file ảnh vào thư mục public/images/avatars/
-                        file_put_contents(public_path('images/avatars/' . $filename), $decodedData);
-                        $updateData['avatar'] = $filename; // Thêm tên file ảnh vào mảng để lưu xuống DB
+                        // Lưu vào public/uploads/avatars/ (gắn Railway Volume bền vững) thay vì
+                        // public/images/ - xem app/helpers.php::upload_url() để biết lý do.
+                        $dir = public_path('uploads/avatars');
+                        if (!is_dir($dir)) {
+                            mkdir($dir, 0755, true);
+                        }
+                        file_put_contents($dir . '/' . $filename, $decodedData);
+                        $updateData['avatar'] = 'uploads/avatars/' . $filename;
                     }
                 }
             }
@@ -99,9 +104,8 @@ class ProfileController
                     'name' => $user->name,
                     'phone' => $user->phone,
                     'address' => $user->address,
-                    'avatar_url' => $user->avatar
-                        ? (str_starts_with($user->avatar, 'http') ? $user->avatar : asset('images/avatars/' . $user->avatar))
-                        : 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=006e01&color=fff',
+                    'avatar_url' => avatar_url($user->avatar)
+                        ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=006e01&color=fff',
                 ],
             ]);
         }

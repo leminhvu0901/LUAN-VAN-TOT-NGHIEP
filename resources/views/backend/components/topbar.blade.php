@@ -14,7 +14,7 @@
             <!-- Avatar: dùng ảnh đã tải lên nếu có, nếu chưa thì fallback sang ui-avatars.com theo chữ cái đầu tên -->
             @php
                 $topbarAvatarUrl = Auth::user()->avatar
-                    ? (str_starts_with(Auth::user()->avatar, 'http') ? Auth::user()->avatar : asset('images/avatars/' . Auth::user()->avatar))
+                    ? (avatar_url(Auth::user()->avatar))
                     : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=10b981&color=fff';
             @endphp
             <div class="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
