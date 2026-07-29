@@ -351,6 +351,8 @@ function initTableEvents() {
                 return;
             }
             const select = e.target;
+            // Cùng phong cách bo tròn/màu sắc thương hiệu với AdminAlert.prompt() (xem admin/layout.js)
+            // thay vì để Swal.fire() mặc định trần trụi (viền vuông, nút tím xám mặc định của thư viện).
             Swal.fire({
                 title: "Lý do hủy đơn",
                 input: "textarea",
@@ -358,6 +360,19 @@ function initTableEvents() {
                 showCancelButton: true,
                 confirmButtonText: "Hủy đơn",
                 cancelButtonText: "Đóng",
+                buttonsStyling: false,
+                width: "360px",
+                padding: "1.25rem",
+                returnFocus: false,
+                customClass: {
+                    popup: "rounded-xl shadow-xl border border-gray-100 p-4",
+                    title: "text-base font-bold text-gray-800 mb-1",
+                    input: "w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:border-emerald-500 transition-colors mb-3 shadow-none resize-none h-20 focus:ring-0 focus:outline-none !outline-none font-normal",
+                    validationMessage: "text-xs text-red-500 bg-red-50 p-2.5 rounded-lg mb-3 border border-red-100 text-center w-full shadow-none mt-0 font-medium",
+                    actions: "w-full flex gap-2 mt-1",
+                    confirmButton: "flex-1 px-4 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer",
+                    cancelButton: "flex-1 px-4 py-1.5 bg-white text-gray-700 font-semibold rounded-lg text-xs border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer",
+                },
                 inputValidator: (value) => !value || value.trim().length < 5 ? "Vui lòng nhập ít nhất 5 ký tự." : undefined,
             }).then((result) => {
                 if (!result.isConfirmed) {
@@ -605,7 +620,13 @@ document.addEventListener("DOMContentLoaded", function () {
     initOrderStatusCustomDropdowns();
 });
 
+// Bấm nút Quay lại/Tiến (kể cả nút back trên chuột) trước đây gọi loadTableData(window.location.href)
+// để "đồng bộ" lại bảng theo URL vừa quay lại — nhưng loadTableData() gửi fetch() kèm header
+// Accept: application/json để LẤY DỮ LIỆU JSON hiển thị vào bảng, không phải để xem cả trang. Trong
+// một số tình huống quay lại (vd bfcache khôi phục trang, hoặc trình duyệt tải lại thẳng URL đó thay
+// vì chỉ đổi lịch sử), JSON trả về đó có thể bị hiển thị thẳng ra thành nội dung trang thay vì được
+// JS chèn vào bảng — hiện ra như 1 trang toàn chữ JSON thô. Tải lại thẳng trang (chắc chắn luôn nhận
+// đúng HTML đầy đủ, đã tự kiểm chứng) an toàn hơn nhiều so với tự vá lại bằng fetch.
 window.addEventListener("popstate", function () {
-    resetOrderSelection();
-    loadTableData(window.location.href);
+    window.location.reload();
 });

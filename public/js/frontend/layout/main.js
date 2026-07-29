@@ -1,5 +1,42 @@
 'use strict';
 
+// ---------------------------------------------------------
+// THÔNG BÁO TOÀN CỤC CHO TOÀN BỘ FRONTEND (khách hàng) — toast góc trên-phải, tự tắt sau vài giây,
+// dùng SweetAlert2 đã nạp sẵn ở MỌI trang (xem layouts/app.blade.php). Cùng tinh thần với
+// window.AdminAlert bên khu vực quản trị/nhân viên — tránh mỗi trang tự viết Swal.fire()/alert() rải
+// rác khác kiểu nhau (vd trang Hồ sơ trước đây dùng alert() thô, trang Đơn hàng lại tự viết Swal.fire()
+// riêng — giờ gộp về 1 chỗ duy nhất).
+window.FrontendAlert = {
+    success: function (message, timer = 3000) {
+        if (typeof Swal === 'undefined') { alert(message); return; }
+        Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: timer,
+            timerProgressBar: true,
+            didOpen: function (toast) {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            },
+        }).fire({ icon: 'success', title: message });
+    },
+    error: function (message, timer = 4000) {
+        if (typeof Swal === 'undefined') { alert(message); return; }
+        Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: timer,
+            timerProgressBar: true,
+            didOpen: function (toast) {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            },
+        }).fire({ icon: 'error', title: message });
+    },
+};
+
 (function () {
     // Xử lý menu thả xuống (Dropdown) nhiều cấp
     const dropdownLinks = document.querySelectorAll('.dropdown-menu a.dropdown-toggle');
@@ -113,37 +150,6 @@
         });
     }
 
-    // Hiển thị thông báo (Live Alert Placeholder)
-    var liveAlertPlaceholder = document.getElementById('liveAlertPlaceholder');
-
-    if (liveAlertPlaceholder) {
-        var alert = function (message, type) {
-            // Tạo mã HTML cho thông báo
-            var wrapper = document.createElement('div');
-            wrapper.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible" role="alert">
-          <div>${message}</div>
-          <button type="button" class="btn-close" aria-label="Close"></button>
-        </div>`;
-            // Gắn sự kiện đóng thông báo
-            var closeBtn = wrapper.querySelector('.btn-close');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function () {
-                    wrapper.remove();
-                });
-            }
-            liveAlertPlaceholder.append(wrapper);
-        };
-
-        // Nút test alert
-        var alertTrigger = document.getElementById('liveAlertBtn');
-        if (alertTrigger) {
-            alertTrigger.addEventListener('click', function () {
-                alert('Nice, you triggered this alert message!', 'success');
-            });
-        }
-    }
-
     // Khởi tạo thanh trượt chọn khoảng giá (noUiSlider)
     var priceRangeSlider = document.getElementById('priceRange');
 
@@ -188,22 +194,27 @@
         });
     }
 
-    // Hiển thị thông báo nhỏ ở góc màn hình (Toast)
-    const toastTrigger = document.getElementById('liveToastBtn');
-    const toastLiveExample = document.getElementById('liveToast');
+    // Nút mắt hiện/giấu mật khẩu — dùng chung cho MỌI ô mật khẩu ở MỌI trang (đăng nhập, đăng ký, đổi
+    // mật khẩu...), chỉ cần thêm class .toggle-password-visibility + data-target="id-của-input-mật-khẩu"
+    // là có ngay, không cần viết lại JS riêng cho từng trang (trước đây chỉ có ở trang Hồ sơ).
+    var passwordToggleButtons = document.querySelectorAll('.toggle-password-visibility');
+    passwordToggleButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var targetId = this.getAttribute('data-target');
+            var input = document.getElementById(targetId);
+            if (!input) return;
 
-    if (toastTrigger && toastLiveExample) {
-        toastTrigger.addEventListener('click', () => {
-            toastLiveExample.classList.add('show');
-            toastLiveExample.classList.remove('hide');
-
-            // Tự động ẩn toast sau 5 giây
-            setTimeout(() => {
-                toastLiveExample.classList.remove('show');
-                toastLiveExample.classList.add('hide');
-            }, 5000);
+            var iconSpan = this.querySelector('.material-symbols-outlined');
+            if (input.type === 'password') {
+                input.type = 'text'; // Hiện chữ thật thay vì dấu chấm tròn
+                if (iconSpan) iconSpan.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                if (iconSpan) iconSpan.textContent = 'visibility';
+            }
         });
-    }
+    });
+
 })();
 
 // ==========================================

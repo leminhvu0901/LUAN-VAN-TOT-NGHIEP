@@ -87,4 +87,37 @@
             fetchReviews(nextPage, true);
         });
     });
+
+    // Thanh chỉ báo vị trí cuộn ngang cho hàng nút lọc (trang "Xem đánh giá", view=compact) — hàng nút
+    // ẩn thanh cuộn gốc của trình duyệt (.hide-scrollbar) nên không còn gợi ý nào cho biết còn nút lọc
+    // ở bên phải để vuốt sang. Cùng cơ chế đã dùng cho khối "Danh mục nổi bật" ở trang chủ (xem
+    // home.js) — chỉ khác là ở đây tự ẩn thanh chỉ báo khi không có gì để cuộn (vd trên desktop hàng
+    // nút tự xuống dòng thay vì cuộn ngang).
+    (function () {
+        const track = document.getElementById('review-filters-track');
+        const scrollbar = document.getElementById('review-filters-scrollbar');
+        const thumb = document.getElementById('review-filters-scrollbar-thumb');
+        if (!track || !scrollbar || !thumb) return;
+
+        function updateThumb() {
+            const scrollableWidth = track.scrollWidth - track.clientWidth;
+
+            if (scrollableWidth <= 0) {
+                scrollbar.style.visibility = 'hidden';
+                return;
+            }
+            scrollbar.style.visibility = 'visible';
+
+            const thumbWidthPct = Math.max(15, Math.min(100, (track.clientWidth / track.scrollWidth) * 100));
+            const maxTranslatePct = 100 - thumbWidthPct;
+            const scrolledPct = (track.scrollLeft / scrollableWidth) * maxTranslatePct;
+
+            thumb.style.width = thumbWidthPct + '%';
+            thumb.style.transform = 'translateX(' + (scrolledPct / thumbWidthPct * 100) + '%)';
+        }
+
+        track.addEventListener('scroll', updateThumb, { passive: true });
+        window.addEventListener('resize', updateThumb);
+        updateThumb();
+    })();
 })();

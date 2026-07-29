@@ -243,7 +243,8 @@ window.AdminAlert = {
                     popup: 'rounded-xl shadow-xl border border-gray-100 p-4',
                     title: 'text-base font-bold text-gray-800 mb-1',
                     htmlContainer: 'text-xs text-gray-500 mb-3',
-                    input: 'w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs focus:border-emerald-500 transition-colors mb-3 shadow-none text-center',
+                    input: 'w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:border-emerald-500 transition-colors mb-3 shadow-none text-center focus:ring-0 focus:outline-none !outline-none font-normal',
+                    validationMessage: 'text-xs text-red-500 bg-red-50 p-2.5 rounded-lg mb-3 border border-red-100 text-center w-full shadow-none mt-0 font-medium',
                     actions: 'w-full flex gap-2 mt-1',
                     confirmButton: 'flex-1 px-4 py-1.5 bg-emerald-600 text-white font-semibold rounded-lg text-xs hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer',
                     cancelButton: 'flex-1 px-4 py-1.5 bg-white text-gray-700 font-semibold rounded-lg text-xs border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer'

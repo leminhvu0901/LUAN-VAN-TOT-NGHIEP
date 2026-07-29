@@ -431,11 +431,12 @@
             }
         });
 
-        // Xử lý nút điều hướng Back/Forward trình duyệt (popstate)
+        // Xử lý nút điều hướng Back/Forward trình duyệt (popstate). Trước đây gọi lại loadTableData()
+        // (fetch kèm Accept: application/json) để "đồng bộ" bảng theo URL vừa quay lại — nhưng có
+        // trường hợp (vd bfcache khôi phục trang) khiến JSON trả về bị hiển thị thẳng ra thành nội
+        // dung trang thay vì được JS chèn vào bảng. Tải lại thẳng trang an toàn hơn nhiều.
         window.addEventListener("popstate", function () {
-            const url = new URL(window.location.href);
-            syncFilterFormFromUrl(url);
-            loadTableData(url, { pushHistory: false });
+            window.location.reload();
         });
 
         // Tự động khôi phục vị trí cuộn trang (scroll position) sau khi tải xong dữ liệu bảng bằng AJAX

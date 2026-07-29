@@ -51,7 +51,11 @@ function previewAvatar(event) {
         const file = input.files[0];
         // Bắt lỗi file quá lớn (Vượt 5 Megabytes)
         if (file.size > 5 * 1024 * 1024) {
-            alert('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+            if (window.FrontendAlert) {
+                window.FrontendAlert.error('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+            } else {
+                alert('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
+            }
             input.value = '';
             return;
         }
@@ -222,24 +226,8 @@ document.addEventListener('DOMContentLoaded', function () {
         showTab('profile');
     }
 
-    // Logic nút Mắt (Hiển thị / Giấu mật khẩu thành dấu sao)
-    const toggleButtons = document.querySelectorAll('.toggle-password-visibility');
-    toggleButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const targetId = this.getAttribute('data-target');
-            const input = document.getElementById(targetId);
-            if (!input) return;
-
-            const iconSpan = this.querySelector('.material-symbols-outlined');
-            if (input.type === 'password') {
-                input.type = 'text'; // Biến thẻ input mật khẩu thành text thường để nhìn thấy chữ
-                if (iconSpan) iconSpan.textContent = 'visibility_off'; // Đổi icon cái mắt bị gạch chéo
-            } else {
-                input.type = 'password';
-                if (iconSpan) iconSpan.textContent = 'visibility';
-            }
-        });
-    });
+    // Logic nút Mắt (Hiển thị / Giấu mật khẩu) giờ dùng chung cho toàn frontend — xem
+    // public/js/frontend/layout/main.js (load sẵn ở mọi trang, không riêng gì trang Hồ sơ này nữa).
 
     // ==========================================
     // 7. KIỂM TRA ĐỘ MẠNH MẬT KHẨU (Real-time Validation)
@@ -369,8 +357,8 @@ function getCsrfToken() {
 /**
  * Gửi 1 form qua fetch, gọi onSuccess(data) nếu thành công. Lúc lỗi: gọi onError(errors) nếu form đó
  * có truyền vào (để tự hiện lỗi tại đúng vị trí liên quan, vd dưới từng ô nhập), nếu không thì mới
- * dùng alert() làm phương án dự phòng chung — dùng chung cho cả form "Cập nhật thông tin" lẫn
- * "Đổi mật khẩu" (cả bản desktop/mobile).
+ * dùng FrontendAlert.error() (toast dùng chung toàn frontend, xem main.js) làm phương án dự phòng
+ * chung — dùng chung cho cả form "Cập nhật thông tin" lẫn "Đổi mật khẩu" (cả bản desktop/mobile).
  */
 function submitProfileForm(form, onSuccess, onError) {
     const btn = form.querySelector('button[type="submit"]');
@@ -392,13 +380,22 @@ function submitProfileForm(form, onSuccess, onError) {
                     return;
                 }
                 const firstError = Object.values(errors)[0];
-                alert((firstError && firstError[0]) || (result.data && result.data.message) || 'Có lỗi xảy ra, vui lòng thử lại.');
+                const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Có lỗi xảy ra, vui lòng thử lại.';
+                if (window.FrontendAlert) {
+                    window.FrontendAlert.error(message);
+                } else {
+                    alert(message);
+                }
                 return;
             }
             if (onSuccess) onSuccess(result.data);
         })
         .catch(function () {
-            alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+            if (window.FrontendAlert) {
+                window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.');
+            } else {
+                alert('Không thể kết nối máy chủ, vui lòng thử lại.');
+            }
         })
         .finally(function () {
             if (btn) btn.disabled = false;
@@ -557,7 +554,12 @@ document.querySelectorAll('form[action$="/profile"]').forEach(function (form) {
                 if (navbarAvatar) navbarAvatar.src = user.avatar_url;
             }
 
-            alert((data && data.message) || 'Cập nhật thông tin thành công!');
+            const successMessage = (data && data.message) || 'Cập nhật thông tin thành công!';
+            if (window.FrontendAlert) {
+                window.FrontendAlert.success(successMessage);
+            } else {
+                alert(successMessage);
+            }
         }, showProfileFieldErrors);
     });
 });
@@ -568,7 +570,12 @@ document.querySelectorAll('form[action$="/change-password"]').forEach(function (
         event.preventDefault();
         submitProfileForm(form, function (data) {
             form.reset(); // Xóa trắng 3 ô mật khẩu sau khi đổi thành công — không để lộ lại trên màn hình
-            alert((data && data.message) || 'Đổi mật khẩu thành công!');
+            const successMessage = (data && data.message) || 'Đổi mật khẩu thành công!';
+            if (window.FrontendAlert) {
+                window.FrontendAlert.success(successMessage);
+            } else {
+                alert(successMessage);
+            }
         });
     });
 });

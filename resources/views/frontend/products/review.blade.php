@@ -9,49 +9,55 @@
         <!-- LEFT COLUMN: Product & Review Form -->
         <div class="w-full md:w-[340px] flex-shrink-0 flex flex-col gap-6">
 
-            <!-- Product Info Card -->
-            <div class="bg-white rounded-2xl border border-outline-variant/60 p-4 shadow-sm">
-                <div class="w-full aspect-square rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-4 border border-outline-variant/30">
+            {{-- Product Info Card — trên điện thoại xếp NGANG (ảnh nhỏ bên trái, tên + điểm bên phải)
+            để không chiếm gần hết màn hình như ảnh vuông cỡ lớn; từ md trở lên vẫn xếp dọc như cũ. --}}
+            <div class="bg-white rounded-2xl border border-outline-variant/60 p-3 md:p-4 shadow-sm flex md:block items-center gap-3">
+                <div class="w-20 h-20 md:w-full md:h-auto md:aspect-square flex-shrink-0 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden md:mb-4 border border-outline-variant/30">
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
-                <h1 class="font-headline-sm text-lg font-bold text-gray-900 mb-2">{{ $product->name }}</h1>
-                <div class="flex items-center gap-2">
-                    <div class="flex text-yellow-400 text-sm">
-                        @php $avgR = round($product->avg_rating * 2) / 2; @endphp
-                        @for($i=1; $i<=5; $i++)
-                            @if($i <= floor($avgR))
-                                <span class="material-symbols-outlined text-base material-filled">star</span>
-                            @elseif($i == ceil($avgR) && $avgR != floor($avgR))
-                                <span class="material-symbols-outlined text-base material-filled">star_half</span>
-                            @else
-                                <span class="material-symbols-outlined text-base text-gray-300 material-filled">star</span>
-                            @endif
-                        @endfor
+                <div class="min-w-0">
+                    <h1 class="font-headline-sm text-base md:text-lg font-bold text-gray-900 mb-1 md:mb-2">{{ $product->name }}</h1>
+                    <div class="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                        <div class="flex text-yellow-400 text-sm">
+                            @php $avgR = round($product->avg_rating * 2) / 2; @endphp
+                            @for($i=1; $i<=5; $i++)
+                                @if($i <= floor($avgR))
+                                    <span class="material-symbols-outlined text-sm md:text-base material-filled">star</span>
+                                @elseif($i == ceil($avgR) && $avgR != floor($avgR))
+                                    <span class="material-symbols-outlined text-sm md:text-base material-filled">star_half</span>
+                                @else
+                                    <span class="material-symbols-outlined text-sm md:text-base text-gray-300 material-filled">star</span>
+                                @endif
+                            @endfor
+                        </div>
+                        <span class="font-bold text-xs md:text-sm">{{ number_format($product->avg_rating, 1) }}/5</span>
+                        <span class="text-xs text-gray-500">({{ $product->review_count }} đánh giá)</span>
                     </div>
-                    <span class="font-bold text-sm">{{ number_format($product->avg_rating, 1) }}/5</span>
-                    <span class="text-xs text-gray-500">({{ $product->review_count }} reviews)</span>
                 </div>
             </div>
 
             <!-- Review Form Card -->
-            <div class="bg-white rounded-2xl border border-outline-variant/60 p-5 shadow-sm">
+            <div class="bg-white rounded-2xl border border-outline-variant/60 p-4 md:p-5 shadow-sm">
                 @if($existingReview)
                     {{-- Đã đánh giá rồi -> mặc định chỉ xem lại nội dung đã gửi; nếu còn trong hạn 7
                     ngày (canEditReview) thì có thêm nút "Chỉnh sửa đánh giá" chuyển sang form sửa. --}}
                     <div id="review-view-mode">
-                        <div class="flex items-center gap-2 mb-4">
-                            <span class="material-symbols-outlined text-primary">check_circle</span>
-                            <h2 class="font-bold text-gray-900 text-base">Đánh giá của bạn</h2>
-                        </div>
-
-                        <div class="flex items-center gap-1 mb-3">
-                            @for($i=1; $i<=5; $i++)
-                                <span class="material-symbols-outlined text-2xl {{ $i <= $existingReview->rating ? 'text-yellow-400 material-filled' : 'text-gray-300' }}">star</span>
-                            @endfor
+                        {{-- Gộp tiêu đề + số sao lên cùng 1 hàng (trước đây 2 hàng riêng) để tiết kiệm
+                        chiều cao trên điện thoại. --}}
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-xl">check_circle</span>
+                                <h2 class="font-bold text-gray-900 text-sm md:text-base">Đánh giá của bạn</h2>
+                            </div>
+                            <div class="flex items-center">
+                                @for($i=1; $i<=5; $i++)
+                                    <span class="material-symbols-outlined text-lg {{ $i <= $existingReview->rating ? 'text-yellow-400 material-filled' : 'text-gray-300' }}">star</span>
+                                @endfor
+                            </div>
                         </div>
 
                         @if($existingReview->comment)
-                            <p class="text-sm text-gray-700 leading-relaxed mb-3">{{ $existingReview->comment }}</p>
+                            <p class="text-sm text-gray-700 leading-relaxed mb-2">{{ $existingReview->comment }}</p>
                         @endif
 
                         @if($existingReview->image)
@@ -61,31 +67,42 @@
                                 if (is_array($decodedExisting)) { $existingImages = $decodedExisting; }
                                 else { $existingImages = [$existingReview->image]; }
                             @endphp
-                            <div class="flex flex-wrap gap-2 mb-3">
+                            <div class="flex flex-wrap gap-2 mb-2">
                                 @foreach($existingImages as $img)
-                                    <img src="{{ asset('images/' . $img) }}" class="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
+                                    <img src="{{ asset('images/' . $img) }}" class="w-14 h-14 md:w-16 md:h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
                                 @endforeach
                             </div>
                         @endif
 
-                        <p class="text-[11px] text-gray-400">Đã gửi lúc {{ \Carbon\Carbon::parse($existingReview->created_at)->translatedFormat('d \T\h\á\n\g m, Y') }}</p>
-                        @if($existingReview->edited_at)
-                            <p class="text-[11px] text-gray-400">Đã chỉnh sửa lúc {{ \Carbon\Carbon::parse($existingReview->edited_at)->translatedFormat('d \T\h\á\n\g m, Y') }}</p>
+                        {{-- Gộp "đã gửi lúc" + "đã chỉnh sửa lúc" vào 1 dòng, ngăn bằng dấu · --}}
+                        <p class="text-[11px] text-gray-400">
+                            Gửi {{ \Carbon\Carbon::parse($existingReview->created_at)->translatedFormat('d/m/Y') }}
+                            @if($existingReview->edited_at)
+                                · Sửa {{ \Carbon\Carbon::parse($existingReview->edited_at)->translatedFormat('d/m/Y') }}
+                            @endif
+                        </p>
+
+                        @if(!$canEditReview)
+                            <p class="mt-2 text-[11px] text-gray-400 italic">
+                                @if($existingReview->edited_at)
+                                    Bạn chỉ được chỉnh sửa đánh giá này 1 lần và đã sử dụng lượt sửa đó rồi.
+                                @else
+                                    Đã quá {{ $editWindowDays }} ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.
+                                @endif
+                            </p>
                         @endif
 
-                        @if($canEditReview)
-                            <button type="button" onclick="toggleReviewEditMode(true)" class="mt-4 flex items-center justify-center gap-2 w-full border border-primary text-primary font-bold py-3 rounded-xl hover:bg-primary/5 transition-all">
-                                <span class="material-symbols-outlined text-lg">edit</span> Chỉnh sửa đánh giá
-                            </button>
-                        @elseif($existingReview->edited_at)
-                            <p class="mt-4 text-xs text-gray-400 italic">Bạn chỉ được chỉnh sửa đánh giá này 1 lần và đã sử dụng lượt sửa đó rồi.</p>
-                        @else
-                            <p class="mt-4 text-xs text-gray-400 italic">Đã quá {{ $editWindowDays }} ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.</p>
-                        @endif
-
-                        <a href="{{ route('orders', ['status' => 'completed']) }}" class="mt-3 block text-center w-full border border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all">
-                            Quay lại đơn hàng
-                        </a>
+                        {{-- 2 nút xếp NGANG (trước đây 2 nút full-width xếp dọc chiếm nhiều chiều cao) --}}
+                        <div class="flex gap-2 mt-3">
+                            <a href="{{ route('orders', ['status' => 'completed']) }}" class="flex-1 text-center border border-gray-200 text-gray-700 font-bold text-sm py-2.5 rounded-xl hover:bg-gray-50 transition-all">
+                                Quay lại
+                            </a>
+                            @if($canEditReview)
+                                <button type="button" onclick="toggleReviewEditMode(true)" class="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-bold text-sm py-2.5 rounded-xl hover:bg-primary/5 transition-all">
+                                    <span class="material-symbols-outlined text-base">edit</span> Chỉnh sửa
+                                </button>
+                            @endif
+                        </div>
                     </div>
 
                     @if($canEditReview)
@@ -194,20 +211,27 @@
         </div>
 
         <!-- RIGHT COLUMN: Customer Reviews -->
-        <div class="flex-1 bg-white rounded-2xl border border-outline-variant/60 p-6 shadow-sm">
-            <h2 class="font-headline-md text-2xl font-bold text-gray-900 mb-6">Đánh giá từ khách hàng</h2>
+        <div class="flex-1 bg-white rounded-2xl border border-outline-variant/60 p-4 md:p-6 shadow-sm">
+            <h2 class="font-headline-md text-lg md:text-2xl font-bold text-gray-900 mb-3 md:mb-6">Đánh giá từ khách hàng</h2>
 
             {{-- Bọc trong .reviews-app để reviews-filter.js nhận diện — nút lọc + khung danh sách/nút
             "Xem thêm" dùng chung 1 bộ class với trang chi tiết sản phẩm (xem
             public/js/frontend/products/reviews-filter.js). --}}
             <div class="reviews-app" data-product-id="{{ $product->id }}" data-view="compact">
-                <!-- Filters -->
-                <div class="flex flex-wrap gap-2 mb-8">
-                    <button type="button" class="review-filter-btn is-active px-4 py-1.5 bg-[#00a82d] text-white text-sm font-bold rounded-full border border-[#00a82d]" data-rating="" data-has-image="">Tất cả</button>
+                {{-- Filters: cuộn ngang 1 hàng thay vì xuống dòng thành 3 hàng (7 nút lọc chiếm gần
+                hết màn hình điện thoại) — cùng cách thanh lọc trạng thái ở trang Đơn hàng đang làm. --}}
+                <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1 md:flex-wrap md:overflow-visible" id="review-filters-track">
+                    <button type="button" class="review-filter-btn is-active flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-[#00a82d] text-white text-xs md:text-sm font-bold rounded-full border border-[#00a82d]" data-rating="" data-has-image="">Tất cả</button>
                     @for($star = 5; $star >= 1; $star--)
-                        <button type="button" class="review-filter-btn px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
+                        <button type="button" class="review-filter-btn flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
                     @endfor
-                    <button type="button" class="review-filter-btn px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
+                    <button type="button" class="review-filter-btn flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
+                </div>
+                {{-- Thanh chỉ báo vị trí cuộn ngang — hàng nút lọc ở trên ẩn thanh cuộn gốc của trình
+                duyệt (.hide-scrollbar) nên không còn gợi ý nào cho biết còn nút lọc ở bên phải để vuốt
+                sang. Cùng cơ chế đã dùng cho khối "Danh mục nổi bật" ở trang chủ (xem home.js). --}}
+                <div class="review-filters-scrollbar mb-4 md:mb-8" id="review-filters-scrollbar" aria-hidden="true">
+                    <div class="review-filters-scrollbar__thumb" id="review-filters-scrollbar-thumb"></div>
                 </div>
 
                 <!-- Reviews List -->

@@ -89,10 +89,21 @@ class AuthController
         // Ghi log mã OTP vào file log của hệ thống để tiện cho việc kiểm thử/debug
         \Illuminate\Support\Facades\Log::info("OTP for register {$email} is: {$otp}");
 
-        // 5. Gửi email chứa mã OTP xác nhận tài khoản
-        \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
-            $message->to($email)->subject('Mã xác minh tài khoản');
-        });
+        // 5. Gửi email chứa mã OTP xác nhận tài khoản — bọc try/catch vì trước đây nếu gửi mail lỗi
+        // (vd cấu hình SMTP sai/thiếu trên môi trường production) thì exception văng thẳng ra thành
+        // lỗi 500 không rõ ràng, khiến nút "Đăng Ký Tài Khoản" có bấm cũng như không, không hiểu vì sao.
+        try {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+                $message->to($email)->subject('Mã xác minh tài khoản');
+            });
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Register OTP mail send failed: ' . $e->getMessage());
+            $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => ['register_error' => [$message]]], 422);
+            }
+            return back()->withErrors(['register_error' => $message])->withInput();
+        }
 
         // Form đăng ký submit qua fetch (xem register.js) -> trả email để JS tự mở modal OTP tại chỗ
         // (không cần tải lại trang để server render lại cờ show_otp nữa).
@@ -215,10 +226,17 @@ class AuthController
         
         \Illuminate\Support\Facades\Log::info("OTP for resend {$email} is: {$otp}");
 
-        // Gửi lại thư điện tử mới chứa mã OTP vừa cập nhật
-        \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
-            $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
-        });
+        // Gửi lại thư điện tử mới chứa mã OTP vừa cập nhật — bọc try/catch cùng lý do với postRegister()
+        // ở trên: gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi
+        // 500 không rõ ràng.
+        try {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+                $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
+            });
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Resend OTP mail send failed: ' . $e->getMessage());
+            return $this->otpError($request, 'Không thể gửi lại email xác minh lúc này, vui lòng thử lại sau.');
+        }
 
         return back();
     }
@@ -432,10 +450,21 @@ class AuthController
         
         \Illuminate\Support\Facades\Log::info("OTP for forgot password {$email} is: {$otp}");
 
-        // 4. Gửi email chứa mã OTP khôi phục mật khẩu
-        \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
-            $message->to($email)->subject('Khôi phục mật khẩu');
-        });
+        // 4. Gửi email chứa mã OTP khôi phục mật khẩu — bọc try/catch cùng lý do với postRegister():
+        // gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi 500 không
+        // rõ ràng khiến nút bấm "có bấm cũng như không".
+        try {
+            \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
+                $message->to($email)->subject('Khôi phục mật khẩu');
+            });
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Forgot password OTP mail send failed: ' . $e->getMessage());
+            $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => ['forgot_error' => [$message]]], 422);
+            }
+            return redirect('/')->with('show_forgot', true)->withErrors(['forgot_error' => $message])->withInput();
+        }
 
         // Form quên mật khẩu submit qua fetch (xem forgot-password.js) -> trả email để JS tự mở modal
         // OTP tại chỗ, không cần tải lại trang.

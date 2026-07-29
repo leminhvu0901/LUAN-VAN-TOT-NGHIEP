@@ -404,11 +404,12 @@ document.addEventListener("DOMContentLoaded", function () {
     syncProductCheckboxes();
 });
 
-// Đồng bộ lại bảng khi bấm nút Back/Forward của trình duyệt (URL đổi qua pushState ở fetchProducts()
-// không tự kích hoạt tải lại nội dung) — cùng pattern đã dùng ở orders/index.js.
+// Xử lý nút Back/Forward của trình duyệt. Trước đây gọi lại fetchProducts() (fetch kèm
+// Accept: application/json) để "đồng bộ" bảng theo URL vừa quay lại — nhưng có trường hợp (vd bfcache
+// khôi phục trang) khiến JSON trả về bị hiển thị thẳng ra thành nội dung trang thay vì được JS chèn
+// vào bảng. Tải lại thẳng trang an toàn hơn nhiều (đã tự kiểm chứng luôn trả đúng HTML đầy đủ).
 window.addEventListener("popstate", function () {
-    resetProductSelection();
-    fetchProducts(window.location.href);
+    window.location.reload();
 });
 
 // Giữ lại vị trí cuộn khi rời trang (bấm Sửa 1 sản phẩm đang ở giữa danh sách dài) và khôi phục lại

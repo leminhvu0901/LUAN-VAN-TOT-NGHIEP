@@ -69,7 +69,13 @@
                 <div class="l-form-group">
                     <label for="password" class="l-label">Mật khẩu</label>
                     <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
-                        class="l-input @error('password') is-invalid @enderror" required />
+                        class="l-input has-password-toggle @error('password') is-invalid @enderror" required />
+                    {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js).
+                    Modal này được nạp ở mọi trang (kể cả các trang KHÔNG load Tailwind), nên dùng class/CSS
+                    thuần (.toggle-password, users.css) thay vì class Tailwind. --}}
+                    <button type="button" class="toggle-password toggle-password-visibility" data-target="password" aria-label="Hiện/ẩn mật khẩu">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                    </button>
                     {{-- Hiển thị lỗi xác thực cụ thể cho trường Mật khẩu --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
@@ -80,7 +86,10 @@
                 <div class="l-form-group">
                     <label for="password_confirmation" class="l-label">Xác nhận mật khẩu</label>
                     <input id="password_confirmation" name="password_confirmation" type="password"
-                        placeholder="Nhập lại mật khẩu" class="l-input" required />
+                        placeholder="Nhập lại mật khẩu" class="l-input has-password-toggle" required />
+                    <button type="button" class="toggle-password toggle-password-visibility" data-target="password_confirmation" aria-label="Hiện/ẩn mật khẩu">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                    </button>
                 </div>
 
                 {{-- Điều khoản dịch vụ và Chính sách bảo mật đồng ý khi đăng ký --}}

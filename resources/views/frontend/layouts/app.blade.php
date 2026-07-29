@@ -50,8 +50,12 @@
     <script src="https://cdn.jsdelivr.net/npm/simplebar@6.2.5/dist/simplebar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/min/tiny-slider.js"></script>
+    {{-- SweetAlert2 — trước đây CHỈ nạp khi tài khoản bị khóa (is_active==0), nên window.FrontendAlert
+    (main.js) và mọi chỗ khác lỡ gọi Swal trực tiếp trên toàn frontend đều lặng lẽ không hiện được gì
+    cho >99% tài khoản bình thường. Nạp sẵn ở đây cho MỌI trang để dùng được toast thông báo thống nhất. --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Code Javascript tự viết chung cho cả hệ thống (Giỏ hàng, Yêu thích...) -->
+    <!-- Code Javascript tự viết chung cho cả hệ thống (Giỏ hàng, Yêu thích, thông báo toast...) -->
     <script src="{{ asset('js/frontend/layout/main.js') }}"></script>
 
     <!-- Các script plugin tĩnh được đặt trong thư mục public/js/vendors -->
@@ -67,8 +71,7 @@
 
     @if (Auth::check() && Auth::user()->is_active == 0)
         <link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}">
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-        
+
         {{-- Đẩy dữ liệu an toàn từ PHP sang JS --}}
         @php
             $lockedUserData = [

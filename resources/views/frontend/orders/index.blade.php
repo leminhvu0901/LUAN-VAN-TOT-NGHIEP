@@ -349,16 +349,8 @@
             // Banner ở đầu trang dễ bị JS tự cuộn xuống chi tiết đơn (data-open-order-id) che mất
             // ngay sau khi tải trang -> thêm toast nổi luôn hiển thị bất kể vị trí cuộn, không tự tắt quá nhanh.
             document.addEventListener('DOMContentLoaded', function () {
-                if (window.Swal) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: @json(session('success')),
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3500,
-                        timerProgressBar: true,
-                    });
+                if (window.FrontendAlert) {
+                    window.FrontendAlert.success(@json(session('success')), 3500);
                 }
             });
         </script>

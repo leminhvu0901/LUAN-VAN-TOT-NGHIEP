@@ -4890,6 +4890,8 @@ h6>a:hover,
 .l-form-group {
   margin-bottom: 1.5rem;
   text-align: left;
+  position: relative;
+  /* Cần position:relative để nút ẩn/hiện mật khẩu (.toggle-password) định vị absolute bên trong */
 }
 
 .l-label {
@@ -4922,6 +4924,11 @@ h6>a:hover,
 
 .l-input::placeholder {
   color: #9ca3af;
+}
+
+.l-input.has-password-toggle {
+  padding-right: 2.75rem;
+  /* Chừa chỗ cho nút ẩn/hiện mật khẩu bên phải, tránh đè lên chữ đang gõ */
 }
 
 .l-forgot-wrap {
@@ -9853,6 +9860,26 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
+}
+
+/* Thanh chỉ báo vị trí cuộn ngang cho hàng nút lọc đánh giá (trang "Xem đánh giá") — cùng cơ chế với
+   .home-categories-scrollbar ở trang chủ. Vị trí/độ rộng "thumb" tính động theo tỉ lệ cuộn thật qua
+   JS (xem public/js/frontend/products/reviews-filter.js). Trên desktop hàng nút tự xuống dòng thay vì
+   cuộn ngang (không cần thanh chỉ báo) — JS tự ẩn thanh này khi không có gì để cuộn. */
+.review-filters-scrollbar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  margin-top: 0.375rem;
+  overflow: hidden;
+}
+
+.review-filters-scrollbar__thumb {
+  height: 100%;
+  width: 30%;
+  background: #9ca3af;
+  border-radius: 9999px;
+  transform: translateX(0);
 }
 
 /* Global show/hide utility classes (primarily for pages where Tailwind CDN is not loaded) */
