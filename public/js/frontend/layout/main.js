@@ -35,6 +35,54 @@ window.FrontendAlert = {
             },
         }).fire({ icon: 'error', title: message });
     },
+    // Hộp thoại nhập liệu có xác nhận (vd lý do hủy đơn) - thay cho prompt() gốc của trình duyệt (hộp
+    // thoại xám xịt "trang web cho biết"). Dùng class CSS THUẦN (fa-prompt-*, xem users.css), KHÔNG
+    // dùng Tailwind: file này (main.js) chạy trên MỌI trang, kể cả những trang không nạp Tailwind (xem
+    // head.blade.php) - bài học từ lỗi tương tự ở modal đăng ký trước đây.
+    // Trả về Promise giống hệt Swal.fire() gốc: { isConfirmed, value }.
+    prompt: function (options) {
+        options = options || {};
+        const title = options.title || '';
+        const text = options.text || '';
+        const placeholder = options.placeholder || '';
+        const defaultValue = options.defaultValue || '';
+        const minLength = options.minLength || 0;
+        const confirmText = options.confirmText || 'Xác nhận';
+
+        if (typeof Swal === 'undefined') {
+            const value = prompt(text ? title + '\n\n' + text : title, defaultValue);
+            return Promise.resolve({ isConfirmed: value !== null, value: value });
+        }
+
+        return Swal.fire({
+            title: title,
+            text: text,
+            input: 'text',
+            inputValue: defaultValue,
+            inputPlaceholder: placeholder,
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Hủy',
+            buttonsStyling: false,
+            returnFocus: false,
+            customClass: {
+                popup: 'fa-prompt-popup',
+                title: 'fa-prompt-title',
+                htmlContainer: 'fa-prompt-text',
+                input: 'fa-prompt-input',
+                validationMessage: 'fa-prompt-validation',
+                actions: 'fa-prompt-actions',
+                confirmButton: 'fa-prompt-confirm',
+                cancelButton: 'fa-prompt-cancel',
+            },
+            inputValidator: function (value) {
+                if (!value || !value.trim()) return 'Vui lòng nhập thông tin.';
+                if (minLength && value.trim().length < minLength) {
+                    return 'Vui lòng nhập ít nhất ' + minLength + ' ký tự.';
+                }
+            },
+        });
+    },
 };
 
 (function () {

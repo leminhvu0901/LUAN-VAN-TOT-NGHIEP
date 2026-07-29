@@ -11833,6 +11833,92 @@ mặc định của SweetAlert2 hơi to/thô, đặc biệt trên màn hình mob
   }
 }
 
+/* Hộp thoại nhập liệu dùng chung (window.FrontendAlert.prompt) - vd lý do hủy đơn hàng. Class CSS
+THUẦN (không Tailwind) vì main.js chạy trên mọi trang, kể cả trang không nạp Tailwind. */
+.fa-prompt-popup {
+  border-radius: 1rem;
+  padding: 1.5rem !important;
+  width: 22rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.fa-prompt-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.fa-prompt-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+}
+
+.fa-prompt-input.swal2-input {
+  width: 100%;
+  margin: 0 0 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  box-shadow: none;
+}
+
+.fa-prompt-input.swal2-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.fa-prompt-validation {
+  font-size: 0.8125rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0;
+}
+
+.fa-prompt-actions {
+  width: 100%;
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+.fa-prompt-confirm,
+.fa-prompt-cancel {
+  flex: 1;
+  padding: 0.65rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.fa-prompt-confirm {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.fa-prompt-confirm:hover {
+  filter: brightness(1.05);
+}
+
+.fa-prompt-cancel {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.fa-prompt-cancel:hover {
+  background: #e5e7eb;
+}
+
 .locked-btn-logout {
   background-color: #f3f4f6 !important;
   color: #4b5563 !important;

@@ -46,23 +46,22 @@ window.toggleOrderDetails = function(orderId) {
  * @param {string} orderCode - Mã hiển thị của đơn hàng
  */
 window.confirmCancelOrder = function(orderId, orderCode) {
-    const reason = prompt(
-        'Bạn có chắc chắn muốn hủy đơn hàng ' + orderCode + '?\n\n' +
-        'Vui lòng nhập lý do hủy đơn hàng (tối thiểu 5 ký tự):',
-        'Khách hàng tự hủy đơn hàng'
-    );
+    // window.FrontendAlert.prompt() (main.js) thay cho prompt() gốc của trình duyệt — hộp thoại xám
+    // xịt "trang web cho biết" trước đây không đồng bộ với giao diện thương hiệu của trang.
+    window.FrontendAlert.prompt({
+        title: 'Hủy đơn hàng ' + orderCode + '?',
+        text: 'Vui lòng nhập lý do hủy đơn hàng (tối thiểu 5 ký tự):',
+        placeholder: 'Lý do hủy đơn hàng',
+        defaultValue: 'Khách hàng tự hủy đơn hàng',
+        minLength: 5,
+        confirmText: 'Hủy đơn',
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+        submitCancelOrder(orderId, result.value.trim());
+    });
+};
 
-    // Người dùng bấm Hủy (Cancel) trên prompt
-    if (reason === null) {
-        return;
-    }
-
-    const cleanReason = reason.trim();
-    if (cleanReason.length < 5) {
-        if (window.FrontendAlert) window.FrontendAlert.error('Lý do hủy đơn hàng phải có ít nhất 5 ký tự!'); else alert('Lý do hủy đơn hàng phải có ít nhất 5 ký tự!');
-        return;
-    }
-
+function submitCancelOrder(orderId, cleanReason) {
     const form = document.getElementById('cancel-order-form');
     const input = document.getElementById('cancel-reason-input');
 
@@ -107,4 +106,4 @@ window.confirmCancelOrder = function(orderId, orderCode) {
         .catch(function () {
             if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
         });
-};
+}
