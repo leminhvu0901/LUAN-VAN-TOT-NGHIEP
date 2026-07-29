@@ -7454,6 +7454,12 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   padding-bottom: 3rem;
 }
 
+/* Khoảng cách dưới tiêu đề khối "Tại sao chọn chúng tôi" (trước đây để style inline trong home.blade.php,
+chuyển ra đây để mobile thu gọn lại được) */
+.home-features .home-section__header {
+  margin-bottom: 2.5rem;
+}
+
 .home-features__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -7738,8 +7744,58 @@ animation: dividerPulse 2.5s ease-in-out infinite;
 }
 
 @media (max-width: 540px) {
+  /* Mobile: mỗi thẻ xếp NGANG (icon trái - chữ phải) thay vì xếp dọc, giảm gần một nửa chiều cao
+     nên 4 thẻ không còn chiếm quá nhiều màn hình phải cuộn nhiều. Dùng grid-template-areas để khỏi
+     phải bọc thêm thẻ div quanh phần chữ trong home.blade.php. */
   .home-features__grid {
     grid-template-columns: 1fr;
+    gap: 0.625rem;
+  }
+
+  .home-features {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .home-features .home-section__header {
+    margin-bottom: 1.25rem;
+  }
+
+  .home-feat-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "icon title"
+      "icon desc";
+    column-gap: 0.875rem;
+    align-items: start;
+    padding: 0.875rem 1rem;
+    border-radius: 0.875rem;
+  }
+
+  .home-feat-card__icon {
+    grid-area: icon;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    margin-bottom: 0;
+  }
+
+  .home-feat-card__icon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .home-feat-card__title {
+    grid-area: title;
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .home-feat-card__desc {
+    grid-area: desc;
+    font-size: 0.78rem;
+    line-height: 1.45;
   }
 
   .home-hero__inner {
@@ -7748,9 +7804,6 @@ animation: dividerPulse 2.5s ease-in-out infinite;
 }
 
 @media (max-width: 480px) {
-  .home-feat-card {
-    padding: 1.25rem;
-  }
 
   .hero-banner__actions,
   .home-hero__actions {

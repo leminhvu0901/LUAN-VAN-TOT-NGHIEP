@@ -320,7 +320,9 @@
 
     {{-- ===== TẠI SAO CHỌN CHÚNG TÔI ===== --}}
     <section class="home-features container">
-        <div class="home-section__header" style="margin-bottom: 2.5rem;">
+        {{-- Khoảng cách dưới tiêu đề chuyển sang CSS (.home-features .home-section__header) thay vì
+        style inline, để mobile thu gọn lại được mà không cần !important --}}
+        <div class="home-section__header">
             <div>
                 <p class="home-section__subtitle">Tại sao chọn chúng tôi</p>
                 <h2 class="home-section__title">Trải nghiệm Happy khác biệt</h2>
