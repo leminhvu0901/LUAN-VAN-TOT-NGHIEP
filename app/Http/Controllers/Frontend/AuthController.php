@@ -20,6 +20,13 @@ class AuthController
     private const OTP_LIFETIME_SECONDS = 300;
 
     /**
+     * Thời hạn của quyền đặt lại mật khẩu (giây) tính từ lúc xác thực OTP thành công. Trước đây cờ
+     * can_reset_password không có hạn -> nằm lại trong session vô thời hạn, ai mở lại trình duyệt cũng
+     * còn quyền đổi mật khẩu. Giới hạn lại để quyền này hết hiệu lực nếu không dùng ngay.
+     */
+    private const RESET_PASSWORD_WINDOW_SECONDS = 600;
+
+    /**
      * Xử lý yêu cầu Đăng ký tài khoản mới từ phía người dùng.
      */
     public function postRegister(Request $request)
@@ -176,11 +183,17 @@ class AuthController
 
             // TH1: Nếu đây là quá trình xác thực phục vụ việc Quên mật khẩu
             if ($request->session()->get('is_forgot_password')) {
-                // Đánh dấu người dùng được phép đặt lại mật khẩu mới
+                // Đánh dấu người dùng được phép đặt lại mật khẩu mới, kèm mốc thời gian để quyền này
+                // tự hết hiệu lực sau RESET_PASSWORD_WINDOW_SECONDS (không nằm lại session vĩnh viễn).
                 $request->session()->put('can_reset_password', true);
+                $request->session()->put('can_reset_password_at', now()->toDateTimeString());
                 // Modal Đặt lại mật khẩu (trước đây là trang riêng /reset-password) giờ mở ngay tại chỗ
                 // bằng JS (xem verify-otp.js gọi window.openResetPasswordModal()), không điều hướng
                 // sang trang khác - giống hệt cách modal OTP tự mở sau khi đăng ký/quên mật khẩu.
+                // LƯU Ý: đường JSON KHÔNG được flash 'show_reset_password' - phản hồi fetch không render
+                // trang nên không "tiêu thụ" flash, nó sẽ nằm lại và bung modal ở lần tải trang BẤT KỲ
+                // sau đó (vd bấm "Gửi lại" mã OTP) -> bỏ qua được bước nhập OTP. JS đã tự mở modal dựa
+                // vào cờ trong body JSON rồi. Chỉ đường không-JS mới cần flash qua ->with().
                 if ($request->expectsJson()) {
                     return response()->json(['success' => true, 'show_reset_password' => true]);
                 }
@@ -292,7 +305,8 @@ class AuthController
             'verify_otp',
             'verify_otp_time',
             'is_forgot_password',
-            'can_reset_password'
+            'can_reset_password',
+            'can_reset_password_at'
         ]);
         return response()->json(['status' => 'success']);
     }
@@ -525,10 +539,29 @@ class AuthController
     {
         // Modal Đặt lại mật khẩu giờ tự mở qua JS ngay sau khi xác nhận OTP (xem verify-otp.js), không
         // còn view riêng nữa. Route này chỉ còn là lối dự phòng nếu ai đó điều hướng thẳng tới đây.
-        if (!$request->session()->has('can_reset_password')) {
+        if (!$this->hasValidResetPermission($request)) {
             return redirect('/');
         }
         return redirect('/')->with('show_reset_password', true);
+    }
+
+    /**
+     * Kiểm tra người dùng có quyền đặt lại mật khẩu hay không: vừa phải có cờ can_reset_password (chỉ
+     * được cấp sau khi nhập đúng OTP), vừa phải còn trong thời hạn cho phép.
+     */
+    private function hasValidResetPermission(Request $request): bool
+    {
+        if (!$request->session()->has('can_reset_password')) {
+            return false;
+        }
+
+        $grantedAt = $request->session()->get('can_reset_password_at');
+        if (!$grantedAt) {
+            return false;
+        }
+
+        // Carbon::parse: session serialize kiểu json nên giá trị đọc ra là CHUỖI, không phải Carbon.
+        return \Illuminate\Support\Carbon::parse($grantedAt)->diffInSeconds(now()) <= self::RESET_PASSWORD_WINDOW_SECONDS;
     }
 
     /**
@@ -536,8 +569,10 @@ class AuthController
      */
     public function postResetPassword(Request $request)
     {
-        // Chặn nếu người dùng cố tình truy cập trực tiếp bằng POST mà chưa qua bước xác thực OTP
-        if (!$request->session()->has('can_reset_password')) {
+        // Chặn nếu người dùng cố tình truy cập trực tiếp bằng POST mà chưa qua bước xác thực OTP, hoặc
+        // quyền đặt lại mật khẩu đã quá hạn.
+        if (!$this->hasValidResetPermission($request)) {
+            $request->session()->forget(['can_reset_password', 'can_reset_password_at']);
             $message = 'Phiên xác thực đã hết hạn, vui lòng thực hiện lại thao tác quên mật khẩu.';
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => ['reset_error' => [$message]]], 422);
@@ -574,7 +609,7 @@ class AuthController
             $user->save();
 
             // Xóa sạch toàn bộ các khóa xác thực tạm thời trong Session
-            $request->session()->forget(['verify_email', 'verify_otp', 'verify_otp_time', 'is_forgot_password', 'can_reset_password']);
+            $request->session()->forget(['verify_email', 'verify_otp', 'verify_otp_time', 'is_forgot_password', 'can_reset_password', 'can_reset_password_at']);
 
             // Tự động đăng nhập luôn cho người dùng sau khi đổi mật khẩu thành công
             Auth::login($user);

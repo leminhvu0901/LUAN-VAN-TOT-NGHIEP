@@ -700,6 +700,69 @@ class FrontendAjaxTest extends TestCase
         $this->assertNotEmpty(session('success'));
     }
 
+    /**
+     * SECURITY REGRESSION: can_reset_password is a long-lived permission flag, not a "show the modal
+     * now" signal. Driving the modal off it meant any subsequent page load - including clicking
+     * "Gửi lại" on an expired OTP, which does a full redirect - popped the reset-password modal open,
+     * letting anyone set a new password without ever entering a correct OTP.
+     */
+    public function test_reset_modal_does_not_auto_open_from_lingering_permission_flag(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        User::create([
+            'name' => 'Test', 'email' => 'lingering@test.com', 'password' => bcrypt('OldPassword1@'),
+            'role' => 'customer', 'is_active' => 1,
+        ]);
+
+        $this->postJson('/forgot-password', ['recovery_contact' => 'lingering@test.com'])->assertOk();
+        $digits = str_split((string) session('verify_otp'));
+        $this->postJson('/verify-otp', ['otp' => $digits])->assertOk();
+
+        // Permission is granted, but the one-shot "open it now" flash has already been consumed.
+        $this->assertTrue(session()->has('can_reset_password'));
+
+        $this->get('/')->assertOk()->assertDontSee('data-show-reset-password="true"', false);
+    }
+
+    public function test_resending_an_otp_does_not_open_the_reset_password_modal(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        User::create([
+            'name' => 'Test', 'email' => 'resendflow@test.com', 'password' => bcrypt('OldPassword1@'),
+            'role' => 'customer', 'is_active' => 1,
+        ]);
+
+        $this->postJson('/forgot-password', ['recovery_contact' => 'resendflow@test.com'])->assertOk();
+
+        $this->followingRedirects()->get('/resend-otp')
+            ->assertOk()
+            ->assertDontSee('data-show-reset-password="true"', false);
+    }
+
+    public function test_reset_password_permission_expires_after_its_window(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        User::create([
+            'name' => 'Test', 'email' => 'staleperm@test.com', 'password' => bcrypt('OldPassword1@'),
+            'role' => 'customer', 'is_active' => 1,
+        ]);
+
+        $this->postJson('/forgot-password', ['recovery_contact' => 'staleperm@test.com'])->assertOk();
+        $digits = str_split((string) session('verify_otp'));
+        $this->postJson('/verify-otp', ['otp' => $digits])->assertOk();
+
+        // Rewind the grant well past the allowed window.
+        session(['can_reset_password_at' => now()->subHour()->toDateTimeString()]);
+
+        $this->postJson('/reset-password', [
+            'password' => 'NewPassword1@',
+            'password_confirmation' => 'NewPassword1@',
+        ])->assertStatus(422);
+
+        $this->assertGuest();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('OldPassword1@', User::where('email', 'staleperm@test.com')->first()->password));
+    }
+
     public function test_reset_password_rejects_direct_access_without_otp_verification(): void
     {
         $response = $this->postJson('/reset-password', [
