@@ -68,14 +68,18 @@
                 {{-- Ô nhập Mật khẩu bảo mật --}}
                 <div class="l-form-group">
                     <label for="password" class="l-label">Mật khẩu</label>
-                    <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
-                        class="l-input has-password-toggle @error('password') is-invalid @enderror" required />
-                    {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js).
-                    Modal này được nạp ở mọi trang (kể cả các trang KHÔNG load Tailwind), nên dùng class/CSS
-                    thuần (.toggle-password, users.css) thay vì class Tailwind. --}}
-                    <button type="button" class="toggle-password toggle-password-visibility" data-target="password" aria-label="Hiện/ẩn mật khẩu">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
-                    </button>
+                    {{-- l-input-wrap: bọc riêng ô input để nút mắt canh giữa theo chiều cao input (top:50%),
+                    không phụ thuộc vào chiều cao label như cách canh cũ (dễ lệch nếu 2 hệ CSS lệch pixel nhau) --}}
+                    <div class="l-input-wrap">
+                        <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
+                            class="l-input has-password-toggle @error('password') is-invalid @enderror" required />
+                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js).
+                        Modal này được nạp ở mọi trang (kể cả các trang KHÔNG load Tailwind), nên dùng class/CSS
+                        thuần (.toggle-password, users.css) thay vì class Tailwind. --}}
+                        <button type="button" class="toggle-password toggle-password-visibility" data-target="password" aria-label="Hiện/ẩn mật khẩu">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                        </button>
+                    </div>
                     {{-- Hiển thị lỗi xác thực cụ thể cho trường Mật khẩu --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
@@ -85,11 +89,13 @@
                 {{-- Ô xác nhận lại mật khẩu nhằm kiểm tra lỗi gõ phím --}}
                 <div class="l-form-group">
                     <label for="password_confirmation" class="l-label">Xác nhận mật khẩu</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password"
-                        placeholder="Nhập lại mật khẩu" class="l-input has-password-toggle" required />
-                    <button type="button" class="toggle-password toggle-password-visibility" data-target="password_confirmation" aria-label="Hiện/ẩn mật khẩu">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
-                    </button>
+                    <div class="l-input-wrap">
+                        <input id="password_confirmation" name="password_confirmation" type="password"
+                            placeholder="Nhập lại mật khẩu" class="l-input has-password-toggle" required />
+                        <button type="button" class="toggle-password toggle-password-visibility" data-target="password_confirmation" aria-label="Hiện/ẩn mật khẩu">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                        </button>
+                    </div>
                 </div>
 
                 {{-- Điều khoản dịch vụ và Chính sách bảo mật đồng ý khi đăng ký --}}

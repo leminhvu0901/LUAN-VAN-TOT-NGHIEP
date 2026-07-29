@@ -4890,8 +4890,6 @@ h6>a:hover,
 .l-form-group {
   margin-bottom: 1.5rem;
   text-align: left;
-  position: relative;
-  /* Cần position:relative để nút ẩn/hiện mật khẩu (.toggle-password) định vị absolute bên trong */
 }
 
 .l-label {
@@ -4929,6 +4927,17 @@ h6>a:hover,
 .l-input.has-password-toggle {
   padding-right: 2.75rem;
   /* Chừa chỗ cho nút ẩn/hiện mật khẩu bên phải, tránh đè lên chữ đang gõ */
+}
+
+.l-input-wrap {
+  position: relative;
+}
+
+/* Canh giữa nút mắt theo chiều cao của CHÍNH ô input (không phải theo label) để luôn thẳng hàng
+dù chiều cao input có lệch vài pixel giữa các hệ CSS khác nhau trong dự án */
+.l-input-wrap .toggle-password {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .l-forgot-wrap {
