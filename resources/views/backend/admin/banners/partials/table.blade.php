@@ -196,8 +196,11 @@
                         $fullImageUrl = asset($bannerUrl);
                     }
                 @endphp
+                {{-- Không đặt overflow-wrap/word-break ở thẻ card này: nó KẾ THỪA xuống 3 nút thao tác
+                     bên dưới, làm min-content của nút bằng 0 nên nút flex-1 co lại và chữ bị bẻ giữa từ
+                     ("Trạ/ng thá/i"). Chỉ cho phép bẻ từ ở đúng chỗ chữ do người dùng nhập (tiêu đề/nhãn). --}}
                 <div id="banner-row-{{ $banner->id }}" class="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col gap-3 relative select-row-tr"
-                    data-id="{{ $banner->id }}" style="overflow-wrap: anywhere; word-break: break-word;">
+                    data-id="{{ $banner->id }}">
                     <!-- Header Card: Checkbox và Trạng thái -->
                     <div class="flex items-center justify-between pb-2 border-b border-gray-100">
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -225,16 +228,16 @@
                         <div class="flex items-start gap-2">
                             <span class="text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wide shrink-0">Tiêu
                                 đề:</span>
-                            <h4 class="font-bold text-gray-900 text-sm leading-snug">
+                            <h4 class="font-bold text-gray-900 text-sm leading-snug min-w-0 break-words">
                                 {{ $banner->title ?? '---' }}
                             </h4>
                         </div>
 
                         @if($banner->title_tag)
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-start gap-2">
                                 <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide shrink-0">Nhãn:</span>
                                 <span
-                                    class="px-2 py-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md">
+                                    class="px-2 py-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md min-w-0 break-words">
                                     {{ $banner->title_tag }}
                                 </span>
                             </div>
@@ -260,30 +263,32 @@
                         </div>
                     </div>
 
-                    <!-- Footer Card: Nút Thao tác to, dễ bấm -->
-                    <div class="flex items-center gap-2 pt-2 border-t border-gray-100 mt-1">
+                    {{-- Footer Card: 3 nút chia đều. Màn hẹp xếp icon TRÊN chữ (flex-col) để nhãn đủ chỗ
+                         nằm 1 dòng, từ sm trở lên mới xếp ngang - cùng cách đã dùng cho nút chọn cách
+                         nhập địa chỉ ở trang thanh toán. whitespace-nowrap chặn hẳn việc bẻ giữa từ. --}}
+                    <div class="flex items-stretch gap-2 pt-2 border-t border-gray-100 mt-1">
                         <!-- Bật/Tắt nhanh -->
                         <button type="button" data-url="{{ route('admin.banners.toggle_status', $banner->id) }}"
-                            class="toggle-status-btn flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-all border border-emerald-100">
-                            <span class="material-symbols-outlined text-[18px]">
+                            class="toggle-status-btn flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-emerald-100">
+                            <span class="material-symbols-outlined text-[18px] shrink-0">
                                 {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
                             </span>
-                            <span>Trạng thái</span>
+                            <span class="whitespace-nowrap">Trạng thái</span>
                         </button>
 
                         <!-- Sửa -->
                         <a href="{{ route('admin.banners.edit', $banner->id) }}"
-                            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-100">
-                            <span class="material-symbols-outlined text-[18px]">edit</span>
-                            <span>Chỉnh sửa</span>
+                            class="flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-blue-100">
+                            <span class="material-symbols-outlined text-[18px] shrink-0">edit</span>
+                            <span class="whitespace-nowrap">Chỉnh sửa</span>
                         </a>
 
                         <!-- Xóa -->
                         <button type="button" data-url="{{ route('admin.banners.destroy', $banner->id) }}"
                             data-id="{{ $banner->id }}"
-                            class="delete-banner-btn flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition-all border border-red-100">
-                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                            <span>Xóa</span>
+                            class="delete-banner-btn flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-red-100">
+                            <span class="material-symbols-outlined text-[18px] shrink-0">delete</span>
+                            <span class="whitespace-nowrap">Xóa</span>
                         </button>
                     </div>
                 </div>

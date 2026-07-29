@@ -3,7 +3,7 @@
 @section('title', 'Quản lý Banner')
 
 @section('content')
-    <div class="banners-page p-6 space-y-6">
+    <div class="banners-page p-4 sm:p-6 space-y-4 sm:space-y-6">
 
         <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">

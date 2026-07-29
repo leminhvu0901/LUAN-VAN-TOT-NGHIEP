@@ -3,7 +3,7 @@
 @section('title', 'Thêm Banner mới')
 
 @section('content')
-<div class="banners-page p-6 space-y-6 max-w-4xl mx-auto">
+<div class="banners-page p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('admin.banners.index') }}"
             onclick="smartGoBack(event)"
