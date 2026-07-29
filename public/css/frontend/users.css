@@ -11702,6 +11702,56 @@ div:where(.swal2-container) div:where(.swal2-actions).locked-swal-actions {
   margin-top: 20px !important;
 }
 
+/* Toast thông báo dùng chung toàn frontend (window.FrontendAlert) - làm gọn & đồng bộ giao diện,
+mặc định của SweetAlert2 hơi to/thô, đặc biệt trên màn hình mobile */
+.swal2-toast.swal2-popup {
+  border-radius: 0.875rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem 1rem;
+}
+
+.swal2-toast .swal2-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+  padding: 0;
+  margin: 0;
+}
+
+.swal2-toast .swal2-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  margin: 0 0.625rem 0 0;
+}
+
+.swal2-toast .swal2-icon .swal2-icon-content {
+  font-size: 1.1rem;
+}
+
+.swal2-toast .swal2-timer-progress-bar {
+  background: rgba(16, 185, 129, 0.35);
+}
+
+@media (max-width: 480px) {
+  .swal2-toast.swal2-popup {
+    width: calc(100vw - 2rem);
+    max-width: 22rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .swal2-toast .swal2-title {
+    font-size: 0.8125rem;
+  }
+
+  .swal2-toast .swal2-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    min-width: 1.5rem;
+    margin-right: 0.5rem;
+  }
+}
+
 .locked-btn-logout {
   background-color: #f3f4f6 !important;
   color: #4b5563 !important;
