@@ -799,6 +799,15 @@ select {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     margin-top: 4px;
     z-index: 50;
+}
+
+/* Choices.js lồng 1 div .choices__list (danh sách item, mặc định max-height:300px;overflow:auto)
+   BÊN TRONG .choices__list--dropdown (khung ngoài chứa cả ô tìm kiếm, mặc định overflow:hidden).
+   Đặt max-height/overflow-y ở khung NGOÀI như trước tạo ra 2 vùng cuộn lồng nhau (khung ngoài lẫn
+   danh sách item bên trong đều tự overflow:auto) - trên di động, cuộn bằng ngón tay bị "kẹt" ở vùng
+   trong cùng, không lan ra khung ngoài được, nên chọn nhiều danh mục hơn là không cuộn xem hết được.
+   Sửa: chỉ giới hạn chiều cao + cho cuộn ở ĐÚNG danh sách item (phần tử con thật sự cần cuộn). */
+.products-page .choices__list--dropdown .choices__list {
     max-height: 220px;
     overflow-y: auto;
 }

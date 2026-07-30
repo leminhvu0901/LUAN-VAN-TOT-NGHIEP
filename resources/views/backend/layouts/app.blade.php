@@ -20,7 +20,7 @@
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{{ asset('js/backend/admin/tailwind-config.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}?v={{ filemtime(public_path('css/backend/admin.css')) }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     @stack('styles')
