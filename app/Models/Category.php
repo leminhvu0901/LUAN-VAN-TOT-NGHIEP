@@ -16,9 +16,10 @@ class Category extends Model
     // Cho phép thêm mới hoặc sửa đổi hàng loạt dữ liệu trên tất cả các cột của bảng categories
     protected $guarded = [];
 
+    // Tự động ép kiểu các cột dữ liệu khi lấy từ DB ra (ví dụ: chuỗi "1" -> true/false, "5" -> số 5)
     protected $casts = [
-        'is_active' => 'boolean',
-        'display_order' => 'integer',
+        'is_active' => 'boolean',      // Trạng thái hoạt động (true/false)
+        'display_order' => 'integer',  // Thứ tự hiển thị danh mục (số nguyên)
     ];
 
     /**
