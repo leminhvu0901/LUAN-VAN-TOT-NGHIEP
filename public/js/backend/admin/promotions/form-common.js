@@ -9,26 +9,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // === PHẦN TỬ DOM ===
     // Lấy các node cần dùng trong form thêm/sửa khuyến mãi
-    const typePercentLabel  = document.getElementById('type-percent-label');
-    const typeFixedLabel    = document.getElementById('type-fixed-label');
-    const typeInputs        = document.querySelectorAll('input[name="type"]');
-    const maxDiscountWrap   = document.getElementById('max-discount-wrap');
-    const valueUnitLabel    = document.getElementById('value-unit');
+    const typePercentLabel = document.getElementById('type-percent-label');
+    const typeFixedLabel = document.getElementById('type-fixed-label');
+    const typeInputs = document.querySelectorAll('input[name="type"]');
+    const maxDiscountWrap = document.getElementById('max-discount-wrap');
+    const valueUnitLabel = document.getElementById('value-unit');
 
     // Display inputs (hiển thị cho user)
-    const displayValue      = document.getElementById('display-value');
-    const displayMaxDiscount= document.getElementById('display-max-discount');
-    const displayMinOrder   = document.getElementById('display-min-order');
+    const displayValue = document.getElementById('display-value');
+    const displayMaxDiscount = document.getElementById('display-max-discount');
+    const displayMinOrder = document.getElementById('display-min-order');
 
     // Hidden inputs (gửi lên server - giá trị thuần số)
-    const hiddenValue       = document.getElementById('promo-value');
+    const hiddenValue = document.getElementById('promo-value');
     const hiddenMaxDiscount = document.getElementById('promo-max-discount');
-    const hiddenMinOrder    = document.getElementById('promo-min-order');
+    const hiddenMinOrder = document.getElementById('promo-min-order');
 
-    const btnGenCode        = document.getElementById('btn-gen-code');
-    const promoCodeInput    = document.getElementById('promo-code');
-    const descriptionInput  = document.getElementById('promo-description');
-    const descCount         = document.getElementById('desc-count');
+    const btnGenCode = document.getElementById('btn-gen-code');
+    const promoCodeInput = document.getElementById('promo-code');
+    const descriptionInput = document.getElementById('promo-description');
+    const descCount = document.getElementById('desc-count');
 
     // === TIỆN ÍCH ===
 

@@ -16,6 +16,8 @@
                 return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute('data-sold') || 0);
             } else if (currentFilter === 'new') {
                 return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute('data-date') || 0);
+            } else if (currentFilter === 'sale') {
+                return parseInt(b.getAttribute('data-is-sale') || 0) - parseInt(a.getAttribute('data-is-sale') || 0);
             } else {
                 // 'all': sort by composite score (60% sales + 40% rating)
                 return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute('data-score') || 0);
@@ -32,6 +34,8 @@
                 isMatch = card.getAttribute('data-is-hot') === '1';
             } else if (currentFilter === 'new') {
                 isMatch = card.getAttribute('data-is-new') === '1';
+            } else if (currentFilter === 'sale') {
+                isMatch = card.getAttribute('data-is-sale') === '1';
             }
 
             if (isMatch && shown < 7) {
@@ -45,12 +49,23 @@
             // Badge visibility
             var hotBadge = card.querySelector('.home-prod-card__badge--hot');
             var newBadge = card.querySelector('.home-prod-card__badge--new');
+            var saleBadge = card.querySelector('.home-prod-card__badge--sale');
             if (currentFilter === 'new') {
                 if (hotBadge) hotBadge.style.display = 'none';
+                if (saleBadge) saleBadge.style.display = 'none';
                 if (newBadge) newBadge.style.display = '';
-            } else {
+            } else if (currentFilter === 'sale') {
+                if (hotBadge) hotBadge.style.display = 'none';
+                if (newBadge) newBadge.style.display = 'none';
+                if (saleBadge) saleBadge.style.display = '';
+            } else if (currentFilter === 'hot') {
+                if (saleBadge) saleBadge.style.display = 'none';
+                if (newBadge) newBadge.style.display = 'none';
                 if (hotBadge) hotBadge.style.display = '';
-                if (newBadge) newBadge.style.display = hotBadge ? 'none' : '';
+            } else {
+                if (saleBadge) saleBadge.style.display = '';
+                if (hotBadge) hotBadge.style.display = saleBadge ? 'none' : '';
+                if (newBadge) newBadge.style.display = (saleBadge || hotBadge) ? 'none' : '';
             }
         });
 

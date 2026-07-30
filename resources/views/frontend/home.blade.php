@@ -197,6 +197,7 @@
                 <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất cả</button>
                 <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
                 <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
+                <button class="home-popular__filter-btn" data-filter="sale">Giảm giá</button>
             </div>
         </div>
 
@@ -238,19 +239,20 @@
                     $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
                     $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
                     $isOos = !$product->is_active; // Hết hàng khi is_active = 0
+                    $discountInfo = $product->discount_info;
                 @endphp
                 <div class="home-prod-card {{ $isOos ? 'home-prod-card--out-of-stock' : '' }}" data-sold="{{ $product->total_sold }}"
                     data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}"
                     data-score="{{ round($product->score, 2) }}" data-is-hot="{{ $isHot ? '1' : '0' }}"
-                    data-is-new="{{ $isNew ? '1' : '0' }}">
+                    data-is-new="{{ $isNew ? '1' : '0' }}" data-is-sale="{{ $discountInfo ? '1' : '0' }}">
                     <div class="home-prod-card__img-wrap"
                         @if(!$isOos) onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;" @else style="cursor:default;" @endif>
-                        @if($isHot && !$isOos)
+                        @if($discountInfo && !$isOos)
+                            <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️ {{ $discountInfo['label'] }}</span>
+                        @elseif($isHot && !$isOos)
                             <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
-                        @endif
-                        @if($isNew && !$isOos)
-                            <span class="home-prod-card__badge home-prod-card__badge--new"
-                                style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span>
+                        @elseif($isNew && !$isOos)
+                            <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
                         @endif
                         @if($isOos)
                             <span class="out-of-stock-overlay">Hết Hàng</span>
@@ -286,11 +288,11 @@
                         </div>
                         <div class="home-prod-card__footer">
                             <div>
-                                <span
-                                    class="home-prod-card__price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
-                                @if($loop->iteration == 3 || $loop->iteration == 6)
-                                    <span
-                                        class="home-prod-card__price-old">{{ number_format($product->base_price * 1.15, 0, ',', '.') }}đ</span>
+                                @if($discountInfo)
+                                    <span class="home-prod-card__price-old">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
+                                    <span class="home-prod-card__price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
+                                @else
+                                    <span class="home-prod-card__price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
                                 @endif
                             </div>
                             <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng"

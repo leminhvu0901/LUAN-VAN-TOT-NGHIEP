@@ -76,4 +76,115 @@ class Product extends Model
 
         return upload_url($this->image);
     }
+
+    /**
+     * Lấy thông tin khuyến mãi/giảm giá đang áp dụng cho sản phẩm này.
+     * Trả về mảng chứa sale_price, old_price, percent, label hoặc null nếu không có giảm giá.
+     */
+    public function getDiscountInfoAttribute()
+    {
+        $now = now();
+
+        // 1. Khuyến mãi scope='product' gắn trực tiếp cho sản phẩm này
+        $productPromos = $this->promotions()
+            ->where('is_active', 1)
+            ->where(function ($q) use ($now) {
+                $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
+            })
+            ->where(function ($q) use ($now) {
+                $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
+            })
+            ->where(function ($q) {
+                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+            })
+            ->get();
+
+        // 2. Khuyến mãi scope='category' gán cho danh mục sản phẩm
+        $categoryPromos = collect();
+        if ($this->category_id) {
+            $categoryPromos = Promotion::query()
+                ->where('scope', 'category')
+                ->where('is_active', 1)
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
+                })
+                ->where(function ($q) {
+                    $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+                })
+                ->whereHas('categories', function ($q) {
+                    $q->where('categories.id', $this->category_id);
+                })
+                ->get();
+        }
+
+        $allPromos = $productPromos->concat($categoryPromos);
+
+        if ($allPromos->isEmpty()) {
+            return null;
+        }
+
+        $bestPromo = null;
+        $maxDiscount = 0;
+
+        foreach ($allPromos as $promo) {
+            if ($promo->is_recurring) {
+                $nowStr = $now->format('H:i:s');
+                $currentDay = $now->dayOfWeekIso;
+                if (is_array($promo->recurring_days) && count($promo->recurring_days) > 0 && !in_array($currentDay, $promo->recurring_days)) {
+                    continue;
+                }
+                if ($promo->recurring_start_time && $nowStr < $promo->recurring_start_time) continue;
+                if ($promo->recurring_end_time && $nowStr > $promo->recurring_end_time) continue;
+            }
+
+            if ($promo->type === 'percent') {
+                $discount = round($this->base_price * ((float) $promo->value / 100));
+                if ($promo->max_discount_amount) {
+                    $discount = min($discount, (float) $promo->max_discount_amount);
+                }
+            } else {
+                $discount = (float) $promo->value;
+            }
+            $discount = min($discount, (float) $this->base_price);
+
+            if ($discount > $maxDiscount) {
+                $maxDiscount = $discount;
+                $bestPromo = $promo;
+            }
+        }
+
+        if (!$bestPromo || $maxDiscount <= 0) {
+            return null;
+        }
+
+        $rawSalePrice = max(0, (float) $this->base_price - $maxDiscount);
+        // Làm tròn LÊN đến bội số 1.000đ gần nhất (Ceil to 1.000đ)
+        $salePrice = ceil($rawSalePrice / 1000) * 1000;
+
+        // Nếu làm tròn lên khiến giá bằng hoặc lớn hơn giá gốc, điều chỉnh lại để vẫn có giảm giá
+        if ($salePrice >= (float) $this->base_price && $rawSalePrice < (float) $this->base_price) {
+            $salePrice = max(0, (float) $this->base_price - 1000);
+        }
+
+        $finalDiscount = max(0, (float) $this->base_price - $salePrice);
+        if ($finalDiscount <= 0) {
+            return null;
+        }
+
+        $percent = $bestPromo->type === 'percent'
+            ? (int) round($bestPromo->value)
+            : (int) round(($finalDiscount / $this->base_price) * 100);
+
+        return [
+            'promotion' => $bestPromo,
+            'discount_amount' => $finalDiscount,
+            'sale_price' => $salePrice,
+            'old_price' => (float) $this->base_price,
+            'percent' => $percent,
+            'label' => "Giảm {$percent}%",
+        ];
+    }
 }

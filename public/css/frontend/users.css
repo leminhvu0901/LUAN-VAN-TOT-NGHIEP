@@ -7287,8 +7287,10 @@ animation: dividerPulse 2.5s ease-in-out infinite;
 }
 
 .home-prod-card__badge--sale {
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  background: linear-gradient(135deg, #e11d48, #7c3aed);
   color: #fff;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+  border-radius: 4px 10px 10px 4px;
 }
 
 .home-prod-card__wishlist {

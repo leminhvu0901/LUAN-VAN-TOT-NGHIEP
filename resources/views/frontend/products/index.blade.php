@@ -136,6 +136,7 @@
                             cảnh vừa làm bảng chọn (rộng theo nút) bị bóp lại khiến chữ xuống dòng lung tung. --}}
                             <ul class="p-sort-dropdown__menu" id="sort-dropdown-menu" role="listbox" hidden>
                                 <li class="p-sort-dropdown__option is-selected" role="option" aria-selected="true" data-value="popular">Phổ biến nhất</li>
+                                <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="discount">Đang giảm giá</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-asc">Giá thấp đến cao</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="price-desc">Giá cao đến thấp</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="newest">Mới nhất</li>
@@ -144,6 +145,7 @@
 
                             <select class="p-sort-select-hidden" id="sort-select" aria-hidden="true" tabindex="-1">
                                 <option value="popular">Phổ biến nhất</option>
+                                <option value="discount">Đang giảm giá</option>
                                 <option value="price-asc">Giá thấp đến cao</option>
                                 <option value="price-desc">Giá cao đến thấp</option>
                                 <option value="newest">Mới nhất</option>

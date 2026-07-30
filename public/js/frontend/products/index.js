@@ -78,6 +78,12 @@ function applySortAndFilter() {
     // Sắp xếp thứ tự các thẻ sản phẩm dựa vào tiêu chí được chọn
     cards.sort((a, b) => {
         if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0); // Bán chạy nhất
+        if (sortBy === 'discount') {
+            const hasSaleB = b.querySelector('.home-prod-card__badge--sale') ? 1 : 0;
+            const hasSaleA = a.querySelector('.home-prod-card__badge--sale') ? 1 : 0;
+            if (hasSaleB !== hasSaleA) return hasSaleB - hasSaleA;
+            return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0);
+        }
         if (sortBy === 'price-asc') return parseFloat(a.dataset.priceVal || 0) - parseFloat(b.dataset.priceVal || 0); // Giá thấp đến cao
         if (sortBy === 'price-desc') return parseFloat(b.dataset.priceVal || 0) - parseFloat(a.dataset.priceVal || 0); // Giá cao đến thấp
         if (sortBy === 'newest') return parseInt(b.dataset.date || 0) - parseInt(a.dataset.date || 0); // Mới nhất
@@ -92,11 +98,18 @@ function applySortAndFilter() {
         // Điều chỉnh nhãn (badge) hiển thị tối ưu theo kiểu sắp xếp
         const hotBadge = card.querySelector('.home-prod-card__badge--hot');
         const newBadge = card.querySelector('.home-prod-card__badge--new');
+        const saleBadge = card.querySelector('.home-prod-card__badge--sale');
         if (sortBy === 'newest') {
-            if (newBadge) { newBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; }
+            if (newBadge) { newBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; if (saleBadge) saleBadge.style.display = 'none'; }
+            else if (saleBadge) { saleBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; }
             else if (hotBadge) hotBadge.style.display = '';
+        } else if (sortBy === 'discount') {
+            if (saleBadge) { saleBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; if (newBadge) newBadge.style.display = 'none'; }
+            else if (hotBadge) { hotBadge.style.display = ''; if (newBadge) newBadge.style.display = 'none'; }
+            else if (newBadge) newBadge.style.display = '';
         } else {
-            if (hotBadge) { hotBadge.style.display = ''; if (newBadge) newBadge.style.display = 'none'; }
+            if (saleBadge) { saleBadge.style.display = ''; if (hotBadge) hotBadge.style.display = 'none'; if (newBadge) newBadge.style.display = 'none'; }
+            else if (hotBadge) { hotBadge.style.display = ''; if (newBadge) newBadge.style.display = 'none'; }
             else if (newBadge) newBadge.style.display = '';
         }
     });

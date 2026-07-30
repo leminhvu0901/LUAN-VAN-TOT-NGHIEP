@@ -105,7 +105,7 @@ class PromotionController
         })->count();
 
         if ($request->ajax()) {
-            $html =  view('backend.admin.promotions.partials.table', compact('promotions'))->render();
+            $html = view('backend.admin.promotions.partials.table', compact('promotions'))->render();
             return response()->json([
                 'html' => $html,
                 // JS đang đọc data.total để cập nhật input ẩn phục vụ xoá hàng loạt
@@ -119,8 +119,8 @@ class PromotionController
             ]);
         }
 
-            // Trả dữ liệu danh sách + thống kê sang Blade để render giao diện
-            return  view('backend.admin.promotions.index', compact(
+        // Trả dữ liệu danh sách + thống kê sang Blade để render giao diện
+        return view('backend.admin.promotions.index', compact(
             'promotions',//ds
             'totalPromotions',//tong
             'activePromotions',//ma hoat dong

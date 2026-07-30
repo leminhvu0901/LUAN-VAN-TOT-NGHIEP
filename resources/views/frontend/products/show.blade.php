@@ -2,8 +2,12 @@
 @extends('frontend.layouts.app')
 
 @section('content')
+@php
+    $discountInfo = $product->discount_info;
+    $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
+@endphp
 {{-- Thẻ wrapper bao bọc chi tiết sản phẩm, đồng thời truyền id sản phẩm và giá cơ bản qua thuộc tính data để JS đọc --}}
-<div class="pd-wrapper" data-product-id="{{ $product->id }}" data-base-price="{{ $product->base_price }}">
+<div class="pd-wrapper" data-product-id="{{ $product->id }}" data-base-price="{{ $effectivePrice }}">
     {{-- ===== BREADCRUMB (ĐƯỜNG DẪN ĐỊNH VỊ) ===== --}}
     <nav class="pd-breadcrumb" aria-label="Breadcrumb">
         <a href="/">Trang chủ</a>
@@ -18,8 +22,10 @@
         {{-- BÊN TRÁI: Gallery hình ảnh sản phẩm --}}
         <div class="pd-gallery">
             <div class="pd-gallery__main">
-                {{-- Huy hiệu trạng thái Bán chạy (Hot) hoặc Sản phẩm mới (New) --}}
-                @if($isHot && $product->is_active)
+                {{-- Huy hiệu trạng thái Bán chạy (Hot), Sản phẩm mới (New) hoặc Giảm giá --}}
+                @if($discountInfo && $product->is_active)
+                    <span class="pd-badge pd-badge--sale" style="background: linear-gradient(135deg, #e11d48, #7c3aed); color: #fff; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);">🏷️ {{ $discountInfo['label'] }}</span>
+                @elseif($isHot && $product->is_active)
                     <span class="pd-badge pd-badge--hot">🔥 BESTSELLER</span>
                 @elseif($isNew && $product->is_active)
                     <span class="pd-badge pd-badge--new">✨ Mới</span>
@@ -93,8 +99,14 @@
             </div>
 
             {{-- Giá bán của sản phẩm --}}
-            <div class="pd-info__price-row">
-                <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+            <div class="pd-info__price-row" style="display: flex; align-items: baseline; gap: 10px;">
+                @if($discountInfo)
+                    <span class="pd-info__price-old" style="font-size: 1.2rem; font-weight: 600; color: #9ca3af; text-decoration: line-through;">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
+                    <span class="pd-info__price" id="pd-price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
+                    <span style="background: #ef4444; color: #fff; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">{{ $discountInfo['label'] }}</span>
+                @else
+                    <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                @endif
             </div>
 
 
@@ -298,7 +310,13 @@
                         <svg class="pd-rel-rating-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         <span>{{ number_format($rel->avg_rating, 1) }}</span>
                     </div>
-                    <span class="pd-rel-card__price">{{ number_format($rel->base_price, 0, ',', '.') }}đ</span>
+                    @php $relDiscount = $rel->discount_info; @endphp
+                    @if($relDiscount)
+                        <span class="home-prod-card__price-old" style="font-size: 11px;">{{ number_format($relDiscount['old_price'], 0, ',', '.') }}đ</span>
+                        <span class="pd-rel-card__price">{{ number_format($relDiscount['sale_price'], 0, ',', '.') }}đ</span>
+                    @else
+                        <span class="pd-rel-card__price">{{ number_format($rel->base_price, 0, ',', '.') }}đ</span>
+                    @endif
                     {{-- Nút thêm nhanh sản phẩm tương tự vào giỏ hàng --}}
                     <button class="pd-rel-card__add" onclick="event.preventDefault(); addToCart({{ $rel->id }})" aria-label="Thêm vào giỏ">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

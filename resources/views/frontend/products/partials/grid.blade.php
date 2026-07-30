@@ -10,11 +10,13 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
             $isHot = in_array($product->id, $top6HotProductIds);
             $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
             $isOos = !$product->is_active; // Hết hàng khi is_active = 0
+            $discountInfo = $product->discount_info;
+            $displayPrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
         @endphp
         {{-- Thẻ sản phẩm. Các thuộc tính data-* đóng vai trò truyền dữ liệu để JS lọc/sắp xếp nhanh tại client --}}
         <div class="p-product-card {{ $isOos ? 'p-product-card--out-of-stock' : '' }}"
              data-sold="{{ $product->total_sold }}"
-             data-price-val="{{ $product->base_price }}"
+             data-price-val="{{ $displayPrice }}"
              data-date="{{ strtotime($product->created_at) }}"
              data-rating-val="{{ $product->avg_rating }}"
              data-is-hot="{{ $isHot ? '1' : '0' }}"
@@ -25,18 +27,19 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
                  onclick="window.location.href='{{ route('product.show', $product->slug) }}'"
                  data-id="{{ $product->id }}"
                  data-name="{{ $product->name }}"
-                 data-price="{{ number_format($product->base_price, 0, ',', '.') }}đ"
+                 data-price="{{ number_format($displayPrice, 0, ',', '.') }}đ"
                  data-category="{{ $product->category_name }}"
                  data-image="{{ $product->image_url }}"
                  data-slug="{{ $product->slug }}"
                  data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
 
-                {{-- Nhãn (Badge) trạng thái HOT hoặc NEW --}}
-                @if($isHot && !$isOos)
+                {{-- Nhãn (Badge) trạng thái HOT, NEW hoặc DISCOUNT --}}
+                @if($discountInfo && !$isOos)
+                    <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️ {{ $discountInfo['label'] }}</span>
+                @elseif($isHot && !$isOos)
                     <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
-                @endif
-                @if($isNew && !$isOos)
-                    <span class="home-prod-card__badge home-prod-card__badge--new" style="{{ $isHot ? 'display: none;' : '' }}">✨ Mới</span>
+                @elseif($isNew && !$isOos)
+                    <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
                 @endif
                 @if($isOos)
                     <span class="out-of-stock-overlay">Hết Hàng</span>
@@ -67,7 +70,14 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
 
                 {{-- Giá bán sản phẩm và nút thêm giỏ hàng nhanh --}}
                 <div class="p-product-price-row">
-                    <span class="p-product-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                    <div>
+                        @if($discountInfo)
+                            <span class="home-prod-card__price-old">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
+                            <span class="p-product-price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
+                        @else
+                            <span class="p-product-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                        @endif
+                    </div>
                     <div class="p-product-price-actions">
                         <button class="p-add-btn p-product-add-btn-size" aria-label="Thêm vào giỏ"
                             @if(!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
