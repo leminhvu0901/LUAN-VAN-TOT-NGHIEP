@@ -10,7 +10,8 @@ class CartItem extends Model
     protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
 
     /**
-     * Mối quan hệ: Chi tiết dòng sản phẩm thuộc về một Giỏ hàng chính (Cart)
+     * Quan hệ Nhiều - 1 (Many-to-One) với Model Cart.
+     * Nhiều chi tiết sản phẩm thuộc về cùng một Giỏ hàng (Cart) chính.
      */
     public function cart()
     {
@@ -18,7 +19,8 @@ class CartItem extends Model
     }
 
     /**
-     * Mối quan hệ: Dòng sản phẩm này tương ứng với Sản phẩm nào (Product - ví dụ: Trà sữa Trân châu)
+     * Quan hệ Nhiều - 1 (Many-to-One) với Model Product.
+     * Mỗi dòng sản phẩm trong giỏ hàng tương ứng với một Sản phẩm cụ thể.
      */
     public function product()
     {
@@ -26,7 +28,8 @@ class CartItem extends Model
     }
 
     /**
-     * Mối quan hệ: Một dòng sản phẩm trong giỏ hàng có thể chọn kèm nhiều Topping khác nhau (CartItemTopping)
+     * Quan hệ 1 - Nhiều (One-to-Many) với Model CartItemTopping.
+     * Một dòng sản phẩm trong giỏ hàng có thể chọn đi kèm nhiều Topping khác nhau.
      */
     public function toppings()
     {
