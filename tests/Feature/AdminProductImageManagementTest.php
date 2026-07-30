@@ -29,6 +29,24 @@ class AdminProductImageManagementTest extends TestCase
         ]);
     }
 
+    /**
+     * validateProduct() không có $messages tiếng Việt cho tới bản sửa này - báo lỗi rơi về tiếng Anh
+     * mặc định của Laravel ("The base price field is required.") dù APP_LOCALE=en (không có file dịch
+     * lang/vi/validation.php) khiến MỌI lỗi validate không tự override đều hiện tiếng Anh.
+     */
+    public function test_product_validation_errors_are_in_vietnamese(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->post('/admin/products', []);
+
+        $response->assertSessionHasErrors(['name', 'category_id', 'base_price']);
+        $errors = session('errors')->getBag('default');
+        $this->assertSame('Vui lòng nhập tên sản phẩm.', $errors->first('name'));
+        $this->assertSame('Vui lòng chọn danh mục.', $errors->first('category_id'));
+        $this->assertSame('Vui lòng nhập giá bán.', $errors->first('base_price'));
+    }
+
     public function test_creating_product_with_image_and_gallery_stores_files_in_uploads_directory(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
