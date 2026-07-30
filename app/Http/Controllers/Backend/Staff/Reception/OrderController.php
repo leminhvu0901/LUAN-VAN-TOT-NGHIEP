@@ -248,13 +248,16 @@ class OrderController
      */
     public function createOrder()
     {
+        // Vẫn lấy cả sản phẩm hết hàng (is_active=false) - đưa xuống cuối danh sách (view tự hiện nút
+        // "Hết hàng" bị khoá cho các sản phẩm này) để lễ tân biết mà báo khách, thay vì món biến mất
+        // khỏi màn hình như không tồn tại.
         $products = Product::with([
             'category',
             'sizes',
             'toppings' => function ($query) {
                 $query->where('is_available', true);
             }
-        ])->where('is_active', true)->orderBy('name')->get();
+        ])->orderByDesc('is_active')->orderBy('name')->get();
 
         $categories = \App\Models\Category::query()->where('is_active', true)->orderBy('name')->get();
         // POS chỉ nên cho chọn MoMo nếu admin đã bật kênh này trong Cài đặt (tiền mặt luôn khả dụng

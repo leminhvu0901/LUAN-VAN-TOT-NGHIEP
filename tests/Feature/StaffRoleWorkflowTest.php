@@ -1328,6 +1328,28 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Sản phẩm hết hàng (is_active=false) vẫn phải xuất hiện trong lưới "Tạo đơn tại quầy" - đưa
+     * xuống CUỐI danh sách, kèm nút "Hết hàng" bị khoá - để lễ tân biết mà báo khách, thay vì món
+     * biến mất hoàn toàn khỏi màn hình như chưa từng tồn tại.
+     */
+    public function test_pos_create_page_shows_out_of_stock_products_at_the_end(): void
+    {
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $outOfStock = $this->makeProduct(['name' => 'Trà đào hết hàng', 'is_active' => false]);
+        $active = $this->makeProduct(['name' => 'Trà sữa còn hàng', 'is_active' => true]);
+
+        $this->actingAs($receptionist);
+        $response = $this->get('/staff/reception/orders/create');
+
+        $response->assertStatus(200);
+        $response->assertSee('Trà đào hết hàng');
+        $response->assertSee('Hết hàng');
+
+        $content = $response->getContent();
+        $this->assertLessThan(strpos($content, 'Trà đào hết hàng'), strpos($content, 'Trà sữa còn hàng'));
+    }
+
+    /**
      * POS Giai đoạn 2: lễ tân chọn 1 khách hàng có tài khoản qua ô tìm SĐT/tên -> đơn phải đứng tên
      * (user_id) đúng khách đó, KHÔNG phải tài khoản lễ tân — trong khi created_by vẫn ghi đúng lễ
      * tân đã xử lý đơn (để phân biệt "ai bán" khỏi "đơn của ai").
