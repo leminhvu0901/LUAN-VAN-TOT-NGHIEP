@@ -161,6 +161,71 @@ class FrontendCustomerActionsTest extends TestCase
         $this->assertSame(1, (int) $item->fresh()->quantity);
     }
 
+    /**
+     * "Xóa đã chọn" (cart.remove-many) - trước đây giỏ hàng không có cách nào xóa nhiều sản phẩm
+     * cùng lúc, phải xóa từng món một. Chỉ được xóa item thuộc CHÍNH giỏ hàng của mình.
+     */
+    public function test_cart_remove_many_deletes_only_specified_items_from_own_cart(): void
+    {
+        $owner = User::factory()->create(['role' => 'customer']);
+        $stranger = User::factory()->create(['role' => 'customer']);
+        $product = $this->makeProduct();
+        $ownerCart = Cart::create(['user_id' => $owner->id]);
+        $strangerCart = Cart::create(['user_id' => $stranger->id]);
+
+        $itemToRemove1 = CartItem::create(['cart_id' => $ownerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $itemToRemove2 = CartItem::create(['cart_id' => $ownerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $itemToKeep = CartItem::create(['cart_id' => $ownerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        $strangerItem = CartItem::create(['cart_id' => $strangerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+
+        $response = $this->actingAs($owner)->postJson('/cart/remove-many', [
+            'item_ids' => [$itemToRemove1->id, $itemToRemove2->id, $strangerItem->id],
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+        $this->assertDatabaseMissing('cart_items', ['id' => $itemToRemove1->id]);
+        $this->assertDatabaseMissing('cart_items', ['id' => $itemToRemove2->id]);
+        $this->assertDatabaseHas('cart_items', ['id' => $itemToKeep->id]);
+        $this->assertDatabaseHas('cart_items', ['id' => $strangerItem->id]);
+    }
+
+    public function test_cart_remove_many_requires_at_least_one_id(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($user)->postJson('/cart/remove-many', ['item_ids' => []])->assertStatus(422);
+    }
+
+    /**
+     * "Xóa tất cả" (cart.clear) - chỉ xóa sạch giỏ hàng của CHÍNH mình, không đụng giỏ hàng người khác.
+     */
+    public function test_cart_clear_empties_only_own_cart(): void
+    {
+        $owner = User::factory()->create(['role' => 'customer']);
+        $stranger = User::factory()->create(['role' => 'customer']);
+        $product = $this->makeProduct();
+        $ownerCart = Cart::create(['user_id' => $owner->id]);
+        $strangerCart = Cart::create(['user_id' => $stranger->id]);
+        CartItem::create(['cart_id' => $ownerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+        CartItem::create(['cart_id' => $ownerCart->id, 'product_id' => $product->id, 'quantity' => 2, 'unit_price' => 30000]);
+        $strangerItem = CartItem::create(['cart_id' => $strangerCart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
+
+        $response = $this->actingAs($owner)->postJson('/cart/clear');
+
+        $response->assertOk()->assertJson(['success' => true, 'count' => 0]);
+        $this->assertSame(0, CartItem::where('cart_id', $ownerCart->id)->count());
+        $this->assertDatabaseHas('cart_items', ['id' => $strangerItem->id]);
+    }
+
+    public function test_cart_clear_with_no_cart_returns_empty_state_without_error(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($user)->postJson('/cart/clear');
+
+        $response->assertOk()->assertJson(['success' => true, 'count' => 0]);
+    }
+
     public function test_cart_set_selected_only_accepts_ids_from_own_cart(): void
     {
         $owner = User::factory()->create(['role' => 'customer']);

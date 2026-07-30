@@ -300,6 +300,40 @@ class CartController
         return $this->getCartData();
     }
 
+    // Xóa nhiều sản phẩm cùng lúc ("Xóa đã chọn") - dùng đúng danh sách item_id đang được tick chọn
+    // ở ngăn kéo giỏ hàng (cùng checkbox dùng cho "chọn để thanh toán"), scope theo cart_id của
+    // CHÍNH người dùng đang đăng nhập giống remove()/update() ở trên, không tin item_id gửi lên thuộc
+    // về giỏ hàng nào.
+    public function removeMany(Request $request)
+    {
+        $validated = $request->validate([
+            'item_ids' => ['required', 'array', 'min:1'],
+            'item_ids.*' => ['integer'],
+        ]);
+        $cart = $this->findCart();
+
+        if ($cart) {
+            \App\Models\CartItem::query()
+                ->where('cart_id', $cart->id)
+                ->whereIn('id', $validated['item_ids'])
+                ->delete();
+        }
+
+        return $this->getCartData();
+    }
+
+    // Xóa toàn bộ giỏ hàng ("Xóa tất cả").
+    public function clear(Request $request)
+    {
+        $cart = $this->findCart();
+
+        if ($cart) {
+            \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
+        }
+
+        return $this->getCartData();
+    }
+
     public function addAll(Request $request)
     {
         if (!Auth::check()) {

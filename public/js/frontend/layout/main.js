@@ -83,6 +83,36 @@ window.FrontendAlert = {
             },
         });
     },
+    // Hộp thoại xác nhận đồng ý/hủy đơn giản (không cần nhập liệu, khác prompt() ở trên) - dùng lại
+    // đúng bộ class fa-prompt-* (chỉ bỏ phần input) để đồng bộ giao diện. Trả về Promise { isConfirmed }.
+    confirm: function (options) {
+        options = options || {};
+        const title = options.title || 'Xác nhận';
+        const text = options.text || '';
+        const confirmText = options.confirmText || 'Xác nhận';
+
+        if (typeof Swal === 'undefined') {
+            return Promise.resolve({ isConfirmed: window.confirm(text ? title + '\n\n' + text : title) });
+        }
+
+        return Swal.fire({
+            title: title,
+            text: text,
+            showCancelButton: true,
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Hủy',
+            buttonsStyling: false,
+            returnFocus: false,
+            customClass: {
+                popup: 'fa-prompt-popup',
+                title: 'fa-prompt-title',
+                htmlContainer: 'fa-prompt-text',
+                actions: 'fa-prompt-actions',
+                confirmButton: 'fa-prompt-confirm',
+                cancelButton: 'fa-prompt-cancel',
+            },
+        });
+    },
 };
 
 (function () {
@@ -842,6 +872,11 @@ window.syncCartSelectionUI = function () {
             checkoutBtn.style.cursor = 'not-allowed';
         }
     }
+
+    // Bật/tắt nút "Xóa đã chọn" theo đúng logic nút thanh toán (không có gì được tick thì không có
+    // gì để xóa hàng loạt).
+    var removeSelectedBtn = document.getElementById('cart-remove-selected-btn');
+    if (removeSelectedBtn) removeSelectedBtn.disabled = selectedCount === 0;
 };
 
 /**
@@ -856,6 +891,72 @@ function getSelectedCartItemIds() {
     });
     return ids;
 }
+
+/**
+ * Xóa cùng lúc mọi sản phẩm đang được tick chọn trong giỏ hàng ("Xóa đã chọn").
+ */
+window.removeSelectedFromCart = function () {
+    var ids = getSelectedCartItemIds();
+    if (ids.length === 0) return;
+
+    window.FrontendAlert.confirm({
+        title: 'Xóa sản phẩm đã chọn?',
+        text: 'Xóa ' + ids.length + ' sản phẩm đang được chọn khỏi giỏ hàng.',
+        confirmText: 'Xóa',
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        var token = document.querySelector('meta[name="csrf-token"]');
+        if (!token) return;
+
+        fetch('/cart/remove-many', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': token.getAttribute('content')
+            },
+            body: JSON.stringify({ item_ids: ids })
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data) return;
+                updateCartUI(data);
+            })
+            .catch(function (err) { console.error(err); });
+    });
+};
+
+/**
+ * Xóa sạch toàn bộ giỏ hàng ("Xóa tất cả").
+ */
+window.clearCart = function () {
+    var token = document.querySelector('meta[name="csrf-token"]');
+    if (!token) return;
+
+    window.FrontendAlert.confirm({
+        title: 'Xóa toàn bộ giỏ hàng?',
+        text: 'Toàn bộ sản phẩm trong giỏ hàng sẽ bị xóa.',
+        confirmText: 'Xóa tất cả',
+    }).then(function (result) {
+        if (!result.isConfirmed) return;
+
+        fetch('/cart/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': token.getAttribute('content')
+            },
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data) return;
+                updateCartUI(data);
+            })
+            .catch(function (err) { console.error(err); });
+    });
+};
 
 /**
  * Xử lý click nút "Thanh toán ngay" trong giỏ hàng.

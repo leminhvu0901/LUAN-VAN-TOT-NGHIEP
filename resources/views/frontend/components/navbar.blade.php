@@ -376,13 +376,17 @@ Mở/đóng được điều khiển bởi navbar.js
         </button>
     </div>
 
-    {{-- Thanh chọn tất cả (chỉ hiện khi có sản phẩm trong giỏ) --}}
+    {{-- Thanh chọn tất cả + xóa hàng loạt (chỉ hiện khi có sản phẩm trong giỏ) --}}
     <div id="cart-select-all-bar" class="cart-select-all-bar">
         <label class="cart-select-all-label" for="cart-select-all-chk">
             <input type="checkbox" id="cart-select-all-chk" checked>
             <span>Chọn tất cả</span>
         </label>
-        <span class="cart-select-all-hint" id="cart-selected-count-hint">0 đã chọn</span>
+        <div class="cart-select-all-actions">
+            <span class="cart-select-all-hint" id="cart-selected-count-hint">0 đã chọn</span>
+            <button type="button" id="cart-remove-selected-btn" class="cart-bulk-remove-btn" onclick="removeSelectedFromCart()">Xóa đã chọn</button>
+            <button type="button" id="cart-clear-all-btn" class="cart-bulk-remove-btn cart-bulk-remove-btn--danger" onclick="clearCart()">Xóa tất cả</button>
+        </div>
     </div>
 
     {{-- Body: danh sách sản phẩm trong giỏ (được inject bởi JS qua AJAX) --}}

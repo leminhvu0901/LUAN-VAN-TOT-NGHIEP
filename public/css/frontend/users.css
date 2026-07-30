@@ -12163,6 +12163,42 @@ html {
   font-weight: 500;
 }
 
+.cart-select-all-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-bulk-remove-btn {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.cart-bulk-remove-btn:hover {
+  color: #374151;
+}
+
+.cart-bulk-remove-btn--danger {
+  color: #ef4444;
+}
+
+.cart-bulk-remove-btn--danger:hover {
+  color: #dc2626;
+}
+
+.cart-bulk-remove-btn:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .cart-item {
   display: flex;
   align-items: flex-start;

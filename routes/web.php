@@ -136,6 +136,12 @@ Route::middleware(['auth'])->group(function () {
     // Bấm nút xóa sản phẩm khỏi giỏ
     Route::post('/cart/remove', [App\Http\Controllers\Frontend\CartController::class, 'remove']);
 
+    // Bấm "Xóa đã chọn" - xóa nhiều sản phẩm đang được tick chọn cùng lúc
+    Route::post('/cart/remove-many', [App\Http\Controllers\Frontend\CartController::class, 'removeMany'])->name('cart.remove-many');
+
+    // Bấm "Xóa tất cả" - xóa sạch giỏ hàng
+    Route::post('/cart/clear', [App\Http\Controllers\Frontend\CartController::class, 'clear'])->name('cart.clear');
+
     // Bấm nút (+), (-) để cập nhật số lượng
     Route::post('/cart/update', [App\Http\Controllers\Frontend\CartController::class, 'update']);
 
