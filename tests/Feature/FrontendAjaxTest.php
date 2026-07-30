@@ -240,45 +240,142 @@ class FrontendAjaxTest extends TestCase
         $response->assertStatus(422);
     }
 
-    /**
-     * Đơn ĐÃ THANH TOÁN trực tuyến (MoMo/VNPay) tuy vẫn đang "Chờ xác nhận" nhưng khách KHÔNG được tự
-     * hủy (phải hoàn tiền trước — chỉ lễ tân/admin làm được). Trang "Đơn hàng của tôi" phải ẩn hẳn nút
-     * "Hủy đơn" thay vì để khách bấm rồi mới báo lỗi.
-     */
-    public function test_my_orders_page_hides_cancel_button_for_paid_pending_orders(): void
+    private function makePaidOnlineOrder(User $user, string $paymentMethod = 'vnpay'): Order
     {
-        $user = User::factory()->create();
-
-        $unpaid = Order::create([
+        return Order::create([
             'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
             'customer_name' => $user->name, 'customer_phone' => '0900000000',
             'delivery_address' => 'Test address', 'total_amount' => 50000, 'discount_amount' => 0,
-            'final_amount' => 50000, 'payment_status' => 'unpaid', 'payment_method' => 'cod',
+            'final_amount' => 50000, 'payment_status' => 'paid', 'payment_method' => $paymentMethod,
+            'paid_at' => now(), 'payment_transaction_id' => 'ORIGINAL-TX-' . Str::random(6),
             'status' => 'pending', 'delivery_type' => 'delivery',
         ]);
+    }
 
-        $this->actingAs($user)->get('/orders')
-            ->assertOk()
-            ->assertSee("cancel-btn-{$unpaid->id}", false);
-
-        $paid = Order::create([
-            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
-            'customer_name' => $user->name, 'customer_phone' => '0900000000',
-            'delivery_address' => 'Test address', 'total_amount' => 50000, 'discount_amount' => 0,
-            'final_amount' => 50000, 'payment_status' => 'paid', 'payment_method' => 'vnpay',
-            'paid_at' => now(), 'status' => 'pending', 'delivery_type' => 'delivery',
+    /**
+     * Đơn đã thanh toán online mà shop CHƯA xác nhận: khách VẪN được tự hủy, hệ thống tự động gọi API
+     * hoàn tiền của cổng thanh toán rồi mới hủy — không bắt khách phải liên hệ cửa hàng thủ công.
+     */
+    public function test_customer_can_self_cancel_paid_vnpay_order_and_money_is_refunded_automatically(): void
+    {
+        config([
+            'services.vnpay.sandbox.tmn_code' => 'TESTTMN',
+            'services.vnpay.sandbox.hash_secret' => 'TESTSECRET',
+        ]);
+        \Illuminate\Support\Facades\Http::fake([
+            '*/merchant_webapi/api/transaction' => \Illuminate\Support\Facades\Http::response(
+                ['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'VNP-REFUND-TX-1'], 200
+            ),
         ]);
 
-        $this->actingAs($user)->get('/orders')
-            ->assertOk()
-            ->assertDontSee("cancel-btn-{$paid->id}", false)
-            ->assertSee('liên hệ cửa hàng để hoàn tiền', false);
+        $user = User::factory()->create();
+        $order = $this->makePaidOnlineOrder($user, 'vnpay');
 
-        // Server-side vẫn phải chặn (không chỉ dựa vào việc ẩn nút ở giao diện).
-        $this->actingAs($user)->postJson("/orders/{$paid->id}/cancel", [
+        $response = $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+            'cancel_reason' => 'Đổi ý không muốn mua nữa',
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+
+        $order = $order->fresh();
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame('refunded', $order->payment_status);
+        $this->assertSame('VNP-REFUND-TX-1', $order->refund_transaction_id);
+        $this->assertNotNull($order->refunded_at);
+    }
+
+    public function test_customer_can_self_cancel_paid_momo_order_and_money_is_refunded_automatically(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*/v2/gateway/api/refund' => \Illuminate\Support\Facades\Http::response(
+                ['resultCode' => 0, 'transId' => 'MOMO-REFUND-TX-1'], 200
+            ),
+        ]);
+
+        $user = User::factory()->create();
+        $order = $this->makePaidOnlineOrder($user, 'momo');
+
+        $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+            'cancel_reason' => 'Đổi ý không muốn mua nữa',
+        ])->assertOk()->assertJson(['success' => true]);
+
+        $order = $order->fresh();
+        $this->assertSame('cancelled', $order->status);
+        $this->assertSame('refunded', $order->payment_status);
+        $this->assertSame('MOMO-REFUND-TX-1', $order->refund_transaction_id);
+    }
+
+    /**
+     * Hoàn tiền thất bại -> KHÔNG được hủy đơn (không bao giờ hủy "chay" đơn đã trừ tiền của khách),
+     * đơn giữ nguyên paid/pending và khách nhận thông báo lỗi rõ ràng.
+     */
+    public function test_customer_self_cancel_leaves_order_untouched_when_refund_fails(): void
+    {
+        config([
+            'services.vnpay.sandbox.tmn_code' => 'TESTTMN',
+            'services.vnpay.sandbox.hash_secret' => 'TESTSECRET',
+        ]);
+        \Illuminate\Support\Facades\Http::fake([
+            '*/merchant_webapi/api/transaction' => \Illuminate\Support\Facades\Http::response(
+                ['vnp_ResponseCode' => '99', 'vnp_Message' => 'Giao dịch không hợp lệ'], 200
+            ),
+        ]);
+
+        $user = User::factory()->create();
+        $order = $this->makePaidOnlineOrder($user, 'vnpay');
+
+        $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
             'cancel_reason' => 'Đổi ý không muốn mua nữa',
         ])->assertStatus(422);
-        $this->assertSame('pending', $paid->fresh()->status);
+
+        $order = $order->fresh();
+        $this->assertSame('pending', $order->status);
+        $this->assertSame('paid', $order->payment_status);
+        $this->assertNull($order->refund_transaction_id);
+    }
+
+    /**
+     * Khách không được hủy đơn của người khác (kể cả đơn đã thanh toán) — ownership check phải chặn
+     * TRƯỚC khi bất kỳ lời gọi hoàn tiền nào xảy ra.
+     */
+    public function test_customer_cannot_self_cancel_someone_elses_paid_order(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+
+        $owner = User::factory()->create();
+        $attacker = User::factory()->create();
+        $order = $this->makePaidOnlineOrder($owner, 'vnpay');
+
+        $this->actingAs($attacker)->postJson("/orders/{$order->id}/cancel", [
+            'cancel_reason' => 'Cố hủy đơn của người khác',
+        ])->assertStatus(404);
+
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+        $this->assertSame('pending', $order->fresh()->status);
+        $this->assertSame('paid', $order->fresh()->payment_status);
+    }
+
+    /**
+     * Nút hủy vẫn hiện cho đơn "Chờ xác nhận" đã thanh toán (nhãn "Hủy & hoàn tiền"), không còn bắt
+     * khách liên hệ cửa hàng. Đơn đã xác nhận trở đi thì không có nút nữa.
+     */
+    public function test_my_orders_page_shows_refund_and_cancel_button_for_paid_pending_orders(): void
+    {
+        $user = User::factory()->create();
+        $paid = $this->makePaidOnlineOrder($user, 'vnpay');
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertSee("cancel-btn-{$paid->id}", false)
+            ->assertSee('Hủy &amp; hoàn tiền', false)
+            ->assertDontSee('liên hệ cửa hàng để hoàn tiền', false);
+
+        $confirmed = $this->makePaidOnlineOrder($user, 'vnpay');
+        $confirmed->update(['status' => 'confirmed']);
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertDontSee("cancel-btn-{$confirmed->id}", false);
     }
 
     // ───────────────────────── Reviews ─────────────────────────

@@ -10,8 +10,7 @@ class CartItemTopping extends Model
     protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
 
     /**
-     * Quan hệ Nhiều - 1 (Many-to-One) với Model CartItem.
-     * Nhiều bản ghi topping thuộc về cùng một dòng sản phẩm (CartItem) trong giỏ hàng.
+     * Quan hệ Nhiều - 1, nhiều topping thuộc vè 1 sản phẩm
      */
     public function cartItem()
     {
@@ -19,8 +18,7 @@ class CartItemTopping extends Model
     }
 
     /**
-     * Quan hệ Nhiều - 1 (Many-to-One) với Model Topping.
-     * Mỗi dòng topping liên kết tới định nghĩa Topping cụ thể trong bảng toppings (ví dụ: Trân châu đường đen).
+     * Quan hệ Nhiều - 1, nhiều topping được chọn thuộc về 1 loại topping gốc
      */
     public function topping()
     {
