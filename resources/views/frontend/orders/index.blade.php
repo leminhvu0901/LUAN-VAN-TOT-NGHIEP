@@ -161,9 +161,9 @@
                                         Hủy đơn
                                     </button>
                                 @endif
-                                <form method="POST" action="{{ route('orders.reorder', $order) }}" class="hidden md:inline-block">
+                                <form method="POST" action="{{ route('orders.reorder', $order) }}" class="inline-block">
                                     @csrf
-                                    <button type="submit" class="px-6 py-2.5 bg-primary text-white font-bold rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
+                                    <button type="submit" class="px-4 py-1.5 md:px-6 md:py-2.5 bg-primary text-white font-bold text-xs md:text-base rounded-full md:rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 whitespace-nowrap">Mua lại</button>
                                 </form>
                             </div>
                         </div>

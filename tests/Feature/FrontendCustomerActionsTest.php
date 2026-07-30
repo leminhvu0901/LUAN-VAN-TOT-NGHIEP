@@ -352,4 +352,23 @@ class FrontendCustomerActionsTest extends TestCase
 
         $this->actingAs($user)->post("/orders/{$order->id}/reorder")->assertStatus(404);
     }
+
+    /**
+     * Nút "Mua lại" trên trang danh sách đơn từng bị khóa "hidden md:inline-block" - ẩn hoàn toàn
+     * trên di động, chỉ hiện trên desktop. Khóa lại bằng cách kiểm tra nút KHÔNG còn nằm trong 1
+     * phần tử mang class "hidden" (Tailwind ẩn hẳn khỏi layout, không phải chỉ thu nhỏ).
+     */
+    public function test_reorder_button_is_visible_on_mobile_not_just_desktop(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+        $product = $this->makeProduct();
+        $this->makeOrderWithItem($user, $product);
+
+        $response = $this->actingAs($user)->get('/orders');
+        $order = Order::first();
+
+        $response->assertOk();
+        $response->assertSee(route('orders.reorder', ['order' => $order->id]), false);
+        $response->assertSee('action="' . route('orders.reorder', ['order' => $order->id]) . '" class="inline-block"', false);
+    }
 }
