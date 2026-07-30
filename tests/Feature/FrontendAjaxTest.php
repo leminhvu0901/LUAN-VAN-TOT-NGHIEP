@@ -240,6 +240,47 @@ class FrontendAjaxTest extends TestCase
         $response->assertStatus(422);
     }
 
+    /**
+     * Đơn ĐÃ THANH TOÁN trực tuyến (MoMo/VNPay) tuy vẫn đang "Chờ xác nhận" nhưng khách KHÔNG được tự
+     * hủy (phải hoàn tiền trước — chỉ lễ tân/admin làm được). Trang "Đơn hàng của tôi" phải ẩn hẳn nút
+     * "Hủy đơn" thay vì để khách bấm rồi mới báo lỗi.
+     */
+    public function test_my_orders_page_hides_cancel_button_for_paid_pending_orders(): void
+    {
+        $user = User::factory()->create();
+
+        $unpaid = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 50000, 'discount_amount' => 0,
+            'final_amount' => 50000, 'payment_status' => 'unpaid', 'payment_method' => 'cod',
+            'status' => 'pending', 'delivery_type' => 'delivery',
+        ]);
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertSee("cancel-btn-{$unpaid->id}", false);
+
+        $paid = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 50000, 'discount_amount' => 0,
+            'final_amount' => 50000, 'payment_status' => 'paid', 'payment_method' => 'vnpay',
+            'paid_at' => now(), 'status' => 'pending', 'delivery_type' => 'delivery',
+        ]);
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertDontSee("cancel-btn-{$paid->id}", false)
+            ->assertSee('liên hệ cửa hàng để hoàn tiền', false);
+
+        // Server-side vẫn phải chặn (không chỉ dựa vào việc ẩn nút ở giao diện).
+        $this->actingAs($user)->postJson("/orders/{$paid->id}/cancel", [
+            'cancel_reason' => 'Đổi ý không muốn mua nữa',
+        ])->assertStatus(422);
+        $this->assertSame('pending', $paid->fresh()->status);
+    }
+
     // ───────────────────────── Reviews ─────────────────────────
 
     public function test_review_ajax_returns_422_when_rating_missing(): void
