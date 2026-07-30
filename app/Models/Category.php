@@ -22,8 +22,7 @@ class Category extends Model
     ];
 
     /**
-     * Mối quan hệ Một - Nhiều (Has Many): Một danh mục sản phẩm sẽ chứa nhiều sản phẩm (Products) khác nhau.
-     * Liên kết từ khóa chính 'id' của bảng categories sang khóa ngoại 'category_id' trong bảng products.
+     * Quan hệ 1 - Nhiều, 1 danh mục chứa nhiều sản phẩm
      */
     public function products()
     {
@@ -31,8 +30,7 @@ class Category extends Model
     }
 
     /**
-     * Mối quan hệ Nhiều - Nhiều: các khuyến mãi giảm giá theo danh mục (scope='category') có chọn
-     * danh mục này.
+     * Quan hệ Nhiều - Nhiều, danh mục áp dụng nhiều chương trình khuyến mãi khác nhau
      */
     public function promotions()
     {
