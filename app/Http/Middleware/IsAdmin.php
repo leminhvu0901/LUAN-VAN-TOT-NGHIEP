@@ -11,10 +11,6 @@ class IsAdmin
 {
     /**
      * Xử lý yêu cầu truy cập (Incoming Request) gửi đến các tuyến đường bảo vệ của Admin
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
