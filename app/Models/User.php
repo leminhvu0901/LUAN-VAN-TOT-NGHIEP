@@ -63,30 +63,37 @@ class User extends Authenticatable
     public function awardPoints(int|float $amount): void
     {
         $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
-        if (!$loyaltyEnabled) return;
+        if (!$loyaltyEnabled)
+            return;
 
         $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
-        if ($moneyPerPoint <= 0) return;
+        if ($moneyPerPoint <= 0)
+            return;
 
         // Tính số điểm nhận được
         $earned = (int) floor($amount / $moneyPerPoint);
-        
+
         // Nếu số tiền quá nhỏ không được 1 điểm nào thì thoát hàm luôn (return)
-        if ($earned <= 0) return;
+        if ($earned <= 0)
+            return;
 
         // Cộng dồn điểm mới vào tổng điểm hiện tại của user (Nếu điểm hiện tại là null thì tính là 0)
         $total = (int) ($this->points ?? 0) + $earned;
 
         // TỰ ĐỘNG XẾP HẠNG THÀNH VIÊN DỰA TRÊN TỔNG ĐIỂM
-        if ($total >= 5000)      $level = 'diamond';
-        elseif ($total >= 2000)  $level = 'gold';
-        elseif ($total >= 500)   $level = 'silver';
-        else                     $level = 'new';
+        if ($total >= 5000)
+            $level = 'diamond';
+        elseif ($total >= 2000)
+            $level = 'gold';
+        elseif ($total >= 500)
+            $level = 'silver';
+        else
+            $level = 'new';
 
         // Cập nhật dữ liệu mới vào đối tượng $this
-        $this->points           = $total;
+        $this->points = $total;
         $this->membership_level = $level;
-        
+
         // Lưu xuống Database
         $this->save();
 

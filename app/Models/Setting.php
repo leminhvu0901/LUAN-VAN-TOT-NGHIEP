@@ -7,15 +7,11 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    // Các trường có thể điền hàng loạt (Mass Assignment)
     protected $fillable = ['group', 'key', 'value', 'type'];
 
     /**
-     * Get a setting value with caching.
+     * Lấy giá trị cấu hình theo Key (có sử dụng Cache vĩnh viễn để tối ưu hiệu năng)
      *
      * @param string $key
      * @param mixed $default
@@ -23,10 +19,11 @@ class Setting extends Model
      */
     public static function getValue(string $key, $default = null)
     {
+        // Cache vĩnh viễn giá trị cấu hình, tránh truy vấn database liên tục
         return Cache::rememberForever("setting.{$key}", function () use ($key, $default) {
             $setting = self::where('key', $key)->first();
             if (!$setting) {
-                return $default;
+                return $default; // Trả về giá trị mặc định nếu cấu hình chưa tồn tại
             }
 
             $value = $setting->value;
@@ -34,6 +31,7 @@ class Setting extends Model
                 return null;
             }
 
+            // Chuyển kiểu dữ liệu từ chuỗi (string) trong DB về kiểu thực tế (int, float, bool, json...)
             $type = strtolower($setting->type ?? 'string');
 
             switch ($type) {
@@ -58,7 +56,7 @@ class Setting extends Model
     }
 
     /**
-     * Set a setting value and invalidate cache.
+     * Lưu/Cập nhật giá trị cấu hình và xóa bộ nhớ đệm (Cache) tương ứng
      *
      * @param string $key
      * @param mixed $value
@@ -68,6 +66,7 @@ class Setting extends Model
      */
     public static function setValue(string $key, $value, string $group = 'general', string $type = 'string'): void
     {
+        // Cập nhật hoặc Tạo mới nếu chưa có
         self::updateOrCreate(
             ['key' => $key],
             [
@@ -77,11 +76,12 @@ class Setting extends Model
             ]
         );
 
+        // Xóa cache cũ để hệ thống nạp lại giá trị mới ở lần truy cập tiếp theo
         Cache::forget("setting.{$key}");
     }
 
     /**
-     * Set multiple setting values in a group.
+     * Lưu hàng loạt cấu hình trong cùng một nhóm
      *
      * @param array $settings
      * @param string $group
