@@ -56,11 +56,20 @@ function setLocStatus(state, extraText) {
     boxEl.className = 'mb-4 flex items-center gap-2 text-sm font-medium rounded-xl px-3 py-2.5 bg-surface-container-lowest ' + cfg[2];
 }
 
-// Chuyển phương thức xác định vị trí. KHÔNG reset họ tên/SĐT/loại địa chỉ/khu vực đang nhập, KHÔNG
-// tự gửi form, KHÔNG tự ghi đè địa chỉ đang nhập.
+// Chuyển phương thức xác định vị trí. KHÔNG reset họ tên/SĐT/loại địa chỉ, KHÔNG tự gửi form.
+// CÓ reset cờ "khách đã tự sửa khu vực/địa chỉ cụ thể" khi thực sự đổi sang 1 phương thức KHÁC:
+// các cờ này chỉ nhằm chặn Geoapify tự đè lên trong lúc khách đang thao tác ở CÙNG 1 phương thức
+// (mục 5/6); nếu để nguyên khi khách chủ động chuyển tab thì địa chỉ cũ (gõ tay ở tab "Nhập địa chỉ"
+// chẳng hạn) sẽ bị khoá cứng, không nhảy theo vị trí mới chấm ở tab "Vị trí hiện tại"/"Chọn trên bản
+// đồ" nữa — đúng bug đã gặp.
 function setLocationMethod(method) {
     if (!['gps', 'map', 'manual'].includes(method)) method = 'map';
+    const methodChanged = method !== locationMethod;
     locationMethod = method;
+    if (methodChanged) {
+        areaUserSelected = false;
+        specificUserEdited = false;
+    }
     const hidden = document.getElementById('addr_location_method');
     if (hidden) hidden.value = method;
 
@@ -873,6 +882,7 @@ function openAddressModal(isEdit = false, data = null) {
         document.getElementById('addr_default').checked = String(data.isDefault) === '1' || data.isDefault === true;
         
         specificUserEdited = false;
+        areaUserSelected = false;
         setAddrType(data.type === 'office' ? 'office' : 'home');
 
         preselectAreaByName(data.province || '', data.ward || '');
