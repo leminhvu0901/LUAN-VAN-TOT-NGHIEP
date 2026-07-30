@@ -122,7 +122,52 @@
                 </form>
             </div>
 
+            <!-- Phần 1.5: Biểu mẫu Xuất Kho Sử Dụng (lấy hàng ra khỏi kho để dùng trực tiếp, không qua đơn hàng) -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h3 class="font-bold text-gray-900 mb-1 border-b border-gray-100 pb-3">Xuất kho sử dụng</h3>
+                <p class="text-xs text-gray-500 mt-2 mb-4">Dùng khi lấy vật tư ra khỏi kho để dùng trực tiếp (VD: hết ly, lấy 1 lốc ly ra dùng).</p>
 
+                {{-- Trang này hiện lỗi validate theo TỪNG form riêng (khớp _form_context), không dùng
+                     chung 1 khối lỗi cho mọi form như khối phía trên (chỉ bắt lỗi KHÔNG có _form_context) -
+                     nếu thiếu khối này, lỗi nhập liệu của form xuất kho sẽ không hiện gì cho người dùng thấy. --}}
+                @if($errors->any() && old('_form_context') === 'consume-stock')
+                    <div class="mb-4 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-medium">
+                        <ul class="list-disc pl-5 space-y-1">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form action="{{ route('admin.materials.consume', $material->id) }}" method="POST" id="form-consume-stock">
+                    @csrf
+                    <input type="hidden" name="_form_context" value="consume-stock">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng xuất
+                                ({{ $material->unit }})</label>
+                            <input type="number" step="0.01" name="quantity" required min="0.01" max="999.99"
+                                value="{{ old('_form_context') === 'consume-stock' ? old('quantity') : '' }}"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
+                                placeholder="0">
+                        </div>
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lý do xuất kho</label>
+                            <input type="text" name="reason" required maxlength="255"
+                                value="{{ old('_form_context') === 'consume-stock' ? old('reason') : '' }}"
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
+                                placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit"
+                            class="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-[20px]">outbox</span> Ghi nhận xuất kho
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             <!-- Phần 2: Bảng Lịch sử Nhập kho & Xuất kho -->
             @php

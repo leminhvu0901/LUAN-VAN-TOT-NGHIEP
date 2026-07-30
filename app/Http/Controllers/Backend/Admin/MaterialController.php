@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Material;
 use App\Models\MaterialImport;
 use App\Services\InventoryService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -212,6 +213,34 @@ class MaterialController
         );
 
         return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
+    }
+
+    // 6.5. Xuất kho sử dụng (lấy vật tư ra khỏi kho để dùng trực tiếp, không qua đơn hàng) - trước đây
+    // chỉ có ở khu vực lễ tân (Staff\Reception\MaterialController::consumeStock()), admin không có
+    // đường nào để ghi nhận việc này dù có toàn quyền quản lý kho. Dùng chung
+    // InventoryService::consumeStockManually() - đúng logic trừ tồn kho theo từng lô (FIFO/hạn dùng
+    // gần nhất trước) đã có sẵn.
+    public function consumeStock(Request $request, Material $material)
+    {
+        $validated = $request->validate([
+            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999.99'],
+            'reason' => ['required', 'string', 'max:255'],
+        ], [
+            'quantity.required' => 'Vui lòng nhập số lượng xuất kho.',
+            'quantity.numeric' => 'Số lượng phải là số hợp lệ.',
+            'quantity.decimal' => 'Số lượng chỉ được có tối đa 2 chữ số thập phân.',
+            'quantity.min' => 'Số lượng phải lớn hơn 0.',
+            'quantity.max' => 'Số lượng xuất một lần phải bé hơn 1000.',
+            'reason.required' => 'Vui lòng nhập lý do xuất kho.',
+            'reason.max' => 'Lý do không được vượt quá 255 ký tự.',
+        ]);
+
+        $operator = Auth::user();
+        $reason = sprintf('[Admin: %s (%s)] %s', $operator->name, $operator->email, trim($validated['reason']));
+
+        $this->inventory->consumeStockManually($material, (string) $validated['quantity'], $reason);
+
+        return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã ghi nhận xuất kho sử dụng!');
     }
 
     // 6.1. Sửa Phiếu Nhập Kho (Tính toán lại Tồn kho và Giá vốn)

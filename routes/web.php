@@ -278,6 +278,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('materials/{material}/imports', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'storeImport'])->name('materials.imports.store');
     Route::put('materials/imports/{import}', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'updateImport'])->name('materials.imports.update');
 
+    // Xuất kho sử dụng (lấy vật tư ra khỏi kho để dùng trực tiếp, không qua đơn hàng)
+    Route::post('materials/{material}/consume', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeStock'])->name('materials.consume');
+
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 

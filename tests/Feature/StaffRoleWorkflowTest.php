@@ -743,6 +743,49 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Admin trước đây KHÔNG có đường nào để ghi nhận "Xuất kho sử dụng" (chỉ khu vực lễ tân có) dù
+     * có toàn quyền quản lý kho - đã thêm MaterialController(Admin)::consumeStock() dùng chung
+     * InventoryService::consumeStockManually() với lễ tân. Test này khớp với
+     * test_receptionist_can_consume_stock_manually() ở trên nhưng cho phía admin.
+     */
+    public function test_admin_can_consume_stock_manually(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Quản Trị Viên', 'email' => 'admin@happytea.com', 'role' => 'admin',
+        ]);
+        $material = Material::create([
+            'name' => 'Ống hút', 'unit' => 'gói', 'unit_price' => 10000, 'current_stock' => 20, 'is_active' => true,
+        ]);
+        $lot = MaterialImport::create([
+            'material_id' => $material->id, 'quantity' => 20, 'remaining_quantity' => 20, 'total_price' => 200000,
+        ]);
+
+        $this->actingAs($admin);
+
+        $response = $this->post("/admin/materials/{$material->id}/consume", [
+            'quantity' => 3,
+            'reason' => 'Hết ống hút tại quầy, lấy thêm',
+        ]);
+
+        $response->assertRedirect(route('admin.materials.imports', $material->id));
+        $material = $material->fresh();
+        $this->assertEquals(17, (float) $material->current_stock);
+
+        $expectedNote = '[Admin: Quản Trị Viên (admin@happytea.com)] Hết ống hút tại quầy, lấy thêm';
+        $this->assertDatabaseHas('material_imports', [
+            'material_id' => $material->id, 'quantity' => -3, 'note' => $expectedNote,
+        ]);
+        $this->assertEquals(17, (float) $lot->fresh()->remaining_quantity);
+
+        // Vượt tồn kho -> validate chặn, không đổi gì.
+        $response = $this->post("/admin/materials/{$material->id}/consume", [
+            'quantity' => 999, 'reason' => 'Thử vượt tồn kho',
+        ]);
+        $response->assertSessionHasErrors('quantity');
+        $this->assertEquals(17, (float) $material->fresh()->current_stock);
+    }
+
+    /**
      * Trang danh sách Vật tư (`materials.index`) trước đây chỉ được smoke-test (status 200), chưa
      * kiểm tra đúng nội dung: thẻ thống kê (tổng/sắp hết/hết hàng) và bộ lọc theo trạng thái.
      */
