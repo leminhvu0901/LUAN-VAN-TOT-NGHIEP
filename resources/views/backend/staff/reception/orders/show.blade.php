@@ -74,10 +74,10 @@
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
-                // Đơn MoMo đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
+                // Đơn MoMo/VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
                 // (route staff.reception.orders.refund), khác nút "Hủy đơn" thường ở trên.
                 $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && $order->payment_method === 'momo'
+                    && in_array($order->payment_method, ['momo', 'vnpay'], true)
                     && $order->payment_status === 'paid';
                 // Đơn tiền mặt tại quầy: phải thu tiền (khối "Thanh toán" ngay bên dưới) TRƯỚC khi được
                 // xác nhận - khớp rule server-side ở OrderWorkflowService::transition().
@@ -158,9 +158,9 @@
             <div class="flex items-center justify-between">
                 <div>
                     <div class="font-bold text-gray-900 uppercase">
-                        {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                        {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'vnpay' => 'Chuyển khoản (VNPay)', 'cash' => 'Tiền mặt', default => 'COD' } }}
                     </div>
-                    @if($order->payment_method === 'momo')
+                    @if(in_array($order->payment_method, ['momo', 'vnpay'], true))
                         @if(($order->payment_status ?? '') === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
@@ -198,15 +198,15 @@
                     @endif
                 </div>
                 <span class="material-symbols-outlined text-4xl text-gray-200">
-                    {{ ($order->payment_method ?? '') === 'momo' ? 'account_balance_wallet' : 'money' }}
+                    {{ in_array($order->payment_method, ['momo', 'vnpay'], true) ? 'account_balance_wallet' : 'money' }}
                 </span>
             </div>
 
-            @if($order->payment_method === 'momo' && !in_array($order->payment_status, ['paid', 'refunded'], true))
-                <form action="{{ route('staff.reception.orders.pay_momo', $order->id) }}" method="POST" class="mt-4">
+            @if(in_array($order->payment_method, ['momo', 'vnpay'], true) && !in_array($order->payment_status, ['paid', 'refunded'], true))
+                <form action="{{ route('staff.reception.orders.pay_online', $order->id) }}" method="POST" class="mt-4">
                     @csrf
                     <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
-                        Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)
+                        {{ $order->payment_method === 'vnpay' ? 'Thanh toán chuyển khoản (VNPay)' : 'Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)' }}
                     </button>
                 </form>
             @endif
@@ -511,7 +511,7 @@
             </div>
             <hr>
             <p class="print-ticket__row-sm">
-                Thanh toán: {{ match($order->payment_method) { 'momo' => 'MoMo', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                Thanh toán: {{ match($order->payment_method) { 'momo' => 'MoMo', 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD' } }}
             </p>
             @if($order->payment_method === 'cash' && $order->amount_tendered !== null)
                 <div class="print-ticket__flex-row--small">

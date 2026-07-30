@@ -21,11 +21,11 @@ class ProfileController
             ->orderByDesc('id')
             ->get();
 
-        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn MoMo chưa thanh toán bị lỗi/hủy)
+        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn MoMo/VNPay chưa thanh toán bị lỗi/hủy)
         $ordersCount = \App\Models\Order::query()
             ->where('user_id', $userId)
             ->where(function ($q) {
-                $q->where('payment_method', '!=', 'momo')
+                $q->whereNotIn('payment_method', ['momo', 'vnpay'])
                     ->orWhereNull('payment_method')
                     ->orWhere('payment_status', '!=', 'unpaid');
             })

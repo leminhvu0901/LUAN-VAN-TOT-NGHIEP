@@ -134,6 +134,7 @@
                 <span class="text-[#94a3b8] text-xs font-bold tracking-wider uppercase">Đối tác thanh toán</span>
                 <div class="flex items-center gap-2">
                     <div class="footer-payment-badge badge-momo" title="Thanh toán qua ví MoMo">MOMO</div>
+                    <div class="footer-payment-badge badge-vnpay" title="Thanh toán qua VNPay">VNPAY</div>
                     <div class="footer-payment-badge badge-cod" title="Thanh toán khi nhận hàng (COD)">COD</div>
                 </div>
             </div>

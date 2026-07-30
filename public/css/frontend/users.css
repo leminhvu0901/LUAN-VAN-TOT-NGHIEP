@@ -10098,6 +10098,12 @@ chuyển ra đây để mobile thu gọn lại được) */
   border: 1px solid #f5d0fe !important;
 }
 
+.badge-vnpay {
+  background-color: #eff6ff !important;
+  color: #003c71 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
 .badge-cod {
   background-color: #f1f5f9 !important;
   color: #475569 !important;

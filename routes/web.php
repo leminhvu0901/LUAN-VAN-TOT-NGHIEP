@@ -190,14 +190,23 @@ Route::middleware(['auth'])->group(function () {
 
     // Sau khi quét mã MoMo xong, khách bị đá ngược về route này để xem màn hình "Thanh toán thành công"
     Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
+
+    // --- Thanh toán qua cổng VNPay ---
+    // Khác MoMo: không gọi API, VnpayController tự build URL đã ký chữ ký rồi redirect thẳng.
+    Route::post('/checkout/vnpay', [App\Http\Controllers\Frontend\VnpayController::class, 'createPayment'])->name('vnpay.pay');
+    Route::get('/checkout/vnpay/return', [App\Http\Controllers\Frontend\VnpayController::class, 'handleReturn'])->name('vnpay.return');
 });
 
 // ==============================================
-// IPN MOMO & GIAO DIỆN GIỎ HÀNG
+// IPN MOMO/VNPAY & GIAO DIỆN GIỎ HÀNG
 // ==============================================
 
 // IPN của MoMo (Server-to-Server). MoMo gọi ngầm vào đường dẫn này để báo cáo kết quả giao dịch. BẮT BUỘC PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)!
 Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
+
+// IPN của VNPay (Server-to-Server, gọi bằng GET theo tài liệu VNPay — khác MoMo dùng POST). BẮT BUỘC
+// PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)! Phải luôn trả JSON {"RspCode":...} — xem VnpayController::handleIpn().
+Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController::class, 'handleIpn'])->name('vnpay.ipn');
 
 // API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
@@ -232,7 +241,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Xem chi tiết đơn hàng
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'updateStatus'])->name('orders.status.update');
-    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\MomoController::class, 'refundOrder'])->name('orders.refund');
+    // Dispatcher theo payment_method (momo/vnpay) — xem OnlinePaymentGatewayController.
+    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'refund'])->name('orders.refund');
     Route::delete('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'destroy'])->name('orders.destroy');
     Route::post('/orders/bulk-delete', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'bulkDelete'])->name('orders.bulk_delete');
 
@@ -303,9 +313,10 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     Route::get('/customers/search', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'searchCustomer'])->name('customers.search');
     Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'show'])->name('orders.show');
     Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'updateStatus'])->name('orders.status.update');
-    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\MomoController::class, 'refundOrder'])->name('orders.refund');
+    // Dispatcher theo payment_method (momo/vnpay) — xem OnlinePaymentGatewayController.
+    Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'refund'])->name('orders.refund');
     Route::post('/orders/{order}/assign-delivery', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'assignDelivery'])->name('orders.assign_delivery');
-    Route::post('/orders/{order}/pay-momo', [App\Http\Controllers\Frontend\MomoController::class, 'payExistingOrder'])->name('orders.pay_momo');
+    Route::post('/orders/{order}/pay-online', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'payExisting'])->name('orders.pay_online');
     Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');
 
     Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'index'])->name('materials.index');

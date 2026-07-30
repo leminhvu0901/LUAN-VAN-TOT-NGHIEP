@@ -1116,6 +1116,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedPayment && checkoutForm) {
             if (selectedPayment.value === 'momo' && checkoutForm.dataset.momoUrl) {
                 checkoutForm.action = checkoutForm.dataset.momoUrl;
+            } else if (selectedPayment.value === 'vnpay' && checkoutForm.dataset.vnpayUrl) {
+                checkoutForm.action = checkoutForm.dataset.vnpayUrl;
             } else if (checkoutForm.dataset.codUrl) {
                 checkoutForm.action = checkoutForm.dataset.codUrl;
             }
@@ -1171,6 +1173,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (orderBtn) {
                 if (radio.value === 'momo') {
                     orderBtn.innerText = 'Chuyển khoản (MoMo)';
+                } else if (radio.value === 'vnpay') {
+                    orderBtn.innerText = 'Chuyển khoản (VNPay)';
                 } else {
                     orderBtn.innerText = 'Đặt hàng (COD)';
                 }
@@ -1407,11 +1411,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (selectedPayment && selectedPayment.value === 'momo') {
                         orderBtn.innerText = 'Chuyển khoản (MoMo)';
                         orderBtn.classList.add('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
-                        orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary');
+                        orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary', 'bg-[#003c71]', 'hover:bg-[#002e57]');
+                    } else if (selectedPayment && selectedPayment.value === 'vnpay') {
+                        orderBtn.innerText = 'Chuyển khoản (VNPay)';
+                        orderBtn.classList.add('bg-[#003c71]', 'hover:bg-[#002e57]', 'text-white');
+                        orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary', 'bg-[#ae2070]', 'hover:bg-[#8b1a5a]');
                     } else {
                         orderBtn.innerText = 'Đặt hàng (COD)';
                         orderBtn.classList.add('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary');
-                        orderBtn.classList.remove('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
+                        orderBtn.classList.remove('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white', 'bg-[#003c71]', 'hover:bg-[#002e57]');
                     }
                 }
             }

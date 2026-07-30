@@ -23,13 +23,13 @@ class DashboardController
 
         // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ tính tiền đã thực thu (payment_status=paid,
         // paid_at hôm nay). Tiền mặt gộp cả 'cash' (thu tại quầy) và 'cod' (thu khi giao, cũng là tiền mặt);
-        // Chuyển khoản là 'momo' (thanh toán điện tử duy nhất đang có).
+        // Chuyển khoản gộp cả 'momo' và 'vnpay' (cùng là thanh toán điện tử, gộp chung 1 nhóm trên biểu đồ).
         $todayRange = [today(), today()->endOfDay()];
         $cashRevenueToday = (float) Order::whereIn('payment_method', ['cash', 'cod'])
             ->where('payment_status', 'paid')
             ->whereBetween('paid_at', $todayRange)
             ->sum('final_amount');
-        $transferRevenueToday = (float) Order::where('payment_method', 'momo')
+        $transferRevenueToday = (float) Order::whereIn('payment_method', ['momo', 'vnpay'])
             ->where('payment_status', 'paid')
             ->whereBetween('paid_at', $todayRange)
             ->sum('final_amount');

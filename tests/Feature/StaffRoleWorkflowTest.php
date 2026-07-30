@@ -412,6 +412,46 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Y hệt test trên nhưng cho đơn VNPay đã thanh toán — Delivery\OrderController::fail() phải dispatch
+     * đúng sang VnpayController::requestRefund() thay vì MomoController.
+     */
+    public function test_delivery_staff_marks_failed_delivery_damaged_triggers_refund_for_vnpay(): void
+    {
+        config([
+            'services.vnpay.sandbox.tmn_code' => 'TESTTMN',
+            'services.vnpay.sandbox.hash_secret' => 'TESTSECRET',
+        ]);
+        \Illuminate\Support\Facades\Http::fake([
+            '*/merchant_webapi/api/transaction' => \Illuminate\Support\Facades\Http::response(['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'VNP-REFUND-TX-1'], 200),
+        ]);
+
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder([
+            'status' => 'shipping',
+            'delivery_staff_id' => $delivery->id,
+            'assigned_at' => now(),
+            'payment_method' => 'vnpay',
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+            'payment_transaction_id' => 'ORIGINAL-VNP-TX-1',
+        ]);
+
+        $this->actingAs($delivery);
+        $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
+            'reason' => 'Trà sữa đổ vỡ trong lúc vận chuyển',
+            'failure_type' => 'damaged',
+        ]);
+        $response->assertRedirect();
+
+        $order = $order->fresh();
+        $this->assertEquals('cancelled', $order->status);
+        $this->assertEquals('refunded', $order->payment_status);
+        $this->assertEquals('VNP-REFUND-TX-1', $order->refund_transaction_id);
+        $this->assertNotNull($order->refunded_at);
+        $this->assertEquals('damaged', $order->delivery_failure_type);
+    }
+
+    /**
      * Giao thất bại vì "hàng hư hỏng/đổ vỡ" nhưng MoMo hoàn tiền thất bại -> vẫn hủy đơn (shipper
      * không thể kẹt ngoài đường chờ retry), nhưng KHÔNG đánh dấu đã hoàn tiền — payment_status vẫn
      * 'paid' trên đơn 'cancelled' để lễ tân/admin biết cần xử lý hoàn tiền thủ công.
@@ -551,15 +591,19 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Đơn MoMo "chờ thanh toán" (pending/unpaid) treo quá 15 phút bị tự động hủy — giải phóng tồn
-     * kho đã trừ trước (đơn tại quầy). Đơn còn mới, đơn COD, đơn đã xác nhận/đã thanh toán thì
+     * Đơn MoMo/VNPay "chờ thanh toán" (pending/unpaid) treo quá 15 phút bị tự động hủy — giải phóng
+     * tồn kho đã trừ trước (đơn tại quầy). Đơn còn mới, đơn COD, đơn đã xác nhận/đã thanh toán thì
      * KHÔNG bị đụng tới.
      */
-    public function test_cancel_stale_pending_payments_only_cancels_old_unpaid_momo_orders(): void
+    public function test_cancel_stale_pending_payments_only_cancels_old_unpaid_online_orders(): void
     {
         $stalePickup = $this->makeOrder([
             'delivery_type' => 'pickup', 'delivery_address' => null,
             'payment_method' => 'momo', 'payment_status' => 'unpaid', 'status' => 'pending',
+            'created_at' => now()->subMinutes(20),
+        ]);
+        $staleVnpay = $this->makeOrder([
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'pending',
             'created_at' => now()->subMinutes(20),
         ]);
         $freshMomo = $this->makeOrder([
@@ -581,8 +625,9 @@ class StaffRoleWorkflowTest extends TestCase
 
         $cancelledCount = app(\App\Services\OrderWorkflowService::class)->cancelStalePendingPayments(15);
 
-        $this->assertEquals(1, $cancelledCount);
+        $this->assertEquals(2, $cancelledCount);
         $this->assertEquals('cancelled', $stalePickup->fresh()->status);
+        $this->assertEquals('cancelled', $staleVnpay->fresh()->status);
         $this->assertEquals('pending', $freshMomo->fresh()->status);
         $this->assertEquals('pending', $staleCod->fresh()->status);
         $this->assertEquals('confirmed', $staleButConfirmed->fresh()->status);
@@ -881,7 +926,7 @@ class StaffRoleWorkflowTest extends TestCase
             'delivery_address' => null, 'status' => 'confirmed',
         ]);
 
-        $response = $this->actingAs($staff)->post("/staff/reception/orders/{$order->id}/pay-momo");
+        $response = $this->actingAs($staff)->post("/staff/reception/orders/{$order->id}/pay-online");
 
         $response->assertRedirect('https://test-payment.momo.vn/fake-retry-url');
         $this->assertSame('unpaid', $order->fresh()->payment_status);
@@ -900,7 +945,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $response = $this->actingAs($staff)
             ->from(route('staff.reception.orders.show', $order->id))
-            ->post("/staff/reception/orders/{$order->id}/pay-momo");
+            ->post("/staff/reception/orders/{$order->id}/pay-online");
 
         $response->assertRedirect(route('staff.reception.orders.show', $order->id));
         $response->assertSessionHas('error');

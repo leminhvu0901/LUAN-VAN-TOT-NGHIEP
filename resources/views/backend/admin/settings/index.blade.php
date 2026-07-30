@@ -540,6 +540,32 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <!-- Card VNPay -->
+                            <div class="settings-page__payment-card bg-gray-50 p-4 rounded-xl border border-gray-200/60 flex flex-col justify-between gap-3">
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between flex-wrap gap-1">
+                                        <span class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                                            <span class="w-5 h-5 rounded bg-[#003c71] flex items-center justify-center text-[10px] text-white font-bold shrink-0">V</span>
+                                            VNPay
+                                        </span>
+                                        @if ($paymentStatus['vnpay'])
+                                            <span id="vnpay-config-badge" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">ĐÃ CẤU HÌNH</span>
+                                        @else
+                                            <span id="vnpay-config-badge" class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold">CHƯA CẤU HÌNH</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-xs text-gray-500 leading-normal">Cổng thanh toán VNPay (ATM, Visa/Master/JCB, QR...). Bảo mật các khóa trực tiếp bằng tệp cấu hình hệ thống.</p>
+                                </div>
+                                <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200/50">
+                                    <span class="text-xs font-semibold text-gray-500">Kích hoạt</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="hidden" name="vnpay_enabled" value="0">
+                                        <input type="checkbox" name="vnpay_enabled" id="vnpay_enabled" value="1" class="sr-only peer" {{ ($settings['vnpay_enabled'] ?? '0') == '1' ? 'checked' : '' }}>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="settings-page__save-actions flex justify-end pt-2">

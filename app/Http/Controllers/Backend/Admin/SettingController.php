@@ -59,6 +59,7 @@ class SettingController
 
             'cod_enabled' => '1',
             'momo_enabled' => '0',
+            'vnpay_enabled' => '0',
             'payment_environment' => 'sandbox',
 
             'loyalty_enabled' => '1',
@@ -89,8 +90,10 @@ class SettingController
         // Check configured payment credentials for the currently selected environment (mask keys status)
         $momoEnvKey = ($settings['payment_environment'] ?? 'sandbox') === 'production' ? 'production' : 'sandbox';
         $momoEnvConfig = config("services.momo.{$momoEnvKey}", []);
+        $vnpayEnvConfig = config("services.vnpay.{$momoEnvKey}", []);
         $paymentStatus = [
             'momo' => (!empty($momoEnvConfig['partner_code']) && !empty($momoEnvConfig['access_key']) && !empty($momoEnvConfig['secret_key'])),
+            'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
         ];
 
         // Quét logo từ CẢ 2 nơi: images/logo (ảnh mặc định đi kèm mã nguồn) và uploads/logo
@@ -143,7 +146,7 @@ class SettingController
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
             'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
             'shipping' => ['shipping_base_fee', 'shipping_fee_per_km', 'shipping_max_distance_km', 'free_shipping_minimum', 'weather_surcharge_enabled', 'weather_override', 'weather_light_rain_percent', 'weather_heavy_rain_percent', 'weather_storm_percent'],
-            'payment' => ['cod_enabled', 'momo_enabled', 'payment_environment'],
+            'payment' => ['cod_enabled', 'momo_enabled', 'vnpay_enabled', 'payment_environment'],
             'loyalty' => ['loyalty_enabled', 'loyalty_money_per_point', 'loyalty_point_value', 'loyalty_max_redeem_percent', 'loyalty_min_points_to_redeem'],
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
         ];
@@ -177,6 +180,7 @@ class SettingController
 
             'cod_enabled' => 'boolean',
             'momo_enabled' => 'boolean',
+            'vnpay_enabled' => 'boolean',
             'payment_environment' => 'string',
 
             'loyalty_enabled' => 'boolean',
@@ -232,6 +236,7 @@ class SettingController
                 $rules = [
                     'cod_enabled' => 'required|in:0,1',
                     'momo_enabled' => 'required|in:0,1',
+                    'vnpay_enabled' => 'required|in:0,1',
                     'payment_environment' => 'required|in:sandbox,production',
                 ];
                 break;
@@ -334,7 +339,9 @@ class SettingController
             if ($section === 'payment') {
                 $momoEnvKey = $request->input('payment_environment') === 'production' ? 'production' : 'sandbox';
                 $momoEnvConfig = config("services.momo.{$momoEnvKey}", []);
+                $vnpayEnvConfig = config("services.vnpay.{$momoEnvKey}", []);
                 $payload['momo_configured'] = !empty($momoEnvConfig['partner_code']) && !empty($momoEnvConfig['access_key']) && !empty($momoEnvConfig['secret_key']);
+                $payload['vnpay_configured'] = !empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret']);
             }
 
             return response()->json($payload);

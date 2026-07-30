@@ -62,6 +62,23 @@ return [
         ],
     ],
 
+    'vnpay' => [
+        // Khác MoMo: KHÔNG bake sẵn credentials demo công khai — VNPay yêu cầu đăng ký merchant sandbox
+        // riêng (TMN Code + Hash Secret), không có bộ credentials test dùng chung công khai như MoMo.
+        'sandbox' => [
+            'tmn_code' => env('VNPAY_TMN_CODE_SANDBOX'),
+            'hash_secret' => env('VNPAY_HASH_SECRET_SANDBOX'),
+            'url' => env('VNPAY_URL_SANDBOX', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
+            'refund_endpoint' => env('VNPAY_REFUND_ENDPOINT_SANDBOX', 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction'),
+        ],
+        'production' => [
+            'tmn_code' => env('VNPAY_TMN_CODE'),
+            'hash_secret' => env('VNPAY_HASH_SECRET'),
+            'url' => env('VNPAY_URL', 'https://vnpayment.vn/paymentv2/vpcpay.html'),
+            'refund_endpoint' => env('VNPAY_REFUND_ENDPOINT', 'https://vnpayment.vn/merchant_webapi/api/transaction'),
+        ],
+    ],
+
     // Chỉ dùng làm DỰ PHÒNG cho tính khoảng cách giao hàng — Geoapify Routing API là nguồn chính (xem
     // ShippingQuoteService). Giữ lại đến khi Geoapify được xác nhận chạy ổn định.
     'openroute' => [

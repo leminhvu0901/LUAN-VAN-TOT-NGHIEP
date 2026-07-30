@@ -105,12 +105,14 @@ class AdminSettingControllerTest extends TestCase
             'section' => 'payment',
             'cod_enabled' => '0',
             'momo_enabled' => '1',
+            'vnpay_enabled' => '1',
             'payment_environment' => 'sandbox',
         ]);
 
         $response->assertOk()->assertJson(['success' => true]);
         $this->assertFalse(Setting::getValue('cod_enabled'));
         $this->assertTrue(Setting::getValue('momo_enabled'));
+        $this->assertTrue(Setting::getValue('vnpay_enabled'));
     }
 
     public function test_unknown_section_is_rejected(): void

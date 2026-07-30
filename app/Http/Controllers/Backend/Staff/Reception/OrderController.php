@@ -260,11 +260,12 @@ class OrderController
         ])->orderByDesc('is_active')->orderBy('name')->get();
 
         $categories = \App\Models\Category::query()->where('is_active', true)->orderBy('name')->get();
-        // POS chỉ nên cho chọn MoMo nếu admin đã bật kênh này trong Cài đặt (tiền mặt luôn khả dụng
-        // vì không phụ thuộc cổng thanh toán ngoài).
+        // POS chỉ nên cho chọn MoMo/VNPay nếu admin đã bật kênh đó trong Cài đặt (tiền mặt luôn khả
+        // dụng vì không phụ thuộc cổng thanh toán ngoài).
         $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
+        $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
 
-        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled'));
+        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled', 'vnpayEnabled'));
     }
 
     /**
@@ -374,7 +375,7 @@ class OrderController
         // khách đang đứng ngay tại quầy). Đơn giao hàng vẫn tồn tại trong hệ thống (khách tự đặt qua
         // trang khách hàng) nhưng KHÔNG được tạo từ màn hình POS này.
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:cash,momo'],
+            'payment_method' => ['required', 'in:cash,momo,vnpay'],
             'note' => ['nullable', 'string', 'max:500'],
             'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
             // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên — để trống = khách vãng lai.
@@ -423,6 +424,9 @@ class OrderController
         if ($validated['payment_method'] === 'momo') {
             // Chuyển sang cổng MoMo để khách quét QR thanh toán ngay tại quầy.
             $response = app(\App\Http\Controllers\Frontend\MomoController::class)->payExistingOrder($request, $order);
+        } elseif ($validated['payment_method'] === 'vnpay') {
+            // Chuyển sang cổng VNPay để khách thanh toán ngay tại quầy.
+            $response = app(\App\Http\Controllers\Frontend\VnpayController::class)->payExistingOrder($request, $order);
         } else {
             // Tiền mặt: KHÔNG tự động đánh dấu đã thanh toán ngay ở đây nữa — lễ tân phải nhập số
             // tiền khách đưa và bấm xác nhận rõ ràng ở trang chi tiết đơn (confirmCashPayment()) sau

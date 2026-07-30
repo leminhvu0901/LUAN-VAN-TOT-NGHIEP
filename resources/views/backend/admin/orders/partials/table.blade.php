@@ -50,7 +50,7 @@
                             class="inline-flex items-center px-2.5 py-1 rounded text-[11px] xl:text-xs font-medium bg-gray-100 text-gray-600 uppercase border border-gray-200 shadow-sm shrink-0">
                             {{ $order['payment_method'] }}
                         </div>
-                        @if($order['payment_method'] === 'MOMO')
+                        @if(in_array($order['payment_method'], ['MOMO', 'VNPAY'], true))
                             <div class="shrink-0">
                                 @if($order['payment_status'] === 'paid')
                                     <span class="badge-status badge-pay-paid scale-90 origin-left"><span
@@ -179,7 +179,7 @@
                         class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 uppercase border border-gray-200 shrink-0">
                         {{ $order['payment_method'] }}
                     </div>
-                    @if($order['payment_method'] === 'MOMO')
+                    @if(in_array($order['payment_method'], ['MOMO', 'VNPAY'], true))
                         <div class="shrink-0">
                             @if($order['payment_status'] === 'paid')
                                 <span class="badge-status badge-pay-paid scale-90 origin-right"><span

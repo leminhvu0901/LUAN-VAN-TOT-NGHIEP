@@ -298,7 +298,17 @@ document.addEventListener('DOMContentLoaded', function () {
                             const badge = document.getElementById('momo-config-badge');
                             if (badge) {
                                 badge.textContent = data.momo_configured ? 'ĐÃ CẤU HÌNH' : 'CHƯA CẤU HÌNH';
-                                badge.className = data.momo_configured 
+                                badge.className = data.momo_configured
+                                    ? 'px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold'
+                                    : 'px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold';
+                            }
+                        }
+
+                        if (typeof data.vnpay_configured === 'boolean') {
+                            const badge = document.getElementById('vnpay-config-badge');
+                            if (badge) {
+                                badge.textContent = data.vnpay_configured ? 'ĐÃ CẤU HÌNH' : 'CHƯA CẤU HÌNH';
+                                badge.className = data.vnpay_configured
                                     ? 'px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold'
                                     : 'px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold';
                             }

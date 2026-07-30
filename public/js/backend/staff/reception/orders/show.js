@@ -170,26 +170,27 @@ function initOrderShowPage() {
         });
     }
 
-    // Thanh toán MoMo — điều hướng thật sang cổng MoMo (redirect_url server trả về) khi thành công,
-    // không dùng submitOrderActionForm() chung (form khác vì đích đến là điều hướng, không phải reload).
-    const momoForm = document.querySelector('form[action*="/pay-momo"]');
-    if (momoForm) {
-        momoForm.addEventListener('submit', function (event) {
+    // Thanh toán online (MoMo/VNPay) — điều hướng thật sang cổng thanh toán (redirect_url server trả
+    // về) khi thành công, không dùng submitOrderActionForm() chung (form khác vì đích đến là điều
+    // hướng, không phải reload). Route dispatcher chung cho cả 2 cổng — xem OnlinePaymentGatewayController.
+    const payOnlineForm = document.querySelector('form[action*="/pay-online"]');
+    if (payOnlineForm) {
+        payOnlineForm.addEventListener('submit', function (event) {
             event.preventDefault();
-            const btn = momoForm.querySelector('button[type="submit"]');
+            const btn = payOnlineForm.querySelector('button[type="submit"]');
             if (btn) btn.disabled = true;
 
-            fetch(momoForm.action, {
+            fetch(payOnlineForm.action, {
                 method: 'POST',
                 headers: { Accept: 'application/json', 'X-CSRF-TOKEN': getShowPageCsrfToken() },
-                body: new FormData(momoForm),
+                body: new FormData(payOnlineForm),
             })
                 .then(function (response) {
                     return response.json().then(function (data) { return { status: response.status, data: data }; });
                 })
                 .then(function (result) {
                     if (result.status >= 400) {
-                        showOrderActionMessage((result.data && result.data.message) || 'Không thể kết nối cổng thanh toán MoMo.', 'error');
+                        showOrderActionMessage((result.data && result.data.message) || 'Không thể kết nối cổng thanh toán.', 'error');
                         if (btn) btn.disabled = false;
                         return;
                     }

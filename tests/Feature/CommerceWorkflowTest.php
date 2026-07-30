@@ -123,6 +123,16 @@ class CommerceWorkflowTest extends TestCase
         $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
+    public function test_unsigned_vnpay_return_cannot_mark_order_as_paid(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::create($this->orderData($user, ['payment_method' => 'vnpay']));
+
+        $this->actingAs($user)->get('/checkout/vnpay/return?vnp_TxnRef=' . $order->order_code . '&vnp_ResponseCode=00')
+            ->assertRedirect(route('orders'));
+        $this->assertSame('unpaid', $order->fresh()->payment_status);
+    }
+
     private function orderData(User $user, array $overrides = []): array
     {
         return array_merge([

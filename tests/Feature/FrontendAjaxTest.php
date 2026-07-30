@@ -106,6 +106,24 @@ class FrontendAjaxTest extends TestCase
         $response->assertJsonPath('message', 'Giỏ hàng của bạn đang trống.');
     }
 
+    public function test_vnpay_checkout_ajax_returns_json_error_for_empty_cart(): void
+    {
+        config([
+            'services.vnpay.sandbox.tmn_code' => 'TESTTMN',
+            'services.vnpay.sandbox.hash_secret' => 'TESTSECRET',
+        ]);
+        $this->travelTo(Carbon::parse('14:00:00'));
+        $user = User::factory()->create();
+        $address = $this->makeAddress($user);
+
+        $response = $this->actingAs($user)->postJson('/checkout/vnpay', [
+            'address_id' => $address->id, 'payment_method' => 'vnpay', 'distance_km' => 2.5,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('message', 'Giỏ hàng của bạn đang trống.');
+    }
+
     // ───────────────────────── Products filter/pagination ─────────────────────────
 
     public function test_products_ajax_request_returns_partial_not_full_page(): void

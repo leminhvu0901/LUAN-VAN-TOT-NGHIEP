@@ -43,9 +43,9 @@
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đó).
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
-                // Đơn MoMo đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
+                // Đơn MoMo/VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
                 $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && $order->payment_method === 'momo'
+                    && in_array($order->payment_method, ['momo', 'vnpay'], true)
                     && $order->payment_status === 'paid';
                 $statusLabels2 = [
                     'pending' => ['Chờ xác nhận', 'badge-pending'],
@@ -280,8 +280,8 @@
                             {{-- Phương thức thanh toán (COD hoặc MOMO) --}}
                             <div class="font-bold text-gray-900 uppercase">{{ $order->payment_method ?? 'COD' }}</div>
 
-                            {{-- Kiểm tra nếu thanh toán bằng Momo thì in ra trạng thái Đã thanh toán / Chờ thanh toán --}}
-                            @if($order->payment_method === 'momo')
+                            {{-- Kiểm tra nếu thanh toán online (Momo/VNPay) thì in ra trạng thái Đã thanh toán / Chờ thanh toán --}}
+                            @if(in_array($order->payment_method, ['momo', 'vnpay'], true))
                                 @if(($order->payment_status ?? '') === 'paid')
                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
@@ -304,7 +304,7 @@
                         </div>
                         {{-- Đổi Icon tương ứng với ví điện tử hoặc tiền mặt --}}
                         <span class="material-symbols-outlined text-4xl text-gray-200">
-                            {{ ($order->payment_method ?? '') === 'momo' ? 'account_balance_wallet' : 'money' }}
+                            {{ in_array($order->payment_method ?? '', ['momo', 'vnpay'], true) ? 'account_balance_wallet' : 'money' }}
                         </span>
                     </div>
                 </div>

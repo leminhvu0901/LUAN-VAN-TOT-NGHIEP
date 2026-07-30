@@ -78,11 +78,11 @@ class OrderWorkflowService
         }, 3);
     }
 
-    public function markPaid(Order $order, string $transactionId, float $amount): Order
+    public function markPaid(Order $order, string $transactionId, float $amount, ?\Carbon\Carbon $paidAtOverride = null): Order
     {
         $wasAlreadyPaid = false;
 
-        $result = DB::transaction(function () use ($order, $transactionId, $amount, &$wasAlreadyPaid) {
+        $result = DB::transaction(function () use ($order, $transactionId, $amount, $paidAtOverride, &$wasAlreadyPaid) {
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if (abs((float) $locked->final_amount - $amount) > 0.01) {
                 throw ValidationException::withMessages(['amount' => 'Số tiền thanh toán không khớp đơn hàng.']);
@@ -94,7 +94,7 @@ class OrderWorkflowService
             $locked->forceFill([
                 'payment_status' => 'paid',
                 'payment_transaction_id' => $transactionId,
-                'paid_at' => now(),
+                'paid_at' => $paidAtOverride ?? now(),
             ])->save();
             return $locked;
         }, 3);
@@ -275,7 +275,7 @@ class OrderWorkflowService
     public function cancelStalePendingPayments(int $minutes = 15): int
     {
         $staleOrders = Order::query()
-            ->where('payment_method', 'momo')
+            ->whereIn('payment_method', ['momo', 'vnpay'])
             ->where('payment_status', 'unpaid')
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subMinutes($minutes))
@@ -284,7 +284,7 @@ class OrderWorkflowService
         $cancelledCount = 0;
         foreach ($staleOrders as $order) {
             try {
-                $this->transition($order, 'cancelled', 'Tự động hủy do quá thời gian chờ thanh toán MoMo.');
+                $this->transition($order, 'cancelled', 'Tự động hủy do quá thời gian chờ thanh toán.');
                 $cancelledCount++;
             } catch (ValidationException $e) {
                 // Đơn vừa được thanh toán/hủy đúng lúc job chạy (race condition) -> bỏ qua, không phải lỗi thật.

@@ -10,7 +10,7 @@
         <div class="space-y-2">
             <label class="flex items-start gap-2 text-sm text-gray-700">
                 <input type="radio" name="fail-reason-type" value="damaged" class="mt-0.5">
-                <span>Hàng hư hỏng/đổ vỡ trong quá trình giao <span class="text-xs text-emerald-600">(sẽ tự động hoàn tiền nếu đơn đã thanh toán MoMo)</span></span>
+                <span>Hàng hư hỏng/đổ vỡ trong quá trình giao <span class="text-xs text-emerald-600">(sẽ tự động hoàn tiền nếu đơn đã thanh toán trực tuyến MoMo/VNPay)</span></span>
             </label>
             <label class="flex items-start gap-2 text-sm text-gray-700">
                 <input type="radio" name="fail-reason-type" value="customer_unreachable" class="mt-0.5" checked>

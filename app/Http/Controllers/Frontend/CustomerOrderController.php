@@ -29,7 +29,7 @@ class CustomerOrderController
     {
         $status = $request->query('status');
         $query = Order::query()->with('items.product')->where('user_id', Auth::id())
-            ->where(fn($builder) => $builder->where('payment_method', '!=', 'momo')
+            ->where(fn($builder) => $builder->whereNotIn('payment_method', ['momo', 'vnpay'])
                 ->orWhereNull('payment_method')->orWhere('payment_status', '!=', 'unpaid'));
         if (in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
             $query->where('status', $status);

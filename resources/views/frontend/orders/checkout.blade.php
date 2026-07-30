@@ -36,7 +36,8 @@
 
         <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form"
               data-cod-url="{{ route('checkout.store') }}"
-              data-momo-url="{{ route('momo.pay') }}">
+              data-momo-url="{{ route('momo.pay') }}"
+              data-vnpay-url="{{ route('vnpay.pay') }}">
             @csrf
             <input type="hidden" name="idempotency_key" value="{{ $checkoutToken }}">
             <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
@@ -342,6 +343,9 @@
                         @php
                             $codEnabled = (bool) \App\Models\Setting::getValue('cod_enabled', true);
                             $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
+                            $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
+                            // COD tắt -> tự chọn phương thức online ĐẦU TIÊN còn bật (chỉ 1 radio được checked).
+                            $autoCheckOnline = !$codEnabled;
                         @endphp
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Cash On Delivery (COD) -->
@@ -361,18 +365,34 @@
                             <!-- Chuyển khoản (MoMo - hiện đầy đủ các phương thức) -->
                             @if($momoEnabled)
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
-                                <input type="radio" name="payment_method" value="momo" {{ !$codEnabled ? 'checked' : '' }} class="text-primary focus:ring-primary">
+                                <input type="radio" name="payment_method" value="momo" {{ $autoCheckOnline ? 'checked' : '' }} class="text-primary focus:ring-primary">
                                 <div class="flex items-center gap-3">
                                     <span class="material-symbols-outlined text-primary text-3xl material-filled">account_balance</span>
                                     <div>
-                                        <span class="block font-bold text-on-surface">Chuyển khoản</span>
+                                        <span class="block font-bold text-on-surface">Chuyển khoản (MoMo)</span>
                                         <span class="text-xs text-on-surface-variant">Ví MoMo, ATM, Visa/Master...</span>
                                     </div>
                                 </div>
                             </label>
+                            @php $autoCheckOnline = false; @endphp
                             @endif
 
-                            @if(!$codEnabled && !$momoEnabled)
+                            <!-- Chuyển khoản qua VNPay -->
+                            @if($vnpayEnabled)
+                            <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
+                                <input type="radio" name="payment_method" value="vnpay" {{ $autoCheckOnline ? 'checked' : '' }} class="text-primary focus:ring-primary">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-primary text-3xl material-filled">credit_card</span>
+                                    <div>
+                                        <span class="block font-bold text-on-surface">Chuyển khoản (VNPay)</span>
+                                        <span class="text-xs text-on-surface-variant">ATM, Visa/Master/JCB, QR...</span>
+                                    </div>
+                                </div>
+                            </label>
+                            @php $autoCheckOnline = false; @endphp
+                            @endif
+
+                            @if(!$codEnabled && !$momoEnabled && !$vnpayEnabled)
                             <div class="col-span-full p-4 bg-red-50 text-red-800 border border-red-200 rounded-xl text-sm font-semibold">
                                 Cửa hàng hiện đang tạm ngắt toàn bộ cổng thanh toán. Không thể hoàn tất đặt hàng lúc này.
                             </div>

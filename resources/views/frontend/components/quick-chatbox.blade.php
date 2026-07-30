@@ -127,10 +127,13 @@
                         @if($quickChatPaymentMethods['momo_enabled'])
                             <li>Ví điện tử MoMo</li>
                         @endif
+                        @if($quickChatPaymentMethods['vnpay_enabled'])
+                            <li>VNPay (ATM, Visa/Master/JCB, QR...)</li>
+                        @endif
                         @if($quickChatPaymentMethods['cod_enabled'])
                             <li>Tiền mặt khi nhận hàng (COD)</li>
                         @endif
-                        <li>Tiền mặt hoặc MoMo (đơn tạo tại quầy)</li>
+                        <li>Tiền mặt, MoMo hoặc VNPay (đơn tạo tại quầy)</li>
                     </ul>
                 </div>
             </div>

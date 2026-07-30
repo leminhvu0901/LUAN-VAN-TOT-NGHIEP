@@ -30,6 +30,7 @@ class QuickChatboxComposer
             'quickChatPaymentMethods' => [
                 'cod_enabled' => (bool) Setting::getValue('cod_enabled', true),
                 'momo_enabled' => (bool) Setting::getValue('momo_enabled', false),
+                'vnpay_enabled' => (bool) Setting::getValue('vnpay_enabled', false),
             ],
         ]);
     }

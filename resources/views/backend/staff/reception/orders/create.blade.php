@@ -181,7 +181,13 @@
                             @if($momoEnabled)
                                 <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-bold cursor-pointer">
                                     <input type="radio" name="payment_method" value="momo" class="sr-only">
-                                    <span class="material-symbols-outlined text-[18px]">account_balance</span> Chuyển khoản
+                                    <span class="material-symbols-outlined text-[18px]">account_balance</span> MoMo
+                                </label>
+                            @endif
+                            @if($vnpayEnabled)
+                                <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-bold cursor-pointer">
+                                    <input type="radio" name="payment_method" value="vnpay" class="sr-only">
+                                    <span class="material-symbols-outlined text-[18px]">credit_card</span> VNPay
                                 </label>
                             @endif
                         </div>

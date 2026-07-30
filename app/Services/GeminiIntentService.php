@@ -18,7 +18,7 @@ class GeminiIntentService
     // thẳng sang 1 intent tĩnh qua config('quick_chat.gemini_intent_map')).
     public const ACTIONABLE_INTENTS = [
         'product_search', 'product_price', 'cheapest_product', 'best_seller', 'new_products', 'product_menu',
-        'promotion_list', 'promotion_condition', 'payment', 'momo', 'cod', 'shipping',
+        'promotion_list', 'promotion_condition', 'payment', 'momo', 'vnpay', 'cod', 'shipping',
         'order_tracking', 'opening_hours', 'contact', 'product_options',
     ];
 
