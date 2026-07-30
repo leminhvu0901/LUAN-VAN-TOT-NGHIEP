@@ -28,22 +28,28 @@
                             <h3 class="font-bold text-gray-900 text-lg">{{ $group['staff']->name }}</h3>
                             <p class="text-xs text-gray-500">{{ $group['staff']->phone ?: 'Chưa cập nhật SĐT' }}</p>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Chưa nộp</p>
-                                <p class="font-black text-lg {{ $group['unsettled_total'] > 0 ? 'text-amber-600' : 'text-gray-400' }}">
-                                    {{ number_format($group['unsettled_total'], 0, ',', '.') }}đ
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Đã nộp hôm nay</p>
-                                <p class="font-black text-lg text-emerald-600">{{ number_format($group['settled_total_today'], 0, ',', '.') }}đ</p>
+                        {{-- Màn hẹp: xếp 2 ô số liệu + nút "Nộp tất cả" dọc xuống thay vì nhồi chung 1 hàng
+                             ngang - nhãn "Đã nộp hôm nay" dài hơn "Chưa nộp" nên tự xuống dòng còn ô kia
+                             thì không, làm 2 ô lệch chiều cao và nút bị đẩy lệch theo. --}}
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                            <div class="flex items-center justify-between sm:justify-end gap-4">
+                                <div class="text-left sm:text-right">
+                                    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Chưa nộp</p>
+                                    <p class="font-black text-lg {{ $group['unsettled_total'] > 0 ? 'text-amber-600' : 'text-gray-400' }}">
+                                        {{ number_format($group['unsettled_total'], 0, ',', '.') }}đ
+                                    </p>
+                                </div>
+                                <div class="text-left sm:text-right">
+                                    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Đã nộp hôm nay</p>
+                                    <p class="font-black text-lg text-emerald-600">{{ number_format($group['settled_total_today'], 0, ',', '.') }}đ</p>
+                                </div>
                             </div>
                             @if($group['unsettled_orders']->isNotEmpty())
                                 <form action="{{ route('staff.reception.cod_settlement.settle_all', $group['staff']->id) }}" method="POST"
+                                    class="w-full sm:w-auto"
                                     data-confirm-message="Xác nhận đã nhận đủ {{ number_format($group['unsettled_total'], 0, ',', '.') }}đ từ {{ $group['staff']->name }}?">
                                     @csrf
-                                    <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm whitespace-nowrap">
+                                    <button type="submit" class="w-full sm:w-auto min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm whitespace-nowrap">
                                         Nộp tất cả ({{ $group['unsettled_orders']->count() }})
                                     </button>
                                 </form>
