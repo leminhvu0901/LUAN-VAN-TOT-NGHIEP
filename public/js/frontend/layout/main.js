@@ -811,6 +811,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCart();
 });
 
+// Nút back/forward của trình duyệt có thể được phục vụ từ bfcache — khôi phục nguyên DOM đã lưu
+// trong bộ nhớ thay vì tải lại trang từ server. Hậu quả: sau khi hủy đơn/đặt hàng/lưu địa chỉ xong
+// (có thông báo flash 1 lần), bấm "quay lại" sẽ vẫn thấy y hệt thông báo đó (DOM cũ render sẵn, không
+// phải thông báo mới) và dữ liệu trên trang (vd trạng thái đơn) không phản ánh thay đổi vừa lưu vì
+// hoàn toàn không có request nào gọi lại server. Cùng cách sửa với khu vực admin/nhân viên (xem
+// public/js/backend/admin/layout.js) - ép tải lại thật khi phát hiện trang được phục hồi từ bfcache.
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 // ==========================================
 // CHỌN SẢN PHẨM TRONG GIỏ HÀNG ĐỂ THANH TOÁN
 // ==========================================

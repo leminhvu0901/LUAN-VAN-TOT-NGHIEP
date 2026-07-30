@@ -329,6 +329,20 @@ window.smartGoBack = function (event) {
     }
 };
 
+// history.back()/forward() (kể cả nút "Quay lại" ở trên lẫn nút back/forward thật của trình duyệt)
+// có thể được trình duyệt phục vụ từ bfcache — khôi phục lại NGUYÊN VẸN DOM đã lưu trong bộ nhớ thay
+// vì tải lại trang từ server. Hậu quả cụ thể đã gặp: lưu 1 phiếu nhập kho xong bấm "Quay lại" 2 lần
+// liên tiếp -> lần 1 vẫn thấy y hệt thông báo "Đã nhập kho thành công!" (vì đó là DOM cũ đã render
+// sẵn thông báo đó lúc rời trang, không phải thông báo mới), lần 2 bảng dữ liệu vẫn là số liệu CŨ,
+// chưa phản ánh phiếu nhập vừa lưu — vì hoàn toàn không có request nào gọi lại server. Sự kiện
+// "pageshow" với persisted=true là dấu hiệu chính xác của trường hợp này; ép tải lại thật để luôn có
+// dữ liệu mới nhất và không hiện nhầm lại thông báo đã dùng 1 lần.
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 // Mở/đóng khung bộ lọc trên mobile (nút "Bộ lọc"/icon phễu ở các trang danh sách).
 window.toggleFilterPanel = function (targetId) {
     const el = document.getElementById(targetId);
