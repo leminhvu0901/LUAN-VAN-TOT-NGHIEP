@@ -744,53 +744,11 @@ class StaffRoleWorkflowTest extends TestCase
 
     /**
      * Admin trước đây KHÔNG có đường nào để ghi nhận "Xuất kho sử dụng" (chỉ khu vực lễ tân có) dù
-     * có toàn quyền quản lý kho - đã thêm MaterialController(Admin)::consumeStock() dùng chung
-     * InventoryService::consumeStockManually() với lễ tân. Test này khớp với
-     * test_receptionist_can_consume_stock_manually() ở trên nhưng cho phía admin.
-     */
-    public function test_admin_can_consume_stock_manually(): void
-    {
-        $admin = User::factory()->create([
-            'name' => 'Quản Trị Viên', 'email' => 'admin@happytea.com', 'role' => 'admin',
-        ]);
-        $material = Material::create([
-            'name' => 'Ống hút', 'unit' => 'gói', 'unit_price' => 10000, 'current_stock' => 20, 'is_active' => true,
-        ]);
-        $lot = MaterialImport::create([
-            'material_id' => $material->id, 'quantity' => 20, 'remaining_quantity' => 20, 'total_price' => 200000,
-        ]);
-
-        $this->actingAs($admin);
-
-        $response = $this->post("/admin/materials/{$material->id}/consume", [
-            'quantity' => 3,
-            'reason' => 'Hết ống hút tại quầy, lấy thêm',
-        ]);
-
-        $response->assertRedirect(route('admin.materials.imports', $material->id));
-        $material = $material->fresh();
-        $this->assertEquals(17, (float) $material->current_stock);
-
-        $expectedNote = '[Admin: Quản Trị Viên (admin@happytea.com)] Hết ống hút tại quầy, lấy thêm';
-        $this->assertDatabaseHas('material_imports', [
-            'material_id' => $material->id, 'quantity' => -3, 'note' => $expectedNote,
-        ]);
-        $this->assertEquals(17, (float) $lot->fresh()->remaining_quantity);
-
-        // Vượt tồn kho -> validate chặn, không đổi gì.
-        $response = $this->post("/admin/materials/{$material->id}/consume", [
-            'quantity' => 999, 'reason' => 'Thử vượt tồn kho',
-        ]);
-        $response->assertSessionHasErrors('quantity');
-        $this->assertEquals(17, (float) $material->fresh()->current_stock);
-    }
-
-    /**
-     * Xuất kho từ MỘT LÔ CỤ THỂ do người dùng tự chọn (nút "Xuất" trên từng dòng lô) - khác form
-     * "Xuất kho sử dụng" chung ở test ngay trên (tự động chọn lô theo hạn dùng gần nhất). Điểm khác
-     * biệt quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của cùng vật tư không
-     * bị đụng tới - đây chính là lý do tính năng này được thêm (form chung không cho biết/chọn được
-     * trừ từ lô nào khi vật tư có nhiều lô).
+     * có toàn quyền quản lý kho. Thêm MaterialController(Admin)::consumeBatch() - LUÔN xuất từ một lô
+     * cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), không có bản "tự động chọn lô" như
+     * lễ tân vì bên admin đã thấy rõ danh sách lô ngay trên trang, không cần thêm 1 con đường mơ hồ
+     * nữa. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của cùng vật tư
+     * không bị đụng tới.
      */
     public function test_admin_can_consume_stock_from_a_specific_lot_without_touching_other_lots(): void
     {

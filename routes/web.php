@@ -278,13 +278,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::post('materials/{material}/imports', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'storeImport'])->name('materials.imports.store');
     Route::put('materials/imports/{import}', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'updateImport'])->name('materials.imports.update');
 
-    // Xuất kho sử dụng (lấy vật tư ra khỏi kho để dùng trực tiếp, không qua đơn hàng)
-    Route::post('materials/{material}/consume', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeStock'])->name('materials.consume');
-
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
-    // Xuất kho sử dụng từ một lô cụ thể (khác /materials/{material}/consume ở trên - tự động chọn lô)
+    // Xuất kho sử dụng - LUÔN chọn đúng 1 lô cụ thể (nút "Xuất" trên từng dòng lô). Không có bản
+    // "tự động chọn lô" như bên lễ tân (staff.reception.materials.consume) vì admin đã có nút theo-lô
+    // ngay trên trang này rồi - giữ cả 2 chỉ gây trùng lặp/khó hiểu không cần thiết.
     Route::post('materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
 
     // QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (staff-accounts)

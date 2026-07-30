@@ -215,34 +215,6 @@ class MaterialController
         return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
 
-    // 6.5. Xuất kho sử dụng (lấy vật tư ra khỏi kho để dùng trực tiếp, không qua đơn hàng) - trước đây
-    // chỉ có ở khu vực lễ tân (Staff\Reception\MaterialController::consumeStock()), admin không có
-    // đường nào để ghi nhận việc này dù có toàn quyền quản lý kho. Dùng chung
-    // InventoryService::consumeStockManually() - đúng logic trừ tồn kho theo từng lô (FIFO/hạn dùng
-    // gần nhất trước) đã có sẵn.
-    public function consumeStock(Request $request, Material $material)
-    {
-        $validated = $request->validate([
-            'quantity' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999.99'],
-            'reason' => ['required', 'string', 'max:255'],
-        ], [
-            'quantity.required' => 'Vui lòng nhập số lượng xuất kho.',
-            'quantity.numeric' => 'Số lượng phải là số hợp lệ.',
-            'quantity.decimal' => 'Số lượng chỉ được có tối đa 2 chữ số thập phân.',
-            'quantity.min' => 'Số lượng phải lớn hơn 0.',
-            'quantity.max' => 'Số lượng xuất một lần phải bé hơn 1000.',
-            'reason.required' => 'Vui lòng nhập lý do xuất kho.',
-            'reason.max' => 'Lý do không được vượt quá 255 ký tự.',
-        ]);
-
-        $operator = Auth::user();
-        $reason = sprintf('[Admin: %s (%s)] %s', $operator->name, $operator->email, trim($validated['reason']));
-
-        $this->inventory->consumeStockManually($material, (string) $validated['quantity'], $reason);
-
-        return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã ghi nhận xuất kho sử dụng!');
-    }
-
     // 6.1. Sửa Phiếu Nhập Kho (Tính toán lại Tồn kho và Giá vốn)
     public function updateImport(Request $request, MaterialImport $import)
     {
@@ -400,11 +372,10 @@ class MaterialController
         return redirect()->back()->with('success', 'Đã xuất hủy từ lô hàng thành công!');
     }
 
-    // 8.5. Xuất kho sử dụng từ MỘT LÔ CỤ THỂ do người dùng tự chọn (khác khối "Xuất kho sử dụng" chung
-    // ở trên trang, tự động trừ theo hạn dùng gần nhất qua InventoryService::consumeStockManually() -
-    // không cho biết chính xác trừ từ lô nào khi vật tư có nhiều lô). Cùng phép tính với disposeBatch()
-    // ở trên (trừ đúng 1 lô, không phải hao hụt/hủy) nhưng khác ở loại ghi nhận ('adjustment' thay vì
-    // 'dispose') và nội dung ghi chú, để phân biệt rõ "dùng thật" khỏi "hư hỏng/hết hạn" khi tra soát.
+    // 8.5. Xuất kho sử dụng - LUÔN từ một lô cụ thể do người dùng tự chọn (nút "Xuất" trên từng dòng
+    // lô). Cùng phép tính với disposeBatch() ở trên (trừ đúng 1 lô, không phải hao hụt/hủy) nhưng khác
+    // ở loại ghi nhận ('adjustment' thay vì 'dispose') và nội dung ghi chú, để phân biệt rõ "dùng thật"
+    // khỏi "hư hỏng/hết hạn" khi tra soát.
     public function consumeBatch(Request $request, MaterialImport $import)
     {
         $request->merge([
