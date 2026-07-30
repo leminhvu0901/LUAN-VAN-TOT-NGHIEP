@@ -786,6 +786,50 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Xuất kho từ MỘT LÔ CỤ THỂ do người dùng tự chọn (nút "Xuất" trên từng dòng lô) - khác form
+     * "Xuất kho sử dụng" chung ở test ngay trên (tự động chọn lô theo hạn dùng gần nhất). Điểm khác
+     * biệt quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của cùng vật tư không
+     * bị đụng tới - đây chính là lý do tính năng này được thêm (form chung không cho biết/chọn được
+     * trừ từ lô nào khi vật tư có nhiều lô).
+     */
+    public function test_admin_can_consume_stock_from_a_specific_lot_without_touching_other_lots(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Quản Trị Viên', 'email' => 'admin@happytea.com', 'role' => 'admin',
+        ]);
+        $material = Material::create([
+            'name' => 'Ly nhựa 500ml', 'unit' => 'lốc', 'unit_price' => 15000, 'current_stock' => 15, 'is_active' => true,
+        ]);
+        $olderLot = MaterialImport::create(['material_id' => $material->id, 'quantity' => 10, 'remaining_quantity' => 10, 'total_price' => 150000]);
+        $newerLot = MaterialImport::create(['material_id' => $material->id, 'quantity' => 5, 'remaining_quantity' => 5, 'total_price' => 100000]);
+
+        $this->actingAs($admin);
+
+        // Chủ động chọn xuất từ lô MỚI HƠN, dù FIFO/hạn dùng sẽ ưu tiên lô cũ hơn nếu dùng form chung.
+        $response = $this->post("/admin/materials/imports/{$newerLot->id}/consume-batch", [
+            'quantity' => 3,
+            'reason' => 'Cần đúng loại ly của lô mới cho đơn hàng đặc biệt',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals(2, (float) $newerLot->fresh()->remaining_quantity);
+        $this->assertEquals(10, (float) $olderLot->fresh()->remaining_quantity, 'Lô không được chọn không được đụng tới.');
+        $this->assertEquals(12, (float) $material->fresh()->current_stock);
+
+        $expectedNote = 'Xuất dùng từ lô LOT-' . $newerLot->id . ': [Admin: Quản Trị Viên (admin@happytea.com)] Cần đúng loại ly của lô mới cho đơn hàng đặc biệt';
+        $this->assertDatabaseHas('material_imports', [
+            'material_id' => $material->id, 'quantity' => -3, 'note' => $expectedNote,
+        ]);
+
+        // Vượt tồn kho CỦA RIÊNG LÔ NÀY (dù material còn đủ tổng) -> vẫn phải chặn.
+        $response = $this->post("/admin/materials/imports/{$newerLot->id}/consume-batch", [
+            'quantity' => 5, 'reason' => 'Thử vượt tồn kho của lô',
+        ]);
+        $response->assertSessionHasErrors('quantity');
+        $this->assertEquals(2, (float) $newerLot->fresh()->remaining_quantity);
+    }
+
+    /**
      * Trang danh sách Vật tư (`materials.index`) trước đây chỉ được smoke-test (status 200), chưa
      * kiểm tra đúng nội dung: thẻ thống kê (tổng/sắp hết/hết hàng) và bộ lọc theo trạng thái.
      */

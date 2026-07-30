@@ -125,7 +125,7 @@
             <!-- Phần 1.5: Biểu mẫu Xuất Kho Sử Dụng (lấy hàng ra khỏi kho để dùng trực tiếp, không qua đơn hàng) -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 class="font-bold text-gray-900 mb-1 border-b border-gray-100 pb-3">Xuất kho sử dụng</h3>
-                <p class="text-xs text-gray-500 mt-2 mb-4">Dùng khi lấy vật tư ra khỏi kho để dùng trực tiếp (VD: hết ly, lấy 1 lốc ly ra dùng).</p>
+                <p class="text-xs text-gray-500 mt-2 mb-4">Dùng khi lấy vật tư ra khỏi kho để dùng trực tiếp (VD: hết ly, lấy 1 lốc ly ra dùng). Tự động trừ vào lô có hạn dùng gần nhất trước — nếu cần chọn đúng lô cụ thể, bấm nút "Xuất" ngay trên dòng lô đó ở bảng bên dưới.</p>
 
                 {{-- Trang này hiện lỗi validate theo TỪNG form riêng (khớp _form_context), không dùng
                      chung 1 khối lỗi cho mọi form như khối phía trên (chỉ bắt lỗi KHÔNG có _form_context) -
@@ -267,6 +267,12 @@
                                     </button>
                                 @endif
                                 @if($import->remaining_quantity > 0)
+                                    <button type="button" title="Xuất dùng từ đúng lô này"
+                                        class="js-consume-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-amber-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                        data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.consume_batch', $import) }}"
+                                        data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                        <span class="material-symbols-outlined text-[16px]">outbox</span> Xuất
+                                    </button>
                                     <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
                                         class="js-dispose-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                                         data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
@@ -364,6 +370,12 @@
                                         </button>
                                     @endif
                                     @if($import->remaining_quantity > 0)
+                                        <button type="button" title="Xuất dùng từ đúng lô này"
+                                            class="js-consume-batch p-1 text-gray-400 hover:text-amber-600 transition-colors mr-1"
+                                            data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.consume_batch', $import) }}"
+                                            data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                            <span class="material-symbols-outlined">outbox</span>
+                                        </button>
                                         <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
                                             class="js-dispose-batch p-1 text-gray-400 hover:text-red-600 transition-colors"
                                             data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
@@ -519,6 +531,58 @@
                     <button type="submit"
                         class="w-full sm:w-auto text-center px-5 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 organic-shadow transition-all">Xác
                         nhận Hủy Lô</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Modal "Xuất kho sử dụng" theo ĐÚNG 1 lô do người dùng tự chọn (nút "Xuất" trên từng dòng lô ở
+         bảng bên dưới) - khác khối "Xuất kho sử dụng" chung ở Phần 1.5 (tự động chọn lô theo hạn dùng
+         gần nhất, không cho biết trừ từ lô nào). Cấu trúc y hệt modal-dispose-batch ở trên, chỉ đổi
+         route/nhãn cho đúng ngữ cảnh "xuất dùng" thay vì "hủy". --}}
+    <div id="modal-consume-batch"
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'consume-batch' ? '' : 'hidden' }} z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
+            <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-lg text-gray-900">Xuất Kho Từ Lô <span id="consume-batch-id"
+                        class="text-blue-600">{{ old('_form_context') === 'consume-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span></h3>
+                <button type="button" data-close-modal="modal-consume-batch"
+                    class="text-gray-400 hover:text-gray-600">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-consume-batch" method="POST" action="{{ old('_form_context') === 'consume-batch' ? old('_form_action') : '' }}" class="p-6">
+                @csrf
+                <input type="hidden" name="_form_context" value="consume-batch">
+                <input type="hidden" name="_form_action" id="consume-form-action" value="{{ old('_form_action') }}">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng xuất (<span
+                                id="consume-batch-unit">{{ old('_form_context') === 'consume-batch' ? old('_unit') : '' }}</span>)</label>
+                        <input type="number" step="1" min="1" id="consume-batch-quantity" name="quantity" required
+                            value="{{ old('_form_context') === 'consume-batch' ? old('quantity') : '' }}"
+                            max="{{ old('_form_context') === 'consume-batch' ? old('_max_quantity') : '' }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all">
+                        <p class="text-xs text-gray-500 mt-1">Tồn kho của lô này: <span id="consume-batch-max"
+                                class="font-bold text-amber-600">{{ old('_form_context') === 'consume-batch' ? old('_max_quantity') : '' }}</span></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Lý do</label>
+                        <input type="hidden" name="_max_quantity" id="consume-max-quantity" value="{{ old('_max_quantity') }}">
+                        <input type="text" id="consume-reason" name="reason" required placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế..."
+                            data-max-length="255" data-field-label="Lý do" aria-describedby="consume-reason-error"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                            value="{{ old('_form_context') === 'consume-batch' ? old('reason') : '' }}">
+                        <p id="consume-reason-error" data-error-for="consume-reason"
+                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <button type="button" data-close-modal="modal-consume-batch"
+                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
+                    <button type="submit"
+                        class="w-full sm:w-auto text-center px-5 py-2 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 organic-shadow transition-all">Xác
+                        nhận Xuất Kho</button>
                 </div>
             </form>
         </div>

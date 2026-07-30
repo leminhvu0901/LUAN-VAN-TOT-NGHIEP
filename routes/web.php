@@ -284,6 +284,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
+    // Xuất kho sử dụng từ một lô cụ thể (khác /materials/{material}/consume ở trên - tự động chọn lô)
+    Route::post('materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
+
     // QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (staff-accounts)
     Route::post('staff-accounts/{id}/toggle-status', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'toggleStatus'])->name('staff_accounts.toggle_status');
     Route::patch('staff-accounts/{id}/staff-type', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'updateType'])->name('staff_accounts.update_type');

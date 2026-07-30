@@ -400,6 +400,91 @@ class MaterialController
         return redirect()->back()->with('success', 'Đã xuất hủy từ lô hàng thành công!');
     }
 
+    // 8.5. Xuất kho sử dụng từ MỘT LÔ CỤ THỂ do người dùng tự chọn (khác khối "Xuất kho sử dụng" chung
+    // ở trên trang, tự động trừ theo hạn dùng gần nhất qua InventoryService::consumeStockManually() -
+    // không cho biết chính xác trừ từ lô nào khi vật tư có nhiều lô). Cùng phép tính với disposeBatch()
+    // ở trên (trừ đúng 1 lô, không phải hao hụt/hủy) nhưng khác ở loại ghi nhận ('adjustment' thay vì
+    // 'dispose') và nội dung ghi chú, để phân biệt rõ "dùng thật" khỏi "hư hỏng/hết hạn" khi tra soát.
+    public function consumeBatch(Request $request, MaterialImport $import)
+    {
+        $request->merge([
+            '_form_context' => 'consume-batch',
+            '_form_action' => route('admin.materials.imports.consume_batch', $import),
+            '_lot_id' => $import->id,
+            '_unit' => $import->material?->unit,
+            '_max_quantity' => $import->remaining_quantity,
+            'reason' => trim((string) $request->input('reason')),
+        ]);
+
+        $validated = $request->validate([
+            'quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999',
+            'reason' => 'required|string|max:255',
+        ], [
+            'quantity.numeric' => 'Số lượng xuất phải là số hợp lệ.',
+            'quantity.decimal' => 'Số lượng xuất chỉ được có tối đa 2 chữ số thập phân.',
+            'quantity.min' => 'Số lượng xuất phải từ 1 trở lên.',
+            'quantity.max' => 'Số lượng xuất vượt quá giới hạn cho phép.',
+            'reason.required' => 'Vui lòng nhập lý do xuất kho.'
+        ]);
+
+        $operator = Auth::user();
+
+        DB::transaction(function () use ($import, $validated, $operator) {
+            $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
+            $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
+            $consumeQty = (float) $validated['quantity'];
+            $remainingQuantity = (float) $lockedImport->remaining_quantity;
+
+            if ((float) $lockedImport->quantity <= 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Chỉ có thể xuất kho từ một phiếu nhập kho.',
+                ]);
+            }
+
+            if ($consumeQty > $remainingQuantity || $consumeQty > (float) $material->current_stock) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Số lượng xuất không được vượt quá số lượng còn lại của lô ({$remainingQuantity}).",
+                ]);
+            }
+
+            $unitPrice = abs((float) $lockedImport->total_price / (float) $lockedImport->quantity);
+            $consumeValue = $consumeQty * $unitPrice;
+            $reason = sprintf('[Admin: %s (%s)] %s', $operator->name, $operator->email, $validated['reason']);
+
+            $lockedImport->update([
+                'remaining_quantity' => $remainingQuantity - $consumeQty,
+            ]);
+
+            MaterialImport::create([
+                'material_id' => $material->id,
+                'quantity' => -$consumeQty,
+                'remaining_quantity' => 0,
+                'total_price' => -$consumeValue,
+                'note' => 'Xuất dùng từ lô LOT-' . $lockedImport->id . ': ' . $reason,
+                'expiration_date' => $lockedImport->expiration_date,
+            ]);
+
+            $material->update([
+                'current_stock' => (float) $material->current_stock - $consumeQty,
+            ]);
+
+            if (Schema::hasTable('inventory_movements')) DB::table('inventory_movements')->insert([
+                'material_id' => $material->id,
+                'material_import_id' => $lockedImport->id,
+                'order_id' => null,
+                'type' => 'adjustment',
+                'quantity' => -$consumeQty,
+                'unit_cost' => $unitPrice,
+                'note' => $reason,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->inventory->recalculateMaterialCost($material->id);
+        });
+
+        return redirect()->back()->with('success', 'Đã ghi nhận xuất kho từ lô hàng thành công!');
+    }
+
     private function validateMaterialData(Request $request, ?Material $material = null): array
     {
         $request->merge([
