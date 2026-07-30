@@ -684,9 +684,13 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Lễ tân xuất kho sử dụng (lấy hàng ra khỏi kho để dùng tại quầy, không qua đơn hàng).
+     * Lễ tân xuất kho sử dụng (lấy hàng ra khỏi kho để dùng tại quầy, không qua đơn hàng) - LUÔN từ
+     * một lô cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), y hệt cách admin làm
+     * (MaterialController(Admin)::consumeBatch()) - không còn bản "tự động chọn lô theo hạn dùng gần
+     * nhất" như trước. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của
+     * cùng vật tư không bị đụng tới.
      */
-    public function test_receptionist_can_consume_stock_manually(): void
+    public function test_receptionist_can_consume_stock_from_a_specific_lot_without_touching_other_lots(): void
     {
         $staff = User::factory()->create([
             'name' => 'Trần Thu Ngân',
@@ -699,23 +703,17 @@ class StaffRoleWorkflowTest extends TestCase
             'name' => 'Ly nhựa 500ml',
             'unit' => 'lốc',
             'unit_price' => 15000,
-            'current_stock' => 0,
+            'current_stock' => 15,
             'is_active' => true,
         ]);
 
-        $lot = MaterialImport::create([
-            'material_id' => $material->id,
-            'quantity' => 10,
-            'remaining_quantity' => 10,
-            'total_price' => 150000,
-            'note' => 'Nhập ban đầu',
-        ]);
-
-        $material->update(['current_stock' => 10]);
+        $olderLot = MaterialImport::create(['material_id' => $material->id, 'quantity' => 10, 'remaining_quantity' => 10, 'total_price' => 150000]);
+        $newerLot = MaterialImport::create(['material_id' => $material->id, 'quantity' => 5, 'remaining_quantity' => 5, 'total_price' => 100000]);
 
         $this->actingAs($staff);
 
-        $response = $this->post("/staff/reception/materials/{$material->id}/consume", [
+        // Chủ động chọn xuất từ lô MỚI HƠN, dù FIFO/hạn dùng sẽ ưu tiên lô cũ hơn nếu dùng form chung.
+        $response = $this->post("/staff/reception/materials/imports/{$newerLot->id}/consume-batch", [
             'quantity' => 1,
             'reason' => 'Hết ly tại quầy, lấy thêm để pha chế',
         ]);
@@ -723,23 +721,25 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertRedirect();
 
         $material = $material->fresh();
-        $this->assertEquals(9, (float) $material->current_stock);
+        $this->assertEquals(14, (float) $material->current_stock);
+        $this->assertEquals(4, (float) $newerLot->fresh()->remaining_quantity);
+        $this->assertEquals(10, (float) $olderLot->fresh()->remaining_quantity, 'Lô không được chọn không được đụng tới.');
 
-        $expectedNote = '[Nhân viên: Trần Thu Ngân (tn@happytea.com)] Hết ly tại quầy, lấy thêm để pha chế';
+        $expectedNote = 'Xuất dùng từ lô LOT-' . $newerLot->id . ': [Nhân viên: Trần Thu Ngân (tn@happytea.com)] Hết ly tại quầy, lấy thêm để pha chế';
         $this->assertDatabaseHas('material_imports', [
             'material_id' => $material->id,
             'quantity' => -1,
             'note' => $expectedNote,
         ]);
 
-        $this->assertEquals(9, (float) $lot->fresh()->remaining_quantity);
-
-        $response = $this->post("/staff/reception/materials/{$material->id}/consume", [
+        // Vượt tồn kho CỦA RIÊNG LÔ NÀY (dù material còn đủ tổng) -> vẫn phải chặn.
+        $response = $this->post("/staff/reception/materials/imports/{$newerLot->id}/consume-batch", [
             'quantity' => 999,
             'reason' => 'Thử vượt tồn kho',
         ]);
         $response->assertSessionHasErrors('quantity');
-        $this->assertEquals(9, (float) $material->fresh()->current_stock);
+        $this->assertEquals(4, (float) $newerLot->fresh()->remaining_quantity);
+        $this->assertEquals(14, (float) $material->fresh()->current_stock);
     }
 
     /**

@@ -96,39 +96,6 @@
                 </form>
             </div>
 
-            <!-- Phần 1.5: Biểu mẫu Xuất Kho Sử Dụng (lấy hàng ra khỏi kho để dùng tại quầy, không qua đơn hàng) -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 class="font-bold text-gray-900 mb-1 border-b border-gray-100 pb-3">Xuất kho sử dụng</h3>
-                <p class="text-xs text-gray-500 mt-2 mb-4">Dùng khi lấy vật tư ra khỏi kho để dùng trực tiếp tại quầy (VD: hết ly, lấy 1 lốc ly ra dùng).</p>
-
-                <form action="{{ route('staff.reception.materials.consume', $material->id) }}" method="POST" id="form-consume-stock">
-                    @csrf
-                    <input type="hidden" name="_form_context" value="consume-stock">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng xuất
-                                ({{ $material->unit }})</label>
-                            <input type="number" step="0.01" name="quantity" required min="0.01" max="999.99"
-                                value="{{ old('_form_context') === 'consume-stock' ? old('quantity') : '' }}"
-                                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
-                                placeholder="0">
-                        </div>
-                        <div class="lg:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Lý do xuất kho</label>
-                            <input type="text" name="reason" required maxlength="255"
-                                value="{{ old('_form_context') === 'consume-stock' ? old('reason') : '' }}"
-                                class="w-full border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-red-400 focus:border-red-400 outline-none"
-                                placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế">
-                        </div>
-                    </div>
-                    <div class="mt-4 flex justify-end">
-                        <button type="submit"
-                            class="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">outbox</span> Ghi nhận xuất kho
-                        </button>
-                    </div>
-                </form>
-            </div>
 
             <!-- Phần 2: Bảng Lịch sử Nhập kho & Xuất kho -->
             @php
@@ -207,6 +174,15 @@
                                     Ghi chú: {{ $import->note }}
                                 </div>
                             @endif
+
+                            @if($import->remaining_quantity > 0)
+                                <button type="button" title="Xuất dùng từ đúng lô này"
+                                    class="js-consume-batch w-full py-2 bg-white border border-gray-200 text-gray-700 hover:text-amber-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                    data-id="{{ $import->id }}" data-action="{{ route('staff.reception.materials.imports.consume_batch', $import) }}"
+                                    data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                    <span class="material-symbols-outlined text-[16px]">outbox</span> Xuất dùng
+                                </button>
+                            @endif
                         </div>
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
@@ -230,6 +206,7 @@
                                 <th class="px-4 py-4 font-semibold whitespace-nowrap">Hạn sử dụng</th>
                                 <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Còn lại</th>
                                 <th class="px-4 py-4 font-semibold">Ghi chú</th>
+                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Hành động</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
@@ -268,10 +245,20 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-4 text-gray-500 truncate max-w-[250px]">{{ $import->note ?? '-' }}</td>
+                                    <td class="px-4 py-4 text-right">
+                                        @if($import->remaining_quantity > 0)
+                                            <button type="button" title="Xuất dùng từ đúng lô này"
+                                                class="js-consume-batch p-1 text-gray-400 hover:text-amber-600 transition-colors"
+                                                data-id="{{ $import->id }}" data-action="{{ route('staff.reception.materials.imports.consume_batch', $import) }}"
+                                                data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                                <span class="material-symbols-outlined">outbox</span>
+                                            </button>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-4 py-10 text-center text-gray-400">Chưa có dữ liệu nhập kho.</td>
+                                    <td colspan="10" class="px-4 py-10 text-center text-gray-400">Chưa có dữ liệu nhập kho.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -359,7 +346,48 @@
         </div>
     </div>
 
+    <div id="modal-consume-batch"
+        class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'consume-batch' ? '' : 'hidden' }} z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
+            <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-lg text-gray-900">Xuất Kho Từ Lô <span id="consume-batch-id" class="text-blue-600">{{ old('_form_context') === 'consume-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span></h3>
+                <button type="button" data-close-modal="modal-consume-batch" class="text-gray-400 hover:text-gray-600">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-consume-batch" method="POST" action="{{ old('_form_context') === 'consume-batch' ? old('_form_action') : '' }}" class="p-6">
+                @csrf
+                <input type="hidden" name="_form_context" value="consume-batch">
+                <input type="hidden" name="_form_action" id="consume-form-action" value="{{ old('_form_action') }}">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng xuất (<span id="consume-batch-unit">{{ old('_form_context') === 'consume-batch' ? old('_unit') : '' }}</span>)</label>
+                        <input type="number" step="1" min="1" id="consume-batch-quantity" name="quantity" required
+                            value="{{ old('_form_context') === 'consume-batch' ? old('quantity') : '' }}"
+                            max="{{ old('_form_context') === 'consume-batch' ? old('_max_quantity') : '' }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+                        <p class="text-xs text-gray-500 mt-1">Tồn kho của lô này: <span id="consume-batch-max" class="font-bold text-amber-600">{{ old('_form_context') === 'consume-batch' ? old('_max_quantity') : '' }}</span></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Lý do</label>
+                        <input type="hidden" name="_max_quantity" id="consume-max-quantity" value="{{ old('_max_quantity') }}">
+                        <input type="text" id="consume-reason" name="reason" required placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế..."
+                            data-max-length="255" data-field-label="Lý do" aria-describedby="consume-reason-error"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            value="{{ old('_form_context') === 'consume-batch' ? old('reason') : '' }}">
+                        <p id="consume-reason-error" data-error-for="consume-reason" class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                    <button type="button" data-close-modal="modal-consume-batch" class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
+                    <button type="submit" class="w-full sm:w-auto text-center px-5 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all">Xác nhận Xuất Kho</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
         <script src="{{ asset('js/backend/staff/reception/materials/common.js') }}"></script>
+        <script src="{{ asset('js/backend/staff/reception/materials/imports.js') }}"></script>
     @endpush
 @endsection

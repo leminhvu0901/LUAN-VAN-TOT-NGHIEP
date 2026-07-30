@@ -281,9 +281,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     //Hủy Kho (Vứt bỏ):
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
 
-    // Xuất kho sử dụng - LUÔN chọn đúng 1 lô cụ thể (nút "Xuất" trên từng dòng lô). Không có bản
-    // "tự động chọn lô" như bên lễ tân (staff.reception.materials.consume) vì admin đã có nút theo-lô
-    // ngay trên trang này rồi - giữ cả 2 chỉ gây trùng lặp/khó hiểu không cần thiết.
+    // Xuất kho sử dụng - LUÔN chọn đúng 1 lô cụ thể (nút "Xuất" trên từng dòng lô) - cùng cách làm
+    // với bên lễ tân (staff.reception.materials.imports.consume_batch).
     Route::post('materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
 
     // QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (staff-accounts)
@@ -312,7 +311,8 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'index'])->name('materials.index');
     Route::get('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'imports'])->name('materials.imports');
     Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'storeImport'])->name('materials.imports.store');
-    Route::post('/materials/{material}/consume', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'consumeStock'])->name('materials.consume');
+    // Xuất kho sử dụng - LUÔN từ một lô cụ thể (nút "Xuất" trên từng dòng lô), cùng cách làm với admin.
+    Route::post('/materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
 
     Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\PromotionController::class, 'index'])->name('promotions.index');
     // Hồ sơ cá nhân chỉ để XEM — nhân viên không có quyền tự sửa thông tin tài khoản, chỉ admin
