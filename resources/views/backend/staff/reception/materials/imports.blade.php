@@ -194,36 +194,39 @@
 
                 <!-- Giao diện Desktop (Table view) -->
                 <div class="hidden lg:block overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full table-fixed text-left border-collapse">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
                             <tr>
-                                <th class="px-4 py-4 font-semibold whitespace-nowrap">Mã lô</th>
-                                <th class="px-4 py-4 font-semibold whitespace-nowrap">Thời gian</th>
-                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">SL ban đầu</th>
-                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Tổng tiền</th>
-                                <th class="px-4 py-4 font-semibold text-right">Đơn giá/{{ $material->unit }}</th>
-                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Tồn lô</th>
-                                <th class="px-4 py-4 font-semibold whitespace-nowrap">Hạn sử dụng</th>
-                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Còn lại</th>
-                                <th class="px-4 py-4 font-semibold">Ghi chú</th>
-                                <th class="px-4 py-4 font-semibold text-right whitespace-nowrap">Hành động</th>
+                                <th class="px-2 py-3 font-semibold w-[9%]">Mã lô</th>
+                                <th class="px-2 py-3 font-semibold w-[10%]">Thời gian</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[8%]">SL đầu</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[10%]">Tổng tiền</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[10%]">Đơn giá/{{ $material->unit }}</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[7%]">Tồn lô</th>
+                                <th class="px-2 py-3 font-semibold w-[9%]">Hạn SD</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[9%]">Còn lại</th>
+                                <th class="px-2 py-3 font-semibold w-[22%]">Ghi chú</th>
+                                <th class="px-2 py-3 font-semibold text-right w-[6%]">Xuất</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
                             @forelse($nhapKho as $import)
                                 <tr class="hover:bg-gray-50/50">
-                                    <td class="px-4 py-4 font-bold text-blue-600 whitespace-nowrap">LOT-{{ $import->id }}</td>
-                                    <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ $import->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="px-4 py-4 font-bold text-emerald-600 text-right">+{{ number_format($import->quantity, 2, ',', '.') }}</td>
-                                    <td class="px-4 py-4 font-bold text-gray-900 text-right">{{ number_format($import->total_price, 0, ',', '.') }}đ</td>
-                                    <td class="px-4 py-4 text-gray-600 text-right">{{ $import->quantity != 0 ? number_format(abs($import->total_price / $import->quantity), 0, ',', '.') : 0 }}đ</td>
-                                    <td class="px-4 py-4 text-gray-600 text-right font-semibold text-blue-600">{{ number_format($import->remaining_quantity, 2, ',', '.') }}</td>
-                                    <td class="px-4 py-4 text-gray-600">
+                                    <td class="px-2 py-3 font-bold text-blue-600 truncate">LOT-{{ $import->id }}</td>
+                                    <td class="px-2 py-3 text-gray-500 text-xs leading-tight">
+                                        {{ $import->created_at->format('d/m/Y') }}<br>
+                                        <span class="text-gray-400">{{ $import->created_at->format('H:i') }}</span>
+                                    </td>
+                                    <td class="px-2 py-3 font-bold text-emerald-600 text-right truncate">+{{ number_format($import->quantity, 2, ',', '.') }}</td>
+                                    <td class="px-2 py-3 font-bold text-gray-900 text-right truncate">{{ number_format($import->total_price, 0, ',', '.') }}đ</td>
+                                    <td class="px-2 py-3 text-gray-600 text-right truncate">{{ $import->quantity != 0 ? number_format(abs($import->total_price / $import->quantity), 0, ',', '.') : 0 }}đ</td>
+                                    <td class="px-2 py-3 text-gray-600 text-right font-semibold text-blue-600 truncate">{{ number_format($import->remaining_quantity, 2, ',', '.') }}</td>
+                                    <td class="px-2 py-3 text-gray-600">
                                         @if($import->expiration_date)
                                             @php
                                                 $daysDiffImport = now()->startOfDay()->diffInDays($import->expiration_date->startOfDay(), false);
                                             @endphp
-                                            <span class="whitespace-nowrap {{ $import->remaining_quantity == 0 ? 'text-gray-400' : ($daysDiffImport < 0 ? 'text-gray-500 line-through' : ($daysDiffImport <= 30 ? 'text-red-500 font-bold' : '')) }}">
+                                            <span class="truncate block {{ $import->remaining_quantity == 0 ? 'text-gray-400' : ($daysDiffImport < 0 ? 'text-gray-500 line-through' : ($daysDiffImport <= 30 ? 'text-red-500 font-bold' : '')) }}">
                                                 {{ $import->expiration_date->format('d/m/Y') }}
                                             </span>
                                         @else
@@ -231,21 +234,21 @@
                                             -
                                         @endif
                                     </td>
-                                    <td class="px-4 py-4 text-right whitespace-nowrap">
+                                    <td class="px-2 py-3 text-right">
                                         @if($import->expiration_date)
                                             @if($import->remaining_quantity == 0)
                                                 <span class="text-gray-400">-</span>
                                             @elseif($daysDiffImport < 0)
-                                                <span class="text-xs text-red-500 font-bold bg-red-50 px-2 py-1 rounded">Đã hết hạn</span>
+                                                <span class="text-xs text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded whitespace-nowrap">Hết hạn</span>
                                             @else
-                                                <span class="font-bold {{ $daysDiffImport <= 15 ? 'text-red-600' : 'text-emerald-600' }}">{{ $daysDiffImport }} ngày</span>
+                                                <span class="font-bold {{ $daysDiffImport <= 15 ? 'text-red-600' : 'text-emerald-600' }} whitespace-nowrap">{{ $daysDiffImport }} ngày</span>
                                             @endif
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-4 text-gray-500 truncate max-w-[250px]">{{ $import->note ?? '-' }}</td>
-                                    <td class="px-4 py-4 text-right">
+                                    <td class="px-2 py-3 text-gray-500 truncate" title="{{ $import->note }}">{{ $import->note ?? '-' }}</td>
+                                    <td class="px-2 py-3 text-right">
                                         @if($import->remaining_quantity > 0)
                                             <button type="button" title="Xuất dùng từ đúng lô này"
                                                 class="js-consume-batch p-1 text-gray-400 hover:text-amber-600 transition-colors"
