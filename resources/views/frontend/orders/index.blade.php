@@ -154,20 +154,22 @@
                             </div>
                             <div class="flex gap-2 md:gap-3 shrink-0">
                                 <button type="button" data-toggle-order="{{ $order->id }}" class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi tiết</button>
-                                {{-- Đơn ĐÃ THANH TOÁN không được khách tự hủy: phải hoàn tiền trước (rule ở
-                                     OrderWorkflowService::transition(), chỉ lễ tân/admin có nút "Hoàn tiền &
-                                     Hủy đơn"). Trước đây nút vẫn hiện rồi mới báo lỗi khi bấm — nay ẩn hẳn và
-                                     chỉ dẫn khách liên hệ cửa hàng. --}}
-                                @if($order->status === 'pending' && $order->payment_status !== 'paid')
+                                {{-- Đơn "Chờ xác nhận" luôn được khách tự hủy, kể cả đã thanh toán online:
+                                     với đơn đã trả tiền, hệ thống tự gọi API hoàn tiền của cổng thanh toán
+                                     rồi mới hủy (CustomerOrderController::refundAndCancelForCustomer()).
+                                     data-paid-online để JS cảnh báo đúng nội dung trước khi xác nhận. --}}
+                                @if($order->status === 'pending')
+                                    @php
+                                        $paidOnline = $order->payment_status === 'paid'
+                                            && in_array($order->payment_method, ['momo', 'vnpay'], true);
+                                    @endphp
                                     <button type="button" id="cancel-btn-{{ $order->id }}"
+                                        data-paid-online="{{ $paidOnline ? '1' : '0' }}"
+                                        data-gateway-label="{{ $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo' }}"
                                         onclick="confirmCancelOrder('{{ $order->id }}', '{{ $order->order_code ?? 'HPY-' . $order->id }}')"
                                         class="px-4 py-1.5 md:px-6 md:py-2.5 bg-red-50 border border-red-300 text-red-600 font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-red-100 transition-all active:scale-95 whitespace-nowrap">
-                                        Hủy đơn
+                                        {{ $paidOnline ? 'Hủy & hoàn tiền' : 'Hủy đơn' }}
                                     </button>
-                                @elseif($order->status === 'pending' && $order->payment_status === 'paid')
-                                    <span class="px-3 py-1.5 md:px-4 md:py-2.5 text-[10px] md:text-xs text-on-surface-variant italic max-w-[130px] md:max-w-[180px] leading-tight text-center">
-                                        Đã thanh toán — liên hệ cửa hàng để hoàn tiền &amp; hủy đơn
-                                    </span>
                                 @endif
                                 <form method="POST" action="{{ route('orders.reorder', $order) }}" class="inline-block">
                                     @csrf

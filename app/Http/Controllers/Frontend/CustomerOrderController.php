@@ -146,6 +146,14 @@ class CustomerOrderController
             $reason = 'Khách hàng tự hủy đơn hàng.';
         }
 
+        // Đơn đã thanh toán online mà cửa hàng CHƯA xác nhận -> khách vẫn được tự hủy, hệ thống tự
+        // động gọi API hoàn tiền của đúng cổng thanh toán rồi mới hủy (dùng chung đường đi với nút
+        // "Hoàn tiền & Hủy đơn" của lễ tân/admin). Trước đây khách bị chặn cứng và phải liên hệ cửa
+        // hàng thủ công — vô lý vì tiền đã trừ nhưng shop còn chưa nhận đơn.
+        if ($order->payment_status === 'paid' && in_array($order->payment_method, ['momo', 'vnpay'], true)) {
+            return $this->refundAndCancelForCustomer($order, $request, $reason);
+        }
+
         try {
             $workflow->transition($order, 'cancelled', $reason);
             if ($request->expectsJson()) {
@@ -160,6 +168,53 @@ class CustomerOrderController
         } catch (\Exception $e) {
             return $this->cancelError($request, 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Khách tự hủy 1 đơn ĐÃ THANH TOÁN online (MoMo/VNPay) khi shop chưa xác nhận: gọi API hoàn tiền
+     * của đúng cổng thanh toán TRƯỚC, chỉ hủy đơn khi hoàn tiền thành công (không bao giờ hủy "chay"
+     * một đơn đã trừ tiền của khách). Dùng lại y hệt 2 mảnh mà luồng lễ tân/admin đang dùng:
+     * {Momo,Vnpay}Controller::requestRefund() (gọi API thuần, không đụng DB) rồi
+     * OrderWorkflowService::refundAndCancel() (cập nhật DB nguyên tử: refunded + cancelled + giải
+     * phóng tồn kho + hoàn điểm/khuyến mãi).
+     */
+    private function refundAndCancelForCustomer(Order $order, Request $request, string $reason)
+    {
+        if (!$order->payment_transaction_id) {
+            \Illuminate\Support\Facades\Log::error('Customer self-cancel refund skipped: missing payment_transaction_id', [
+                'orderId' => $order->order_code,
+            ]);
+            return $this->cancelError($request, 'Không tìm thấy mã giao dịch gốc để hoàn tiền. Vui lòng liên hệ cửa hàng để được hỗ trợ.');
+        }
+
+        $gatewayLabel = $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo';
+
+        $result = $order->payment_method === 'vnpay'
+            ? app(VnpayController::class)->requestRefund($order)
+            : app(MomoController::class)->requestRefund($order);
+
+        if (!$result['success']) {
+            \Illuminate\Support\Facades\Log::error('Customer self-cancel refund failed', [
+                'orderId' => $order->order_code,
+                'message' => $result['message'],
+            ]);
+            return $this->cancelError($request, "Hoàn tiền {$gatewayLabel} thất bại: {$result['message']}. Đơn hàng chưa bị hủy, vui lòng thử lại hoặc liên hệ cửa hàng.");
+        }
+
+        try {
+            app(\App\Services\OrderWorkflowService::class)->refundAndCancel($order, $result['transId'], $reason);
+        } catch (ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+            }
+            return redirect()->back()->withErrors($e->errors());
+        }
+
+        $message = "Đơn hàng #{$order->order_code} đã được hủy và hoàn tiền {$gatewayLabel} thành công!";
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return redirect()->back()->with('success', $message);
     }
 
     /**

@@ -46,15 +46,25 @@ window.toggleOrderDetails = function(orderId) {
  * @param {string} orderCode - Mã hiển thị của đơn hàng
  */
 window.confirmCancelOrder = function(orderId, orderCode) {
+    // Đơn đã thanh toán online: nói rõ tiền sẽ được hoàn tự động về phương thức đã thanh toán, để
+    // khách không lo bấm hủy là mất tiền (xem CustomerOrderController::refundAndCancelForCustomer()).
+    const btn = document.getElementById('cancel-btn-' + orderId);
+    const paidOnline = btn && btn.dataset.paidOnline === '1';
+    const gatewayLabel = (btn && btn.dataset.gatewayLabel) || 'MoMo';
+
     // window.FrontendAlert.prompt() (main.js) thay cho prompt() gốc của trình duyệt — hộp thoại xám
     // xịt "trang web cho biết" trước đây không đồng bộ với giao diện thương hiệu của trang.
     window.FrontendAlert.prompt({
-        title: 'Hủy đơn hàng ' + orderCode + '?',
-        text: 'Vui lòng nhập lý do hủy đơn hàng (tối thiểu 5 ký tự):',
+        title: paidOnline
+            ? 'Hủy đơn ' + orderCode + ' và hoàn tiền?'
+            : 'Hủy đơn hàng ' + orderCode + '?',
+        text: paidOnline
+            ? 'Số tiền đã thanh toán sẽ được hoàn tự động qua ' + gatewayLabel + ' (có thể mất vài phút đến vài ngày làm việc tùy ngân hàng). Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+            : 'Vui lòng nhập lý do hủy đơn hàng (tối thiểu 5 ký tự):',
         placeholder: 'Lý do hủy đơn hàng',
         defaultValue: 'Khách hàng tự hủy đơn hàng',
         minLength: 5,
-        confirmText: 'Hủy đơn',
+        confirmText: paidOnline ? 'Hủy & hoàn tiền' : 'Hủy đơn',
     }).then(function (result) {
         if (!result.isConfirmed) return;
         submitCancelOrder(orderId, result.value.trim());
