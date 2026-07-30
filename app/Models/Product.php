@@ -210,7 +210,6 @@ class Product extends Model
             $salePrice = max(0, (float) $this->base_price - 1000);
         }
 
-        // 
         $finalDiscount = max(0, (float) $this->base_price - $salePrice);
         if ($finalDiscount <= 0) {
             return null;
