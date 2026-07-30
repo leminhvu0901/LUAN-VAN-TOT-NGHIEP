@@ -58,7 +58,21 @@ class Product extends Model
         return $this->belongsToMany(Promotion::class, 'promotion_products');
     }
 
+    /**
+     * Mối quan hệ: Danh sách luật "Mua X tặng Y" mà sản phẩm này đóng vai trò là Sản phẩm chính (Phải mua)
+     */
+    public function buyXGetYAsBuyProduct()
+    {
+        return $this->hasMany(PromotionBuyXGetY::class, 'buy_product_id');
+    }
 
+    /**
+     * Mối quan hệ: Danh sách luật "Mua X tặng Y" mà sản phẩm này đóng vai trò là Quà tặng đi kèm
+     */
+    public function buyXGetYAsGiftProduct()
+    {
+        return $this->hasMany(PromotionBuyXGetY::class, 'gift_product_id');
+    }
 
     /**
      * Kiểm tra xem kho còn đủ nguyên liệu để chế biến sản phẩm này với số lượng yêu cầu hay không
@@ -68,7 +82,8 @@ class Product extends Model
     {
         // Lấy danh sách nguyên vật liệu công thức cấu thành sản phẩm
         $recipes = $this->materials()->where('materials.is_active', true)->get();
-        if ($recipes->isEmpty()) return true; // Không cần nguyên liệu -> luôn đủ
+        if ($recipes->isEmpty())
+            return true; // Không cần nguyên liệu -> luôn đủ
 
         foreach ($recipes as $material) {
             // Tính tổng tồn kho khả dụng từ các lô nhập hàng còn hạn sử dụng
@@ -76,9 +91,10 @@ class Product extends Model
                 ->where(function ($query) {
                     $query->whereNull('expiration_date')->orWhereDate('expiration_date', '>=', today());
                 })->sum('remaining_quantity');
-            
+
             // Nếu lượng tồn kho thực tế nhỏ hơn lượng cần dùng cho công thức -> không đủ nguyên liệu
-            if ((float) $available + 0.0001 < (float) $material->pivot->quantity_used * $quantity) return false;
+            if ((float) $available + 0.0001 < (float) $material->pivot->quantity_used * $quantity)
+                return false;
         }
         return true;
     }
@@ -157,8 +173,10 @@ class Product extends Model
                 if (is_array($promo->recurring_days) && count($promo->recurring_days) > 0 && !in_array($currentDay, $promo->recurring_days)) {
                     continue;
                 }
-                if ($promo->recurring_start_time && $nowStr < $promo->recurring_start_time) continue;
-                if ($promo->recurring_end_time && $nowStr > $promo->recurring_end_time) continue;
+                if ($promo->recurring_start_time && $nowStr < $promo->recurring_start_time)
+                    continue;
+                if ($promo->recurring_end_time && $nowStr > $promo->recurring_end_time)
+                    continue;
             }
 
             // Tính số tiền được giảm tương ứng với từng kiểu khuyến mãi (phần trăm hoặc giảm tiền mặt trực tiếp)
@@ -192,6 +210,7 @@ class Product extends Model
             $salePrice = max(0, (float) $this->base_price - 1000);
         }
 
+        // 
         $finalDiscount = max(0, (float) $this->base_price - $salePrice);
         if ($finalDiscount <= 0) {
             return null;
