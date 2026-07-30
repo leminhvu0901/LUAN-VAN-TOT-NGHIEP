@@ -303,7 +303,6 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'storeImport'])->name('materials.imports.store');
     Route::post('/materials/{material}/consume', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'consumeStock'])->name('materials.consume');
 
-    Route::get('/products', [App\Http\Controllers\Backend\Staff\Reception\ProductController::class, 'index'])->name('products.index');
     Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\PromotionController::class, 'index'])->name('promotions.index');
     // Hồ sơ cá nhân chỉ để XEM — nhân viên không có quyền tự sửa thông tin tài khoản, chỉ admin
     // mới được sửa (qua /admin/staff-accounts/{id}/edit).

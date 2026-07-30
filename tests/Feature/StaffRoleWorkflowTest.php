@@ -94,7 +94,6 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/staff/reception/materials')->assertStatus(200);
         $this->get("/staff/reception/materials/{$material->id}/imports")->assertStatus(200);
         $this->get('/staff/reception/orders/create')->assertStatus(200);
-        $this->get('/staff/reception/products')->assertStatus(200);
         $this->get('/staff/reception/promotions')->assertStatus(200);
         $this->get('/staff/reception/profile')->assertStatus(200);
         $this->get('/staff/reception/cod-settlement')->assertStatus(200);
@@ -808,16 +807,14 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Lễ tân xem trang Sản phẩm (đọc-only, thấy cả hàng hết bán) và Khuyến mãi đang áp dụng.
+     * Lễ tân xem trang Khuyến mãi đang áp dụng (đọc-only).
      */
-    public function test_receptionist_can_view_products_and_promotions_readonly(): void
+    public function test_receptionist_can_view_promotions_readonly(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
-        $this->makeProduct(['name' => 'Sản phẩm hết hàng', 'is_active' => false]);
 
         $this->actingAs($receptionist);
 
-        $this->get('/staff/reception/products')->assertStatus(200)->assertSee('Sản phẩm hết hàng');
         $this->get('/staff/reception/promotions')->assertStatus(200);
     }
 

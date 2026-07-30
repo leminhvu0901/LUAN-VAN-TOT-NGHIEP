@@ -51,14 +51,6 @@
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Quản lý Kho</span>
         </a>
 
-        {{-- Menu Sản phẩm --}}
-        <a href="{{ route('staff.reception.products.index') }}" title="Sản phẩm"
-            class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('staff.reception.products.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
-            <span
-                class="material-symbols-outlined text-[22px] {{ request()->routeIs('staff.reception.products.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">inventory_2</span>
-            <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Sản phẩm</span>
-        </a>
-
         {{-- Menu Khuyến mãi --}}
         <a href="{{ route('staff.reception.promotions.index') }}" title="Khuyến mãi"
             class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('staff.reception.promotions.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">

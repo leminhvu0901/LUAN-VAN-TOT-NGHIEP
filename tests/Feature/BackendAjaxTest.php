@@ -3,17 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Kiểm tra các endpoint backend (nhân viên giao hàng, chi tiết đơn lễ tân, đối soát COD, lọc sản
- * phẩm lễ tân) vừa chuyển từ form POST cổ điển sang submit qua fetch (AJAX) — cùng đợt với
- * FrontendAjaxTest.php, dùng postJson()/getJson() để khớp đúng header fetch() thật gửi lên.
+ * Kiểm tra các endpoint backend (nhân viên giao hàng, chi tiết đơn lễ tân, đối soát COD) vừa
+ * chuyển từ form POST cổ điển sang submit qua fetch (AJAX) — cùng đợt với FrontendAjaxTest.php,
+ * dùng postJson()/getJson() để khớp đúng header fetch() thật gửi lên.
  */
 class BackendAjaxTest extends TestCase
 {
@@ -32,18 +30,6 @@ class BackendAjaxTest extends TestCase
             'payment_method' => 'cod',
             'status' => 'pending',
             'delivery_type' => 'delivery',
-        ], $overrides));
-    }
-
-    private function makeProduct(array $overrides = []): Product
-    {
-        $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Drink', 'slug' => 'drink-' . Str::random(6), 'created_at' => now(), 'updated_at' => now(),
-        ]);
-
-        return Product::create(array_merge([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . Str::random(6), 'sku' => 'SKU-' . Str::random(6),
-            'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true,
         ], $overrides));
     }
 
@@ -178,17 +164,4 @@ class BackendAjaxTest extends TestCase
         $response->assertJsonPath('message', "{$shipper->name} không có đơn COD nào cần đối soát.");
     }
 
-    // ───────────────────────── Sản phẩm (lễ tân) ─────────────────────────
-
-    public function test_reception_products_ajax_returns_partial_not_full_page(): void
-    {
-        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
-        $this->makeProduct(['name' => 'Cà phê đen']);
-
-        $response = $this->actingAs($receptionist)->getJson('/staff/reception/products');
-
-        $response->assertOk();
-        $response->assertSee('reception-products-grid-area', false);
-        $response->assertDontSee('<html', false);
-    }
 }
