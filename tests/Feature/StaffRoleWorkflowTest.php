@@ -192,6 +192,150 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * 3 tab của danh sách đơn giao hàng (assigned/shipping/history) phải lọc đúng theo trạng thái,
+     * mỗi đơn chỉ xuất hiện ở ĐÚNG 1 tab - trước đây chỉ được smoke-test load trang, chưa kiểm tra
+     * nội dung lọc thật sự đúng theo tab nào.
+     */
+    public function test_delivery_orders_index_tabs_filter_by_status_correctly(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+
+        $assignedOrder = $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $shippingOrder = $this->makeOrder(['status' => 'shipping', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $completedOrder = $this->makeOrder(['status' => 'completed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $cancelledOrder = $this->makeOrder(['status' => 'cancelled', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+
+        $this->actingAs($delivery);
+
+        $response = $this->get('/staff/delivery/orders?tab=assigned');
+        $response->assertSee($assignedOrder->order_code);
+        $response->assertDontSee($shippingOrder->order_code);
+        $response->assertDontSee($completedOrder->order_code);
+        $response->assertDontSee($cancelledOrder->order_code);
+
+        $response = $this->get('/staff/delivery/orders?tab=shipping');
+        $response->assertSee($shippingOrder->order_code);
+        $response->assertDontSee($assignedOrder->order_code);
+        $response->assertDontSee($completedOrder->order_code);
+
+        // Tab "Lịch sử" gộp cả completed lẫn cancelled.
+        $response = $this->get('/staff/delivery/orders?tab=history');
+        $response->assertSee($completedOrder->order_code);
+        $response->assertSee($cancelledOrder->order_code);
+        $response->assertDontSee($assignedOrder->order_code);
+        $response->assertDontSee($shippingOrder->order_code);
+
+        // Query "tab" không hợp lệ -> mặc định về "assigned" (confirmed), không lỗi/không rỗng bất thường.
+        $response = $this->get('/staff/delivery/orders?tab=not_a_real_tab');
+        $response->assertSee($assignedOrder->order_code);
+    }
+
+    /**
+     * Nhân viên vận chuyển KHÔNG được thao tác (nhận đơn/hoàn thành/báo thất bại) trên đơn được phân
+     * công cho người khác - authorizeOwnership() chỉ mới được test qua show(), chưa test qua chính
+     * các action làm thay đổi trạng thái đơn.
+     */
+    public function test_delivery_staff_cannot_ship_complete_or_fail_another_staffs_order(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $otherDelivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $assignedOrder = $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $otherDelivery->id, 'assigned_at' => now()]);
+        $shippingOrder = $this->makeOrder(['status' => 'shipping', 'delivery_staff_id' => $otherDelivery->id, 'assigned_at' => now()]);
+
+        $this->actingAs($delivery);
+
+        $this->patch("/staff/delivery/orders/{$assignedOrder->id}/ship")->assertStatus(403);
+        $this->assertEquals('confirmed', $assignedOrder->fresh()->status);
+
+        $this->patch("/staff/delivery/orders/{$shippingOrder->id}/complete")->assertStatus(403);
+        $this->assertEquals('shipping', $shippingOrder->fresh()->status);
+
+        $this->patch("/staff/delivery/orders/{$shippingOrder->id}/fail", [
+            'reason' => 'Thử thao tác đơn không phải của mình', 'failure_type' => 'other',
+        ])->assertStatus(403);
+        $this->assertEquals('shipping', $shippingOrder->fresh()->status);
+    }
+
+    /**
+     * Admin được phép thao tác lên BẤT KỲ đơn giao hàng nào (authorizeOwnership() cho phép role admin
+     * đi qua, không chỉ đúng nhân viên được phân công) - phục vụ giám sát/hỗ trợ khi cần.
+     */
+    public function test_admin_can_ship_any_delivery_order_regardless_of_assigned_staff(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+
+        $this->actingAs($admin)->patch("/staff/delivery/orders/{$order->id}/ship")->assertRedirect();
+
+        $this->assertEquals('shipping', $order->fresh()->status);
+    }
+
+    /**
+     * Trang tổng quan (dashboard) của nhân viên vận chuyển: 4 thẻ đếm số đơn theo trạng thái + danh
+     * sách "đơn gần đây" (tối đa 5, chỉ gồm confirmed/shipping) - trước đây chỉ được test 2 số liệu
+     * COD, chưa test các thẻ đếm đơn và danh sách đơn gần đây.
+     */
+    public function test_delivery_dashboard_shows_correct_order_counts_and_recent_orders(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $otherDelivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+
+        $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $this->makeOrder(['status' => 'shipping', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $this->makeOrder(['status' => 'completed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $this->makeOrder([
+            'status' => 'cancelled', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now(),
+            'delivery_failed_at' => now(), 'delivery_failed_reason' => 'Khách không nhận', 'delivery_failure_type' => 'other',
+        ]);
+        // Đơn của người khác không được tính vào bất kỳ thẻ nào của $delivery.
+        $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $otherDelivery->id, 'assigned_at' => now()]);
+
+        $response = $this->actingAs($delivery)->get('/staff/delivery/dashboard');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('pendingPickupCount', 2);
+        $response->assertViewHas('shippingCount', 1);
+        $response->assertViewHas('completedCount', 1);
+        $response->assertViewHas('failedCount', 1);
+        $response->assertViewHas('recentOrders', function ($recentOrders) {
+            // Chỉ gồm đơn confirmed/shipping (2 + 1 = 3), không gồm completed/cancelled.
+            return $recentOrders->count() === 3
+                && $recentOrders->every(fn ($o) => in_array($o->status, ['confirmed', 'shipping'], true));
+        });
+    }
+
+    /**
+     * order_items.product_id có restrictOnDelete() nên 1 sản phẩm đã có lịch sử đơn hàng KHÔNG BAO
+     * GIỜ bị xóa cứng được (khớp rule đã xác nhận ở HardenedProductController::destroy() - chỉ
+     * ngừng kinh doanh, không xóa) - JOIN sang bảng products vì vậy luôn khớp được. Cột snapshot
+     * (order_items.product_name/product_image) mới là cái có thể null với dữ liệu cũ; khi đó trang
+     * chi tiết đơn của nhân viên vận chuyển phải rơi về đúng tên/ảnh THẬT của sản phẩm, không hiện
+     * trống trơn hay vỡ trang.
+     */
+    public function test_delivery_order_show_page_falls_back_to_live_product_when_snapshot_missing(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $order = $this->makeOrder(['status' => 'shipping', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now()]);
+        $product = $this->makeProduct(['name' => 'Trà sữa trân châu (tên hiện tại)']);
+
+        DB::table('order_items')->insert([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => null,
+            'product_image' => null,
+            'quantity' => 1,
+            'unit_price' => 30000,
+        ]);
+
+        $response = $this->actingAs($delivery)->get("/staff/delivery/orders/{$order->id}");
+
+        $response->assertStatus(200);
+        $response->assertSee('Trà sữa trân châu (tên hiện tại)');
+    }
+
+    /**
      * Giao thất bại: bắt buộc nhập lý do + loại lý do, đơn chuyển 'cancelled' kèm delivery_failed_reason/at,
      * kể cả khi đơn đã thanh toán trước (payment_status=paid) — với loại lý do 'customer_unreachable'
      * (khách không nhận hàng) thì hủy thẳng KHÔNG hoàn tiền, theo quyết định nghiệp vụ đã duyệt.
