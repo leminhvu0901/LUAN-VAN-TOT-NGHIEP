@@ -12,10 +12,6 @@ class Setting extends Model
 
     /**
      * Lấy giá trị cấu hình theo Key (có sử dụng Cache vĩnh viễn để tối ưu hiệu năng)
-     *
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
      */
     public static function getValue(string $key, $default = null)
     {
@@ -57,12 +53,6 @@ class Setting extends Model
 
     /**
      * Lưu/Cập nhật giá trị cấu hình và xóa bộ nhớ đệm (Cache) tương ứng
-     *
-     * @param string $key
-     * @param mixed $value
-     * @param string $group
-     * @param string $type
-     * @return void
      */
     public static function setValue(string $key, $value, string $group = 'general', string $type = 'string'): void
     {
@@ -82,10 +72,6 @@ class Setting extends Model
 
     /**
      * Lưu hàng loạt cấu hình trong cùng một nhóm
-     *
-     * @param array $settings
-     * @param string $group
-     * @return void
      */
     public static function setMany(array $settings, string $group = 'general'): void
     {
