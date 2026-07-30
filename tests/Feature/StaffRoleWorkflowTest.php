@@ -598,6 +598,125 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(9, (float) $material->fresh()->current_stock);
     }
 
+    /**
+     * Trang danh sách Vật tư (`materials.index`) trước đây chỉ được smoke-test (status 200), chưa
+     * kiểm tra đúng nội dung: thẻ thống kê (tổng/sắp hết/hết hàng) và bộ lọc theo trạng thái.
+     */
+    public function test_materials_index_shows_correct_stats_and_filters(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        Material::create(['name' => 'Trân châu đen', 'unit' => 'kg', 'unit_price' => 50000, 'current_stock' => 0, 'is_active' => true]);
+        Material::create(['name' => 'Sữa tươi', 'unit' => 'lít', 'unit_price' => 30000, 'current_stock' => 2, 'is_active' => true]);
+        Material::create(['name' => 'Đường cát', 'unit' => 'kg', 'unit_price' => 20000, 'current_stock' => 50, 'is_active' => true]);
+
+        $this->actingAs($staff);
+
+        $response = $this->get('/staff/reception/materials');
+        $response->assertOk();
+        $response->assertSee('Trân châu đen');
+        $response->assertSee('Sữa tươi');
+        $response->assertSee('Đường cát');
+
+        $response = $this->get('/staff/reception/materials?status=out_of_stock');
+        $response->assertOk();
+        $response->assertSee('Trân châu đen');
+        $response->assertDontSee('Sữa tươi');
+        $response->assertDontSee('Đường cát');
+
+        $response = $this->get('/staff/reception/materials?status=low_stock');
+        $response->assertOk();
+        $response->assertSee('Sữa tươi');
+        $response->assertDontSee('Trân châu đen');
+        $response->assertDontSee('Đường cát');
+
+        $response = $this->get('/staff/reception/materials?search=Đường');
+        $response->assertOk();
+        $response->assertSee('Đường cát');
+        $response->assertDontSee('Trân châu đen');
+    }
+
+    /**
+     * AJAX (lọc/phân trang không tải lại trang) chỉ trả về đúng phần bảng, không phải cả trang HTML.
+     */
+    public function test_materials_index_ajax_returns_partial_not_full_page(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        Material::create(['name' => 'Trân châu trắng', 'unit' => 'kg', 'unit_price' => 45000, 'current_stock' => 10, 'is_active' => true]);
+
+        $response = $this->actingAs($staff)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->getJson('/staff/reception/materials');
+
+        $response->assertOk();
+        $response->assertJsonStructure(['html']);
+        $this->assertStringContainsString('Trân châu trắng', $response->json('html'));
+        $this->assertStringNotContainsString('<html', $response->json('html'));
+    }
+
+    /**
+     * Trang lịch sử nhập/xuất của 1 vật tư (`materials.imports`) phải hiện đúng các lô đã nhập/xuất
+     * của CHÍNH vật tư đó, không lẫn của vật tư khác.
+     */
+    public function test_materials_imports_history_page_shows_correct_lots(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $material = Material::create(['name' => 'Bột matcha', 'unit' => 'kg', 'unit_price' => 200000, 'current_stock' => 5, 'is_active' => true]);
+        $otherMaterial = Material::create(['name' => 'Bột cacao', 'unit' => 'kg', 'unit_price' => 150000, 'current_stock' => 3, 'is_active' => true]);
+
+        MaterialImport::create(['material_id' => $material->id, 'quantity' => 5, 'remaining_quantity' => 5, 'total_price' => 1000000, 'note' => 'Lô nhập matcha đầu tiên']);
+        MaterialImport::create(['material_id' => $otherMaterial->id, 'quantity' => 3, 'remaining_quantity' => 3, 'total_price' => 450000, 'note' => 'Lô nhập cacao']);
+
+        $response = $this->actingAs($staff)->get("/staff/reception/materials/{$material->id}/imports");
+
+        $response->assertOk();
+        $response->assertSee('Bột matcha');
+        $response->assertSee('Lô nhập matcha đầu tiên');
+        $response->assertDontSee('Lô nhập cacao');
+    }
+
+    /**
+     * Nút "Thanh toán chuyển khoản" trên trang chi tiết đơn cho phép lễ tân thử lại thanh toán MoMo
+     * cho 1 đơn ĐÃ TỒN TẠI (vd khách chọn MoMo lúc tạo đơn nhưng chưa quét mã xong) - khác với luồng
+     * redirect MoMo lúc mới TẠO đơn đã được test riêng.
+     */
+    public function test_receptionist_can_retry_momo_payment_on_existing_unpaid_order(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            '*' => \Illuminate\Support\Facades\Http::response(['payUrl' => 'https://test-payment.momo.vn/fake-retry-url'], 200),
+        ]);
+        config(['services.momo.production.partner_code' => 'TEST', 'services.momo.production.access_key' => 'TEST', 'services.momo.production.secret_key' => 'TEST']);
+
+        $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $order = $this->makeOrder([
+            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'delivery_type' => 'pickup',
+            'delivery_address' => null, 'status' => 'confirmed',
+        ]);
+
+        $response = $this->actingAs($staff)->post("/staff/reception/orders/{$order->id}/pay-momo");
+
+        $response->assertRedirect('https://test-payment.momo.vn/fake-retry-url');
+        $this->assertSame('unpaid', $order->fresh()->payment_status);
+    }
+
+    /**
+     * Đơn đã thanh toán rồi thì không được thử thanh toán lại lần nữa.
+     */
+    public function test_retrying_momo_payment_on_already_paid_order_is_rejected(): void
+    {
+        $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $order = $this->makeOrder([
+            'payment_method' => 'momo', 'payment_status' => 'paid', 'delivery_type' => 'pickup',
+            'delivery_address' => null, 'status' => 'confirmed',
+        ]);
+
+        $response = $this->actingAs($staff)
+            ->from(route('staff.reception.orders.show', $order->id))
+            ->post("/staff/reception/orders/{$order->id}/pay-momo");
+
+        $response->assertRedirect(route('staff.reception.orders.show', $order->id));
+        $response->assertSessionHas('error');
+    }
+
     private function makeProduct(array $overrides = []): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
