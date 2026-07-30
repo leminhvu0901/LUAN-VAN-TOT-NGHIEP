@@ -11837,6 +11837,16 @@ mặc định của SweetAlert2 hơi to/thô, đặc biệt trên màn hình mob
   }
 }
 
+/* SweetAlert2 tự chèn CSS của nó vào <head> lúc chạy (z-index mặc định .swal2-container chỉ ~1060) -
+thấp hơn NHIỀU so với các lớp phủ toàn màn hình sẵn có của trang (giỏ hàng/yêu thích 9992-9993, các
+modal đăng nhập/đăng ký/quên mật khẩu 99999). Hậu quả: gọi FrontendAlert.confirm()/prompt() trong lúc
+1 trong các lớp phủ đó đang mở thì hộp thoại vẫn HIỆN được (nhìn thấy) nhưng nút bấm không phản hồi vì
+lớp phủ cao hơn đứng "trên" nó theo z-index, dù trông như hộp thoại đang ở trên cùng. !important vì
+đang cố ý ghi đè stylesheet của thư viện ngoài được nạp sau users.css, thứ tự nạp không kiểm soát được. */
+.swal2-container {
+  z-index: 100001 !important;
+}
+
 /* Hộp thoại nhập liệu dùng chung (window.FrontendAlert.prompt) - vd lý do hủy đơn hàng. Class CSS
 THUẦN (không Tailwind) vì main.js chạy trên mọi trang, kể cả trang không nạp Tailwind. */
 .fa-prompt-popup {
