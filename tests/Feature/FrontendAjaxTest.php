@@ -378,6 +378,38 @@ class FrontendAjaxTest extends TestCase
             ->assertDontSee("cancel-btn-{$confirmed->id}", false);
     }
 
+    /**
+     * Phần "Chi tiết" của đơn hàng (mở ra khi bấm nút Chi tiết) phải cho khách thấy rõ hình thức
+     * thanh toán và trạng thái thanh toán/hoàn tiền — trước đây hoàn toàn không hiển thị, khách tự
+     * hủy+hoàn tiền xong không có cách nào biết đơn đã hoàn tiền hay chưa từ chính trang của mình.
+     */
+    public function test_order_details_show_payment_method_and_refund_status(): void
+    {
+        $user = User::factory()->create();
+
+        $refunded = $this->makePaidOnlineOrder($user, 'vnpay');
+        app(\App\Services\OrderWorkflowService::class)->refundAndCancel($refunded, 'VNP-REFUND-TX-9', 'Khách hàng tự hủy đơn hàng.');
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertSee('VNPay', false)
+            ->assertSee('Đã hoàn tiền', false)
+            ->assertSee('Hoàn tiền lúc', false);
+
+        $cod = Order::create([
+            'order_code' => 'HPY-' . strtoupper(Str::random(8)), 'user_id' => $user->id,
+            'customer_name' => $user->name, 'customer_phone' => '0900000000',
+            'delivery_address' => 'Test address', 'total_amount' => 50000, 'discount_amount' => 0,
+            'final_amount' => 50000, 'payment_status' => 'unpaid', 'payment_method' => 'cod',
+            'status' => 'pending', 'delivery_type' => 'delivery',
+        ]);
+
+        $this->actingAs($user)->get('/orders')
+            ->assertOk()
+            ->assertSee('COD (khi nhận hàng)', false)
+            ->assertSee('Thanh toán khi nhận hàng', false);
+    }
+
     // ───────────────────────── Reviews ─────────────────────────
 
     public function test_review_ajax_returns_422_when_rating_missing(): void

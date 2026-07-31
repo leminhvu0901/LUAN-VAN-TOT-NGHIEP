@@ -203,6 +203,38 @@
                                     <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
                                     Chi tiết thanh toán đơn hàng
                                 </h4>
+
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wide">Hình thức thanh toán</span>
+                                    <span class="text-xs font-bold text-on-surface">
+                                        {{ match($order->payment_method) { 'momo' => 'Ví MoMo', 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD (khi nhận hàng)' } }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center mb-3 pb-3 border-b border-outline-variant">
+                                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wide">Trạng thái thanh toán</span>
+                                    @if($order->payment_status === 'paid')
+                                        <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-[14px]">check_circle</span> Đã thanh toán
+                                        </span>
+                                    @elseif($order->payment_status === 'refunded')
+                                        <span class="text-xs font-bold text-slate-600 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-[14px]">undo</span> Đã hoàn tiền
+                                        </span>
+                                    @elseif(in_array($order->payment_method, ['cash', 'cod'], true) || !$order->payment_method)
+                                        <span class="text-xs font-bold text-on-surface-variant">Thanh toán khi nhận hàng</span>
+                                    @else
+                                        <span class="text-xs font-bold text-amber-600 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-[14px]">pending</span> Chờ thanh toán
+                                        </span>
+                                    @endif
+                                </div>
+                                @if($order->payment_status === 'refunded' && $order->refunded_at)
+                                    <div class="flex justify-between items-center mb-3 -mt-2 text-[11px] text-on-surface-variant">
+                                        <span>Hoàn tiền lúc</span>
+                                        <span>{{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</span>
+                                    </div>
+                                @endif
+
                                 <div class="space-y-2 text-xs text-on-surface-variant font-medium">
                                     <div class="flex justify-between">
                                         <span>Tạm tính (Sản phẩm)</span>
