@@ -520,7 +520,7 @@
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Chi tiết thanh toán</h2>
                         </div>
 
-                        <div class="space-y-3" id="price-summary" data-subtotal="{{ $subtotal }}" data-freeship-threshold="{{ $freeShipThreshold }}">
+                        <div class="space-y-3" id="price-summary" data-subtotal="{{ $subtotal }}" data-freeship-threshold="{{ $freeShipThreshold }}" data-combo-discount="{{ (int) ($comboDiscount ?? 0) }}">
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium">
                                 <span>Tạm tính (Sản phẩm)</span>
                                 <span id="summary-subtotal-text">{{ number_format($subtotal, 0, ',', '.') }}đ</span>
@@ -543,6 +543,12 @@
                                 <span id="summary-weather-fee-text" class="text-error font-bold">+0đ</span>
                             </div>
 
+                            @if(($comboDiscount ?? 0) > 0)
+                                <div class="flex justify-between text-sm text-emerald-700 font-medium" id="summary-combo-discount-row">
+                                    <span>Giảm giá combo</span>
+                                    <span class="font-bold" id="summary-combo-discount-text">-{{ number_format($comboDiscount, 0, ',', '.') }}đ</span>
+                                </div>
+                            @endif
                             <div class="flex justify-between text-sm text-on-surface-variant font-medium hidden" id="summary-discount-row">
                                 <span>Giảm giá</span>
                                 <span class="text-error font-bold" id="summary-discount-text">-0đ</span>

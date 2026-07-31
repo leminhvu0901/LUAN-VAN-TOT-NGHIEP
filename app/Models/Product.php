@@ -59,22 +59,6 @@ class Product extends Model
     }
 
     /**
-     * Mối quan hệ: Danh sách luật "Mua X tặng Y" mà sản phẩm này đóng vai trò là Sản phẩm chính (Phải mua)
-     */
-    public function buyXGetYAsBuyProduct()
-    {
-        return $this->hasMany(PromotionBuyXGetY::class, 'buy_product_id');
-    }
-
-    /**
-     * Mối quan hệ: Danh sách luật "Mua X tặng Y" mà sản phẩm này đóng vai trò là Quà tặng đi kèm
-     */
-    public function buyXGetYAsGiftProduct()
-    {
-        return $this->hasMany(PromotionBuyXGetY::class, 'gift_product_id');
-    }
-
-    /**
      * Kiểm tra xem kho còn đủ nguyên liệu để chế biến sản phẩm này với số lượng yêu cầu hay không
      * (Chỉ xét các lô nguyên liệu còn hạn sử dụng và đang hoạt động)
      */

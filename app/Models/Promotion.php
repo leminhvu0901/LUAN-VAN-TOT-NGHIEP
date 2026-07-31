@@ -40,10 +40,16 @@ class Promotion extends Model
         return $this->belongsToMany(Category::class, 'promotion_categories');
     }
 
-    // Cấu hình mua-tặng khi scope='buy_x_get_y'. null với các scope khác.
-    public function buyXGetYRule()
+    // Cấu hình thưởng khi scope='combo'. null với các scope khác.
+    public function combo()
     {
-        return $this->hasOne(PromotionBuyXGetY::class, 'promotion_id');
+        return $this->hasOne(PromotionCombo::class, 'promotion_id');
+    }
+
+    // Danh sách sản phẩm bắt buộc (kèm số lượng) của combo khi scope='combo'. Rỗng với các scope khác.
+    public function comboItems()
+    {
+        return $this->hasMany(PromotionComboItem::class, 'promotion_id');
     }
 
 
@@ -69,8 +75,8 @@ class Promotion extends Model
         // 2. KIỂM TRA THỜI GIAN ÁP DỤNG
         if ($this->is_recurring) {
             // TRƯỜNG HỢP A: Mã giảm giá lặp lại theo khung giờ/thứ trong tuần (Happy Hour)
-            $nowStr = now()->format('H:i:s'); 
-            $currentDay = now()->dayOfWeekIso; 
+            $nowStr = now()->format('H:i:s');
+            $currentDay = now()->dayOfWeekIso;
 
             // Kiểm tra xem hôm nay có nằm trong những ngày cho phép không
             if (is_array($this->recurring_days) && count($this->recurring_days) > 0) {

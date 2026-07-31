@@ -7,10 +7,10 @@ use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Material;
 use App\Models\MaterialImport;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\Promotion;
-use App\Models\PromotionBuyXGetY;
+use App\Models\PromotionCombo;
+use App\Models\PromotionComboItem;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Services\OrderService;
@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-// Test ĐẦU-CUỐI: quà tặng Mua X tặng Y phải được vật chất hóa thành OrderItem thật (giá 0, is_gift)
-// và vẫn trừ kho đúng khi tạo đơn hàng thật qua OrderService::create().
+// Test ĐẦU-CUỐI: quà tặng combo phải được vật chất hóa thành OrderItem thật (giá 0, is_gift) và vẫn
+// trừ kho đúng khi tạo đơn hàng thật qua OrderService::create().
 class PromotionGiftOrderTest extends TestCase
 {
     use RefreshDatabase;
@@ -63,6 +63,33 @@ class PromotionGiftOrderTest extends TestCase
         ]);
     }
 
+    /**
+     * @param array $items [[Product, quantity], ...] - danh sách sản phẩm BẮT BUỘC phải mua đủ.
+     */
+    private function makeCombo(array $items, ?array $discount = null, ?array $gift = null): Promotion
+    {
+        $promotion = Promotion::create([
+            'code' => 'COMBO' . strtoupper(uniqid()), 'scope' => 'combo', 'type' => 'fixed', 'value' => 0,
+            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+        ]);
+
+        PromotionCombo::create([
+            'promotion_id' => $promotion->id,
+            'discount_type' => $discount['type'] ?? null,
+            'discount_value' => $discount['value'] ?? null,
+            'max_discount_amount' => $discount['max'] ?? null,
+            'gift_product_id' => $gift['product']->id ?? null,
+            'gift_quantity' => $gift['quantity'] ?? null,
+            'auto_add_gift' => true,
+        ]);
+
+        foreach ($items as [$product, $qty]) {
+            PromotionComboItem::create(['promotion_id' => $promotion->id, 'product_id' => $product->id, 'quantity' => $qty]);
+        }
+
+        return $promotion;
+    }
+
     public function test_gift_is_materialized_as_free_order_item_and_deducts_stock(): void
     {
         $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
@@ -74,16 +101,7 @@ class PromotionGiftOrderTest extends TestCase
         MaterialImport::create(['material_id' => $material->id, 'quantity' => 50, 'remaining_quantity' => 50, 'total_price' => 5000, 'expiration_date' => today()->addMonth()]);
         DB::table('product_materials')->insert(['product_id' => $tea->id, 'material_id' => $material->id, 'quantity_used' => 2, 'created_at' => now(), 'updated_at' => now()]);
 
-        $promotion = Promotion::create([
-            'code' => 'MUA2TANG1', 'scope' => 'buy_x_get_y', 'type' => 'fixed', 'value' => 0,
-            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
-        ]);
-        PromotionBuyXGetY::create([
-            'promotion_id' => $promotion->id,
-            'buy_product_id' => $coffee->id, 'buy_quantity' => 2,
-            'gift_product_id' => $tea->id, 'gift_quantity' => 1,
-            'auto_add_gift' => true,
-        ]);
+        $promotion = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $coffee->id, 'quantity' => 2, 'unit_price' => 30000]);
@@ -114,17 +132,7 @@ class PromotionGiftOrderTest extends TestCase
         $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000, 'name' => 'Trà tắc']);
-
-        $promotion = Promotion::create([
-            'code' => 'MUA2TANG1B', 'scope' => 'buy_x_get_y', 'type' => 'fixed', 'value' => 0,
-            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
-        ]);
-        PromotionBuyXGetY::create([
-            'promotion_id' => $promotion->id,
-            'buy_product_id' => $coffee->id, 'buy_quantity' => 2,
-            'gift_product_id' => $tea->id, 'gift_quantity' => 1,
-            'auto_add_gift' => true,
-        ]);
+        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $coffee->id, 'quantity' => 1, 'unit_price' => 30000]);
@@ -145,17 +153,7 @@ class PromotionGiftOrderTest extends TestCase
         $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000, 'name' => 'Trà tắc']);
-
-        $promotion = Promotion::create([
-            'code' => 'MUA2TANG1C', 'scope' => 'buy_x_get_y', 'type' => 'fixed', 'value' => 0,
-            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
-        ]);
-        PromotionBuyXGetY::create([
-            'promotion_id' => $promotion->id,
-            'buy_product_id' => $coffee->id, 'buy_quantity' => 2,
-            'gift_product_id' => $tea->id, 'gift_quantity' => 1,
-            'auto_add_gift' => true,
-        ]);
+        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $coffee->id, 'quantity' => 1, 'unit_price' => 30000]);
@@ -172,7 +170,8 @@ class PromotionGiftOrderTest extends TestCase
         $this->assertSame(0, $order->items()->where('is_gift', true)->count());
     }
 
-    // Mã giảm giá tiền và quà tặng là 2 nghiệp vụ độc lập -> 1 đơn có thể vừa giảm giá vừa có quà.
+    // Mã giảm giá tiền và quà tặng combo là 2 nghiệp vụ độc lập (không trùng sản phẩm) -> 1 đơn có
+    // thể vừa giảm giá vừa có quà.
     public function test_money_discount_and_gift_can_apply_together(): void
     {
         $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
@@ -184,16 +183,7 @@ class PromotionGiftOrderTest extends TestCase
             'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
         ]);
 
-        $giftPromotion = Promotion::create([
-            'code' => 'TANGTRA', 'scope' => 'buy_x_get_y', 'type' => 'fixed', 'value' => 0,
-            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
-        ]);
-        PromotionBuyXGetY::create([
-            'promotion_id' => $giftPromotion->id,
-            'buy_product_id' => $coffee->id, 'buy_quantity' => 2,
-            'gift_product_id' => $tea->id, 'gift_quantity' => 1,
-            'auto_add_gift' => true,
-        ]);
+        $giftPromotion = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $coffee->id, 'quantity' => 2, 'unit_price' => 50000]);
@@ -207,5 +197,32 @@ class PromotionGiftOrderTest extends TestCase
         $this->assertEquals(10000, (float) $order->discount_amount);     // 10% của 100.000đ
         $this->assertSame('GIAM10', $order->coupon_code);
         $this->assertSame(1, $order->items()->where('is_gift', true)->count());
+        $this->assertSame(1, $giftPromotion->fresh()->used_count);
+    }
+
+    // Combo bật CẢ giảm giá lẫn tặng quà, KHÔNG trùng sản phẩm với mã coupon khác -> cả 2 thành phần
+    // đều cộng thêm vào đơn thật, used_count của combo chỉ tăng đúng 1 lần (không phải 2).
+    public function test_combo_discount_and_gift_both_materialize_in_real_order(): void
+    {
+        $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
+        $coffee = $this->makeProduct(['base_price' => 50000]);
+        $tea = $this->makeProduct(['base_price' => 20000, 'name' => 'Trà tắc']);
+        $promotion = $this->makeCombo(
+            [[$coffee, 1]],
+            discount: ['type' => 'fixed', 'value' => 5000],
+            gift: ['product' => $tea, 'quantity' => 1]
+        );
+
+        $cart = Cart::create(['user_id' => $user->id]);
+        CartItem::create(['cart_id' => $cart->id, 'product_id' => $coffee->id, 'quantity' => 1, 'unit_price' => 50000]);
+
+        $order = app(OrderService::class)->create($user, [
+            'idempotency_key' => (string) Str::uuid(),
+            'address_id' => $this->makeAddress($user)->id,
+        ], 'cod');
+
+        $this->assertEquals(5000, (float) $order->discount_amount);
+        $this->assertSame(1, $order->items()->where('is_gift', true)->count());
+        $this->assertSame(1, $promotion->fresh()->used_count);
     }
 }

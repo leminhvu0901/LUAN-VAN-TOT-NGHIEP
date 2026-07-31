@@ -332,14 +332,22 @@ class OrderController
         $pointsDiscount = $pointsPreview['discount'];
         $pointsError = $pointsPreview['error'];
 
-        // Xem trước quà tặng Mua X tặng Y (độc lập với mã giảm giá ở trên) để lễ tân biết trước khi tạo đơn.
-        $gifts = app(\App\Services\PromotionService::class)->resolveGifts($pricedItems, 'pickup');
+        // Xem trước thưởng combo (phần tặng quà độc lập với mã giảm giá ở trên; phần giảm giá của combo
+        // chỉ cộng thêm nếu không trùng sản phẩm với mã đó — xem PromotionService::resolveComboRewards())
+        // để lễ tân biết trước khi tạo đơn.
+        $comboResult = app(\App\Services\PromotionService::class)->resolveComboRewards(
+            $pricedItems, 'pickup', ['promotion' => $promotion, 'discount' => $discount]
+        );
+        $gifts = collect($comboResult['entries'])->where('type', 'gift');
+        $comboDiscount = collect($comboResult['entries'])->where('type', 'discount')->sum('discount_amount');
+        $discount = $comboResult['auto_discount'];
 
-        $totalDiscount = min($subtotal, $discount + $membershipDiscount + $pointsDiscount);
+        $totalDiscount = min($subtotal, $discount + $comboDiscount + $membershipDiscount + $pointsDiscount);
 
         return response()->json([
             'subtotal' => $subtotal,
             'discount' => $discount,
+            'combo_discount' => $comboDiscount,
             'membership_discount' => $membershipDiscount,
             'shipping_fee' => 0,
             'promotion_code' => $promotion?->code,
@@ -350,7 +358,7 @@ class OrderController
             'points_error' => $pointsError,
             'final_amount' => max(0, $subtotal - $totalDiscount),
             'coupon_error' => $couponError,
-            'gifts' => collect($gifts)->map(fn ($g) => [
+            'gifts' => $gifts->map(fn ($g) => [
                 'gift_product_name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
                 'stock_limited' => $g['stock_limited'],

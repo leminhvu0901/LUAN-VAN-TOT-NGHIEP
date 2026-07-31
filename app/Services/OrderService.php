@@ -136,24 +136,27 @@ class OrderService
             $manualCode = filled($payload['coupon_code'] ?? null) ? $payload['coupon_code'] : null;
             if ($manualCode === null && !$isPickup) {
                 $promotion = null;
-                $couponDiscount = 0;
+                $autoResult = ['promotion' => null, 'discount' => 0.0];
             } else {
-                $result = $this->promotions->resolveBestDiscount(
+                $autoResult = $this->promotions->resolveBestDiscount(
                     $items, $subtotal, $orderOwner, $channel, $totalQuantity, $manualCode, lock: true
                 );
-                $promotion = $result['promotion'];
-                $couponDiscount = $result['discount'];
+                $promotion = $autoResult['promotion'];
             }
 
-            // Mua X tặng Y — ĐỘC LẬP với giảm giá tiền ở trên, được cộng thêm (không cạnh tranh vì bản
-            // chất khác nhau: tặng vật lý chứ không giảm tiền). Tự động áp dụng ở CẢ pickup lẫn
-            // delivery, không cần mã, không cần khách chọn. Tính lại NGAY TRONG transaction bằng đúng
-            // $items đã lock (không tin số đã preview trước transaction) để không ai lợi dụng request
-            // chỉnh sửa mà nhận quà sai điều kiện.
-            $gifts = $this->promotions->resolveGifts($items, $channel);
+            // Combo (trước đây "Mua X tặng Y") — ĐỘC LẬP với giảm giá tiền ở trên: phần TẶNG QUÀ luôn
+            // cộng thêm vô điều kiện, phần GIẢM GIÁ chỉ cộng thêm nếu không trùng sản phẩm với mã ở
+            // trên (nếu trùng, chỉ bên có lợi hơn thắng — xem PromotionService::resolveComboRewards()).
+            // Tự động áp dụng ở CẢ pickup lẫn delivery, không cần mã, không cần khách chọn. Tính lại
+            // NGAY TRONG transaction bằng đúng $items đã lock (không tin số đã preview trước
+            // transaction) để không ai lợi dụng request chỉnh sửa mà nhận thưởng sai điều kiện.
+            $comboResult = $this->promotions->resolveComboRewards($items, $channel, $autoResult);
+            $comboEntries = $comboResult['entries'];
+            $couponDiscount = $comboResult['auto_discount'];
+            $comboDiscountTotal = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
             $membershipDiscount = $this->membershipDiscount($orderOwner, $subtotal);
-            $discount = min($subtotal, $couponDiscount + $membershipDiscount + $pointsDiscount);
+            $discount = min($subtotal, $couponDiscount + $comboDiscountTotal + $membershipDiscount + $pointsDiscount);
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discount);
 
             do {
@@ -219,31 +222,34 @@ class OrderService
                 ]);
             }
 
-            // Vật chất hóa quà tặng Mua X tặng Y THÀNH dòng OrderItem thật, unit_price=0, đánh dấu
-            // is_gift để không tính vào doanh thu. Không lưu quà vào cart_items — tránh việc khách tự
-            // sửa/xóa/tăng số lượng quà qua các endpoint /cart/update, /cart/remove hiện có (các
-            // endpoint đó không biết khái niệm "quà tặng").
+            // Vật chất hóa quà tặng combo THÀNH dòng OrderItem thật, unit_price=0, đánh dấu is_gift để
+            // không tính vào doanh thu. Không lưu quà vào cart_items — tránh việc khách tự sửa/xóa/tăng
+            // số lượng quà qua các endpoint /cart/update, /cart/remove hiện có (các endpoint đó không
+            // biết khái niệm "quà tặng").
             $giftInventoryItems = collect();
-            foreach ($gifts as $gift) {
+            foreach ($comboEntries as $entry) {
+                if ($entry['type'] !== 'gift') {
+                    continue;
+                }
+                $comboItemNames = $entry['combo_items']->map(fn($ci) => $ci->quantity . ' ' . $ci->product->name)->implode(' + ');
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => $gift['gift_product']->id,
-                    'product_name' => $gift['gift_product']->name,
-                    'product_sku' => $gift['gift_product']->sku,
-                    'product_image' => $gift['gift_product']->image,
+                    'product_id' => $entry['gift_product']->id,
+                    'product_name' => $entry['gift_product']->name,
+                    'product_sku' => $entry['gift_product']->sku,
+                    'product_image' => $entry['gift_product']->image,
                     'size_name' => null,
-                    'quantity' => $gift['granted_quantity'],
+                    'quantity' => $entry['granted_quantity'],
                     'unit_price' => 0,
                     'sugar_level' => null,
                     'ice_level' => null,
                     'options' => [],
-                    'note' => 'Quà tặng: Mua ' . $gift['rule']->buy_quantity . ' ' . $gift['buy_product']->name
-                        . ' tặng ' . $gift['rule']->gift_quantity . ' ' . $gift['gift_product']->name,
+                    'note' => 'Quà tặng combo: Mua ' . $comboItemNames . ' tặng ' . $entry['granted_quantity'] . ' ' . $entry['gift_product']->name,
                     'is_gift' => true,
-                    'source_promotion_id' => $gift['promotion']->id,
+                    'source_promotion_id' => $entry['promotion']->id,
                 ]);
                 // reserveForOrder() chỉ cần product_id+quantity — quà tặng vẫn trừ kho như hàng bán thật.
-                $giftInventoryItems->push((object) ['product_id' => $gift['gift_product']->id, 'quantity' => $gift['granted_quantity']]);
+                $giftInventoryItems->push((object) ['product_id' => $entry['gift_product']->id, 'quantity' => $entry['granted_quantity']]);
             }
 
             $this->inventory->reserveForOrder($order, $items->concat($giftInventoryItems));
@@ -254,10 +260,11 @@ class OrderService
             DB::table('cart_items')->whereIn('id', $itemIds)->delete();
             if ($promotion)
                 $promotion->increment('used_count');
-            // Mỗi chương trình Mua X tặng Y đã thực sự tặng quà trong đơn này cũng tính 1 lượt dùng
-            // (dùng collect()->unique() phòng trường hợp hiếm gặp nhiều quy tắc trùng promotion_id).
-            foreach (collect($gifts)->pluck('promotion')->unique('id') as $giftPromotion) {
-                $giftPromotion->increment('used_count');
+            // Mỗi combo đã thực sự cấp thưởng (giảm giá HOẶC tặng quà) trong đơn này cũng tính 1 lượt
+            // dùng — dùng unique('id') để 1 combo bật cả 2 thành phần (sinh 2 phần tử kết quả) chỉ tăng
+            // used_count đúng 1 lần, không phải 2 lần.
+            foreach (collect($comboEntries)->pluck('promotion')->unique('id') as $comboPromotion) {
+                $comboPromotion->increment('used_count');
             }
 
             if ($pointsToRedeem > 0) {

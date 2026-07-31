@@ -101,10 +101,13 @@ class CartController
             $total += $item->unit_price * $item->quantity;
         }
 
-        // Xem trước quà tặng Mua X tặng Y ngay ở ngăn kéo giỏ hàng — chỉ để HIỂN THỊ (không phải số
-        // tiền/lưu DB), nên dùng thẳng $items thô (đã có product_id+quantity) không cần CartPricingService.
+        // Xem trước thưởng combo ngay ở ngăn kéo giỏ hàng — chỉ để HIỂN THỊ (không phải số tiền/lưu
+        // DB), nên dùng thẳng $items thô (đã có product_id+quantity) không cần CartPricingService.
         // Kênh 'delivery' vì ngăn kéo giỏ hàng chỉ phục vụ khách tự mua trên website (không phải POS).
-        $gifts = $this->promotions->resolveGifts($items, 'delivery');
+        // Không truyền context mã giảm giá (ngăn kéo này chưa từng hiển thị tương tác với coupon).
+        $comboEntries = $this->promotions->resolveComboRewards($items, 'delivery')['entries'];
+        $gifts = collect($comboEntries)->where('type', 'gift');
+        $comboDiscount = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
         return response()->json([
             'success' => true,
@@ -112,10 +115,12 @@ class CartController
             'count' => count($items),
             'total' => $total,
             'formatted_total' => number_format($total, 0, ',', '.') . 'đ',
-            'gifts' => collect($gifts)->map(fn ($g) => [
+            'gifts' => $gifts->map(fn ($g) => [
                 'gift_product_name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
             ])->values(),
+            'combo_discount' => $comboDiscount,
+            'formatted_combo_discount' => $comboDiscount > 0 ? number_format($comboDiscount, 0, ',', '.') . 'đ' : null,
         ]);
     }
 
@@ -496,9 +501,12 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        // Quà tặng Mua X tặng Y đang đủ điều kiện — chỉ để HIỂN THỊ ở trang checkout, số tiền/quà tặng
-        // thật sự được vật chất hóa lại từ đầu trong OrderService::create() khi đặt hàng thật.
-        $gifts = $this->promotions->resolveGifts($items, 'delivery');
+        // Thưởng combo đang đủ điều kiện — chỉ để HIỂN THỊ ở trang checkout, số tiền/quà tặng thật sự
+        // được vật chất hóa lại từ đầu trong OrderService::create() khi đặt hàng thật. Không truyền
+        // context mã giảm giá (trang này chưa tính coupon trước khi đặt hàng thật).
+        $comboEntries = $this->promotions->resolveComboRewards($items, 'delivery')['entries'];
+        $gifts = collect($comboEntries)->where('type', 'gift')->values()->all();
+        $comboDiscount = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
         $freeShipThreshold = (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
@@ -548,7 +556,7 @@ class CartController
             \App\Models\Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
         }
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts'));
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts', 'comboDiscount'));
     }
 
     public function calculateDistance(Request $request, \App\Services\GeoapifyService $geoapify)

@@ -125,7 +125,7 @@
         if (totalEl) totalEl.textContent = formatMoney(total);
     }
 
-    function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts, membershipDiscount, pointsDiscount) {
+    function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts, membershipDiscount, pointsDiscount, comboDiscount) {
         document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
         const discountRow = document.getElementById('pos-cart-discount-row');
@@ -135,6 +135,16 @@
             discountRow.classList.remove('hidden');
         } else {
             discountRow.classList.add('hidden');
+        }
+
+        const comboDiscountRow = document.getElementById('pos-cart-combo-discount-row');
+        if (comboDiscountRow) {
+            if (comboDiscount > 0) {
+                document.getElementById('pos-cart-combo-discount').textContent = '-' + formatMoney(comboDiscount);
+                comboDiscountRow.classList.remove('hidden');
+            } else {
+                comboDiscountRow.classList.add('hidden');
+            }
         }
 
         const membershipRow = document.getElementById('pos-cart-membership-row');
@@ -222,7 +232,7 @@
             .then(data => {
                 updatePreviewTotal(
                     data.subtotal, data.discount, data.promotion_label, data.shipping_fee || 0, data.final_amount,
-                    data.gifts || [], data.membership_discount || 0, data.points_discount || 0
+                    data.gifts || [], data.membership_discount || 0, data.points_discount || 0, data.combo_discount || 0
                 );
 
                 if (feedbackEl) {
@@ -292,7 +302,7 @@
                     // thay vì gắn lại node cũ.
                     container.innerHTML = '<p class="text-sm text-gray-400 text-center py-4" id="pos-cart-empty">Chưa có sản phẩm nào.</p>';
                     lastCartItemCount = 0;
-                    updatePreviewTotal(0, 0, null, 0, 0, [], 0, 0);
+                    updatePreviewTotal(0, 0, null, 0, 0, [], 0, 0, 0);
                     return;
                 }
 

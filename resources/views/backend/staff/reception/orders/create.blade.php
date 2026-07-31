@@ -86,6 +86,10 @@
                             <span id="pos-cart-discount-label">Khuyến mãi</span>
                             <span id="pos-cart-discount">-0đ</span>
                         </div>
+                        <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden" id="pos-cart-combo-discount-row">
+                            <span>Giảm giá combo</span>
+                            <span id="pos-cart-combo-discount">-0đ</span>
+                        </div>
                         <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden" id="pos-cart-membership-row">
                             <span>Ưu đãi hạng thành viên</span>
                             <span id="pos-cart-membership-discount">-0đ</span>

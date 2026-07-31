@@ -1070,6 +1070,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const subtotal = parseInt(priceSummaryEl.dataset.subtotal);
     let discount = 0;
     let pointsDiscount = 0;
+    // Giảm giá combo (nếu có) đã được server tự động áp dụng sẵn (không cần khách nhập mã) — cộng vào
+    // tổng giảm giá khi tính lại total ở calculateTotal(), y hệt cách discount/pointsDiscount đã làm.
+    const comboDiscount = parseInt(priceSummaryEl.dataset.comboDiscount) || 0;
 
     const shippingDistanceText = document.getElementById('summary-shipping-distance-text');
     const weatherFeeText = document.getElementById('summary-weather-fee-text');
@@ -1375,7 +1378,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (discount > subtotal) discount = subtotal;
         }
 
-        const totalDiscount = discount + pointsDiscount;
+        const totalDiscount = discount + pointsDiscount + comboDiscount;
 
         // Calculate final total
         const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - totalDiscount);
