@@ -77,12 +77,6 @@ class DashboardController
         $unhandledReviewsCount = Review::where('is_visible', 0)->count();
         $hiddenProductsCount = Product::where('is_active', 0)->count();
 
-        // Sản phẩm hết hàng dựa trên nguyên liệu chế biến
-        $outOfStockProducts = Product::where('is_active', true)->get()->filter(function ($p) {
-            return !$p->hasSufficientMaterials();
-        });
-        $outOfStockProductsCount = $outOfStockProducts->count();
-
         // Cảnh báo kho nguyên liệu
         $outOfStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '<=', 0)->count();
         $lowStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '>', 0)->where('current_stock', '<', 5)->count();
@@ -206,23 +200,8 @@ class DashboardController
             ->limit(5)
             ->get();
 
-        // 6. Danh sách cảnh báo tồn kho sản phẩm, nguyên liệu và hạn dùng (Top 8)
+        // 6. Danh sách cảnh báo tồn kho nguyên liệu và hạn dùng (Top 8)
         $stockAlertList = collect();
-
-        // A. Sản phẩm hết hàng (Không đủ nguyên liệu chế biến)
-        Product::where('is_active', true)->get()->each(function ($p) use ($stockAlertList) {
-            if (!$p->hasSufficientMaterials()) {
-                $stockAlertList->push([
-                    'type' => 'product',
-                    'name' => '[Món] ' . $p->name,
-                    'current' => '0 ly',
-                    'min' => 'Không đủ nguyên liệu',
-                    'status' => 'Hết hàng',
-                    'is_critical' => true,
-                    'link' => route('admin.products.index')
-                ]);
-            }
-        });
 
         // B. Nguyên liệu hết hàng hoặc sắp hết
         Material::where('is_active', true)

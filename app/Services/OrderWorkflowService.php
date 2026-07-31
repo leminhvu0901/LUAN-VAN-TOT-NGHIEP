@@ -29,7 +29,6 @@ class OrderWorkflowService
     ];
 
     public function __construct(
-        private readonly InventoryService $inventory,
         private readonly NotificationService $notifications,
     ) {}
 
@@ -266,11 +265,9 @@ class OrderWorkflowService
 
     /**
      * Tự động hủy các đơn "chờ thanh toán" MoMo bị treo quá lâu (khách/lễ tân mở cổng MoMo rồi bỏ
-     * dở, không hủy tay). Quan trọng nhất với đơn tại quầy vì loại đơn này đã trừ tồn kho thật ngay
-     * lúc tạo (OrderService::create -> reserveForOrder) — treo mãi sẽ khóa cứng tồn kho không ai
-     * bán được. transition() sang 'cancelled' tự giải phóng tồn kho + hoàn used_count khuyến mãi.
-     * Gọi cơ hội chủ nghĩa từ trang danh sách đơn (không cần cron) + có thể chạy qua lệnh Artisan
-     * theo lịch để dọn cả khi không ai mở trang.
+     * dở, không hủy tay). transition() sang 'cancelled' tự hoàn used_count khuyến mãi + điểm tích lũy
+     * đã dùng. Gọi cơ hội chủ nghĩa từ trang danh sách đơn (không cần cron) + có thể chạy qua lệnh
+     * Artisan theo lịch để dọn cả khi không ai mở trang.
      */
     public function cancelStalePendingPayments(int $minutes = 15): int
     {
@@ -296,13 +293,12 @@ class OrderWorkflowService
     }
 
     /**
-     * Dọn dẹp dùng chung khi một đơn chuyển sang 'cancelled': giải phóng tồn kho, hoàn used_count
-     * khuyến mãi, hoàn điểm tích lũy đã dùng, set cancel_reason. Tách từ transition() để refundAndCancel()
-     * dùng lại y hệt — không đổi hành vi của transition().
+     * Dọn dẹp dùng chung khi một đơn chuyển sang 'cancelled': hoàn used_count khuyến mãi, hoàn điểm
+     * tích lũy đã dùng, set cancel_reason. Tách từ transition() để refundAndCancel() dùng lại y hệt —
+     * không đổi hành vi của transition().
      */
     private function applyCancelCleanup(Order $locked, string $cancelReason): void
     {
-        $this->inventory->releaseForOrder($locked);
         if ($locked->promotion_id) {
             DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
         }
@@ -336,7 +332,6 @@ class OrderWorkflowService
 
     private function applyDeliveryFailedCleanup(Order $locked, string $reason, string $failureType): void
     {
-        $this->inventory->releaseForOrder($locked);
         if ($locked->promotion_id) {
             DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
         }

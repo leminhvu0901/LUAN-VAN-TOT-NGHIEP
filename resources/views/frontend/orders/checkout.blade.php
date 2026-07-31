@@ -451,9 +451,6 @@
                                         <h4 class="font-bold text-on-surface text-sm truncate" title="{{ $gift['gift_product']->name }}">{{ $gift['gift_product']->name }}</h4>
                                         <p class="text-xs text-on-surface-variant mt-0.5 font-medium">x{{ $gift['granted_quantity'] }}</p>
                                         <span class="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">🎁 Quà tặng</span>
-                                        @if($gift['stock_limited'])
-                                            <p class="text-[11px] text-amber-700 mt-1">Kho chỉ còn đủ tặng {{ $gift['granted_quantity'] }} phần.</p>
-                                        @endif
                                     </div>
                                     <div class="text-right flex-shrink-0 font-bold text-emerald-700 text-sm">Miễn phí</div>
                                 </div>

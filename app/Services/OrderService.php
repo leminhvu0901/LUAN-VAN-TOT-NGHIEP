@@ -17,7 +17,6 @@ class OrderService
     public function __construct(
         private readonly CartPricingService $cartPricing,
         private readonly ShippingQuoteService $shipping,
-        private readonly InventoryService $inventory,
         private readonly PromotionService $promotions,
     ) {
     }
@@ -226,7 +225,6 @@ class OrderService
             // không tính vào doanh thu. Không lưu quà vào cart_items — tránh việc khách tự sửa/xóa/tăng
             // số lượng quà qua các endpoint /cart/update, /cart/remove hiện có (các endpoint đó không
             // biết khái niệm "quà tặng").
-            $giftInventoryItems = collect();
             foreach ($comboEntries as $entry) {
                 if ($entry['type'] !== 'gift') {
                     continue;
@@ -248,11 +246,8 @@ class OrderService
                     'is_gift' => true,
                     'source_promotion_id' => $entry['promotion']->id,
                 ]);
-                // reserveForOrder() chỉ cần product_id+quantity — quà tặng vẫn trừ kho như hàng bán thật.
-                $giftInventoryItems->push((object) ['product_id' => $entry['gift_product']->id, 'quantity' => $entry['granted_quantity']]);
             }
 
-            $this->inventory->reserveForOrder($order, $items->concat($giftInventoryItems));
             // CHỈ xóa những cart_items đã được đưa vào đơn hàng này.
             // Các sản phẩm còn lại trong giỏ (không được chọn) sẽ được giữ nguyên.
             $itemIds = $items->pluck('id');

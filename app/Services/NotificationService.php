@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Material;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Models\User;
@@ -11,19 +10,10 @@ use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
-    private const LOW_STOCK_THRESHOLD = 5;
-
     public function orderPlaced(Order $order): void
     {
         $this->sendCustomerConfirmation($order);
         $this->sendAdminNewOrderAlert($order);
-    }
-
-    public function lowStockAlertIfCrossed(Material $material, float $stockBefore, float $stockAfter): void
-    {
-        if ($stockBefore > self::LOW_STOCK_THRESHOLD && $stockAfter <= self::LOW_STOCK_THRESHOLD) {
-            $this->sendLowStockAlert($material, $stockAfter);
-        }
     }
 
     private function sendCustomerConfirmation(Order $order): void
@@ -57,20 +47,6 @@ class NotificationService
             . "Trạng thái thanh toán: {$order->payment_status}";
 
         $this->send($email, 'Đơn hàng mới ' . $order->order_code, $body);
-    }
-
-    private function sendLowStockAlert(Material $material, float $stockAfter): void
-    {
-        if (Setting::getValue('low_stock_notification_enabled', '1') != '1') return;
-
-        $email = Setting::getValue('notification_email', 'admin@happytea.com');
-        if (!$email) return;
-
-        $body = "Nguyên liệu \"{$material->name}\" đang ở mức tồn kho thấp: "
-            . rtrim(rtrim(number_format($stockAfter, 2, '.', ''), '0'), '.') . " {$material->unit}.\n"
-            . 'Vui lòng nhập thêm hàng để tránh gián đoạn chế biến.';
-
-        $this->send($email, 'Cảnh báo tồn kho thấp: ' . $material->name, $body);
     }
 
     private function send(string $to, string $subject, string $body): void

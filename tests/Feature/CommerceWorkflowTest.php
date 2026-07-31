@@ -4,12 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Cart;
 use App\Models\CartItem;
-use App\Models\Material;
-use App\Models\MaterialImport;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
-use App\Services\InventoryService;
 use App\Services\OrderWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -49,8 +46,13 @@ class CommerceWorkflowTest extends TestCase
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 3, 'unit_price' => 30000]);
 
         \App\Models\Promotion::create([
-            'code' => 'GIAM50', 'type' => 'fixed', 'value' => 50000,
-            'min_quantity' => 3, 'is_active' => true, 'apply_for' => 'all', 'applies_to' => 'all',
+            'code' => 'GIAM50',
+            'type' => 'fixed',
+            'value' => 50000,
+            'min_quantity' => 3,
+            'is_active' => true,
+            'apply_for' => 'all',
+            'applies_to' => 'all',
         ]);
 
         $this->actingAs($user)
@@ -69,8 +71,13 @@ class CommerceWorkflowTest extends TestCase
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
 
         \App\Models\Promotion::create([
-            'code' => 'COMBO3', 'type' => 'fixed', 'value' => 50000,
-            'min_quantity' => 3, 'is_active' => true, 'apply_for' => 'all', 'applies_to' => 'all',
+            'code' => 'COMBO3',
+            'type' => 'fixed',
+            'value' => 50000,
+            'min_quantity' => 3,
+            'is_active' => true,
+            'apply_for' => 'all',
+            'applies_to' => 'all',
         ]);
 
         $this->actingAs($user)
@@ -93,24 +100,6 @@ class CommerceWorkflowTest extends TestCase
 
         $this->assertSame(100, (int) $user->fresh()->points);
         $this->assertSame(100, (int) $order->fresh()->loyalty_points_awarded);
-    }
-
-    public function test_cancelling_order_restores_reserved_material_to_same_lot(): void
-    {
-        $user = User::factory()->create();
-        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
-        $product = Product::create(['name' => 'Tea', 'slug' => 'tea', 'sku' => 'TEA-1', 'base_price' => 20000, 'category_id' => $categoryId, 'is_active' => true]);
-        $material = Material::create(['name' => 'Tea leaf', 'unit' => 'g', 'unit_price' => 100, 'current_stock' => 10, 'is_active' => true]);
-        $lot = MaterialImport::create(['material_id' => $material->id, 'quantity' => 10, 'remaining_quantity' => 10, 'total_price' => 1000, 'expiration_date' => today()->addMonth()]);
-        DB::table('product_materials')->insert(['product_id' => $product->id, 'material_id' => $material->id, 'quantity_used' => 2, 'created_at' => now(), 'updated_at' => now()]);
-        $order = Order::create($this->orderData($user));
-
-        app(InventoryService::class)->reserveForOrder($order, collect([(object) ['product_id' => $product->id, 'quantity' => 2]]));
-        $this->assertEquals(6, (float) $lot->fresh()->remaining_quantity);
-        app(OrderWorkflowService::class)->transition($order->fresh(), 'cancelled', 'Khách đổi ý không nhận hàng');
-
-        $this->assertEquals(10, (float) $lot->fresh()->remaining_quantity);
-        $this->assertEquals(10, (float) $material->fresh()->current_stock);
     }
 
     public function test_unsigned_momo_return_cannot_mark_order_as_paid(): void

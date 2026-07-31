@@ -361,7 +361,6 @@ class OrderController
             'gifts' => $gifts->map(fn ($g) => [
                 'gift_product_name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
-                'stock_limited' => $g['stock_limited'],
             ])->values(),
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }

@@ -322,28 +322,6 @@ class PromotionScopeTest extends TestCase
         $this->assertSame(2, $entries[0]['granted_quantity']);
     }
 
-    // Kho quà không đủ -> giảm số lượng tặng xuống mức khả dụng và đánh dấu stock_limited,
-    // KHÔNG chặn đơn hàng.
-    public function test_gift_quantity_reduced_when_stock_insufficient(): void
-    {
-        $user = User::factory()->create();
-        $coffee = $this->makeProduct(['base_price' => 30000]);
-        $tea = $this->makeProduct(['base_price' => 20000]);
-
-        // Nguyên liệu chỉ đủ pha đúng 1 ly trà tặng (mỗi ly cần 1 đơn vị, tồn kho 1).
-        $material = \App\Models\Material::create(['name' => 'Trà', 'unit' => 'g', 'unit_price' => 100, 'current_stock' => 1, 'is_active' => true]);
-        \App\Models\MaterialImport::create(['material_id' => $material->id, 'quantity' => 1, 'remaining_quantity' => 1, 'total_price' => 100, 'expiration_date' => today()->addMonth()]);
-        DB::table('product_materials')->insert(['product_id' => $tea->id, 'material_id' => $material->id, 'quantity_used' => 1, 'created_at' => now(), 'updated_at' => now()]);
-
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
-
-        // Mua 4 = đủ điều kiện tặng 2, nhưng kho chỉ đủ 1.
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 4]]));
-
-        $this->assertSame(1, $entries[0]['granted_quantity']);
-        $this->assertTrue($entries[0]['stock_limited']);
-    }
-
     // Giảm số lượng món mua xuống dưới điều kiện -> quà tự biến mất (resolveComboRewards tính lại mỗi lần).
     public function test_reducing_purchased_quantity_removes_gift(): void
     {

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\Category;
-use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSize;
@@ -51,7 +50,6 @@ class HardenedProductController
     {
         return  view('backend.admin.products.create', [
             'categories' => Category::where('is_active', true)->orderBy('display_order')->get(),
-            'materials' => Material::where('is_active', true)->orderBy('name')->get(),
             'toppings' => Topping::orderBy('name')->get(),
             'backUrl' => $this->resolveBackUrl($request),
         ]);
@@ -59,11 +57,10 @@ class HardenedProductController
 
     public function edit(Product $product, Request $request)
     {
-        $product->load(['materials', 'sizes', 'toppings', 'images']);
+        $product->load(['sizes', 'toppings', 'images']);
         return  view('backend.admin.products.edit', [
             'product' => $product,
             'categories' => Category::where('is_active', true)->orderBy('display_order')->get(),
-            'materials' => Material::where('is_active', true)->orderBy('name')->get(),
             'toppings' => Topping::orderBy('name')->get(),
             'backUrl' => $this->resolveBackUrl($request),
         ]);
@@ -216,8 +213,6 @@ class HardenedProductController
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
             'gallery' => ['nullable', 'array', 'max:' . $galleryLimit],
             'gallery.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-            'materials' => ['nullable', 'array'],
-            'materials.*' => ['nullable', 'numeric', 'min:0.001', 'max:99999999'],
             'topping_ids' => ['nullable', 'array'],
             'topping_ids.*' => ['integer', 'distinct', 'exists:toppings,id'],
             'size_names' => ['nullable', 'array', 'max:10'],
@@ -243,9 +238,6 @@ class HardenedProductController
             'gallery.*.image' => 'File tải lên phải là hình ảnh.',
             'gallery.*.mimes' => 'Ảnh phụ phải có định dạng jpeg, png, jpg, gif hoặc webp.',
             'gallery.*.max' => 'Mỗi ảnh phụ không được vượt quá 2MB.',
-            'materials.*.numeric' => 'Số lượng nguyên liệu phải là số.',
-            'materials.*.min' => 'Số lượng nguyên liệu phải lớn hơn 0.',
-            'materials.*.max' => 'Số lượng nguyên liệu quá lớn.',
             'topping_ids.*.exists' => 'Topping không hợp lệ.',
             'topping_ids.*.distinct' => 'Topping bị chọn trùng lặp.',
             'size_names.max' => 'Chỉ được tối đa 10 kích cỡ.',
@@ -263,9 +255,6 @@ class HardenedProductController
 
     private function syncOptions(Product $product, array $validated): void
     {
-        $materials = collect($validated['materials'] ?? [])->filter(fn ($quantity) => (float) $quantity > 0)
-            ->mapWithKeys(fn ($quantity, $id) => [(int) $id => ['quantity_used' => (float) $quantity]])->all();
-        $product->materials()->sync($materials);
         $product->toppings()->sync($validated['topping_ids'] ?? []);
         $product->sizes()->delete();
         $seen = [];

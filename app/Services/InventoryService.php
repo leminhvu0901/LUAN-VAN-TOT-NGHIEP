@@ -4,24 +4,26 @@ namespace App\Services;
 
 use App\Models\Material;
 use App\Models\MaterialImport;
-use App\Models\Order;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
+//"Dịch vụ quản lý kho và nguyên vật liệu".
 class InventoryService
 {
-    // Giá vốn bình quân tối đa cho phép (đồng/đơn vị) — giống MaterialController::MAX_UNIT_PRICE,
-    // định nghĩa riêng ở đây vì service không nên phụ thuộc ngược vào controller.
+    // Giá vốn bình quân tối đa cho phép (đồng/đơn vị) để tránh nhập sai số tiền quá lớn
     private const MAX_UNIT_PRICE = 999999999;
 
-    public function __construct(private readonly NotificationService $notifications) {}
-
     /**
-     * Tạo phiếu nhập kho: cộng dồn tồn kho + tính lại giá vốn bình quân gia quyền.
-     * Dùng bcmath (không dùng float) vì các cột liên quan là decimal trong DB — tránh sai số làm tròn.
-     * $quantity/$totalPrice phải là chuỗi số thập phân hợp lệ (vd. từ $request->validate()).
+     * public: Cho phép gọi từ bên ngoài.
+     * createImportLot(...): Tạo phiếu nhập lô hàng nguyên vật liệu mới vào kho, đồng thời tính lại giá vốn bình quân gia quyền.
+     * 
+     * Các tham số truyền vào:
+     * - Material $material: Đối tượng nguyên vật liệu cần nhập kho.
+     * - string $quantity: Số lượng nhập (kiểu chuỗi để giữ độ chính xác thập phân).
+     * - string $totalPrice: Tổng số tiền nhập của cả lô.
+     * - ?string $note: Ghi chú phiếu nhập.
+     * - ?string $expirationDate: Ngày hết hạn của lô hàng (nếu có).
      */
     public function createImportLot(
         Material $material,
@@ -31,41 +33,50 @@ class InventoryService
         ?string $expirationDate
     ): MaterialImport {
         return DB::transaction(function () use ($material, $quantity, $totalPrice, $note, $expirationDate) {
+            // Khóa dòng dữ liệu của nguyên vật liệu trong DB để tránh xung đột khi tính toán giá vốn bình quân
             $locked = Material::query()->lockForUpdate()->findOrFail($material->id);
 
+            // 1. Tạo bản ghi lô hàng nhập mới (MaterialImport)
             $lot = MaterialImport::create([
                 'material_id' => $locked->id,
                 'quantity' => $quantity,
-                'remaining_quantity' => $quantity,
+                'remaining_quantity' => $quantity, // Số lượng còn lại ban đầu bằng số lượng nhập
                 'total_price' => $totalPrice,
                 'note' => $note,
                 'expiration_date' => $expirationDate,
             ]);
 
+            // 2. Ghi nhận lịch sử biến động kho (Nếu bảng inventory_movements tồn tại)
             if (Schema::hasTable('inventory_movements')) {
                 DB::table('inventory_movements')->insert([
                     'material_id' => $locked->id,
                     'material_import_id' => $lot->id,
                     'order_id' => null,
-                    'type' => 'import',
+                    'type' => 'import', // Kiểu biến động: Nhập kho
                     'quantity' => $quantity,
-                    'unit_cost' => bcdiv($totalPrice, $quantity, 4),
+                    'unit_cost' => bcdiv($totalPrice, $quantity, 4), // Đơn giá 1 đơn vị = Tổng tiền / Số lượng (lấy 4 chữ số thập phân)
                     'note' => $note ?: 'Nhập kho',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             }
 
+            // 3. Tính toán lại giá vốn bình quân gia quyền (Weighted Average Price):
+            // Giá trị kho cũ = Tồn kho cũ * Giá vốn cũ
             $totalOldValue = bcmul((string) $locked->current_stock, (string) $locked->unit_price, 4);
+            // Tồn kho mới = Tồn kho cũ + Số lượng nhập mới
             $newStock = bcadd((string) $locked->current_stock, $quantity, 2);
+            // Giá vốn bình quân mới = (Giá trị kho cũ + Tổng tiền lô mới) / Tồn kho mới
             $newAvgPrice = bcdiv(bcadd($totalOldValue, $totalPrice, 4), $newStock, 4);
 
+            // Kiểm soát nếu giá vốn bình quân mới vượt quá giới hạn tối đa
             if (bccomp($newAvgPrice, (string) self::MAX_UNIT_PRICE, 2) > 0) {
                 throw ValidationException::withMessages([
                     'total_price' => 'Phiếu nhập làm giá vốn bình quân vượt quá 999.999.999 đồng/đơn vị.',
                 ]);
             }
 
+            // 4. Cập nhật số lượng tồn kho và đơn giá vốn mới vào bảng nguyên vật liệu
             $locked->update([
                 'current_stock' => $newStock,
                 'unit_price' => $newAvgPrice,
@@ -76,190 +87,27 @@ class InventoryService
     }
 
     /**
-     * Nhân viên/quản lý lấy vật tư ra khỏi kho để dùng trực tiếp tại quầy (không qua đơn hàng/công thức).
-     * Trừ theo FIFO — ưu tiên lô sắp hết hạn trước — giống cách reserveForOrder tiêu thụ lô, nhưng không
-     * gắn với order nào. Tạo 1 bản ghi MaterialImport âm để hiện trong "Lịch sử Thu hồi kho" (giống disposeBatch).
+     * public: Cho phép gọi từ bên ngoài.
+     * recalculateMaterialCost(int $materialId): Tính toán lại số lượng tồn kho thực tế và đơn giá vốn bình quân dựa trên các lô hàng hiện có.
+     * - Tham số int $materialId: ID của nguyên vật liệu cần tính lại.
      */
-    public function consumeStockManually(Material $material, string $quantity, string $reason): void
-    {
-        DB::transaction(function () use ($material, $quantity, $reason) {
-            $locked = Material::query()->lockForUpdate()->findOrFail($material->id);
-
-            $lots = MaterialImport::query()->where('material_id', $locked->id)
-                ->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)
-                ->orderByRaw('expiration_date IS NULL, expiration_date ASC')->orderBy('created_at')->orderBy('id')
-                ->lockForUpdate()->get();
-
-            $available = (string) $lots->sum('remaining_quantity');
-            if (bccomp($available, $quantity, 2) < 0) {
-                throw ValidationException::withMessages([
-                    'quantity' => "Không đủ tồn kho để xuất (khả dụng: {$available} {$locked->unit}).",
-                ]);
-            }
-
-            $remaining = $quantity;
-            $totalValue = '0';
-            foreach ($lots as $lot) {
-                if (bccomp($remaining, '0', 2) <= 0) break;
-
-                $lotRemaining = (string) $lot->remaining_quantity;
-                $taken = bccomp($lotRemaining, $remaining, 2) < 0 ? $lotRemaining : $remaining;
-                $unitCost = bccomp((string) $lot->quantity, '0', 2) > 0
-                    ? bcdiv((string) $lot->total_price, (string) $lot->quantity, 4)
-                    : '0';
-                $totalValue = bcadd($totalValue, bcmul($taken, $unitCost, 4), 4);
-
-                $lot->decrement('remaining_quantity', (float) $taken);
-
-                if (Schema::hasTable('inventory_movements')) {
-                    DB::table('inventory_movements')->insert([
-                        'material_id' => $locked->id,
-                        'material_import_id' => $lot->id,
-                        'order_id' => null,
-                        'type' => 'adjustment',
-                        'quantity' => -(float) $taken,
-                        'unit_cost' => $unitCost,
-                        'note' => $reason,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-                $remaining = bcsub($remaining, $taken, 2);
-            }
-
-            MaterialImport::create([
-                'material_id' => $locked->id,
-                'quantity' => -(float) $quantity,
-                'remaining_quantity' => 0,
-                'total_price' => -(float) $totalValue,
-                'note' => $reason,
-                'expiration_date' => null,
-            ]);
-
-            $locked->decrement('current_stock', (float) $quantity);
-            $this->recalculateMaterialCost($locked->id);
-        });
-    }
-
-    public function reserveForOrder(Order $order, Collection $items): void
-    {
-        if ($order->inventory_reserved_at) return;
-
-        $required = collect();
-        foreach ($items as $item) {
-            $recipes = DB::table('product_materials')->where('product_id', $item->product_id)->get();
-            foreach ($recipes as $recipe) {
-                $required[$recipe->material_id] = ($required[$recipe->material_id] ?? 0)
-                    + ((float) $recipe->quantity_used * (int) $item->quantity);
-            }
-        }
-
-        foreach ($required as $materialId => $quantity) {
-            $material = Material::query()->lockForUpdate()->find($materialId);
-            if (!$material || !$material->is_active) {
-                throw ValidationException::withMessages(['inventory' => 'Một nguyên liệu của đơn hàng đã ngừng sử dụng.']);
-            }
-
-            $lots = MaterialImport::query()->where('material_id', $materialId)
-                ->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)
-                ->where(function ($query) {
-                    $query->whereNull('expiration_date')->orWhereDate('expiration_date', '>=', today());
-                })
-                ->orderByRaw('expiration_date IS NULL, expiration_date ASC')->orderBy('created_at')->orderBy('id')
-                ->lockForUpdate()->get();
-
-            if ((float) $lots->sum('remaining_quantity') + 0.0001 < $quantity) {
-                throw ValidationException::withMessages([
-                    'inventory' => "Không đủ {$material->name} còn hạn sử dụng để xử lý đơn hàng.",
-                ]);
-            }
-
-            $remaining = $quantity;
-            foreach ($lots as $lot) {
-                if ($remaining <= 0.0001) break;
-                $taken = min((float) $lot->remaining_quantity, $remaining);
-                $unitCost = (float) $lot->quantity > 0 ? (float) $lot->total_price / (float) $lot->quantity : 0;
-                $lot->decrement('remaining_quantity', $taken);
-                $consumptionId = DB::table('order_material_consumptions')->insertGetId([
-                    'order_id' => $order->id,
-                    'material_id' => $materialId,
-                    'material_import_id' => $lot->id,
-                    'quantity' => $taken,
-                    'unit_cost' => $unitCost,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                DB::table('inventory_movements')->insert([
-                    'material_id' => $materialId,
-                    'material_import_id' => $lot->id,
-                    'order_id' => $order->id,
-                    'type' => 'order_reserve',
-                    'quantity' => -$taken,
-                    'unit_cost' => $unitCost,
-                    'note' => 'Reserve #' . $order->order_code . ' / ' . $consumptionId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $remaining -= $taken;
-            }
-
-            $stockBefore = (float) $material->current_stock;
-            $material->decrement('current_stock', $quantity);
-            $this->recalculateMaterialCost($materialId);
-
-            $stockAfter = (float) Material::query()->whereKey($materialId)->value('current_stock');
-            $this->notifications->lowStockAlertIfCrossed($material, $stockBefore, $stockAfter);
-        }
-
-        $order->forceFill(['inventory_reserved_at' => now(), 'inventory_released_at' => null])->save();
-    }
-
-    public function releaseForOrder(Order $order): void
-    {
-        if (!$order->inventory_reserved_at || $order->inventory_released_at) return;
-
-        $consumptions = DB::table('order_material_consumptions')->where('order_id', $order->id)
-            ->whereNull('restored_at')->lockForUpdate()->get();
-
-        foreach ($consumptions->groupBy('material_id') as $materialId => $rows) {
-            $material = Material::query()->lockForUpdate()->find($materialId);
-            if (!$material) continue;
-            foreach ($rows as $row) {
-                if ($row->material_import_id && MaterialImport::query()->whereKey($row->material_import_id)->exists()) {
-                    MaterialImport::query()->whereKey($row->material_import_id)->increment('remaining_quantity', $row->quantity);
-                }
-                DB::table('order_material_consumptions')->where('id', $row->id)->update(['restored_at' => now(), 'updated_at' => now()]);
-                DB::table('inventory_movements')->insert([
-                    'material_id' => $materialId,
-                    'material_import_id' => $row->material_import_id,
-                    'order_id' => $order->id,
-                    'type' => 'order_release',
-                    'quantity' => $row->quantity,
-                    'unit_cost' => $row->unit_cost,
-                    'note' => 'Release #' . $order->order_code,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            $material->increment('current_stock', (float) $rows->sum('quantity'));
-            $this->recalculateMaterialCost($materialId);
-        }
-
-        $order->forceFill(['inventory_released_at' => now()])->save();
-    }
-
     public function recalculateMaterialCost(int $materialId): void
     {
+        // Lấy tất cả các lô hàng còn hạn sử dụng và còn tồn thực tế
         $lots = MaterialImport::query()->where('material_id', $materialId)
             ->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)->get();
+
         $stock = (float) $lots->sum('remaining_quantity');
+
+        // Tính tổng giá trị kho còn lại = Tổng của các (Số lượng còn lại của lô * Đơn giá nhập của lô đó)
         $value = (float) $lots->sum(function ($lot) {
             return (float) $lot->remaining_quantity * ((float) $lot->total_price / (float) $lot->quantity);
         });
+
+        // Cập nhật thông số mới nhất vào bảng nguyên vật liệu (materials)
         Material::query()->whereKey($materialId)->update([
             'current_stock' => $stock,
-            'unit_price' => $stock > 0 ? $value / $stock : 0,
+            'unit_price' => $stock > 0 ? $value / $stock : 0, // Giá vốn bình quân mới = Tổng giá trị / Tổng tồn kho
             'updated_at' => now(),
         ]);
     }

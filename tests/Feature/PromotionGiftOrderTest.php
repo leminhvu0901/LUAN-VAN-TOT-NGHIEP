@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
-use App\Models\Material;
-use App\Models\MaterialImport;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\PromotionCombo;
@@ -15,7 +13,6 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Services\OrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -90,16 +87,11 @@ class PromotionGiftOrderTest extends TestCase
         return $promotion;
     }
 
-    public function test_gift_is_materialized_as_free_order_item_and_deducts_stock(): void
+    public function test_gift_is_materialized_as_free_order_item(): void
     {
         $user = User::factory()->create(['role' => 'customer', 'membership_level' => 'new']);
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000, 'name' => 'Trà tắc']);
-
-        // Nguyên liệu cho món quà — đủ tồn kho để tặng.
-        $material = Material::create(['name' => 'Trà', 'unit' => 'g', 'unit_price' => 100, 'current_stock' => 50, 'is_active' => true]);
-        MaterialImport::create(['material_id' => $material->id, 'quantity' => 50, 'remaining_quantity' => 50, 'total_price' => 5000, 'expiration_date' => today()->addMonth()]);
-        DB::table('product_materials')->insert(['product_id' => $tea->id, 'material_id' => $material->id, 'quantity_used' => 2, 'created_at' => now(), 'updated_at' => now()]);
 
         $promotion = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
@@ -121,9 +113,6 @@ class PromotionGiftOrderTest extends TestCase
 
         // Quà KHÔNG được tính vào tiền hàng (chỉ 2 ly cà phê = 60.000đ).
         $this->assertEquals(60000, (float) $order->total_amount);
-
-        // Kho vẫn bị trừ đúng cho món quà (1 ly × 2g = 2g).
-        $this->assertEquals(48, (float) $material->fresh()->current_stock);
     }
 
     // Không đủ điều kiện (mua 1 khi cần 2) -> đơn tạo bình thường, KHÔNG có dòng quà nào.

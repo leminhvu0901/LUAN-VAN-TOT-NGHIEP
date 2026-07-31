@@ -177,14 +177,10 @@
         if (giftsRow && giftsList) {
             if (gifts && gifts.length > 0) {
                 giftsList.innerHTML = gifts.map(function (g) {
-                    const stockNote = g.stock_limited
-                        ? ' <span class="text-orange-500">(giới hạn kho)</span>'
-                        : '';
                     return '<li class="flex items-center justify-between text-xs text-gray-600">' +
                         '<span class="flex items-center gap-1">' +
                         '<span class="text-amber-500">&#127873;</span>' +
                         '<span class="font-medium">' + g.gift_product_name + '</span>' +
-                        stockNote +
                         '</span>' +
                         '<span class="font-bold text-amber-600">x' + g.quantity + ' Miễn phí</span>' +
                         '</li>';

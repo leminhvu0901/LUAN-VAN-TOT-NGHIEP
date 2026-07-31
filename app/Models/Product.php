@@ -34,15 +34,6 @@ class Product extends Model
     }
 
     /**
-     * Mối quan hệ: Một sản phẩm được làm từ nhiều Nguyên liệu (Material) thông qua bảng trung gian product_materials
-     */
-    public function materials()
-    {
-        return $this->belongsToMany(Material::class, 'product_materials')
-            ->withPivot('quantity_used')->withTimestamps();
-    }
-
-    /**
      * Mối quan hệ: Một sản phẩm có thể thêm nhiều loại Topping (thông qua bảng product_toppings)
      */
     public function toppings()
@@ -56,31 +47,6 @@ class Product extends Model
     public function promotions()
     {
         return $this->belongsToMany(Promotion::class, 'promotion_products');
-    }
-
-    /**
-     * Kiểm tra xem kho còn đủ nguyên liệu để chế biến sản phẩm này với số lượng yêu cầu hay không
-     * (Chỉ xét các lô nguyên liệu còn hạn sử dụng và đang hoạt động)
-     */
-    public function hasSufficientMaterials(float $quantity = 1): bool
-    {
-        // Lấy danh sách nguyên vật liệu công thức cấu thành sản phẩm
-        $recipes = $this->materials()->where('materials.is_active', true)->get();
-        if ($recipes->isEmpty())
-            return true; // Không cần nguyên liệu -> luôn đủ
-
-        foreach ($recipes as $material) {
-            // Tính tổng tồn kho khả dụng từ các lô nhập hàng còn hạn sử dụng
-            $available = $material->imports()->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)
-                ->where(function ($query) {
-                    $query->whereNull('expiration_date')->orWhereDate('expiration_date', '>=', today());
-                })->sum('remaining_quantity');
-
-            // Nếu lượng tồn kho thực tế nhỏ hơn lượng cần dùng cho công thức -> không đủ nguyên liệu
-            if ((float) $available + 0.0001 < (float) $material->pivot->quantity_used * $quantity)
-                return false;
-        }
-        return true;
     }
 
     /**

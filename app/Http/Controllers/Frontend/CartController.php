@@ -170,9 +170,6 @@ class CartController
         if (!$product->is_active) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này đã hết hàng, không thể thêm vào giỏ hàng.']);
         }
-        if (!$product->hasSufficientMaterials($quantity)) {
-            return response()->json(['success' => false, 'message' => 'Sản phẩm tạm hết nguyên liệu còn hạn sử dụng.'], 422);
-        }
 
         // Tính giá dựa theo size
         $unitPrice = $product->base_price;

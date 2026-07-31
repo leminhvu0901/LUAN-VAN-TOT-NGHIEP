@@ -276,12 +276,6 @@ class PromotionService
 
             if ($combo->hasGift() && $combo->auto_add_gift) {
                 $giftQty = $applications * $combo->gift_quantity;
-                // Kho không đủ -> giảm dần số lượng tặng cho tới khi đủ khả dụng, KHÔNG chặn đơn hàng.
-                $stockLimited = false;
-                while ($giftQty > 0 && !$combo->giftProduct->hasSufficientMaterials($giftQty)) {
-                    $giftQty--;
-                    $stockLimited = true;
-                }
                 if ($giftQty > 0) {
                     $results[] = [
                         'type' => 'gift',
@@ -290,7 +284,6 @@ class PromotionService
                         'combo_items' => $promotion->comboItems,
                         'gift_product' => $combo->giftProduct,
                         'granted_quantity' => $giftQty,
-                        'stock_limited' => $stockLimited,
                     ];
                     $granted = true;
                 }
