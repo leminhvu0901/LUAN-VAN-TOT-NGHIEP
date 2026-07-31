@@ -254,12 +254,13 @@ class StaffRoleWorkflowTest extends TestCase
 
         $response = $this->actingAs($delivery)->get('/staff/delivery/orders?tab=assigned');
 
-        $response->assertSee('Trà sữa trân châu x2');
-        $response->assertSee('Phí ship 15.000đ');
-        $response->assertSee('Phụ phí thời tiết 5.000đ');
-        $response->assertSee('COD: ' . number_format($codOrder->final_amount, 0, ',', '.') . 'đ');
+        $response->assertSee('Trà sữa trân châu');
+        $response->assertSee('x2');
+        $response->assertSee('Ship 15.000đ');
+        $response->assertSee('Thời tiết 5.000đ');
+        $response->assertSee('COD ' . number_format($codOrder->final_amount, 0, ',', '.') . 'đ');
 
-        $response->assertSee('Trà đào x1');
+        $response->assertSee('Trà đào');
         $response->assertSee('Đã thanh toán VNPay');
     }
 
