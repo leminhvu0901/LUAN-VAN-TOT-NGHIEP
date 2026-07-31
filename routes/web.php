@@ -5,41 +5,45 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Banner;
 
 
-Route::get('/', function () {
-    // Lấy tất cả banner đang kích hoạt và trong thời gian áp dụng, sắp xếp theo thứ tự hiển thị
-    $now = now();
-    $banners = \App\Models\Banner::where('is_active', 1)
-        ->where(function ($q) use ($now) {
-            $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
-        })
-        ->where(function ($q) use ($now) {
-            $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
-        })
-        ->orderBy('display_order', 'asc')
-        ->get();
+// Admin/nhân viên đăng nhập rồi thì không được đứng ở giao diện khách hàng — tự đẩy về đúng khu vực
+// quản trị của họ (xem RedirectStaffFromFrontend). Khách vãng lai + khách hàng thường không bị ảnh hưởng.
+Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->group(function () {
+    Route::get('/', function () {
+        // Lấy tất cả banner đang kích hoạt và trong thời gian áp dụng, sắp xếp theo thứ tự hiển thị
+        $now = now();
+        $banners = \App\Models\Banner::where('is_active', 1)
+            ->where(function ($q) use ($now) {
+                $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
+            })
+            ->where(function ($q) use ($now) {
+                $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
+            })
+            ->orderBy('display_order', 'asc')
+            ->get();
 
-    // Truy vấn lấy danh mục sản phẩm (categories) kèm theo số lượng sản phẩm của từng danh mục
-    $categories = \App\Models\Category::query()
-        ->leftJoin('products', function ($join) { // Kết nối bảng products
-            $join->on('categories.id', '=', 'products.category_id'); // Điều kiện: id danh mục = category_id của sản phẩm
-        })
-        ->select('categories.id', 'categories.name', \Illuminate\Support\Facades\DB::raw('COUNT(products.id) as product_count')) // Đếm tổng số sản phẩm
-        ->where('categories.is_active', 1) // Chỉ lấy các danh mục đang mở
-        ->groupBy('categories.id', 'categories.name', 'categories.display_order') // Gom nhóm để đếm chính xác
-        ->orderBy('categories.display_order') // Sắp xếp thứ tự hiển thị
-        ->get(); // Thực thi truy vấn và lấy kết quả
+        // Truy vấn lấy danh mục sản phẩm (categories) kèm theo số lượng sản phẩm của từng danh mục
+        $categories = \App\Models\Category::query()
+            ->leftJoin('products', function ($join) { // Kết nối bảng products
+                $join->on('categories.id', '=', 'products.category_id'); // Điều kiện: id danh mục = category_id của sản phẩm
+            })
+            ->select('categories.id', 'categories.name', \Illuminate\Support\Facades\DB::raw('COUNT(products.id) as product_count')) // Đếm tổng số sản phẩm
+            ->where('categories.is_active', 1) // Chỉ lấy các danh mục đang mở
+            ->groupBy('categories.id', 'categories.name', 'categories.display_order') // Gom nhóm để đếm chính xác
+            ->orderBy('categories.display_order') // Sắp xếp thứ tự hiển thị
+            ->get(); // Thực thi truy vấn và lấy kết quả
 
-    return view('frontend.home', compact('banners', 'categories'));
+        return view('frontend.home', compact('banners', 'categories'));
+    });
+
+    // DS  SP
+    Route::get('/products', [App\Http\Controllers\Frontend\ProductController::class, 'index'])->name('products');
+
+    // CHI TIET SAN PHAM
+    Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
+
+    // Lọc/phân trang đánh giá 1 sản phẩm qua AJAX (dùng chung cho trang chi tiết sản phẩm và trang "Xem đánh giá")
+    Route::get('/products/{productId}/reviews', [App\Http\Controllers\Frontend\ProductController::class, 'reviews'])->name('products.reviews');
 });
-
-// DS  SP
-Route::get('/products', [App\Http\Controllers\Frontend\ProductController::class, 'index'])->name('products');
-
-// CHI TIET SAN PHAM
-Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
-
-// Lọc/phân trang đánh giá 1 sản phẩm qua AJAX (dùng chung cho trang chi tiết sản phẩm và trang "Xem đánh giá")
-Route::get('/products/{productId}/reviews', [App\Http\Controllers\Frontend\ProductController::class, 'reviews'])->name('products.reviews');
 
 
 
@@ -99,8 +103,13 @@ Route::post('/reset-password', [App\Http\Controllers\Frontend\AuthController::cl
 Route::middleware(['auth'])->group(function () {
 
     // --- Hồ sơ cá nhân ---
-    // Hiển thị trang Hồ sơ
-    Route::get('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'index'])->name('profile');
+    // Hiển thị trang Hồ sơ. Chặn admin/nhân viên (RedirectStaffFromFrontend) — chỉ áp cho các trang
+    // render giao diện thật (GET), KHÔNG áp cho toàn bộ nhóm 'auth' này vì nhiều endpoint bên dưới
+    // (/cart/*, /checkout/distance, /checkout/weather-fee, /checkout/validate-coupon...) được lễ tân
+    // dùng chung làm hạ tầng dựng đơn tại quầy (xem Reception/OrderController) — chặn cả nhóm sẽ làm
+    // hỏng luồng tạo đơn tại quầy.
+    Route::get('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'index'])
+        ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('profile');
 
     // Cập nhật thông tin Hồ sơ (Tên, SĐT, Avatar...)
     Route::post('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
@@ -113,12 +122,14 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Lịch sử mua hàng & Đánh giá ---
     // Xem danh sách đơn hàng đã đặt
-    Route::get('/orders', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'index'])->name('orders');
+    Route::get('/orders', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'index'])
+        ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('orders');
     Route::post('/orders/{order}/reorder', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'reorder'])->name('orders.reorder');
     Route::post('/orders/{order}/cancel', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'cancel'])->name('orders.cancel');
 
     // Hiện giao diện đánh giá (Review) 1 sản phẩm nằm trong 1 đơn hàng cụ thể
-    Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'create'])->name('review.create');
+    Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'create'])
+        ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('review.create');
 
     // Gửi đánh giá (số sao, nhận xét) vào Database
     Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'store'])->name('review.store');
@@ -169,8 +180,8 @@ Route::middleware(['auth'])->group(function () {
 
     // --- Thanh toán đơn hàng (Checkout) ---
     // Mở trang Thanh toán
-
-    Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])->name('checkout');
+    Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])
+        ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('checkout');
     // Nút "Đặt hàng" (Phương thức COD), lưu đơn hàng vào Database
     Route::post('/checkout', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'store'])->name('checkout.store');
 

@@ -49,6 +49,58 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Admin/nhân viên đăng nhập rồi vào trang khách hàng (trang chủ, sản phẩm, hồ sơ, đơn hàng,
+     * checkout) phải tự bị đẩy về đúng khu vực quản trị của họ — không được đứng chung giao diện
+     * khách hàng. Khách vãng lai + khách hàng thường (customer) vẫn xem bình thường.
+     */
+    public function test_admin_and_staff_are_redirected_away_from_frontend_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($admin);
+        $this->get('/')->assertRedirect(route('admin.dashboard'));
+        $this->get('/products')->assertRedirect(route('admin.dashboard'));
+        $this->get('/profile')->assertRedirect(route('admin.dashboard'));
+        $this->get('/orders')->assertRedirect(route('admin.dashboard'));
+        $this->get('/checkout')->assertRedirect(route('admin.dashboard'));
+
+        $this->actingAs($receptionist);
+        $this->get('/')->assertRedirect(route('staff.reception.dashboard'));
+        $this->get('/profile')->assertRedirect(route('staff.reception.dashboard'));
+
+        $this->actingAs($delivery);
+        $this->get('/')->assertRedirect(route('staff.delivery.dashboard'));
+        $this->get('/profile')->assertRedirect(route('staff.delivery.dashboard'));
+
+        // Khách hàng thường và khách vãng lai không bị ảnh hưởng.
+        $this->actingAs($customer);
+        $this->get('/')->assertOk();
+        $this->get('/products')->assertOk();
+
+        $this->get('/')->assertOk(); // guest, chưa đăng nhập
+    }
+
+    /**
+     * Lễ tân vẫn dùng bình thường các endpoint dùng chung với khách hàng (/cart/*,
+     * /checkout/distance, /checkout/weather-fee, /checkout/validate-coupon...) làm hạ tầng dựng đơn
+     * tại quầy — RedirectStaffFromFrontend KHÔNG được chặn nhầm các endpoint này (chỉ chặn trang render
+     * thật: '/', /profile, /orders, /checkout). Hồi quy cho lỗi đã gặp: chặn cả nhóm 'auth' làm hỏng
+     * hẳn luồng tạo đơn tại quầy vì nó dùng chung /cart/add.
+     */
+    public function test_receptionist_can_still_use_shared_cart_endpoints_for_pos_orders(): void
+    {
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $product = $this->makeProduct();
+
+        $this->actingAs($receptionist)
+            ->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])
+            ->assertOk();
+    }
+
+    /**
      * Lễ tân vào được khu vực lễ tân, bị chặn ở khu vực vận chuyển (và ngược lại). Admin vào được cả hai.
      */
     public function test_receptionist_and_delivery_are_isolated_from_each_other(): void
