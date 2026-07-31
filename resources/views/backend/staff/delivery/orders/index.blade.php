@@ -46,12 +46,38 @@
 
                     <p class="text-sm text-gray-600 leading-snug">{{ $order->delivery_address }}</p>
 
+                    {{-- Danh sách món — để shipper biết cần lấy gì mà không phải bấm vào xem chi tiết. --}}
+                    @if($order->items->isNotEmpty())
+                        <div class="text-sm text-gray-700 bg-gray-50 rounded-lg p-2 space-y-0.5">
+                            @foreach($order->items as $item)
+                                <p>{{ $item->product_name ?? optional($item->product)->name ?? 'Sản phẩm' }} x{{ $item->quantity }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
                     @if($order->customer_note)
                         <p class="text-xs text-gray-500 italic bg-gray-50 rounded-lg p-2">Ghi chú: {{ $order->customer_note }}</p>
                     @endif
 
+                    {{-- Trạng thái thanh toán: COD cần thu tiền mặt vs đã thanh toán online (MoMo/VNPay). --}}
                     @if($order->payment_method === 'cod')
                         <p class="text-xs font-semibold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded-lg">COD: {{ number_format($order->final_amount, 0, ',', '.') }}đ</p>
+                    @else
+                        <p class="text-xs font-semibold text-emerald-700 bg-emerald-50 inline-block px-2 py-1 rounded-lg">
+                            <span class="material-symbols-outlined text-[14px] align-middle">check_circle</span>
+                            Đã thanh toán {{ match($order->payment_method) { 'momo' => 'MoMo', 'vnpay' => 'VNPay', default => 'trực tuyến' } }} — không thu tiền
+                        </p>
+                    @endif
+
+                    {{-- Phí ship / phụ phí thời tiết-giờ cao điểm — shipper cần biết để đối chiếu với tổng tiền COD. --}}
+                    @php
+                        $feeParts = [];
+                        if ($order->shipping_fee > 0) $feeParts[] = 'Phí ship ' . number_format($order->shipping_fee, 0, ',', '.') . 'đ';
+                        if ($order->weather_fee > 0) $feeParts[] = 'Phụ phí thời tiết ' . number_format($order->weather_fee, 0, ',', '.') . 'đ';
+                        if ($order->peak_hour_fee > 0) $feeParts[] = 'Phụ phí giờ cao điểm ' . number_format($order->peak_hour_fee, 0, ',', '.') . 'đ';
+                    @endphp
+                    @if(!empty($feeParts))
+                        <p class="text-xs text-gray-500">{{ implode(' • ', $feeParts) }}</p>
                     @endif
 
                     {{-- Vùng nút: mỗi nút tối thiểu 44px chiều cao, dễ bấm trên di động --}}

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Material;
 use App\Models\MaterialImport;
 use App\Models\Product;
@@ -228,6 +229,38 @@ class StaffRoleWorkflowTest extends TestCase
         // Query "tab" không hợp lệ -> mặc định về "assigned" (confirmed), không lỗi/không rỗng bất thường.
         $response = $this->get('/staff/delivery/orders?tab=not_a_real_tab');
         $response->assertSee($assignedOrder->order_code);
+    }
+
+    // Thẻ đơn ở danh sách phải hiện đủ: danh sách món (không cần bấm vào chi tiết), trạng thái thanh
+    // toán (COD cần thu tiền vs đã trả online), và phụ phí ship/thời tiết/giờ cao điểm nếu có — trước
+    // đây các thông tin này chỉ có ở trang chi tiết, khiến shipper phải bấm vào từng đơn mới biết.
+    public function test_delivery_orders_index_card_shows_items_payment_status_and_fees(): void
+    {
+        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $product = Product::create(['name' => 'Trà sữa trân châu', 'slug' => 'sp-' . uniqid(), 'sku' => 'SKU-' . strtoupper(uniqid()), 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
+
+        $codOrder = $this->makeOrder([
+            'status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now(),
+            'payment_method' => 'cod', 'shipping_fee' => 15000, 'weather_fee' => 5000,
+        ]);
+        OrderItem::create(['order_id' => $codOrder->id, 'product_id' => $product->id, 'product_name' => 'Trà sữa trân châu', 'quantity' => 2, 'unit_price' => 30000]);
+
+        $paidOrder = $this->makeOrder([
+            'status' => 'confirmed', 'delivery_staff_id' => $delivery->id, 'assigned_at' => now(),
+            'payment_method' => 'vnpay', 'payment_status' => 'paid',
+        ]);
+        OrderItem::create(['order_id' => $paidOrder->id, 'product_id' => $product->id, 'product_name' => 'Trà đào', 'quantity' => 1, 'unit_price' => 35000]);
+
+        $response = $this->actingAs($delivery)->get('/staff/delivery/orders?tab=assigned');
+
+        $response->assertSee('Trà sữa trân châu x2');
+        $response->assertSee('Phí ship 15.000đ');
+        $response->assertSee('Phụ phí thời tiết 5.000đ');
+        $response->assertSee('COD: ' . number_format($codOrder->final_amount, 0, ',', '.') . 'đ');
+
+        $response->assertSee('Trà đào x1');
+        $response->assertSee('Đã thanh toán VNPay');
     }
 
     /**

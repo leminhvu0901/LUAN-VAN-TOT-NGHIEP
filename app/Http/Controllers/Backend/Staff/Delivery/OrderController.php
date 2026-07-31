@@ -33,7 +33,7 @@ class OrderController
             $query->where('status', 'confirmed');
         }
 
-        $orders = $query->latest('assigned_at')->paginate(10)->withQueryString();
+        $orders = $query->with('items.product')->latest('assigned_at')->paginate(10)->withQueryString();
 
         $codToCollect = (float) Order::where('delivery_staff_id', Auth::id())
             ->where('status', 'shipping')->where('payment_method', 'cod')->sum('final_amount');
