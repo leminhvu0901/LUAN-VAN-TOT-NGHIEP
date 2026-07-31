@@ -42,6 +42,42 @@ class PromotionComboAdminTest extends TestCase
         ], $overrides);
     }
 
+    public function test_combo_create_page_renders(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $categoryId = $this->makeCategory();
+        $this->makeProduct($categoryId);
+
+        $this->actingAs($admin)->get('/admin/promotions/create')
+            ->assertOk()
+            ->assertSee('Combo');
+    }
+
+    public function test_combo_edit_page_renders_with_prefilled_items_and_reward(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $categoryId = $this->makeCategory();
+        $a = $this->makeProduct($categoryId, ['name' => 'Trà A']);
+        $gift = $this->makeProduct($categoryId, ['name' => 'Quà B']);
+
+        $this->actingAs($admin)->post('/admin/promotions', $this->baseComboPayload([
+            'combo_product_ids' => [$a->id],
+            'combo_quantities' => [2],
+            'combo_has_discount' => '1',
+            'discount_type' => 'percent',
+            'discount_value' => 10,
+            'combo_has_gift' => '1',
+            'gift_product_id' => $gift->id,
+            'gift_quantity' => 1,
+        ]));
+        $promotion = Promotion::where('scope', 'combo')->firstOrFail();
+
+        $this->actingAs($admin)->get("/admin/promotions/{$promotion->id}/edit")
+            ->assertOk()
+            ->assertSee('Trà A')
+            ->assertSee('Quà B');
+    }
+
     public function test_admin_can_create_combo_with_discount_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -137,7 +137,8 @@
                     'selectedScope' => old('scope', 'order'),
                     'selectedProductIds' => old('product_ids', []),
                     'selectedCategoryIds' => old('category_ids', []),
-                    'bxgy' => null,
+                    'combo' => null,
+                    'comboItems' => collect(),
                 ])
 
                 <!-- Card: Điều kiện áp dụng -->

@@ -188,13 +188,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === PHẠM VI ÁP DỤNG (toàn đơn / sản phẩm / danh mục / mua X tặng Y) ===
-    // Ẩn/hiện các khối trường phụ thuộc phạm vi. Mua X tặng Y không phải giảm giá tiền nên ẩn luôn
-    // cả khối "Loại khuyến mãi"/"Giá trị giảm" (server cũng bỏ qua 2 trường đó với scope này).
+    // === PHẠM VI ÁP DỤNG (toàn đơn / sản phẩm / danh mục / combo) ===
+    // Ẩn/hiện các khối trường phụ thuộc phạm vi. Combo không dùng "Loại khuyến mãi"/"Giá trị giảm"
+    // chung của promotion (nó có discount_type/discount_value riêng trong khối combo) nên ẩn luôn
+    // khối đó (server cũng bỏ qua 2 trường đó với scope này).
     const scopeOptions = document.querySelectorAll('.scope-option');
     const scopeProductFields = document.getElementById('scope-product-fields');
     const scopeCategoryFields = document.getElementById('scope-category-fields');
-    const scopeBxgyFields = document.getElementById('scope-bxgy-fields');
+    const scopeComboFields = document.getElementById('scope-combo-fields');
     const moneyDiscountFields = document.getElementById('money-discount-fields');
 
     function updateScopeUI(selectedScope) {
@@ -208,8 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (scopeProductFields) scopeProductFields.classList.toggle('hidden', selectedScope !== 'product');
         if (scopeCategoryFields) scopeCategoryFields.classList.toggle('hidden', selectedScope !== 'category');
-        if (scopeBxgyFields) scopeBxgyFields.classList.toggle('hidden', selectedScope !== 'buy_x_get_y');
-        if (moneyDiscountFields) moneyDiscountFields.classList.toggle('hidden', selectedScope === 'buy_x_get_y');
+        if (scopeComboFields) scopeComboFields.classList.toggle('hidden', selectedScope !== 'combo');
+        if (moneyDiscountFields) moneyDiscountFields.classList.toggle('hidden', selectedScope === 'combo');
     }
 
     function getCurrentScope() {
@@ -280,9 +281,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (form) {
         // Chặn submit nếu giá trị giảm không hợp lệ
         form.addEventListener('submit', function (e) {
-            // Mua X tặng Y không có "giá trị giảm" — bỏ qua toàn bộ kiểm tra bên dưới, nếu không sẽ
-            // chặn nhầm mọi lần lưu chương trình tặng quà.
-            if (getCurrentScope() === 'buy_x_get_y') {
+            // Combo không dùng "giá trị giảm" chung của promotion (nó có khối riêng bên dưới, kiểm
+            // tra ở validateComboBeforeSubmit) — bỏ qua toàn bộ kiểm tra bên dưới, nếu không sẽ chặn
+            // nhầm mọi lần lưu combo.
+            if (getCurrentScope() === 'combo') {
+                if (!validateComboBeforeSubmit()) {
+                    e.preventDefault();
+                }
                 return;
             }
 
@@ -311,6 +316,149 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
         });
+    }
+
+    // === COMBO: danh sách sản phẩm bắt buộc (repeater) ===
+    // Mirror của initSizes() ở products/form-common.js — clone 1 dòng {select sản phẩm, input số
+    // lượng, nút xoá}, xoá dòng qua event delegation.
+    function initComboItems() {
+        const container = document.getElementById('combo-items');
+        const addButton = document.getElementById('add-combo-item');
+        if (!container || !addButton) return;
+
+        function createComboItemRow() {
+            const row = document.createElement('div');
+            row.className = 'combo-item-row grid grid-cols-1 sm:grid-cols-[1fr_120px_40px] gap-2';
+            const options = Array.from(document.querySelectorAll('#combo-items select')[0]?.options || [])
+                .map((opt) => '<option value="' + opt.value + '">' + opt.textContent + '</option>').join('');
+            row.innerHTML =
+                '<select name="combo_product_ids[]" class="custom-select-init w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" data-width-class="w-full">' + options + '</select>' +
+                '<input name="combo_quantities[]" type="number" min="1" value="1" placeholder="SL" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">' +
+                '<button type="button" class="js-remove-combo-item w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa sản phẩm"><span class="material-symbols-outlined">delete</span></button>';
+            return row;
+        }
+
+        addButton.addEventListener('click', function () {
+            if (container.querySelectorAll('.combo-item-row').length < 20) {
+                container.appendChild(createComboItemRow());
+                if (typeof window.initCustomSelects === 'function') window.initCustomSelects();
+            }
+        });
+
+        container.addEventListener('click', function (event) {
+            const button = event.target.closest('.js-remove-combo-item');
+            if (!button) return;
+            const rows = container.querySelectorAll('.combo-item-row');
+            if (rows.length === 1) {
+                rows[0].querySelectorAll('input[type="number"]').forEach((input) => input.value = '1');
+            } else {
+                button.closest('.combo-item-row').remove();
+            }
+        });
+    }
+    initComboItems();
+
+    // === COMBO: 2 thành phần thưởng độc lập (Giảm giá / Tặng quà) ===
+    const comboHasDiscount = document.getElementById('combo_has_discount');
+    const comboHasGift = document.getElementById('combo_has_gift');
+    const comboDiscountFields = document.getElementById('combo-discount-fields');
+    const comboGiftFields = document.getElementById('combo-gift-fields');
+    const comboDiscountTypePercentLabel = document.getElementById('combo-discount-type-percent-label');
+    const comboDiscountTypeFixedLabel = document.getElementById('combo-discount-type-fixed-label');
+    const comboDiscountValueInput = document.getElementById('combo-discount-value');
+    const comboDiscountValueUnit = document.getElementById('combo-discount-value-unit');
+    const comboMaxDiscountWrap = document.getElementById('combo-max-discount-wrap');
+
+    function updateComboRewardUI() {
+        if (comboDiscountFields && comboHasDiscount) comboDiscountFields.classList.toggle('hidden', !comboHasDiscount.checked);
+        if (comboGiftFields && comboHasGift) comboGiftFields.classList.toggle('hidden', !comboHasGift.checked);
+    }
+
+    function getComboDiscountType() {
+        const checked = document.querySelector('input[name="discount_type"]:checked');
+        return checked ? checked.value : 'percent';
+    }
+
+    function updateComboDiscountTypeUI(selectedType) {
+        const isPercent = selectedType === 'percent';
+        if (comboDiscountTypePercentLabel) {
+            comboDiscountTypePercentLabel.classList.toggle('border-emerald-500', isPercent);
+            comboDiscountTypePercentLabel.classList.toggle('bg-emerald-50', isPercent);
+            comboDiscountTypePercentLabel.classList.toggle('border-gray-200', !isPercent);
+            comboDiscountTypePercentLabel.classList.toggle('bg-white', !isPercent);
+        }
+        if (comboDiscountTypeFixedLabel) {
+            comboDiscountTypeFixedLabel.classList.toggle('border-emerald-500', !isPercent);
+            comboDiscountTypeFixedLabel.classList.toggle('bg-emerald-50', !isPercent);
+            comboDiscountTypeFixedLabel.classList.toggle('border-gray-200', isPercent);
+            comboDiscountTypeFixedLabel.classList.toggle('bg-white', isPercent);
+        }
+        if (comboMaxDiscountWrap) comboMaxDiscountWrap.classList.toggle('hidden', !isPercent);
+        if (comboDiscountValueUnit) comboDiscountValueUnit.textContent = isPercent ? '(% tỷ lệ)' : '(VNĐ cố định)';
+        if (comboDiscountValueInput) {
+            comboDiscountValueInput.max = isPercent ? '100' : '';
+            comboDiscountValueInput.step = isPercent ? '1' : '1000';
+            comboDiscountValueInput.placeholder = isPercent ? 'VD: 15' : 'VD: 10000';
+        }
+    }
+
+    if (comboHasDiscount) comboHasDiscount.addEventListener('change', updateComboRewardUI);
+    if (comboHasGift) comboHasGift.addEventListener('change', updateComboRewardUI);
+    updateComboRewardUI();
+
+    if (comboDiscountTypePercentLabel) {
+        comboDiscountTypePercentLabel.addEventListener('click', function () {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+            updateComboDiscountTypeUI('percent');
+        });
+    }
+    if (comboDiscountTypeFixedLabel) {
+        comboDiscountTypeFixedLabel.addEventListener('click', function () {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+            updateComboDiscountTypeUI('fixed');
+        });
+    }
+    updateComboDiscountTypeUI(getComboDiscountType());
+
+    // Kiểm tra trước khi submit combo: phải chọn ≥1 sản phẩm hợp lệ, và bật ít nhất 1 trong 2 thưởng
+    // (server cũng validate lại — đây chỉ là phản hồi nhanh cho admin, không thay thế validate server).
+    function validateComboBeforeSubmit() {
+        const productSelects = Array.from(document.querySelectorAll('#combo-items select[name="combo_product_ids[]"]'));
+        const hasProduct = productSelects.some((sel) => sel.value);
+        if (!hasProduct) {
+            alert('Vui lòng chọn ít nhất 1 sản phẩm cho combo.');
+            return false;
+        }
+
+        if (!(comboHasDiscount && comboHasDiscount.checked) && !(comboHasGift && comboHasGift.checked)) {
+            alert('Combo phải có ít nhất giảm giá hoặc tặng quà.');
+            return false;
+        }
+
+        if (comboHasDiscount && comboHasDiscount.checked) {
+            const rawValue = comboDiscountValueInput ? parseFloat(comboDiscountValueInput.value) : NaN;
+            if (isNaN(rawValue) || rawValue <= 0) {
+                alert('Giá trị giảm giá combo phải lớn hơn 0.');
+                return false;
+            }
+        }
+
+        if (comboHasGift && comboHasGift.checked) {
+            const giftProduct = document.querySelector('#combo-gift-fields select[name="gift_product_id"]');
+            const giftQty = document.querySelector('#combo-gift-fields input[name="gift_quantity"]');
+            if (!giftProduct || !giftProduct.value) {
+                alert('Vui lòng chọn sản phẩm tặng cho combo.');
+                return false;
+            }
+            if (!giftQty || !giftQty.value || parseInt(giftQty.value, 10) <= 0) {
+                alert('Vui lòng nhập số lượng tặng hợp lệ cho combo.');
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // === RECURRING TOGGLE ===

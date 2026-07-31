@@ -63,7 +63,7 @@
                         <!-- Loại khuyến mãi + Giá trị giảm: CHỈ có ý nghĩa với giảm giá tiền (toàn
                         đơn/sản phẩm/danh mục) — ẩn hoàn toàn khi chọn "Mua X tặng Y" ở khối phạm vi
                         bên dưới (xử lý bởi form-common.js). -->
-                        <div id="money-discount-fields" class="{{ old('scope', $promotion->scope) === 'buy_x_get_y' ? 'hidden' : '' }}">
+                        <div id="money-discount-fields" class="{{ old('scope', $promotion->scope) === 'combo' ? 'hidden' : '' }}">
                         <!-- Loại khuyến mãi -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Loại khuyến mãi <span class="text-red-500">*</span></label>
@@ -145,7 +145,8 @@
                     'selectedScope' => old('scope', $promotion->scope),
                     'selectedProductIds' => old('product_ids', $promotion->products->pluck('id')->all()),
                     'selectedCategoryIds' => old('category_ids', $promotion->categories->pluck('id')->all()),
-                    'bxgy' => $promotion->buyXGetYRule,
+                    'combo' => $promotion->combo,
+                    'comboItems' => $promotion->comboItems,
                 ])
 
                 <!-- Card: Điều kiện áp dụng -->
