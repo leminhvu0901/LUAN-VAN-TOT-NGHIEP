@@ -3,8 +3,8 @@
 // Nội dung chatbox Happy Tea. Gồm 2 phần dùng chung file này:
 //   1) Chatbox nút bấm chủ đề tĩnh (greeting/menu/labels/answers/defaults) — hiển thị qua Blade +
 //      App\Http\View\Composers\QuickChatboxComposer, không AI.
-//   2) Ô nhập câu hỏi tự do — App\Services\QuickChatService gọi Gemini phân loại rồi tự truy vấn dữ
-//      liệu thật để dựng câu trả lời (product_needs / intents / gemini_* bên dưới).
+//   2) Ô nhập câu hỏi tự do — App\Services\QuickChatService luôn trả về câu fallback + gợi ý nút bấm
+//      (không phân loại ý định), khách bấm nút để đi vào đúng 'intents' bên dưới.
 // Mọi text sửa ở đây, JS/Blade chỉ hiển thị.
 
 return [
@@ -56,16 +56,16 @@ return [
     ],
 
     // ============================================================
-    // Ô NHẬP CÂU HỎI TỰ DO (dùng Gemini) — App\Services\QuickChatService +
-    // App\Http\Controllers\Frontend\QuickChatController.
+    // Ô NHẬP CÂU HỎI TỰ DO — App\Services\QuickChatService + App\Http\Controllers\Frontend\QuickChatController.
+    // Luôn trả về câu fallback bên dưới kèm nút gợi ý, không phân loại ý định câu hỏi.
     // ============================================================
     'freeform_placeholder' => 'Nhập câu hỏi về Happy Tea...',
 
-    // Câu trả lời khi Gemini phân loại là ngoài phạm vi / không rõ / độ tin cậy thấp.
+    // Câu trả lời chuẩn cho mọi câu hỏi tự do.
     'fallback_freeform' => 'Xin lỗi, mình chưa hiểu rõ câu hỏi của bạn. Bạn có thể hỏi về sản phẩm, giá bán, khuyến mãi, thanh toán, giao hàng hoặc đơn hàng nhé!',
 
     // Nút gợi ý hiển thị SAU câu fallback — mỗi nút gửi lại đúng intent đã biết qua
-    // QuickChatService::askByIntent() (không qua Gemini).
+    // QuickChatService::askByIntent().
     'fallback_suggestions' => [
         ['intent_id' => 'product', 'label' => 'Sản phẩm'],
         ['intent_id' => 'product_price', 'label' => 'Giá bán'],
@@ -75,86 +75,14 @@ return [
         ['intent_id' => 'order_tracking', 'label' => 'Theo dõi đơn hàng'],
     ],
 
-    // ============================================================
-    // GEMINI — Gemini CHỈ trả JSON phân loại intent; Laravel (QuickChatService) tự truy vấn dữ liệu
-    // thật và dựng câu trả lời cuối cùng. Xem App\Services\GeminiIntentService.
-    // ============================================================
-    // Ngưỡng confidence (do chính Gemini tự báo cáo, 0-1) để chấp nhận kết quả phân loại — dưới mức
-    // này coi như Gemini cũng không chắc, trả về câu fallback chuẩn.
-    'gemini_confidence_threshold' => 0.75,
-
-    // Ánh xạ intent Gemini trả về -> id intent tĩnh trong 'intents' phía dưới (tái dùng nguyên handler
-    // qua QuickChatService::findIntent()+buildResponseForIntent()). Các intent sản phẩm (product_search/
-    // product_price/cheapest_product/best_seller/new_products/product_menu) KHÔNG nằm ở đây vì được xử
-    // lý riêng bằng truy vấn có cấu trúc (productResponseFromStructured).
-    'gemini_intent_map' => [
-        'promotion_list' => 'promotion',
-        'promotion_condition' => 'promotion_condition',
-        'payment' => 'payment',
-        'momo' => 'momo',
-        'cod' => 'cod',
-        'shipping' => 'shipping',
-        'order_tracking' => 'order_tracking',
-        'opening_hours' => 'opening_hours',
-        'contact' => 'contact',
-        'product_options' => 'product_option',
-    ],
-
     // Câu trả lời khi truy vấn sản phẩm theo yêu cầu của khách không còn kết quả phù hợp (vd loại trừ
     // hết danh mục) — dùng trong QuickChatService::honestNoMatch().
     'product_no_match_answer' => 'Hiện tại mình chưa tìm được gợi ý phù hợp với cả hai yêu cầu. Bạn có thể chọn nhóm trà hoặc đồ uống khác.',
 
-    // ============================================================
-    // NHU CẦU ĐỒ UỐNG — bảng ánh xạ preference/exclusion mà Gemini được phép trả về (mảng
-    // 'preferences'/'exclusions' trong JSON chỉ được chứa các KEY của bảng này; GeminiIntentService
-    // validate whitelist theo đúng danh sách key). QuickChatService::productResponseFromStructured()
-    // đọc từng need theo key và áp dụng ĐÚNG 1 hiệu ứng có mặt:
-    //   - preferred_categories: ưu tiên các danh mục này (so theo TÊN DANH MỤC thật, không hard-code
-    //     ID). description_keywords (tùy chọn): mở rộng khớp thêm theo MÔ TẢ sản phẩm thật.
-    //   - excluded_categories: loại các danh mục này khỏi kết quả.
-    //   - sort: 'price_asc' | 'price_desc' | 'best_seller' — sắp xếp lại danh sách, không lọc danh mục.
-    //   - answer (đứng riêng): chỉ là hướng dẫn thêm, KHÔNG tự lọc sản phẩm (vd "ít ngọt").
-    // 'intro': câu dẫn hiển thị trước danh sách sản phẩm (KHÔNG khẳng định tác dụng y tế/sức khỏe).
-    'product_needs' => [
-        'alertness' => [
-            'preferred_categories' => ['cà phê', 'coffee'],
-            'intro' => 'Bạn có thể tham khảo các món cà phê thường được lựa chọn khi cần sự tỉnh táo:',
-        ],
-        'refreshing' => [
-            'preferred_categories' => ['trà trái cây', 'trà', 'nước trái cây', 'đồ uống khác'],
-            'description_keywords' => ['giải nhiệt', 'tươi mát', 'thanh mát', 'mát lạnh', 'chua ngọt', 'giải khát'],
-            'intro' => 'Bạn có thể tham khảo các món thanh mát và giải khát sau:',
-        ],
-        'milky' => [
-            'preferred_categories' => ['trà sữa', 'sữa chua', 'matcha'],
-            'description_keywords' => ['béo ngậy', 'béo thơm', 'kem béo'],
-            'intro' => 'Bạn có thể tham khảo các món có vị sữa và béo nhẹ sau:',
-        ],
-        'less_sweet' => [
-            'answer' => 'Bạn có thể chọn mức đường thấp hơn khi thêm sản phẩm vào giỏ hàng.',
-        ],
-        'no_coffee' => [
-            'excluded_categories' => ['cà phê', 'coffee'],
-            'intro' => 'Bạn có thể tham khảo các món không thuộc nhóm cà phê sau:',
-        ],
-        'cheap' => [
-            'sort' => 'price_asc',
-            'intro' => 'Các món có giá khởi điểm thấp nhất tại Happy Tea gồm:',
-        ],
-        'expensive' => [
-            'sort' => 'price_desc',
-            'intro' => 'Các món có giá khởi điểm cao nhất tại Happy Tea gồm:',
-        ],
-        'popular' => [
-            'sort' => 'best_seller',
-            'intro' => 'Bạn có thể tham khảo các món bán chạy của Happy Tea:',
-        ],
-    ],
-
     // Mỗi intent: id (duy nhất), label (nhãn nút gợi ý), handler (static|product|promotion|
     // order_tracking|opening_hours|contact), answer (câu trả lời tĩnh hoặc câu dẫn trước danh sách),
     // action_route (tên route Laravel nếu có nút hành động), suggest_intents (gợi ý bấm sâu hơn).
-    // Dùng bởi: askByIntent() (nút gợi ý) và ánh xạ intent tĩnh của Gemini (gemini_intent_map).
+    // Dùng bởi: askByIntent() (nút gợi ý).
     'intents' => [
         [
             'id' => 'product',

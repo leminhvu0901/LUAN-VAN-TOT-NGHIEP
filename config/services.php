@@ -94,19 +94,4 @@ return [
         'key' => env('GEOAPIFY_API_KEY'),
     ],
 
-    // Gemini API - dùng làm lớp phân loại dự phòng (fallback) cho chatbox Quick Chat khi rule-based
-    // không hiểu hoặc mập mờ. Tắt mặc định (enabled=false) để không gọi ra ngoài nếu chưa cấu hình key.
-    'gemini' => [
-        'api_key' => env('GEMINI_API_KEY'),
-        // 'gemini-flash-latest' là alias Google tự trỏ đến model flash mới nhất còn khả dụng cho API
-        // key — các tên model cố định thế hệ cũ (vd gemini-2.5-flash-lite) có thể bị Google ngừng cấp
-        // cho key mới ("no longer available to new users") dù vẫn còn trong danh sách models.list().
-        'model' => env('GEMINI_MODEL', 'gemini-flash-latest'),
-        'timeout' => env('GEMINI_TIMEOUT', 8),
-        'enabled' => env('GEMINI_ENABLED', false),
-        // Chỉ đổi giá trị này trong test (trỏ về 1 cổng local không lắng nghe để mô phỏng lỗi kết
-        // nối thật mà không gọi ra ngoài) — không cần khai báo trong .env cho môi trường thật.
-        'endpoint' => env('GEMINI_ENDPOINT', 'https://generativelanguage.googleapis.com/v1beta/models'),
-    ],
-
 ];

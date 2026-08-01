@@ -232,8 +232,7 @@
         });
     }
 
-    // Chặn gửi trùng lặp khi có 1 request đang bay (double-click nút gợi ý, hoặc gõ Enter liên tục) —
-    // rule-based lẫn Gemini đều đi qua cùng 1 endpoint nên chỉ cần 1 cờ chung, không cần phân biệt.
+    // Chặn gửi trùng lặp khi có 1 request đang bay (double-click nút gợi ý, hoặc gõ Enter liên tục).
     let askRequestInFlight = false;
 
     function submitAsk(payload, displayText) {

@@ -9,21 +9,9 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-// Xử lý câu hỏi tự do của chatbox bằng Gemini AI.
-// Luồng: câu hỏi -> Gemini CHỈ phân loại thành JSON (intent + tham số) -> Laravel validate rồi tự
-// truy vấn dữ liệu THẬT (Product/Category/Promotion/Setting) và dựng câu trả lời. Gemini không bao
-// giờ tự bịa sản phẩm/giá/khuyến mãi/chính sách. Không ghi dữ liệu (chỉ get()/first()), không đọc
-// user_id từ request, không log nội dung câu hỏi.
 class QuickChatService
 {
-    // GeminiIntentService có thể được inject qua constructor (test bind mock) hoặc tự resolve qua
-    // container khi cần (xem tryGemini) — tham số để null vì Laravel bỏ qua tham số optional khi tự
-    // resolve QuickChatService.
-    public function __construct(private ?GeminiIntentService $gemini = null)
-    {
-    }
-
-    // Trả lời theo câu hỏi tự do đã gõ — chỉ dùng Gemini.
+    // Xử lý câu hỏi tự do của người dùng — trả lời mẫu chung kèm gợi ý nút bấm (không phân loại ý định).
     public function ask(string $question): array
     {
         $question = trim($question);
@@ -31,19 +19,6 @@ class QuickChatService
             return $this->plainResponse('Vui lòng nhập câu hỏi.');
         }
 
-        // Gemini phân loại -> Laravel truy vấn dữ liệu thật và dựng câu trả lời.
-        if ($handled = $this->tryGemini($question, $parsed)) {
-            return $handled;
-        }
-
-        // Gemini KHÔNG gọi được (tắt/thiếu key/lỗi mạng/quá tải/hết quota/JSON hỏng) -> báo thẳng để
-        // biết đang hỏng, không im lặng.
-        if ($parsed === null) {
-            return $this->plainResponse('Xin lỗi, hệ thống hỗ trợ hiện chưa phản hồi được (lỗi kết nối hoặc quá tải). Bạn vui lòng thử lại sau ít phút nhé!');
-        }
-
-        // Gemini phản hồi bình thường nhưng câu hỏi ngoài phạm vi / độ tin cậy thấp / chưa có handler
-        // tương ứng -> câu fallback chuẩn kèm nút gợi ý các chủ đề chính.
         return [
             'intent' => null,
             'answer' => config('quick_chat.fallback_freeform'),
@@ -53,133 +28,7 @@ class QuickChatService
         ];
     }
 
-    // Gọi Gemini để phân loại câu hỏi (JSON). Trả về null ở BẤT KỲ bước nào không dùng được (không
-    // gọi được, JSON không hợp lệ, confidence thấp, intent ngoài phạm vi, không map được handler).
-    // $parsed (tham chiếu) cho biết Gemini CÓ phản hồi hợp lệ hay không -> giúp ask() phân biệt
-    // "Gemini hỏng/không gọi được" (null) với "Gemini hiểu nhưng câu hỏi ngoài phạm vi" (có mảng).
-    private function tryGemini(string $question, ?array &$parsed = null): ?array
-    {
-        // Lấy qua container nếu constructor không được inject — Laravel bỏ qua tham số optional khi
-        // tự resolve service. Cách này vẫn nhận đúng mock đã bind trong test.
-        $this->gemini ??= app(GeminiIntentService::class);
-
-        $parsed = $this->gemini->classify($question);
-        if ($parsed === null) {
-            return null;
-        }
-
-        $threshold = (float) config('quick_chat.gemini_confidence_threshold', 0.75);
-        if ($parsed['confidence'] < $threshold) {
-            return null;
-        }
-
-        if (in_array($parsed['intent'], GeminiIntentService::NON_ACTIONABLE_INTENTS, true)) {
-            return null;
-        }
-
-        $response = $this->handleGeminiIntent($parsed);
-        if ($response === null) {
-            return null;
-        }
-
-        $response['intent'] = $parsed['intent'];
-        return $response;
-    }
-
-    // Ánh xạ intent đã được Gemini phân loại (và validate) sang câu trả lời thật. Chỉ có 2 hướng:
-    // (1) intent sản phẩm -> truy vấn có cấu trúc (productResponseFromStructured), (2) intent tĩnh đã
-    // có sẵn -> findIntent()+buildResponseForIntent(). Không map được -> null.
-    private function handleGeminiIntent(array $parsed): ?array
-    {
-        $productIntents = ['product_search', 'product_price', 'cheapest_product', 'best_seller', 'new_products', 'product_menu'];
-        if (in_array($parsed['intent'], $productIntents, true)) {
-            return $this->productResponseFromStructured($parsed);
-        }
-
-        $mappedId = config('quick_chat.gemini_intent_map.' . $parsed['intent']);
-        if (!$mappedId) {
-            return null;
-        }
-
-        $mappedIntent = $this->findIntent($mappedId);
-        if (!$mappedIntent) {
-            return null;
-        }
-
-        return $this->buildResponseForIntent($mappedIntent);
-    }
-
-    // Dựng câu trả lời sản phẩm từ JSON ĐÃ ĐƯỢC VALIDATE của Gemini (không phải text thô) — truy vấn
-    // dữ liệu THẬT qua baseProductQuery/applyOrder/productResponse. preferences/exclusions chỉ được
-    // phép là các key có thật trong config('quick_chat.product_needs') (đã validate ở GeminiIntentService).
-    private function productResponseFromStructured(array $parsed): array
-    {
-        $excludeCategoryIds = [];
-        $sugarGuidance = null;
-
-        foreach ($parsed['exclusions'] as $needKey) {
-            $need = config('quick_chat.product_needs.' . $needKey);
-            if ($need && isset($need['excluded_categories'])) {
-                $excludeCategoryIds = array_merge($excludeCategoryIds, $this->categoryIdsMatching($need['excluded_categories']));
-            }
-        }
-
-        $categoryIds = [];
-        if ($parsed['category'] !== '') {
-            $categoryIds = $this->categoryIdsMatching([$parsed['category']]);
-        }
-        $preferenceSort = null;
-        foreach ($parsed['preferences'] as $needKey) {
-            $need = config('quick_chat.product_needs.' . $needKey);
-            if (!$need) {
-                continue;
-            }
-            if (isset($need['preferred_categories'])) {
-                $categoryIds = array_merge($categoryIds, $this->categoryIdsMatching($need['preferred_categories']));
-            }
-            // Need mang 'sort' (rẻ/đắt/bán chạy) -> áp làm thứ tự sắp xếp, không lọc danh mục.
-            if (isset($need['sort'])) {
-                $preferenceSort = $need['sort'];
-            }
-            // Need chỉ mang 'answer' (vd less_sweet) -> không lọc sản phẩm, chỉ bổ sung hướng dẫn.
-            if (isset($need['answer']) && !isset($need['preferred_categories']) && !isset($need['excluded_categories']) && !isset($need['sort'])) {
-                $sugarGuidance = $need['answer'];
-            }
-        }
-        $categoryIds = array_values(array_diff(array_unique($categoryIds), $excludeCategoryIds));
-
-        $query = $this->baseProductQuery(array_values(array_unique($excludeCategoryIds)));
-
-        if (!empty($categoryIds)) {
-            $query->whereIn('products.category_id', $categoryIds);
-        }
-        if ($parsed['product_query'] !== '') {
-            $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . mb_strtolower($parsed['product_query'], 'UTF-8') . '%');
-        }
-        if ($parsed['max_price'] > 0) {
-            $query->where('products.base_price', '<=', $parsed['max_price']);
-        }
-        if ($parsed['min_price'] > 0) {
-            $query->where('products.base_price', '>=', $parsed['min_price']);
-        }
-
-        // "Sản phẩm mới" -> sắp theo thời gian tạo thật (KHÔNG có cột "is_new" -> không bịa, chỉ dùng
-        // đúng dữ liệu created_at thật + câu chữ trung thực "cập nhật gần đây").
-        if ($parsed['intent'] === 'new_products') {
-            $products = $query->orderByDesc('products.created_at')->limit(4)->get();
-            return $this->productResponse($products, 'Đây là một số sản phẩm được cập nhật gần đây:', $sugarGuidance);
-        }
-
-        // Ưu tiên sắp xếp theo intent ('cheapest_product'), sau đó tới sắp xếp suy ra từ preferences
-        // ('cheap' -> price_asc, 'expensive' -> price_desc, 'popular' -> bán chạy).
-        $sortMode = $parsed['intent'] === 'cheapest_product' ? 'price_asc' : $preferenceSort;
-        $products = $this->applyOrder($query, $sortMode)->limit(4)->get();
-
-        $answer = $this->findIntent('product')['answer'] ?? 'Đây là một số sản phẩm bạn có thể quan tâm:';
-        return $this->productResponse($products, $answer, $sugarGuidance);
-    }
-
-    // Trả lời trực tiếp theo 1 intent đã biết id — dùng khi khách bấm nút gợi ý (không qua Gemini).
+    // Trả lời trực tiếp khi người dùng chọn nút gợi ý
     public function askByIntent(string $intentId): array
     {
         $intent = $this->findIntent($intentId);
@@ -196,6 +45,7 @@ class QuickChatService
         return $this->buildResponseForIntent($intent);
     }
 
+    // Đóng gói câu trả lời dạng văn bản đơn giản
     private function plainResponse(string $answer): array
     {
         return [
@@ -207,6 +57,7 @@ class QuickChatService
         ];
     }
 
+    // Tìm cấu hình ý định (intent) trong tệp config theo ID
     private function findIntent(string $id): ?array
     {
         foreach (config('quick_chat.intents', []) as $intent) {
@@ -217,7 +68,7 @@ class QuickChatService
         return null;
     }
 
-    // Nút gợi ý hiển thị SAU câu fallback — mỗi nút gửi lại đúng intent đã biết qua askByIntent().
+    // Tạo danh sách nút gợi ý mặc định khi không tìm thấy kết quả phù hợp
     private function fallbackSuggestions(): array
     {
         return array_map(
@@ -226,6 +77,7 @@ class QuickChatService
         );
     }
 
+    // Điều hướng đến hàm xử lý tương ứng của từng intent
     private function buildResponseForIntent(array $intent): array
     {
         $response = match ($intent['handler']) {
@@ -239,7 +91,6 @@ class QuickChatService
 
         $response['intent'] = $intent['id'];
 
-        // Câu hỏi "payment" chung chung: kèm gợi ý bấm sâu hơn (MoMo/COD) bên cạnh câu trả lời tổng quan.
         if (!empty($intent['suggest_intents'])) {
             $extra = [];
             foreach ($intent['suggest_intents'] as $subId) {
@@ -254,17 +105,24 @@ class QuickChatService
         return $response;
     }
 
+    // Xử lý các câu trả lời tĩnh không cần truy vấn dữ liệu động
     private function handleStatic(array $intent): array
     {
+        if (!empty($intent['action_route'])) {
+            $actionUrl = route($intent['action_route']);
+        } else {
+            $actionUrl = null;
+        }
+
         return [
             'answer' => $intent['answer'],
             'items' => [],
-            'action_url' => $intent['action_route'] ? route($intent['action_route']) : null,
+            'action_url' => $actionUrl,
             'suggestions' => [],
         ];
     }
 
-    // Nút chủ đề "Sản phẩm"/"Giá bán" (không kèm câu hỏi cụ thể) -> liệt kê các món bán chạy nhất.
+    // Xử lý hiển thị danh sách sản phẩm bán chạy
     private function handleProductListing(array $intent): array
     {
         $products = $this->applyOrder($this->baseProductQuery(), null)->limit(4)->get();
@@ -272,7 +130,7 @@ class QuickChatService
         return $this->productResponse($products, $intent['answer'], null);
     }
 
-    // Câu truy vấn sản phẩm cơ bản (đang bán + tổng số đã bán), có thể loại 1 số danh mục.
+    // Tạo câu truy vấn sản phẩm cơ bản có tính tổng số lượng đã bán
     private function baseProductQuery(array $excludeCategoryIds = [])
     {
         $query = Product::query()
@@ -296,7 +154,7 @@ class QuickChatService
         return $query;
     }
 
-    // Áp ORDER BY theo 'sort' ('price_asc'|'price_desc'), mặc định sắp theo bán chạy nhất.
+    // Thêm điều kiện sắp xếp cho câu truy vấn sản phẩm
     private function applyOrder($query, ?string $sort)
     {
         return match ($sort) {
@@ -306,6 +164,7 @@ class QuickChatService
         };
     }
 
+    // Định dạng danh sách sản phẩm để trả về cho giao diện chat
     private function buildProductItems($products): array
     {
         return $products->map(fn($p) => [
@@ -317,7 +176,7 @@ class QuickChatService
         ])->values()->all();
     }
 
-    // Ghép câu dẫn + (tùy chọn) hướng dẫn mức đường; nếu không có sản phẩm -> empty-state trung thực.
+    // Đóng gói câu trả lời gồm danh sách sản phẩm và hướng dẫn
     private function productResponse($products, ?string $answer, ?string $sugarGuidance): array
     {
         if ($products->isEmpty()) {
@@ -336,6 +195,7 @@ class QuickChatService
         ];
     }
 
+    // Trả về câu trả lời khi không tìm thấy sản phẩm nào phù hợp
     private function honestNoMatch(?string $sugarGuidance): array
     {
         $answer = config('quick_chat.product_no_match_answer');
@@ -351,7 +211,7 @@ class QuickChatService
         ];
     }
 
-    // Nút gợi ý = các danh mục thật (bấm vào sẽ hỏi lại bằng tên danh mục).
+    // Tạo danh sách gợi ý theo danh mục sản phẩm
     private function categorySuggestions(): array
     {
         return Category::where('is_active', 1)->orderBy('display_order')->pluck('name')
@@ -359,29 +219,7 @@ class QuickChatService
             ->values()->all();
     }
 
-    // Tìm ID các danh mục (đang bật) có tên chứa 1 trong các chuỗi cần khớp (accent-insensitive).
-    private function categoryIdsMatching(array $matches): array
-    {
-        if (empty($matches)) {
-            return [];
-        }
-
-        $ids = [];
-        foreach (Category::where('is_active', 1)->get(['id', 'name']) as $cat) {
-            $nameLower = mb_strtolower($cat->name, 'UTF-8');
-            $nameAscii = \Illuminate\Support\Str::ascii($nameLower);
-            foreach ($matches as $m) {
-                $mLower = mb_strtolower($m, 'UTF-8');
-                if (str_contains($nameLower, $mLower) || str_contains($nameAscii, \Illuminate\Support\Str::ascii($mLower))) {
-                    $ids[] = $cat->id;
-                    break;
-                }
-            }
-        }
-
-        return array_values(array_unique($ids));
-    }
-
+    // Xử lý hiển thị danh sách các chương trình khuyến mãi đang chạy
     private function handlePromotion(array $intent): array
     {
         $now = now();
@@ -397,23 +235,50 @@ class QuickChatService
             ->limit(4)
             ->get();
 
+        $items = $promotions->map(function ($promo) {
+            if ($promo->code) {
+                $code = $promo->code;
+            } else {
+                $code = 'Ưu đãi #' . $promo->id;
+            }
+
+            if ($promo->type === 'percent') {
+                $value = 'Giảm ' . rtrim(rtrim(number_format($promo->value, 2, '.', ''), '0'), '.') . '%';
+            } else {
+                $value = 'Giảm ' . number_format($promo->value, 0, ',', '.') . 'đ';
+            }
+
+            if ($promo->min_order_amount) {
+                $minOrderAmount = number_format($promo->min_order_amount, 0, ',', '.') . 'đ';
+            } else {
+                $minOrderAmount = null;
+            }
+
+            if ($promo->end_at) {
+                $endAt = \Carbon\Carbon::parse($promo->end_at)->format('d/m/Y');
+            } else {
+                $endAt = null;
+            }
+
+            return [
+                'type' => 'promotion',
+                'code' => $code,
+                'value' => $value,
+                'min_order_amount' => $minOrderAmount,
+                'min_quantity' => $promo->min_quantity,
+                'end_at' => $endAt,
+            ];
+        })->values()->all();
+
         return [
             'answer' => $intent['answer'],
-            'items' => $promotions->map(fn($promo) => [
-                'type' => 'promotion',
-                'code' => $promo->code ?: ('Ưu đãi #' . $promo->id),
-                'value' => $promo->type === 'percent'
-                    ? 'Giảm ' . rtrim(rtrim(number_format($promo->value, 2, '.', ''), '0'), '.') . '%'
-                    : 'Giảm ' . number_format($promo->value, 0, ',', '.') . 'đ',
-                'min_order_amount' => $promo->min_order_amount ? number_format($promo->min_order_amount, 0, ',', '.') . 'đ' : null,
-                'min_quantity' => $promo->min_quantity,
-                'end_at' => $promo->end_at ? \Carbon\Carbon::parse($promo->end_at)->format('d/m/Y') : null,
-            ])->values()->all(),
+            'items' => $items,
             'action_url' => null,
             'suggestions' => [],
         ];
     }
 
+    // Xử lý hướng dẫn tra cứu đơn hàng cho khách
     private function handleOrderTracking(): array
     {
         if (Auth::check()) {
@@ -433,6 +298,7 @@ class QuickChatService
         ];
     }
 
+    // Xử lý hiển thị thời gian mở cửa của cửa hàng
     private function handleOpeningHours(): array
     {
         $open = Setting::getValue('store_open_time', config('quick_chat.defaults.open_time'));
@@ -450,6 +316,7 @@ class QuickChatService
         ];
     }
 
+    // Xử lý hiển thị thông tin liên hệ của cửa hàng
     private function handleContact(): array
     {
         $phone = Setting::getValue('store_phone', config('quick_chat.defaults.phone'));
@@ -467,8 +334,14 @@ class QuickChatService
             $parts[] = 'Email: ' . $email;
         }
 
+        if (!empty($parts)) {
+            $answer = implode(' — ', $parts);
+        } else {
+            $answer = 'Vui lòng xem thông tin liên hệ tại chân trang website.';
+        }
+
         return [
-            'answer' => $parts ? implode(' — ', $parts) : 'Vui lòng xem thông tin liên hệ tại chân trang website.',
+            'answer' => $answer,
             'items' => [],
             'action_url' => null,
             'suggestions' => [],
