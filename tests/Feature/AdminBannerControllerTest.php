@@ -9,15 +9,13 @@ use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
- * Banner CRUD được viết lại trong phiên sửa lỗi "ảnh mất khi Railway deploy lại" (2026-07-29): ảnh
- * giờ ghi vào public/uploads/banners (gắn Railway Volume bền vững) thay vì public/images/banners.
- * Bộ test này xác nhận toàn bộ luồng CRUD + đúng vị trí lưu ảnh vật lý sau thay đổi đó.
+ * Bộ test này xác nhận toàn bộ luồng CRUD và quy ước lưu ảnh banner dưới public/images/banners.
  */
 class AdminBannerControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_create_banner_with_image_stored_in_uploads_directory(): void
+    public function test_admin_can_create_banner_with_image_stored_in_images_directory(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $image = UploadedFile::fake()->image('banner.jpg', 1200, 400);
@@ -33,7 +31,7 @@ class AdminBannerControllerTest extends TestCase
         $response->assertSessionHasNoErrors();
 
         $banner = Banner::firstOrFail();
-        $this->assertStringStartsWith('uploads/banners/', $banner->image_url);
+        $this->assertStringStartsWith('banners/', $banner->image_url);
         $this->assertFileExists(upload_path($banner->image_url));
     }
 
@@ -98,7 +96,7 @@ class AdminBannerControllerTest extends TestCase
     public function test_admin_can_toggle_banner_status(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $banner = Banner::create(['title' => 'B1', 'image' => '', 'image_url' => 'uploads/banners/x.jpg', 'is_active' => true]);
+        $banner = Banner::create(['title' => 'B1', 'image' => '', 'image_url' => 'banners/x.jpg', 'is_active' => true]);
 
         $response = $this->actingAs($admin)->postJson("/admin/banners/{$banner->id}/toggle-status");
 
@@ -109,9 +107,9 @@ class AdminBannerControllerTest extends TestCase
     public function test_admin_can_bulk_delete_selected_banners(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $b1 = Banner::create(['title' => 'B1', 'image' => '', 'image_url' => 'uploads/banners/a.jpg', 'is_active' => true]);
-        $b2 = Banner::create(['title' => 'B2', 'image' => '', 'image_url' => 'uploads/banners/b.jpg', 'is_active' => true]);
-        $keep = Banner::create(['title' => 'B3', 'image' => '', 'image_url' => 'uploads/banners/c.jpg', 'is_active' => true]);
+        $b1 = Banner::create(['title' => 'B1', 'image' => '', 'image_url' => 'banners/a.jpg', 'is_active' => true]);
+        $b2 = Banner::create(['title' => 'B2', 'image' => '', 'image_url' => 'banners/b.jpg', 'is_active' => true]);
+        $keep = Banner::create(['title' => 'B3', 'image' => '', 'image_url' => 'banners/c.jpg', 'is_active' => true]);
 
         $response = $this->actingAs($admin)->postJson('/admin/banners/bulk-delete', [
             'banner_ids' => [$b1->id, $b2->id],

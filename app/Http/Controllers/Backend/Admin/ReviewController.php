@@ -25,10 +25,10 @@ class ReviewController
         // Lọc theo ô tìm kiếm: tìm trong tên user hoặc tên product
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->whereHas('user', function($qu) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($qu) use ($search) {
                     $qu->where('name', 'like', "%{$search}%");
-                })->orWhereHas('product', function($qp) use ($search) {
+                })->orWhereHas('product', function ($qp) use ($search) {
                     $qp->where('name', 'like', "%{$search}%");
                 });
             });
@@ -158,8 +158,8 @@ class ReviewController
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
                     $filename = 'review_' . time() . '_' . uniqid() . '.' . $ext;
-                    $file->move(public_path('uploads/reviews'), $filename);
-                    $images[] = 'uploads/reviews/' . $filename;
+                    $file->move(public_path('images/reviews'), $filename);
+                    $images[] = 'reviews/' . $filename;
                 }
             }
         }
@@ -226,8 +226,8 @@ class ReviewController
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
                     $filename = 'review_' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
-                    $file->move(public_path('uploads/reviews'), $filename);
-                    $images[] = 'uploads/reviews/' . $filename;
+                    $file->move(public_path('images/reviews'), $filename);
+                    $images[] = 'reviews/' . $filename;
                     $currentCount++;
                 }
             }
@@ -283,7 +283,7 @@ class ReviewController
 
     /**
      * Xóa các file ảnh (JSON array đường dẫn) gắn với 1 đánh giá - gọi trước khi xóa DB
-     * để tránh mồ côi file trên Railway Volume (public/uploads/reviews).
+     * để tránh mồ côi file trong public/images/reviews.
      */
     private function deleteReviewImageFiles(Review $review): void
     {
@@ -323,7 +323,7 @@ class ReviewController
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('review_ids', []);
-        
+
         if (empty($ids)) {
             if ($request->ajax()) {
                 return response()->json([

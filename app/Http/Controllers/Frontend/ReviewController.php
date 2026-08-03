@@ -13,15 +13,19 @@ class ReviewController
     // theo lần sửa gần nhất — tránh khách sửa sát hạn để "gia hạn" thêm 7 ngày nữa).
     private const EDIT_WINDOW_DAYS = 7;
 
+    /**
+     * Hiển thị giao diện viết đánh giá hoặc xem/sửa đánh giá cũ của sản phẩm thuộc đơn hàng
+     */
     public function create($orderId, $productId)
     {
+        // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
         $userId = Auth::id();
 
-        // 1. Verify order belongs to user and is completed
+        // 2. Xác minh đơn hàng có thuộc về user này và ở trạng thái hoàn thành (completed) hay không
         $order = \App\Models\Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -32,7 +36,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không tìm thấy đơn hàng hợp lệ để đánh giá.');
         }
 
-        // 2. Verify product is in the order
+        // 3. Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
         $orderItem = \App\Models\OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -42,16 +46,14 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Sản phẩm này không thuộc đơn hàng của bạn.');
         }
 
-        // 3. Đã đánh giá rồi thì KHÔNG chặn nữa — hiển thị lại đúng trang này ở chế độ CHỈ XEM (thay
-        // form nhập bằng nội dung đã gửi), thay vì đá về /orders với lỗi như trước (khiến nút "Xem
-        // đánh giá" trên trang đơn hàng không có nơi để trỏ đến).
+        // 4. Tìm kiếm đánh giá hiện có của sản phẩm trong đơn hàng này (nếu đã từng đánh giá trước đó)
         $existingReview = \App\Models\Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
             ->first();
 
-        // 4. Get product details (similar to ProductController)
+        // 5. Lấy thông tin sản phẩm và trung bình điểm số, số lượt đánh giá
         $product = \App\Models\Product::query()
             ->select(
                 'products.*',
@@ -68,8 +70,7 @@ class ReviewController
             abort(404);
         }
 
-        // 5. Get existing reviews for this product — paginate() (không phải limit()->get()) để dùng
-        // chung được partial reviews-list-compact với endpoint AJAX lọc/xem thêm (ProductController::reviews()).
+        // 6. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản phẩm bên lề
         $reviews = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $productId)
@@ -78,6 +79,7 @@ class ReviewController
             ->orderBy('reviews.created_at', 'desc')
             ->paginate(5);
 
+        // Phân phối tỷ lệ đánh giá (số lượng 5 sao, 4 sao...)
         $ratingDistribution = \App\Models\Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
@@ -86,27 +88,33 @@ class ReviewController
             ->pluck('count', 'rating')
             ->toArray();
 
+        // Số đánh giá có ảnh
         $hasImageCount = \App\Models\Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
             ->whereNotNull('image')
             ->count();
 
+        // Kiểm tra xem khách hàng có thể chỉnh sửa lại đánh giá cũ này không (chưa từng sửa và trong 7 ngày)
         $canEditReview = $existingReview && $this->canStillEdit($existingReview);
         $editWindowDays = self::EDIT_WINDOW_DAYS;
 
         return view('frontend.products.review', compact('order', 'product', 'reviews', 'ratingDistribution', 'hasImageCount', 'existingReview', 'canEditReview', 'editWindowDays'));
     }
 
+    /**
+     * Lưu mới đánh giá sản phẩm của người dùng
+     */
     public function store(Request $request, $orderId, $productId)
     {
+        // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
         $userId = Auth::id();
 
-        // 1. Validations
+        // 2. Kiểm tra tính hợp lệ của dữ liệu gửi lên (số sao, nội dung, hình ảnh tải lên)
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -124,7 +132,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // 2. Verify order and item again
+        // 3. Xác minh đơn hàng và món nước một lần nữa
         $order = \App\Models\Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -140,7 +148,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không thể đánh giá sản phẩm này.');
         }
 
-        // 3. Verify not already reviewed
+        // 4. Kiểm tra chắc chắn xem sản phẩm này đã được người dùng đánh giá chưa
         $existingReview = \App\Models\Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -151,12 +159,11 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
         }
 
-        // 4. Handle multiple image upload
+        // 5. Xử lý lưu các hình ảnh tải lên của đánh giá
         $imageNames = [];
         $files = $request->file('images');
 
         if ($files) {
-            // Ensure it's an array even if a single file is uploaded
             if (!is_array($files)) {
                 $files = [$files];
             }
@@ -165,18 +172,17 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('uploads/reviews'), $imageName);
-                    $imageNames[] = 'uploads/reviews/' . $imageName;
+                    // Di chuyển file ảnh vào thư mục public/images/reviews
+                    $image->move(public_path('images/reviews'), $imageName);
+                    $imageNames[] = 'reviews/' . $imageName;
                 }
             }
         }
+        // Lưu trữ danh sách ảnh dưới dạng mảng JSON trong DB
         $imageJson = empty($imageNames) ? null : json_encode($imageNames);
 
-        // 5. Insert review — bọc try/catch vì bước 3 (kiểm tra đã đánh giá chưa) và bước insert này
-        // không nguyên tử: 2 request gửi gần như đồng thời đều có thể qua được bước 3 trước khi request
-        // nào kịp insert. Ràng buộc UNIQUE(user_id, order_id, product_id) ở DB vẫn là chốt chặn cuối
-        // cùng đáng tin cậy nhất — bắt lỗi vi phạm ràng buộc này để trả thông báo thân thiện thay vì
-        // để lộ ra lỗi 500 khi thua trong race hiếm gặp đó.
+        // 6. Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
+        // Sử dụng khối try/catch bắt lỗi khóa ngoại/duplicate UNIQUE đề phòng trường hợp gửi request song song (race condition).
         try {
             \App\Models\Review::query()->insert([
                 'user_id' => $userId,
@@ -185,11 +191,12 @@ class ReviewController
                 'rating' => $request->input('rating'),
                 'comment' => $request->input('comment'),
                 'image' => $imageJson,
-                'is_visible' => 1,
+                'is_visible' => 1, // Mặc định hiển thị công khai luôn
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
         } catch (\Illuminate\Database\QueryException $e) {
+            // Mã lỗi 23000: Vi phạm ràng buộc duy nhất (Unique Constraint) - nghĩa là đã đánh giá rồi
             if ((int) $e->getCode() === 23000) {
                 return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
             }
@@ -199,9 +206,6 @@ class ReviewController
         session()->flash('success', 'Cảm ơn bạn đã đánh giá sản phẩm!');
         session()->flash('open_order_id', $orderId);
 
-        // Form submit qua fetch khi lỗi validate (xem review.js) để không mất ảnh/sao/bình luận vừa
-        // nhập khi phải sửa lại — nhưng lúc THÀNH CÔNG vẫn điều hướng thật sang /orders (đúng ý định
-        // ban đầu là quay lại danh sách đơn), JS chỉ cần đọc redirect_url rồi tự chuyển trang.
         $redirectUrl = route('orders', ['status' => 'completed']);
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
@@ -211,23 +215,18 @@ class ReviewController
     }
 
     /**
-     * Chỉnh sửa đánh giá đã gửi (số sao/bình luận/ảnh) — ĐÚNG 1 LẦN DUY NHẤT cho mỗi đánh giá, và chỉ
-     * trong vòng EDIT_WINDOW_DAYS ngày kể từ lúc gửi ban đầu. Chọn ảnh mới sẽ THAY THẾ toàn bộ ảnh cũ
-     * (xóa file cũ trên đĩa); không chọn ảnh mới thì giữ nguyên ảnh đang có — không có UI xóa từng ảnh
-     * lẻ như bên admin (đơn giản hơn, đủ dùng cho khách tự sửa đánh giá của chính mình).
+     * Cập nhật/Chỉnh sửa đánh giá cũ (Chỉ được phép thực hiện 1 lần duy nhất trong vòng 7 ngày)
      */
     public function update(Request $request, $orderId, $productId)
     {
+        // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
         $userId = Auth::id();
 
-        // Kiểm tra nhanh, KHÔNG lock, chỉ để chặn sớm các trường hợp rõ ràng không hợp lệ (chưa từng
-        // đánh giá / đã sửa rồi / hết hạn 7 ngày) trước khi tốn công validate + upload ảnh. Việc chống
-        // race thật sự (2 request PUT gần như đồng thời) nằm ở transaction lockForUpdate() bên dưới,
-        // KHÔNG phải ở đây.
+        // 2. Kiểm tra nhanh (không lock) để chặn sớm các yêu cầu sửa đổi không hợp lệ
         $existingReview = \App\Models\Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -238,6 +237,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không tìm thấy đánh giá để chỉnh sửa.');
         }
 
+        // Chặn nếu đánh giá này đã được chỉnh sửa rồi (mỗi đánh giá chỉ được sửa 1 lần duy nhất)
         if ($existingReview->edited_at) {
             $message = 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.';
             if ($request->expectsJson()) {
@@ -246,6 +246,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', $message);
         }
 
+        // Chặn nếu đã quá thời hạn chỉnh sửa 7 ngày
         if (!$this->withinEditWindow($existingReview)) {
             $message = 'Đã quá ' . self::EDIT_WINDOW_DAYS . ' ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.';
             if ($request->expectsJson()) {
@@ -254,6 +255,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', $message);
         }
 
+        // 3. Thực hiện validate dữ liệu đầu vào cập nhật
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -271,8 +273,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // Upload ảnh mới (I/O chậm) TRƯỚC khi mở transaction/lock — không giữ lock DB trong lúc chờ
-        // ghi file, cùng nguyên tắc đã áp dụng cho luồng hoàn tiền MoMo (MomoController::requestRefund).
+        // 4. Xử lý tải hình ảnh mới lên trước khi bắt đầu Lock dữ liệu trong Database (tối ưu hóa tốc độ Lock)
         $newImageNames = [];
         $files = $request->file('images');
         if ($files) {
@@ -283,16 +284,13 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('uploads/reviews'), $imageName);
-                    $newImageNames[] = 'uploads/reviews/' . $imageName;
+                    $image->move(public_path('images/reviews'), $imageName);
+                    $newImageNames[] = 'reviews/' . $imageName;
                 }
             }
         }
 
-        // Chốt chặn race thật sự: lock đúng dòng review trong 1 transaction, ĐỌC LẠI edited_at mới
-        // nhất trước khi ghi — nếu giữa lúc kiểm tra nhanh ở trên và lúc này đã có request khác sửa
-        // mất lượt (2 request PUT gần như đồng thời), request này sẽ thấy edited_at đã có giá trị và
-        // dừng lại, không ghi đè lên bản đã sửa trước đó.
+        // 5. Mở Transaction và thực hiện khóa dòng dữ liệu (lockForUpdate) để tránh ghi đè/spam đồng thời
         $result = DB::transaction(function () use ($orderId, $productId, $userId, $request, $newImageNames) {
             $locked = \App\Models\Review::query()
                 ->where('order_id', $orderId)
@@ -301,24 +299,26 @@ class ReviewController
                 ->lockForUpdate()
                 ->first();
 
+            // Kiểm tra bảo mật chặt chẽ lại một lần nữa khi đang trong trạng thái Lock
             if (!$locked || $locked->edited_at || !$this->withinEditWindow($locked)) {
                 return ['success' => false, 'review' => $locked];
             }
 
+            // Nếu người dùng tải lên hình ảnh mới, tiến hành xóa toàn bộ ảnh cũ trên ổ đĩa vật lý trước khi ghi đè ảnh mới
             if (!empty($newImageNames)) {
-                // Xóa ảnh cũ trên đĩa trước khi thay bằng bộ ảnh mới.
                 $oldImages = $locked->image ? json_decode($locked->image, true) : [];
                 if (is_array($oldImages)) {
                     foreach ($oldImages as $oldImage) {
                         $path = upload_path($oldImage);
                         if ($path && file_exists($path)) {
-                            @unlink($path);
+                            @unlink($path); // Xóa file
                         }
                     }
                 }
                 $locked->image = json_encode($newImageNames);
             }
 
+            // Ghi nhận số sao, bình luận mới và thời gian chỉnh sửa
             $locked->rating = $request->input('rating');
             $locked->comment = $request->input('comment');
             $locked->edited_at = now();
@@ -327,8 +327,9 @@ class ReviewController
             return ['success' => true, 'review' => $locked];
         });
 
+        // 6. Xử lý khi cập nhật thất bại (Ví dụ: do người dùng bấm gửi 2 lần gần như cùng lúc và request thứ nhất đã ghi đè xong trước)
         if (!$result['success']) {
-            // Đã thua trong race hiếm gặp -> dọn ảnh vừa upload (không dùng tới) để không rác ổ đĩa.
+            // Xóa toàn bộ các ảnh mới vừa tải lên mà không dùng đến để tránh rác ổ đĩa
             foreach ($newImageNames as $img) {
                 $path = upload_path($img);
                 if ($path && file_exists($path)) {
@@ -353,11 +354,17 @@ class ReviewController
         return redirect($redirectUrl);
     }
 
+    /**
+     * Kiểm tra xem đánh giá có còn nằm trong thời hạn cho phép chỉnh sửa hay không (trong vòng 7 ngày)
+     */
     private function withinEditWindow(\App\Models\Review $review): bool
     {
         return now()->lte($review->created_at->copy()->addDays(self::EDIT_WINDOW_DAYS));
     }
 
+    /**
+     * Xác minh xem người dùng có thể thực hiện chỉnh sửa đánh giá này hay không
+     */
     private function canStillEdit(\App\Models\Review $review): bool
     {
         return !$review->edited_at && $this->withinEditWindow($review);

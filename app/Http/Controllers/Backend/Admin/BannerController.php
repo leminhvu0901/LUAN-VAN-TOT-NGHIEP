@@ -369,9 +369,8 @@ class BannerController
     private function storeImage($file, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        // Ghi vào public/uploads/ (Railway Volume bền vững) - xem app/helpers.php::upload_url()
-        $file->move(public_path('uploads/banners'), $filename);
-        $uploaded[] = 'uploads/banners/' . $filename;
-        return 'uploads/banners/' . $filename;
+        $file->move(public_path('images/banners'), $filename);
+        $uploaded[] = 'banners/' . $filename;
+        return 'banners/' . $filename;
     }
 }

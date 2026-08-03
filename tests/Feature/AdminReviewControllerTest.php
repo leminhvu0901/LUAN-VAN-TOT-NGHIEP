@@ -38,9 +38,9 @@ class AdminReviewControllerTest extends TestCase
         $images = [];
         foreach (range(1, $imageCount) as $i) {
             $filename = 'review_' . uniqid() . "_{$i}.jpg";
-            $path = public_path('uploads/reviews/' . $filename);
+            $path = public_path('images/reviews/' . $filename);
             file_put_contents($path, 'fake-image-content');
-            $images[] = 'uploads/reviews/' . $filename;
+            $images[] = 'reviews/' . $filename;
         }
 
         return Review::create([
@@ -70,7 +70,7 @@ class AdminReviewControllerTest extends TestCase
         $review = Review::firstOrFail();
         $images = json_decode($review->image, true);
         $this->assertCount(1, $images);
-        $this->assertStringStartsWith('uploads/reviews/', $images[0]);
+        $this->assertStringStartsWith('reviews/', $images[0]);
         $this->assertFileExists(upload_path($images[0]));
     }
 

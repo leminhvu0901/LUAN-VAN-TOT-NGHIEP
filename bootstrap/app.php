@@ -14,14 +14,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     // 2. Cấu hình các lớp rào chắn (Middleware) - Xử lý hoặc lọc dữ liệu trước khi đi vào hệ thống
     ->withMiddleware(function (Middleware $middleware): void {
-        // Railway (và các PaaS tương tự) chấm dứt TLS ở proxy biên rồi chuyển tiếp request vào
-        // container qua HTTP thường kèm header X-Forwarded-Proto: https. Không khai báo tin cậy proxy
-        // này thì Laravel không biết request gốc thực ra là HTTPS -> asset()/url()/redirect() sinh ra
-        // toàn bộ URL http:// dù trình duyệt đang ở https://, bị trình duyệt chặn (mixed content) một
-        // cách im lặng -> mọi CSS/JS tự viết không tải được, trang hiện thô không có giao diện. Dùng
-        // '*' vì IP proxy biên của Railway không cố định/không được công bố để whitelist theo IP.
-        $middleware->trustProxies(at: '*');
-
         // Loại trừ kiểm tra CSRF cho các đường dẫn test trên Postman và MoMo IPN
         $middleware->validateCsrfTokens(except: [
             'checkout/momo/ipn',

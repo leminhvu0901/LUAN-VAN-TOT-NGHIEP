@@ -14,6 +14,15 @@ use Illuminate\Validation\Rule;
 
 class HardenedProductController
 {
+    /**
+     * Hàm lấy danh sách và hiển thị tất cả sản phẩm phục vụ trang quản trị.
+     * Hỗ trợ tìm kiếm, lọc theo danh mục, trạng thái hoạt động, sắp xếp và phân trang.
+     * 
+     * Phản hồi trả về:
+     * - Nếu là request AJAX: Trả về JSON chứa HTML của bảng mới để cập nhật giao diện 
+     *   trong JS tại file [public/js/backend/admin/products/index.js].
+     * - Nếu là request thường: Trả về trang giao diện HTML đầy đủ.
+     */
     public function index(Request $request)
     {
         $query = Product::query()->with('category');
@@ -37,7 +46,7 @@ class HardenedProductController
             'inactiveProducts' => Product::where('is_active', false)->count(),
         ];
         if ($request->ajax()) {
-            return response()->json([
+            return response()->json([ // Trả về JSON chứa HTML bảng cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
                 'html' =>  view('backend.admin.products.partials.table', ['products' => $products])->render(),
                 'total' => $products->total(),
                 'count_text' => 'Hiển thị ' . $products->count() . ' / ' . $products->total() . ' sản phẩm',
@@ -46,6 +55,9 @@ class HardenedProductController
         return  view('backend.admin.products.index', $data);
     }
 
+    /**
+     * Hàm hiển thị giao diện form để thêm mới một sản phẩm.
+     */
     public function create(Request $request)
     {
         return  view('backend.admin.products.create', [
@@ -55,6 +67,10 @@ class HardenedProductController
         ]);
     }
 
+    /**
+     * Hàm hiển thị giao diện form chỉnh sửa thông tin cho một sản phẩm.
+     * Nạp trước thông tin các kích cỡ (sizes), topping, và bộ sưu tập ảnh (gallery).
+     */
     public function edit(Product $product, Request $request)
     {
         $product->load(['sizes', 'toppings', 'images']);
@@ -66,6 +82,11 @@ class HardenedProductController
         ]);
     }
 
+    /**
+     * Hàm xử lý lưu thông tin sản phẩm mới vào Database.
+     * Thực hiện validate dữ liệu form, tạo Slug, tự động sinh mã SKU nếu trống, 
+     * chạy DB Transaction lưu thông tin sản phẩm, lưu album ảnh phụ và đồng bộ toppings/sizes.
+     */
     public function store(Request $request)
     {
         $validated = $this->validateProduct($request);
@@ -89,6 +110,11 @@ class HardenedProductController
         return redirect($this->safeReturnUrl($request))->with('success', 'Thêm sản phẩm thành công!');
     }
 
+    /**
+     * Hàm xử lý cập nhật các thông tin chỉnh sửa của sản phẩm vào Database.
+     * Thực hiện xác thực validate, chạy DB Transaction ghi đè dữ liệu, 
+     * upload ảnh mới, xóa tệp ảnh cũ khỏi máy chủ để tránh rác ổ đĩa.
+     */
     public function update(Request $request, Product $product)
     {
         $validated = $this->validateProduct($request, $product);
@@ -129,32 +155,51 @@ class HardenedProductController
         return route('admin.products.index');
     }
 
+    // Hàm kiểm tra và lấy URL quay lại an toàn (Được dùng để chuyển hướng sau khi Lưu/Cập nhật thành công).
+    // Giúp ngăn chặn lỗ hổng bảo mật Open Redirect (Kẻ xấu lợi dụng tham số URL để chuyển hướng người dùng sang trang web độc hại bên ngoài).
     private function safeReturnUrl(Request $request): string
     {
-        $backUrl = $request->input('back_url');
-        if ($backUrl && str_starts_with($backUrl, url('/'))) {
-            return $backUrl;
+        $backUrl = $request->input('back_url'); // Đọc đường dẫn quay lại được truyền lên từ trường input ẩn của form
+        if ($backUrl && str_starts_with($backUrl, url('/'))) { // Kiểm tra xem đường dẫn đó có bắt đầu bằng tên miền chính thức của quán hay không
+            return $backUrl; // Chỉ cho phép chuyển hướng nếu đó là URL nội bộ của hệ thống
         }
-        return route('admin.products.index');
+        return route('admin.products.index'); // Nếu không an toàn hoặc trống, mặc định quay về trang danh sách sản phẩm
     }
 
+    /**
+     * Hàm xử lý xóa một sản phẩm cụ thể khỏi hệ thống.
+     * Cơ chế an toàn: Nếu sản phẩm đã phát sinh đơn hàng trong lịch sử giao dịch (order_items), 
+     * thay vì xóa cứng sẽ chuyển trạng thái sang "Ngừng kinh doanh" (is_active = 0) để bảo toàn dữ liệu báo cáo.
+     * 
+     * Phản hồi trả về:
+     * - Nếu là AJAX: Trả về JSON thành công/thất bại cho JS tiếp nhận tại file [public/js/backend/admin/products/index.js].
+     * - Nếu là request thường: Điều hướng back kèm thông báo.
+     */
     public function destroy(Product $product, Request $request)
     {
         if (DB::table('order_items')->where('product_id', $product->id)->exists()) {
-            $product->update(['is_active' => false]);
+            $product->update(['is_active' => false]); // Đổi trạng thái sang ngừng kinh doanh nếu sản phẩm đã phát sinh đơn hàng
             if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']);
+                return response()->json(['success' => false, 'message' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']); // Trả về thông báo lỗi cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
             }
             return back()->withErrors(['delete' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']);
         }
-        $files = $this->deleteProduct($product);
-        $this->deleteFiles($files);
+        $files = $this->deleteProduct($product); // Xóa thông tin sản phẩm và quan hệ liên quan khỏi CSDL, trả về danh sách ảnh
+        $this->deleteFiles($files); // Xóa thực tế các file ảnh của sản phẩm trên ổ đĩa máy chủ
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Xóa sản phẩm thành công!']);
+            return response()->json(['success' => true, 'message' => 'Xóa sản phẩm thành công!']); // Trả về JSON báo thành công cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
         }
         return back()->with('success', 'Xóa sản phẩm thành công!');
     }
 
+    /**
+     * Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện.
+     * Áp dụng nguyên lý an toàn: Các sản phẩm đã có đơn hàng được chuyển về Ngừng kinh doanh. 
+     * Các sản phẩm còn lại được thực hiện xóa cứng khỏi DB và xóa tệp ảnh khỏi ổ đĩa.
+     * 
+     * Phản hồi trả về:
+     * - Trả về kết quả JSON thông báo chi tiết cho JS tại file [public/js/backend/admin/products/index.js].
+     */
     public function bulkDelete(Request $request)
     {
         $query = Product::query();
@@ -183,22 +228,29 @@ class HardenedProductController
                 $deleted++;
             }
         });
-        $this->deleteFiles($files);
+        $this->deleteFiles($files); // Xóa sạch các file ảnh tương ứng của nhóm sản phẩm bị xóa khỏi máy chủ
         $message = "Đã xóa {$deleted} sản phẩm.";
         if ($blockedIds->isNotEmpty()) $message .= " {$blockedIds->count()} sản phẩm có lịch sử đơn hàng đã được ngừng kinh doanh.";
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => $message]);
+            return response()->json(['success' => true, 'message' => $message]); // Trả về JSON báo thành công cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
         }
         return back()->with('success', $message);
     }
 
+    /**
+     * API xóa một ảnh phụ trong bộ sưu tập ảnh (Gallery) của sản phẩm.
+     * 
+     * Phản hồi trả về:
+     * - Trả về kết quả JSON báo thành công cho JS tại form sửa sản phẩm [public/js/backend/admin/products/edit.js]
+     *   để JS gỡ ảnh này khỏi giao diện mà không cần tải lại trang.
+     */
     public function deleteGalleryImage($id)
     {
-        $image = ProductImage::findOrFail($id);
+        $image = ProductImage::findOrFail($id); // Tìm ảnh phụ theo ID hoặc ném lỗi 404
         $path = $image->image_path;
-        $image->delete();
-        $this->deleteFiles([$path]);
-        return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']);
+        $image->delete(); // Xóa bản ghi ảnh phụ khỏi Database
+        $this->deleteFiles([$path]); // Xóa file ảnh phụ trên ổ đĩa máy chủ
+        return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']); // Trả về JSON cho JS cập nhật UI gỡ thumbnail ảnh phụ
     }
 
     private function validateProduct(Request $request, ?Product $product = null): array
@@ -275,12 +327,10 @@ class HardenedProductController
 
     private function storeImage($file, string $directory, array &$uploaded): string
     {
-        // Ghi vào public/uploads/ (gắn Railway Volume bền vững) thay vì public/images/ (chỉ có nội
-        // dung commit sẵn trong code) - xem app/helpers.php::upload_url() để biết lý do đầy đủ.
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        $file->move(public_path('uploads/' . $directory), $filename);
-        $uploaded[] = 'uploads/' . $directory . '/' . $filename;
-        return 'uploads/' . $directory . '/' . $filename;
+        $file->move(public_path('images/' . $directory), $filename);
+        $uploaded[] = $directory . '/' . $filename;
+        return $directory . '/' . $filename;
     }
 
     private function storeGallery(Product $product, array $files, array &$uploaded): void
@@ -303,9 +353,6 @@ class HardenedProductController
 
     private function deleteFiles(array $paths): void
     {
-        // upload_path() (không phải public_path() trần) để xoá đúng file dù đường dẫn lưu ở DB là định
-        // dạng CŨ ("products/x.jpg", nằm ở public/images/) hay MỚI ("uploads/products/x.jpg", nằm ở
-        // public/uploads/ - gắn Railway Volume bền vững). Xem app/helpers.php::upload_url().
         foreach (array_unique($paths) as $path) {
             $full = upload_path($path);
             if ($full && is_file($full)) @unlink($full);

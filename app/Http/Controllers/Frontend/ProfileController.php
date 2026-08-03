@@ -8,9 +8,6 @@ class ProfileController
 {
     /**
      * Mở trang Hồ sơ cá nhân (Profile)
-     * Lấy toàn bộ danh sách địa chỉ nhận hàng của user hiện tại, 
-     * ưu tiên địa chỉ mặc định (is_default = 1) lên đầu, 
-     * sau đó sắp xếp theo ID giảm dần (địa chỉ mới tạo lên trước).
      */
     public function index()
     {
@@ -75,14 +72,13 @@ class ProfileController
                     if ($decodedData !== false) {
                         // Đặt tên file ảnh ngẫu nhiên để tránh trùng lặp
                         $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $type;
-                        // Lưu vào public/uploads/avatars/ (gắn Railway Volume bền vững) thay vì
-                        // public/images/ - xem app/helpers.php::upload_url() để biết lý do.
-                        $dir = public_path('uploads/avatars');
+                        $dir = public_path('images/avatars');
                         if (!is_dir($dir)) {
                             mkdir($dir, 0755, true);
                         }
                         file_put_contents($dir . '/' . $filename, $decodedData);
-                        $updateData['avatar'] = 'uploads/avatars/' . $filename;
+                        // avatar_url()/avatar_path() tự ghép tiền tố 'images/avatars/' - chỉ lưu tên file trần.
+                        $updateData['avatar'] = $filename;
                     }
                 }
             }
@@ -115,16 +111,14 @@ class ProfileController
     }
 
     /**
-     * Kiểm tra "ngầm" (live, qua AJAX) định dạng + trùng lặp SĐT ngay khi khách đang gõ ở trang Hồ sơ,
-     * KHÔNG đợi đến lúc bấm "Lưu thay đổi" mới biết SĐT không hợp lệ/đã có người dùng. Dùng đúng lại
-     * regex + rule unique giống hệt update() để không bao giờ lệch kết quả giữa 2 nơi.
+     * Kiểm tra định dạng + trùng lặp SĐT ngay khi khách đang gõ ở trang Hồ sơ,
      */
     public function checkPhone(Request $request)
     {
         $phone = trim((string) $request->query('phone', ''));
 
         if ($phone === '') {
-            return response()->json(['valid' => true]);
+            return response()->json(['valid' => true]); // profile.js - checkPhoneLive()
         }
 
         $validator = \Illuminate\Support\Facades\Validator::make(['phone' => $phone], [
@@ -135,10 +129,10 @@ class ProfileController
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['valid' => false, 'message' => $validator->errors()->first('phone')]);
+            return response()->json(['valid' => false, 'message' => $validator->errors()->first('phone')]); // profile.js - checkPhoneLive()
         }
 
-        return response()->json(['valid' => true]);
+        return response()->json(['valid' => true]); // profile.js - checkPhoneLive()
     }
 
     /**
@@ -205,7 +199,7 @@ class ProfileController
             'status' => $status,
             'items' => $favorites,
             'count' => count($favorites)
-        ]);
+        ]); // main.js - toggleFavorite() / main.js - removeFromWishlist()
     }
 
     /**
@@ -244,9 +238,7 @@ class ProfileController
         ];
     }
 
-    // Đối chiếu province_code/ward_code khách gửi với danh mục hành chính CHÍNH THỨC (không tin tên
-    // do frontend gửi kèm) -> trả tên tỉnh/phường chuẩn để lưu, hoặc ['error'=>..., 'field'=>...] để
-    // nơi gọi phản hồi 422 kèm đúng field (mục 8: hiển thị lỗi ngay dưới đúng select).
+    // Đối chiếu province_code/ward_code khách gửi với danh mục hành chính CHÍNH THỨC
     private function resolveAdministrativeArea(Request $request): array
     {
         $service = app(\App\Services\AdministrativeDivisionService::class);
@@ -274,12 +266,7 @@ class ProfileController
         return ['province' => $province['name'], 'ward' => $ward['name']];
     }
 
-    // Xác định tọa độ + phương thức + địa chỉ tham khảo để lưu.
-    //   - gps/map: dùng luôn latitude/longitude frontend gửi (khách đã chọn trên bản đồ/GPS).
-    //   - manual (hoặc thiếu tọa độ): backend forward-geocode qua Geoapify (proximity bias quanh cửa
-    //     hàng). Không thấy / confidence thấp -> trả ['error' => ...] để nơi gọi phản hồi 422, KHÔNG lưu.
-    // KHÔNG ghi đè province/ward khách chọn — Geoapify chỉ cấp tọa độ + địa chỉ tham khảo.
-    // $area: tỉnh/phường ĐÃ được resolveAdministrativeArea() xác thực (tên chuẩn, không phải tên khách gõ).
+    // Xác định tọa độ + phương thức + địa chỉ tham khảo
     private function resolveLocation(Request $request, array $area): array
     {
         $method = $request->input('location_method');
@@ -317,6 +304,7 @@ class ProfileController
         ];
     }
 
+    //lưu địa chỉ giao hàng mới 
     public function storeAddress(Request $request)
     {
         // 1. Kiểm tra thông tin nhập vào
@@ -369,7 +357,7 @@ class ProfileController
         ]);
 
         // Trả kết quả về cho Frontend
-        return response()->json(['success' => true, 'id' => $id]);
+        return response()->json(['success' => true, 'id' => $id]);// checkout.js-saveAddress()
     }
 
     /**
@@ -420,7 +408,7 @@ class ProfileController
                 'updated_at' => now(),
             ]);
 
-        return response()->json(['success' => true, 'id' => intval($id)]);
+        return response()->json(['success' => true, 'id' => intval($id)]); // checkout.js - saveAddress()
     }
 
     /**
@@ -448,7 +436,7 @@ class ProfileController
             }
         }
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true]); // checkout.js - deleteAddressCheckout()
     }
 
     /**
@@ -463,7 +451,7 @@ class ProfileController
         // Bước 2: Set riêng địa chỉ có ID được chọn thành mặc định
         \App\Models\UserAddress::query()->where('id', $id)->where('user_id', $userId)->update(['is_default' => true]);
 
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true]); // Không dùng trực tiếp ở JS (hoặc dự phòng)
     }
 
     /**
@@ -505,7 +493,7 @@ class ProfileController
             ]);
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']);
+            return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']); // profile.js - submitProfileForm()
         }
 
         return redirect()->back()->with('success', 'Đổi mật khẩu thành công!');
@@ -519,7 +507,7 @@ class ProfileController
     private function passwordError(Request $request, string $field, string $message)
     {
         if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'errors' => [$field => [$message]]], 422);
+            return response()->json(['success' => false, 'errors' => [$field => [$message]]], 422); // profile.js - submitProfileForm()
         }
         return redirect()->back()->withErrors([$field => $message])->withInput();
     }

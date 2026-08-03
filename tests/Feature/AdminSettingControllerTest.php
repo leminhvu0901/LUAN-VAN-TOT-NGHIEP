@@ -76,7 +76,7 @@ class AdminSettingControllerTest extends TestCase
         $response->assertSessionHasErrors(['store_name', 'store_email', 'store_phone', 'store_address']);
     }
 
-    public function test_uploading_store_logo_saves_to_uploads_directory_and_removes_old_file(): void
+    public function test_uploading_store_logo_saves_to_images_directory_and_removes_old_file(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
@@ -84,7 +84,7 @@ class AdminSettingControllerTest extends TestCase
             'store_logo' => UploadedFile::fake()->image('logo1.png'),
         ]));
         $firstLogo = Setting::getValue('store_logo');
-        $this->assertStringStartsWith('/uploads/logo/', $firstLogo);
+        $this->assertStringStartsWith('/images/logo/', $firstLogo);
         $this->assertFileExists(public_path($firstLogo));
 
         $this->actingAs($admin)->put('/admin/settings', array_merge($this->baseStorePayload(), [

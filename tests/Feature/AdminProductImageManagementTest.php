@@ -13,9 +13,8 @@ use Tests\TestCase;
 
 /**
  * AdminProductControllerTest.php đã có sẵn, chỉ kiểm tra hành vi redirect back_url. File này bổ sung
- * phần CHƯA có test: upload/xoá ảnh chính + ảnh phụ (gallery), viết trong phiên sửa lỗi "ảnh mất khi
- * Railway deploy lại" (2026-07-29). Test này phát hiện thêm 3 chỗ vẫn hard-code tiền tố "images/" khi
- * xoá file cũ (update/xoá gallery/xoá sản phẩm) - sai với ảnh mới lưu ở "uploads/..." - đã sửa cùng lúc.
+ * phần CHƯA có test: upload/xoá ảnh chính + ảnh phụ (gallery), đồng thời bảo vệ quy ước lưu một
+ * đường dẫn tương đối dưới public/images/ khi tạo, cập nhật và xóa ảnh.
  */
 class AdminProductImageManagementTest extends TestCase
 {
@@ -47,7 +46,7 @@ class AdminProductImageManagementTest extends TestCase
         $this->assertSame('Vui lòng nhập giá bán.', $errors->first('base_price'));
     }
 
-    public function test_creating_product_with_image_and_gallery_stores_files_in_uploads_directory(): void
+    public function test_creating_product_with_image_and_gallery_stores_files_in_images_directory(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $categoryId = $this->makeCategory();
@@ -65,13 +64,13 @@ class AdminProductImageManagementTest extends TestCase
         $response->assertSessionHasNoErrors();
         $product = Product::firstOrFail();
 
-        $this->assertStringStartsWith('uploads/products/', $product->image);
+        $this->assertStringStartsWith('products/', $product->image);
         $this->assertFileExists(upload_path($product->image));
 
         $product->load('images');
         $this->assertCount(2, $product->images);
         foreach ($product->images as $galleryImage) {
-            $this->assertStringStartsWith('uploads/products/gallery/', $galleryImage->image_path);
+            $this->assertStringStartsWith('products/gallery/', $galleryImage->image_path);
             $this->assertFileExists(upload_path($galleryImage->image_path));
         }
     }

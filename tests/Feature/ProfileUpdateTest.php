@@ -64,9 +64,8 @@ class ProfileUpdateTest extends TestCase
         $response->assertOk()->assertJson(['success' => true]);
         $fresh = $user->fresh();
         $this->assertNotNull($fresh->avatar);
-        // avatar_path(): ảnh tải lên giờ nằm ở public/uploads/ (Railway Volume bền vững) chứ không
-        // còn ở public/images/ nữa - xem app/helpers.php.
-        $this->assertStringStartsWith('uploads/avatars/', $fresh->avatar);
+        // avatar_path() ghép tên file trần với public/images/avatars/.
+        $this->assertStringNotContainsString('/', $fresh->avatar);
         $this->assertFileExists(avatar_path($fresh->avatar));
         $this->assertStringContainsString($fresh->avatar, $response->json('user.avatar_url'));
 

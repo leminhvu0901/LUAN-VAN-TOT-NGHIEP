@@ -96,20 +96,17 @@ class SettingController
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
         ];
 
-        // Quét logo từ CẢ 2 nơi: images/logo (ảnh mặc định đi kèm mã nguồn) và uploads/logo
-        // (logo admin tự tải lên, nằm trên Railway Volume nên không mất khi deploy lại).
+        // Quét logo có sẵn trong public/images/logo (mẫu đi kèm mã nguồn lẫn logo admin tự tải lên).
         $existingLogos = [];
         $allowedLogoExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
-        foreach (['/images/logo/' => public_path('images/logo'), '/uploads/logo/' => public_path('uploads/logo')] as $urlPrefix => $logoDir) {
-            if (!is_dir($logoDir)) {
-                continue;
-            }
+        $logoDir = public_path('images/logo');
+        if (is_dir($logoDir)) {
             foreach (scandir($logoDir) as $file) {
                 if ($file === '.' || $file === '..')
                     continue;
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                 if (in_array($ext, $allowedLogoExts)) {
-                    $existingLogos[] = $urlPrefix . $file;
+                    $existingLogos[] = '/images/logo/' . $file;
                 }
             }
         }
@@ -315,11 +312,10 @@ class SettingController
                 // trùng tên file sẽ khiến bước xoá logo cũ bên dưới xoá NHẦM chính file vừa ghi.
                 $fileName = 'logo_' . (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
 
-                // Ghi vào public/uploads/ (Railway Volume bền vững) thay vì public/images/ -
-                // xem app/helpers.php::upload_url(). Giá trị lưu DB là đường dẫn tuyệt đối nên
-                // asset($shopLogo) ở các view dùng lại được y nguyên, không phải sửa gì thêm.
-                $file->move(public_path('uploads/logo'), $fileName);
-                $logoPath = '/uploads/logo/' . $fileName;
+                // Giá trị lưu DB là đường dẫn tuyệt đối nên asset($shopLogo) ở các view dùng lại
+                // được y nguyên, không cần qua upload_url().
+                $file->move(public_path('images/logo'), $fileName);
+                $logoPath = '/images/logo/' . $fileName;
 
                 // Delete old logo file safely
                 $oldLogo = Setting::getValue('store_logo');

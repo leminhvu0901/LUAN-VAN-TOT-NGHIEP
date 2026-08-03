@@ -49,7 +49,7 @@ class AdminCustomerControllerTest extends TestCase
 
         $customer = User::where('email', 'khachhang.moi@example.com')->firstOrFail();
         $this->assertSame('customer', $customer->role);
-        $this->assertStringStartsWith('uploads/avatars/', $customer->avatar);
+        $this->assertStringNotContainsString('/', $customer->avatar);
         $this->assertFileExists(avatar_path($customer->avatar));
     }
 

@@ -118,8 +118,8 @@ class StaffAccountController
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/avatars'), $filename);
-            $avatarFilename = 'uploads/avatars/' . $filename;
+            $file->move(public_path('images/avatars'), $filename);
+            $avatarFilename = $filename;
         }
 
         User::create([
@@ -206,8 +206,8 @@ class StaffAccountController
             }
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/avatars'), $filename);
-            $staff->avatar = 'uploads/avatars/' . $filename;
+            $file->move(public_path('images/avatars'), $filename);
+            $staff->avatar = $filename;
         }
         $staff->save();
 
