@@ -4,41 +4,19 @@ use Illuminate\Support\Str;
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Cache Store
-    |--------------------------------------------------------------------------
-    |
-    | This option controls the default cache store that will be used by the
-    | framework. This connection is utilized if another isn't explicitly
-    | specified when running a cache operation inside the application.
-    |
-    */
-
+    // Bộ lưu trữ cache mặc định (database, file, redis, v.v.)
     'default' => env('CACHE_STORE', 'database'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Stores
-    |--------------------------------------------------------------------------
-    |
-    | Here you may define all of the cache "stores" for your application as
-    | well as their drivers. You may even define multiple stores for the
-    | same cache driver to group types of items stored in your caches.
-    |
-    | Supported drivers: "array", "database", "file", "memcached",
-    |                    "redis", "dynamodb", "octane",
-    |                    "failover", "null"
-    |
-    */
-
+    // Danh sách các bộ lưu trữ cache được định nghĩa
     'stores' => [
 
+        // Bộ lưu trữ dạng mảng (chỉ sống trong vòng đời 1 request, dùng cho testing)
         'array' => [
             'driver' => 'array',
             'serialize' => false,
         ],
 
+        // Bộ lưu trữ trong Database (yêu cầu tạo bảng cache)
         'database' => [
             'driver' => 'database',
             'connection' => env('DB_CACHE_CONNECTION'),
@@ -47,12 +25,14 @@ return [
             'lock_table' => env('DB_CACHE_LOCK_TABLE'),
         ],
 
+        // Bộ lưu trữ lưu trực tiếp thành tệp tin trên ổ đĩa cứng
         'file' => [
             'driver' => 'file',
             'path' => storage_path('framework/cache/data'),
             'lock_path' => storage_path('framework/cache/data'),
         ],
 
+        // Bộ lưu trữ dùng dịch vụ Memcached bên ngoài
         'memcached' => [
             'driver' => 'memcached',
             'persistent_id' => env('MEMCACHED_PERSISTENT_ID'),
@@ -72,12 +52,14 @@ return [
             ],
         ],
 
+        // Bộ lưu trữ dùng dịch vụ cơ sở dữ liệu RAM ảo Redis
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
             'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
         ],
 
+        // Bộ lưu trữ dùng cơ sở dữ liệu AWS DynamoDB
         'dynamodb' => [
             'driver' => 'dynamodb',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -87,10 +69,12 @@ return [
             'endpoint' => env('DYNAMODB_ENDPOINT'),
         ],
 
+        // Bộ lưu trữ dành cho môi trường Laravel Octane
         'octane' => [
             'driver' => 'octane',
         ],
 
+        // Bộ lưu trữ dự phòng nếu các bộ lưu trữ chính gặp lỗi kết nối
         'failover' => [
             'driver' => 'failover',
             'stores' => [
@@ -101,30 +85,10 @@ return [
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Key Prefix
-    |--------------------------------------------------------------------------
-    |
-    | When utilizing the APC, database, memcached, Redis, and DynamoDB cache
-    | stores, there might be other applications using the same cache. For
-    | that reason, you may prefix every cache key to avoid collisions.
-    |
-    */
-
+    // Tiền tố khóa cache để tránh xung đột dữ liệu giữa các ứng dụng
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Serializable Classes
-    |--------------------------------------------------------------------------
-    |
-    | This value determines the classes that can be unserialized from cache
-    | storage. By default, no PHP classes will be unserialized from your
-    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
-    |
-    */
-
+    // Cấu hình ngăn chặn gadget chain attacks bằng cách tắt giải tuần tự các PHP class từ cache
     'serializable_classes' => false,
 
 ];

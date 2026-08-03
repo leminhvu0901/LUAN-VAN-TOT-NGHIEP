@@ -1,22 +1,33 @@
-let filterTimeout = null;
-let filterForm;
-let tableContainer;
-let tableWrapper;
-let btnClearFilter;
-let loader;
+// =========================================================================
+// QUẢN LÝ SẢN PHẨM TRANG QUẢN TRỊ (ADMIN AREA PRODUCTS CONTROLLER)
+// =========================================================================
+
+let filterTimeout = null; // Tránh gọi API liên tục khi gõ tìm kiếm (Debounce)
+let filterForm; // Tham chiếu đến biểu mẫu chứa các bộ lọc
+let tableContainer; // Container chứa toàn bộ bảng sản phẩm
+let tableWrapper; // Vùng bọc riêng của bảng để cập nhật AJAX
+let btnClearFilter; // Nút xóa bộ lọc
+let loader; // Hiệu ứng tải trang
 
 // Layout admin KHÔNG cuộn ở <body>/window (body có class 'overflow-hidden' khóa cứng) — phần tử
-// thực sự cuộn là #main-content-area (xem resources/views/backend/layouts/app.blade.php). Mọi chỗ
-// cần đọc/ghi vị trí cuộn trong file này phải dùng phần tử này, không phải window.scrollY/scrollTo.
+// thực sự cuộn là #main-content-area. Mọi chỗ cần đọc/ghi vị trí cuộn trong file này phải dùng 
+// phần tử này, không phải window.scrollY/scrollTo.
 function getScrollContainer() {
     return document.getElementById("main-content-area");
 }
 
+// Set lưu trữ danh sách ID các sản phẩm được tích chọn (để xóa nhiều)
 window.selectedProductIds = new Set();
+// Set lưu trữ danh sách ID các sản phẩm bị loại trừ (khi chọn Chọn tất cả các trang)
 window.excludedProductIds = new Set();
+// Trạng thái đã chọn toàn bộ bản ghi trên hệ thống hay chưa
 window.isGlobalProductSelectAll = false;
 
 
+/**
+ * Ẩn hoặc hiện hiệu ứng mờ (overlay loading) trên bảng dữ liệu
+ * @param {boolean} isVisible - true để làm mờ và chặn click, false để khôi phục bình thường
+ */
 function setLoaderVisible(isVisible) {
     if (!tableWrapper) return;
 
@@ -29,18 +40,23 @@ function setLoaderVisible(isVisible) {
     }
 }
 
+/**
+ * Gọi API lấy danh sách sản phẩm bằng AJAX (fetch) dựa trên bộ lọc
+ * @param {string|null} urlStr - URL của phân trang cần chuyển tới, null để lấy theo bộ lọc hiện tại
+ */
 function fetchProducts(urlStr = null) {
     let url;
 
     if (urlStr) {
         url = new URL(urlStr);
     } else {
-        resetProductSelection();
+        resetProductSelection(); // Reset lại các checkbox đã chọn khi thay đổi bộ lọc
         url = new URL(filterForm.action);
         const formData = new FormData(filterForm);
         url.search = new URLSearchParams(formData).toString();
     }
 
+    // Đẩy trạng thái URL mới lên thanh địa chỉ mà không tải lại trang
     window.history.pushState({}, "", url);
     setLoaderVisible(true);
 
@@ -52,11 +68,13 @@ function fetchProducts(urlStr = null) {
     })
         .then((response) => response.json())
         .then((data) => {
+            // Cập nhật tổng số lượng bản ghi hiển thị
             if (data.total !== undefined) {
                 const totalInput = document.getElementById("total-products-count");
                 if (totalInput) totalInput.value = data.total;
             }
 
+            // Ghi đè HTML bảng dữ liệu mới nhận được vào view
             if (data.html) {
                 tableWrapper.innerHTML = data.html;
                 document.dispatchEvent(new Event("tableDataLoaded"));
@@ -68,6 +86,9 @@ function fetchProducts(urlStr = null) {
         .finally(() => setLoaderVisible(false));
 }
 
+/**
+ * Hiển thị hoặc ẩn nút "Xóa bộ lọc" tùy thuộc có tham số lọc nào đang chạy
+ */
 function updateClearFilterButton(url) {
     if (!btnClearFilter) return;
 
@@ -80,12 +101,16 @@ function updateClearFilterButton(url) {
     btnClearFilter.style.display = hasFilters ? "flex" : "none";
 }
 
+/**
+ * Cập nhật giao diện nút Xóa nhiều dựa trên số lượng checkbox được chọn
+ */
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
     const selectedCountSpan = document.getElementById("selected-count");
     const count = getSelectedProductCount();
 
+    // Hiển thị số lượng được chọn bên cạnh tiêu đề nút
     if (selectedCountSpan) {
         selectedCountSpan.textContent = count > 0 ? `(${count})` : "";
     }
@@ -109,19 +134,28 @@ function updateBulkDeleteButton() {
     }
 }
 
+/**
+ * Lấy tổng số lượng sản phẩm từ ô input ẩn
+ */
 function getTotalProductsCount() {
     const totalInput = document.getElementById("total-products-count");
     return totalInput ? Number.parseInt(totalInput.value, 10) || 0 : 0;
 }
 
+/**
+ * Tính số lượng sản phẩm thực tế đang được chọn
+ */
 function getSelectedProductCount() {
     if (window.isGlobalProductSelectAll) {
+        // Lấy tổng số trên tất cả các trang trừ đi danh sách bị bỏ chọn
         return Math.max(getTotalProductsCount() - window.excludedProductIds.size, 0);
     }
-
     return window.selectedProductIds.size;
 }
 
+/**
+ * Đặt lại trạng thái lựa chọn hàng loạt về ban đầu
+ */
 function resetProductSelection() {
     window.isGlobalProductSelectAll = false;
     window.selectedProductIds.clear();
@@ -129,6 +163,9 @@ function resetProductSelection() {
     updateBulkDeleteButton();
 }
 
+/**
+ * Đồng bộ hóa trạng thái hiển thị của các ô Checkbox trong bảng theo Set dữ liệu
+ */
 function syncProductCheckboxes() {
     const checkboxes = document.querySelectorAll(".product-checkbox");
 
@@ -154,6 +191,9 @@ function syncProductCheckboxes() {
     updateBulkDeleteButton();
 }
 
+/**
+ * Xử lý khi nhấn nút "Chọn tất cả" ở đầu bảng
+ */
 function handleSelectAll(checked) {
     window.isGlobalProductSelectAll = checked;
     window.selectedProductIds.clear();
@@ -166,6 +206,9 @@ function handleSelectAll(checked) {
     updateBulkDeleteButton();
 }
 
+/**
+ * Xử lý khi nhấn chọn/bỏ chọn một checkbox sản phẩm đơn lẻ
+ */
 function handleProductCheckbox(checkbox) {
     if (window.isGlobalProductSelectAll) {
         if (checkbox.checked) {
@@ -184,6 +227,9 @@ function handleProductCheckbox(checkbox) {
     syncProductCheckboxes();
 }
 
+/**
+ * Mở hộp thoại xác nhận trước khi thực hiện xóa nhiều
+ */
 function submitBulkDelete() {
     const count = getSelectedProductCount();
 
@@ -203,6 +249,9 @@ function submitBulkDelete() {
     }, window.isGlobalProductSelectAll ? "Xác nhận xóa tất cả?" : "Xác nhận xóa nhiều?");
 }
 
+/**
+ * Gửi dữ liệu xóa nhiều bằng AJAX về cho máy chủ (Server)
+ */
 function executeBulkDelete() {
     const bulkDeleteForm = document.getElementById("bulk-delete-form");
     if (!bulkDeleteForm) return;
@@ -210,8 +259,8 @@ function executeBulkDelete() {
     const formData = new FormData();
     formData.append("_token", document.querySelector('meta[name="csrf-token"]').content);
 
-
     if (window.isGlobalProductSelectAll) {
+        // Tùy chọn xóa mọi trang khớp với bộ lọc
         formData.append("delete_all_pages", "1");
         const urlParams = new URLSearchParams(window.location.search);
         for (const [key, value] of urlParams.entries()) {
@@ -223,6 +272,7 @@ function executeBulkDelete() {
             formData.append("excluded_product_ids[]", id);
         });
     } else {
+        // Chỉ xóa các ID cụ thể được chọn
         window.selectedProductIds.forEach((id) => {
             formData.append("product_ids[]", id);
         });
@@ -256,6 +306,9 @@ function executeBulkDelete() {
         });
 }
 
+/**
+ * Helper thêm thẻ ẩn input vào form
+ */
 function appendHiddenInput(form, name, value) {
     const input = document.createElement("input");
     input.type = "hidden";
@@ -264,6 +317,9 @@ function appendHiddenInput(form, name, value) {
     form.appendChild(input);
 }
 
+/**
+ * Hộp thoại xác nhận xóa một sản phẩm đơn lẻ
+ */
 function confirmDeleteProduct(event, formElement) {
     event.preventDefault();
 
@@ -276,6 +332,9 @@ function confirmDeleteProduct(event, formElement) {
     return false;
 }
 
+/**
+ * Gửi yêu cầu xóa một sản phẩm về server bằng AJAX
+ */
 function executeSingleDelete(formElement) {
     const formData = new FormData(formElement);
     setLoaderVisible(true);
@@ -306,6 +365,9 @@ function executeSingleDelete(formElement) {
         });
 }
 
+/**
+ * Khởi tạo bộ lắng nghe sự kiện của bộ lọc sản phẩm
+ */
 function initProductFilters() {
     filterForm.querySelectorAll("select").forEach((select) => {
         select.addEventListener("change", () => fetchProducts());
@@ -335,6 +397,9 @@ function initProductFilters() {
     }
 }
 
+/**
+ * Đăng ký tất cả các sự kiện tương tác trên bảng sản phẩm
+ */
 function initProductTableEvents() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
 
@@ -390,6 +455,7 @@ function initProductTableEvents() {
     observer.observe(tableWrapper, { childList: true, subtree: true });
 }
 
+// Khởi chạy khi tài liệu HTML sẵn sàng
 document.addEventListener("DOMContentLoaded", function () {
     filterForm = document.getElementById("filter-form");
     tableContainer = document.getElementById("table-container");
@@ -404,19 +470,12 @@ document.addEventListener("DOMContentLoaded", function () {
     syncProductCheckboxes();
 });
 
-// Xử lý nút Back/Forward của trình duyệt. Trước đây gọi lại fetchProducts() (fetch kèm
-// Accept: application/json) để "đồng bộ" bảng theo URL vừa quay lại — nhưng có trường hợp (vd bfcache
-// khôi phục trang) khiến JSON trả về bị hiển thị thẳng ra thành nội dung trang thay vì được JS chèn
-// vào bảng. Tải lại thẳng trang an toàn hơn nhiều (đã tự kiểm chứng luôn trả đúng HTML đầy đủ).
+// Xử lý nút Back/Forward của trình duyệt. 
 window.addEventListener("popstate", function () {
     window.location.reload();
 });
 
-// Giữ lại vị trí cuộn khi rời trang (bấm Sửa 1 sản phẩm đang ở giữa danh sách dài) và khôi phục lại
-// SAU KHI quay về từ trang Sửa (redirect tải lại trang thật, khác với window.pendingScrollY ở trên
-// chỉ sống được trong bộ nhớ JS nên không sống sót qua 1 lần tải trang mới — phải dùng sessionStorage).
-// Cũng phải đọc/ghi scrollTop của #main-content-area (xem getScrollContainer() ở đầu file) — KHÔNG
-// phải window.scrollY, vì <body> khóa cứng overflow-hidden nên window không bao giờ thật sự cuộn.
+// Giữ lại vị trí cuộn khi rời trang và khôi phục lại khi quay về
 const PRODUCTS_SCROLL_STORAGE_KEY = "admin-products-scroll-y";
 
 window.addEventListener("beforeunload", function () {

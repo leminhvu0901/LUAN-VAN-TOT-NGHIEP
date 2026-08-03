@@ -210,6 +210,9 @@ class CustomerController
                 'message' => 'Cập nhật trạng thái thành công!'
             ]);
         } catch (\Exception $e) {
+            // Trả về JSON lỗi 500, được tiếp nhận ở khối .then(data =>) hoặc .catch() 
+            // của hàm performToggle() trong file JS: [public/js/backend/admin/customers/index.js]
+            // để hiển thị hộp thoại cảnh báo lỗi window.AdminAlert.error(...) cho Admin.
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
@@ -221,6 +224,10 @@ class CustomerController
      * Hàm xử lý xóa hàng loạt khách hàng đã chọn thông qua checkbox ở giao diện.
      * Sử dụng cơ chế kiểm soát an toàn: Nếu khách hàng đã có lịch sử đặt hàng/đánh giá 
      * (báo lỗi khóa ngoại từ DB), hệ thống sẽ tự động chuyển họ sang trạng thái KHÓA tài khoản để bảo toàn dữ liệu.
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho khối lắng nghe sự kiện click nút js-bulk-delete 
+     *   trong file JS: [public/js/backend/admin/customers/index.js] để hiển thị thông báo thành công hoặc lỗi qua AdminAlert.
      */
     public function bulkDelete(Request $request)
     {

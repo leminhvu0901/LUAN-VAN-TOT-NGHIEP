@@ -2,41 +2,13 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Mailer
-    |--------------------------------------------------------------------------
-    |
-    | This option controls the default mailer that is used to send all email
-    | messages unless another mailer is explicitly specified when sending
-    | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
-    |
-    */
-
+    // Mailer mặc định được sử dụng để gửi email (smtp, log, mailgun, v.v.)
     'default' => env('MAIL_MAILER', 'log'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Mailer Configurations
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure all of the mailers used by your application plus
-    | their respective settings. Several examples have been configured for
-    | you and you are free to add your own as your application requires.
-    |
-    | Laravel supports a variety of mail "transport" drivers that can be used
-    | when delivering an email. You may specify which one you're using for
-    | your mailers below. You may also add additional mailers if needed.
-    |
-    | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
-    |            "failover", "roundrobin"
-    |
-    */
-
+    // Các cấu hình máy chủ gửi email khác nhau
     'mailers' => [
 
+        // Cấu hình gửi qua giao thức SMTP
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),
@@ -45,45 +17,44 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            // Mặc định null = dùng timeout hệ thống (có thể tới 60s+), khiến form đăng ký/quên mật khẩu
-            // "đứng im" rất lâu nếu MAIL_HOST cấu hình sai/không phản hồi trên production. Giới hạn lại
-            // để nếu SMTP có vấn đề thì báo lỗi nhanh thay vì treo UI - nhưng 10s (thử trước đó) lại QUÁ
-            // NGẮN: kết nối TLS thật từ Railway sang Gmail nhiều lúc mất hơn 10s để bắt tay xong, khiến
-            // các lượt gửi email lẽ ra thành công lại bị cắt ngang giữa chừng thành lỗi. Nới lên 25s.
+            // Thời gian chờ tối đa kết nối SMTP (giới hạn 25 giây để tránh treo UI)
             'timeout' => (int) env('MAIL_TIMEOUT', 25),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // Gửi qua Amazon SES
         'ses' => [
             'transport' => 'ses',
         ],
 
+        // Gửi qua Postmark
         'postmark' => [
             'transport' => 'postmark',
-            // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
         ],
 
+        // Gửi qua dịch vụ Resend
         'resend' => [
             'transport' => 'resend',
         ],
 
+        // Gửi qua chương trình Sendmail cục bộ của server Linux
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
+        // Chỉ ghi thông tin email vào file log (dùng khi phát triển local)
         'log' => [
             'transport' => 'log',
             'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
+        // Lưu email vào mảng bộ nhớ (dùng để viết các bản kiểm thử test)
         'array' => [
             'transport' => 'array',
         ],
 
+        // Cơ chế tự chuyển đổi dự phòng nếu mailer chính gặp lỗi kết nối
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
@@ -93,6 +64,7 @@ return [
             'retry_after' => 60,
         ],
 
+        // Cơ chế luân phiên gửi email qua nhiều dịch vụ để phân chia tải
         'roundrobin' => [
             'transport' => 'roundrobin',
             'mailers' => [
@@ -104,17 +76,7 @@ return [
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Global "From" Address
-    |--------------------------------------------------------------------------
-    |
-    | You may wish for all emails sent by your application to be sent from
-    | the same address. Here you may specify a name and address that is
-    | used globally for all emails that are sent by your application.
-    |
-    */
-
+    // Thông tin địa chỉ email gửi đi mặc định của hệ thống
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),

@@ -152,6 +152,10 @@ class MaterialController
     }
 
     // Xóa nhiều vật tư
+    // 
+    // Phản hồi trả về:
+    // - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
+    //   trong file JS: [public/js/backend/admin/materials/index.js] để hiển thị thông báo kết quả và cập nhật bảng.
     public function bulkDelete(Request $request)
     {
         if ($request->input('delete_all_pages') == '1') {

@@ -12,9 +12,7 @@ function toggleFilter() {
 }
 
 /**
- * Cập nhật nhãn văn bản hiển thị giá tiền và đổ màu nền động cho thanh kéo (slider)
- * @param {string|number} val - Giá trị hiện tại của thanh kéo giá
- */
+ * Cập nhật nhãn văn bản hiển thị giá tiền và đổ màu nền động cho thanh kéo (slider)  */
 function updatePriceLabel(val) {
     // Định dạng số tiền theo chuẩn Việt Nam (ví dụ: 100.000)
     const formatted = parseInt(val).toLocaleString('vi-VN');

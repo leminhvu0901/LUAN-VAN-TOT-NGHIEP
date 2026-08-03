@@ -1,21 +1,19 @@
 <?php
 
-// Nội dung chatbox Happy Tea. Gồm 2 phần dùng chung file này:
-//   1) Chatbox nút bấm chủ đề tĩnh (greeting/menu/labels/answers/defaults) — hiển thị qua Blade +
-//      App\Http\View\Composers\QuickChatboxComposer, không AI.
-//   2) Ô nhập câu hỏi tự do — App\Services\QuickChatService luôn trả về câu fallback + gợi ý nút bấm
-//      (không phân loại ý định), khách bấm nút để đi vào đúng 'intents' bên dưới.
-// Mọi text sửa ở đây, JS/Blade chỉ hiển thị.
-
 return [
+    // Lời chào mặc định khi mở chatbox
     'greeting' => 'Xin chào! Happy Tea có thể hỗ trợ bạn vấn đề gì?',
+
+    // Thông báo khi khách hỏi ngoài phạm vi hỗ trợ
     'fallback_notice' => 'Chatbox hiện hỗ trợ các câu hỏi có sẵn. Với vấn đề khác, vui lòng liên hệ cửa hàng.',
+
+    // Tiêu đề hiển thị trên thanh header chatbox
     'header_title' => 'Hỗ trợ Happy Tea',
 
-    // Độ trễ (ms) trước khi hiện câu trả lời, mô phỏng "đang trả lời" — trong khoảng 300-500ms theo yêu cầu.
+    // Độ trễ hiển thị tin nhắn mô phỏng thời gian gõ (mili giây)
     'typing_delay_ms' => 400,
 
-    // Menu chính — thứ tự hiển thị đúng theo yêu cầu.
+    // Danh sách menu lựa chọn các chủ đề hỗ trợ chính
     'menu' => [
         ['key' => 'featured_products', 'label' => 'Sản phẩm nổi bật'],
         ['key' => 'promotions', 'label' => 'Khuyến mãi hiện có'],
@@ -26,6 +24,7 @@ return [
         ['key' => 'contact', 'label' => 'Thông tin liên hệ'],
     ],
 
+    // Nhãn văn bản hiển thị trên các nút hành động
     'labels' => [
         'back' => 'Quay lại',
         'menu' => 'Về menu chính',
@@ -38,7 +37,7 @@ return [
         'go_to_login' => 'Đăng nhập ngay',
     ],
 
-    // Nội dung trả lời không phụ thuộc dữ liệu động (sản phẩm/khuyến mãi lấy qua QuickChatboxComposer).
+    // Câu trả lời tĩnh cho các chủ đề cơ bản
     'answers' => [
         'payment_methods' => 'Đơn đặt online có thể thanh toán bằng MoMo hoặc tiền mặt khi nhận hàng (COD), tùy theo cấu hình cửa hàng đang bật. Đơn tạo tại quầy do lễ tân xử lý có thể thanh toán bằng tiền mặt hoặc MoMo.',
         'shipping' => 'Phí giao hàng được tính dựa trên khoảng cách từ cửa hàng đến địa chỉ nhận hàng, có thể phát sinh phụ thu khi thời tiết xấu (mưa to, bão). Phí chính xác sẽ hiển thị ở bước thanh toán trước khi bạn xác nhận đặt hàng. Đơn nhận tại cửa hàng không tính phí giao hàng.',
@@ -46,7 +45,7 @@ return [
         'order_tracking_auth' => 'Xem chi tiết và trạng thái đơn hàng tại trang "Đơn hàng của tôi".',
     ],
 
-    // Giá trị mặc định CHỈ dùng khi Setting trong DB chưa có — QuickChatboxComposer luôn ưu tiên DB trước.
+    // Giá trị dự phòng nếu cấu hình cửa hàng trong database bị thiếu
     'defaults' => [
         'open_time' => '08:00',
         'close_time' => '22:00',
@@ -55,17 +54,13 @@ return [
         'address' => null,
     ],
 
-    // ============================================================
-    // Ô NHẬP CÂU HỎI TỰ DO — App\Services\QuickChatService + App\Http\Controllers\Frontend\QuickChatController.
-    // Luôn trả về câu fallback bên dưới kèm nút gợi ý, không phân loại ý định câu hỏi.
-    // ============================================================
+    // Gợi ý hiển thị trong ô nhập câu hỏi tự do
     'freeform_placeholder' => 'Nhập câu hỏi về Happy Tea...',
 
-    // Câu trả lời chuẩn cho mọi câu hỏi tự do.
+    // Câu trả lời mặc định khi chatbot không hiểu câu hỏi tự do
     'fallback_freeform' => 'Xin lỗi, mình chưa hiểu rõ câu hỏi của bạn. Bạn có thể hỏi về sản phẩm, giá bán, khuyến mãi, thanh toán, giao hàng hoặc đơn hàng nhé!',
 
-    // Nút gợi ý hiển thị SAU câu fallback — mỗi nút gửi lại đúng intent đã biết qua
-    // QuickChatService::askByIntent().
+    // Các nút gợi ý chủ đề hiển thị sau câu phản hồi mặc định
     'fallback_suggestions' => [
         ['intent_id' => 'product', 'label' => 'Sản phẩm'],
         ['intent_id' => 'product_price', 'label' => 'Giá bán'],
@@ -75,14 +70,10 @@ return [
         ['intent_id' => 'order_tracking', 'label' => 'Theo dõi đơn hàng'],
     ],
 
-    // Câu trả lời khi truy vấn sản phẩm theo yêu cầu của khách không còn kết quả phù hợp (vd loại trừ
-    // hết danh mục) — dùng trong QuickChatService::honestNoMatch().
+    // Câu trả lời khi không tìm thấy sản phẩm phù hợp với lọc của khách
     'product_no_match_answer' => 'Hiện tại mình chưa tìm được gợi ý phù hợp với cả hai yêu cầu. Bạn có thể chọn nhóm trà hoặc đồ uống khác.',
 
-    // Mỗi intent: id (duy nhất), label (nhãn nút gợi ý), handler (static|product|promotion|
-    // order_tracking|opening_hours|contact), answer (câu trả lời tĩnh hoặc câu dẫn trước danh sách),
-    // action_route (tên route Laravel nếu có nút hành động), suggest_intents (gợi ý bấm sâu hơn).
-    // Dùng bởi: askByIntent() (nút gợi ý).
+    // Định nghĩa danh sách các chủ đề (Intent) chatbot nhận diện
     'intents' => [
         [
             'id' => 'product',

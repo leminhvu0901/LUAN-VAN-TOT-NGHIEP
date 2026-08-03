@@ -6,12 +6,12 @@
 @section('content')
 
 @php
-    // Đăng nhập Google lưu avatar là URL đầy đủ (https://lh3.googleusercontent.com/...), còn avatar tự
-    // tải lên chỉ lưu tên file trong storage cục bộ -> phải phân biệt, không thể luôn ghép
-    // asset('images/avatars/'.avatar) (khớp cách các trang admin đã xử lý ở str_starts_with pattern).
-    $userAvatarUrl = Auth::user()->avatar
-        ? (avatar_url(Auth::user()->avatar))
-        : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=006e01&color=fff';
+// Đăng nhập Google lưu avatar là URL đầy đủ (https://lh3.googleusercontent.com/...), còn avatar tự
+// tải lên chỉ lưu tên file trong storage cục bộ -> phải phân biệt, không thể luôn ghép
+// asset('images/avatars/'.avatar) (khớp cách các trang admin đã xử lý ở str_starts_with pattern).
+$userAvatarUrl = Auth::user()->avatar
+? (avatar_url(Auth::user()->avatar))
+: 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=006e01&color=fff';
 @endphp
 
 <!-- ============================================== -->
@@ -19,7 +19,7 @@
 <!-- Chỉ hiển thị từ màn hình kích thước trung bình (md) trở lên -->
 <!-- ============================================== -->
 <div class="hidden md:flex min-h-screen bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
-    
+
     <!-- Cột Menu Điều hướng bên trái (SideNavBar) -->
     <aside class="w-[280px] flex-shrink-0 bg-tertiary-fixed border-r border-outline-variant flex flex-col py-stack_lg">
         <div class="px-6 mb-8">
@@ -33,16 +33,16 @@
                     <h3 class="font-label-md text-label-md text-on-surface">{{ Auth::user()->name }}</h3>
                     <p class="text-xs text-on-surface-variant">
                         @switch(Auth::user()->membership_level ?? 'new')
-                            @case('silver') Thành viên hạng Bạc @break
-                            @case('gold') Thành viên hạng Vàng @break
-                            @case('diamond') Thành viên Kim Cương @break
-                            @default Thành viên Mới
+                        @case('silver') Thành viên hạng Bạc @break
+                        @case('gold') Thành viên hạng Vàng @break
+                        @case('diamond') Thành viên Kim Cương @break
+                        @default Thành viên Mới
                         @endswitch
                     </p>
                 </div>
             </div>
         </div>
-        
+
         {{-- Các tab chức năng bên Desktop: onclick="showTab(...)" dùng JS để ẩn/hiện các tab tương ứng --}}
         <nav class="flex-1">
             <a id="tab-profile-link" class="bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md" href="#profile" onclick="showTab('profile'); return false;">
@@ -63,7 +63,7 @@
     <!-- Khu vực nội dung chính bên phải (Main Content Area) -->
     <main class="flex-1 p-stack_lg">
         <div class="max-w-4xl mx-auto">
-            
+
             {{-- Hiển thị thông báo thành công màu xanh (nếu có từ Session Redirect) --}}
             @if(session('success'))
             <div class="bg-[#c1e9d5] border border-[#0aad0a] text-[#005301] px-4 py-3 rounded-xl mb-6 shadow-sm">
@@ -77,86 +77,86 @@
                     <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Thông tin cá nhân</h1>
                     <p class="font-body-md text-body-md text-on-surface-variant">Quản lý thông tin hồ sơ của bạn để bảo mật tài khoản</p>
                 </div>
-            
-            {{-- Form cập nhật Hồ sơ cá nhân (Dùng Multipart form-data để upload ảnh đại diện) --}}
-            <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-stack_lg">
-                    
-                    <!-- Phần bên trái: Sửa ảnh đại diện (Avatar) -->
-                    <div class="lg:col-span-1">
-                        <div class="bg-white rounded-xl border border-outline-variant p-stack_lg flex flex-col items-center justify-center text-center shadow-sm h-full">
-                            <div class="relative group mb-stack_md">
-                                {{-- Preview hình ảnh Avatar hiện tại --}}
-                                <div class="w-40 h-40 rounded-full overflow-hidden border-4 border-surface-container p-1 ring-2 ring-primary/20 bg-white">
-                                    <img id="avatarPreview" alt="Large User Avatar" class="w-full h-full object-cover rounded-full" src="{{ $userAvatarUrl }}">
-                                </div>
-                                {{-- Nút bút chì màu xanh: Nhấp vào để kích hoạt hành động chọn file từ input ẩn --}}
-                                <button type="button" class="absolute bottom-1 right-1 bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95" onclick="document.getElementById('avatarInput').click()">
-                                    <span class="material-symbols-outlined text-sm">edit</span>
-                                </button>
-                                {{-- Input chọn file ảnh ẩn --}}
-                                <input type="file" name="avatar" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(event)">
-                                {{-- Input ẩn lưu chuỗi ảnh Base64 sau khi cắt bằng thư viện Cropper.js --}}
-                                <input type="hidden" name="cropped_avatar" id="croppedAvatarInput">
-                            </div>
-                            <h3 id="profileNameDisplayDesktop" class="font-headline-md text-headline-md text-on-surface">{{ Auth::user()->name }}</h3>
-                            <p class="font-body-md text-body-md text-on-surface-variant mb-stack_md">Thành viên từ {{ Auth::user()->created_at ? Auth::user()->created_at->format('Y') : '2023' }}</p>
-                            
-                            {{-- Thống kê nhanh đơn hàng và điểm thưởng --}}
-                            <div class="flex gap-2 w-full mt-auto">
-                                <div class="flex-1 bg-tertiary-fixed rounded-lg py-2">
-                                    <span class="block font-bold text-primary text-lg">{{ $ordersCount }}</span>
-                                    <span class="text-xs text-on-tertiary-fixed-variant">Đơn hàng</span>
-                                </div>
-                                <div class="flex-1 bg-secondary-container rounded-lg py-2">
-                                    <span class="block font-bold text-on-secondary-container text-lg">{{ Auth::user()->points ?? 0 }}</span>
-                                    <span class="text-xs text-on-secondary-container">Điểm tích lũy</span>
-                                </div>
-                            </div>
-                            @error('avatar') <small class="text-error mt-2 block text-center">{{ $message }}</small> @enderror
-                        </div>
-                    </div>
 
-                    <!-- Phần bên phải: Các ô nhập văn bản (Form Fields) -->
-                    <div class="lg:col-span-2 space-y-stack_lg">
-                        <section class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm h-full">
-                            <div class="space-y-stack_md h-full flex flex-col justify-between">
-                                <div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-stack_md mb-stack_md">
-                                        {{-- Ô nhập Họ tên --}}
-                                        <div class="space-y-1">
-                                            <label class="font-label-md text-label-md text-on-surface-variant px-1">Họ và tên</label>
-                                            <input id="name-input-desktop" name="name" maxlength="30" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ old('name', Auth::user()->name) }}" required>
-                                            {{-- Luôn render sẵn (không @if/@error) + toggle bằng class "hidden" — để profile.js tìm thấy
+                {{-- Form cập nhật Hồ sơ cá nhân (Dùng Multipart form-data để upload ảnh đại diện) --}}
+                <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-stack_lg">
+
+                        <!-- Phần bên trái: Sửa ảnh đại diện (Avatar) -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-white rounded-xl border border-outline-variant p-stack_lg flex flex-col items-center justify-center text-center shadow-sm h-full">
+                                <div class="relative group mb-stack_md">
+                                    {{-- Preview hình ảnh Avatar hiện tại --}}
+                                    <div class="w-40 h-40 rounded-full overflow-hidden border-4 border-surface-container p-1 ring-2 ring-primary/20 bg-white">
+                                        <img id="avatarPreview" alt="Large User Avatar" class="w-full h-full object-cover rounded-full" src="{{ $userAvatarUrl }}">
+                                    </div>
+                                    {{-- Nút bút chì màu xanh: Nhấp vào để kích hoạt hành động chọn file từ input ẩn --}}
+                                    <button type="button" class="absolute bottom-1 right-1 bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95" onclick="document.getElementById('avatarInput').click()">
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    {{-- Input chọn file ảnh ẩn --}}
+                                    <input type="file" name="avatar" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(event)">
+                                    {{-- Input ẩn lưu chuỗi ảnh Base64 sau khi cắt bằng thư viện Cropper.js --}}
+                                    <input type="hidden" name="cropped_avatar" id="croppedAvatarInput">
+                                </div>
+                                <h3 id="profileNameDisplayDesktop" class="font-headline-md text-headline-md text-on-surface">{{ Auth::user()->name }}</h3>
+                                <p class="font-body-md text-body-md text-on-surface-variant mb-stack_md">Thành viên từ {{ Auth::user()->created_at ? Auth::user()->created_at->format('Y') : '2023' }}</p>
+
+                                {{-- Thống kê nhanh đơn hàng và điểm thưởng --}}
+                                <div class="flex gap-2 w-full mt-auto">
+                                    <div class="flex-1 bg-tertiary-fixed rounded-lg py-2">
+                                        <span class="block font-bold text-primary text-lg">{{ $ordersCount }}</span>
+                                        <span class="text-xs text-on-tertiary-fixed-variant">Đơn hàng</span>
+                                    </div>
+                                    <div class="flex-1 bg-secondary-container rounded-lg py-2">
+                                        <span class="block font-bold text-on-secondary-container text-lg">{{ Auth::user()->points ?? 0 }}</span>
+                                        <span class="text-xs text-on-secondary-container">Điểm tích lũy</span>
+                                    </div>
+                                </div>
+                                @error('avatar') <small class="text-error mt-2 block text-center">{{ $message }}</small> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Phần bên phải: Các ô nhập văn bản (Form Fields) -->
+                        <div class="lg:col-span-2 space-y-stack_lg">
+                            <section class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm h-full">
+                                <div class="space-y-stack_md h-full flex flex-col justify-between">
+                                    <div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-stack_md mb-stack_md">
+                                            {{-- Ô nhập Họ tên --}}
+                                            <div class="space-y-1">
+                                                <label class="font-label-md text-label-md text-on-surface-variant px-1">Họ và tên</label>
+                                                <input id="name-input-desktop" name="name" maxlength="30" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="text" value="{{ old('name', Auth::user()->name) }}" required>
+                                                {{-- Luôn render sẵn (không @if/@error) + toggle bằng class "hidden" — để profile.js tìm thấy
                                             và điền lỗi vào đây khi submit qua fetch (AJAX không tải lại trang nên @error không tự
                                             kích hoạt được, chỉ có tác dụng cho lần tải trang đầu/submit cổ điển không JS). --}}
-                                            <small id="name-error-desktop" class="text-error mt-1 block {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
+                                                <small id="name-error-desktop" class="text-error mt-1 block {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
+                                            </div>
+                                            {{-- Ô nhập Số điện thoại --}}
+                                            <div class="space-y-1">
+                                                <label class="font-label-md text-label-md text-on-surface-variant px-1">Số điện thoại</label>
+                                                <input id="phone-input-desktop" name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}">
+                                                <small id="phone-error-desktop" class="text-error mt-1 block {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
+                                            </div>
                                         </div>
-                                        {{-- Ô nhập Số điện thoại --}}
+                                        {{-- Ô hiển thị Email (Bị khóa không cho sửa đổi trực tiếp) --}}
                                         <div class="space-y-1">
-                                            <label class="font-label-md text-label-md text-on-surface-variant px-1">Số điện thoại</label>
-                                            <input id="phone-input-desktop" name="phone" class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}">
-                                            <small id="phone-error-desktop" class="text-error mt-1 block {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
+                                            <label class="font-label-md text-label-md text-on-surface-variant px-1">Email</label>
+                                            <input class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none opacity-70" type="email" value="{{ Auth::user()->email }}" disabled>
                                         </div>
                                     </div>
-                                    {{-- Ô hiển thị Email (Bị khóa không cho sửa đổi trực tiếp) --}}
-                                    <div class="space-y-1">
-                                        <label class="font-label-md text-label-md text-on-surface-variant px-1">Email</label>
-                                        <input class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none opacity-70" type="email" value="{{ Auth::user()->email }}" disabled>
+
+                                    <div class="pt-stack_md mt-4">
+                                        <button type="submit" class="bg-primary-container hover:bg-[#008f00] text-on-primary font-bold px-8 py-3 rounded-lg shadow-sm active:scale-95 transition-all w-full md:w-auto">
+                                            Lưu thay đổi
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div class="pt-stack_md mt-4">
-                                    <button type="submit" class="bg-primary-container hover:bg-[#008f00] text-on-primary font-bold px-8 py-3 rounded-lg shadow-sm active:scale-95 transition-all w-full md:w-auto">
-                                        Lưu thay đổi
-                                    </button>
-                                </div>
-                            </div>
-                        </section>
+                            </section>
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
 
             </div>
 
@@ -247,7 +247,7 @@
                                     Tiêu chuẩn bảo mật
                                 </h3>
                                 <p class="text-sm text-on-surface-variant mb-6 font-body-md">Mật khẩu cần tuân thủ các quy tắc bảo mật dưới đây để bảo vệ tài khoản một cách tốt nhất.</p>
-                                
+
                                 <!-- Thanh hiển thị trực quan mức độ bảo mật mật khẩu -->
                                 <div class="bg-surface-container-low border border-outline-variant p-4 rounded-xl mb-6">
                                     <div class="flex justify-between items-center mb-2 text-sm font-label-md text-on-surface-variant">
@@ -299,7 +299,7 @@
 <!-- Chỉ hiển thị trên thiết bị di động (md:hidden giúp ẩn khi trên màn hình máy tính lớn) -->
 <!-- ============================================== -->
 <div class="md:hidden bg-background text-on-surface font-body-md min-h-[100dvh] pb-24 relative">
-    
+
     <!-- Thanh Header tiêu đề trên cùng điện thoại -->
     <header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant flex items-center px-4 h-16 w-full shadow-sm">
         <a id="mobile-back-btn" href="{{ url('/') }}" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary-container/10 active:scale-95 transition-transform">
@@ -309,7 +309,7 @@
     </header>
 
     <main class="pt-20 px-4 max-w-md mx-auto relative z-10">
-        
+
         {{-- Alert thành công bản Mobile --}}
         @if(session('success'))
         <div class="bg-secondary-container border border-primary text-on-primary-container px-4 py-3 rounded-xl mb-6 shadow-sm font-label-md">
@@ -319,91 +319,91 @@
 
         <div id="mobile-profile-content">
 
-        <!-- Phần Avatar & Tên (Mobile) -->
-        <section class="flex flex-col items-center mb-8">
-            <div class="relative mb-4">
-                <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
-                    <img id="avatarPreviewMobile" class="w-full h-full object-cover" src="{{ $userAvatarUrl }}"/>
+            <!-- Phần Avatar & Tên (Mobile) -->
+            <section class="flex flex-col items-center mb-8">
+                <div class="relative mb-4">
+                    <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
+                        <img id="avatarPreviewMobile" class="w-full h-full object-cover" src="{{ $userAvatarUrl }}" />
+                    </div>
+                    <button type="button" class="absolute bottom-0 right-0 bg-primary-container p-1.5 rounded-full text-white shadow-sm ring-2 ring-white active:scale-90 transition-transform" onclick="document.getElementById('avatarInput').click()">
+                        <span class="material-symbols-outlined text-sm material-filled">edit</span>
+                    </button>
                 </div>
-                <button type="button" class="absolute bottom-0 right-0 bg-primary-container p-1.5 rounded-full text-white shadow-sm ring-2 ring-white active:scale-90 transition-transform" onclick="document.getElementById('avatarInput').click()">
-                    <span class="material-symbols-outlined text-sm material-filled">edit</span>
-                </button>
-            </div>
-            
-            <h2 id="profileNameDisplayMobile" class="font-headline text-headline-md text-on-surface">{{ Auth::user()->name }}</h2>
-            <span class="mt-1 px-3 py-1 bg-secondary-container text-on-secondary-fixed-variant rounded-full font-label-md text-label-md">
-                @switch(Auth::user()->membership_level ?? 'new')
+
+                <h2 id="profileNameDisplayMobile" class="font-headline text-headline-md text-on-surface">{{ Auth::user()->name }}</h2>
+                <span class="mt-1 px-3 py-1 bg-secondary-container text-on-secondary-fixed-variant rounded-full font-label-md text-label-md">
+                    @switch(Auth::user()->membership_level ?? 'new')
                     @case('silver') Thành viên hạng Bạc @break
                     @case('gold') Thành viên hạng Vàng @break
                     @case('diamond') Thành viên Kim Cương @break
                     @default Thành viên Mới
-                @endswitch
-            </span>
-            <div class="flex gap-4 mt-6 w-full">
-                <div class="flex-1 organic-gradient p-4 rounded-xl border border-outline-variant flex flex-col items-center text-center shadow-sm">
-                    <span class="font-headline text-headline-md text-primary">{{ $ordersCount }}</span>
-                    <span class="text-label-md font-label-md text-on-surface-variant">Đơn hàng</span>
+                    @endswitch
+                </span>
+                <div class="flex gap-4 mt-6 w-full">
+                    <div class="flex-1 organic-gradient p-4 rounded-xl border border-outline-variant flex flex-col items-center text-center shadow-sm">
+                        <span class="font-headline text-headline-md text-primary">{{ $ordersCount }}</span>
+                        <span class="text-label-md font-label-md text-on-surface-variant">Đơn hàng</span>
+                    </div>
+                    <div class="flex-1 organic-gradient p-4 rounded-xl border border-outline-variant flex flex-col items-center text-center shadow-sm">
+                        <span class="font-headline text-headline-md text-primary">{{ Auth::user()->points ?? 0 }}</span>
+                        <span class="text-label-md font-label-md text-on-surface-variant">Điểm tích lũy</span>
+                    </div>
                 </div>
-                <div class="flex-1 organic-gradient p-4 rounded-xl border border-outline-variant flex flex-col items-center text-center shadow-sm">
-                    <span class="font-headline text-headline-md text-primary">{{ Auth::user()->points ?? 0 }}</span>
-                    <span class="text-label-md font-label-md text-on-surface-variant">Điểm tích lũy</span>
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Form nhập thông tin cá nhân (Mobile) -->
-        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <section class="space-y-4 mb-10">
-                <h3 class="font-headline text-headline-md-mobile text-on-surface mb-2">Thông tin cá nhân</h3>
-                <div class="space-y-1">
-                    <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Họ và tên</label>
-                    <div class="relative group">
-                        <input id="name-input-mobile" name="name" maxlength="30" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ old('name', Auth::user()->name) }}" required/>
-                        <small id="name-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
+            <!-- Form nhập thông tin cá nhân (Mobile) -->
+            <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <section class="space-y-4 mb-10">
+                    <h3 class="font-headline text-headline-md-mobile text-on-surface mb-2">Thông tin cá nhân</h3>
+                    <div class="space-y-1">
+                        <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Họ và tên</label>
+                        <div class="relative group">
+                            <input id="name-input-mobile" name="name" maxlength="30" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="text" value="{{ old('name', Auth::user()->name) }}" required />
+                            <small id="name-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
+                        </div>
                     </div>
-                </div>
-                <div class="space-y-1">
-                    <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Số điện thoại</label>
-                    <div class="relative group">
-                        <input id="phone-input-mobile" name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}"/>
-                        <small id="phone-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
+                    <div class="space-y-1">
+                        <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Số điện thoại</label>
+                        <div class="relative group">
+                            <input id="phone-input-mobile" name="phone" class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md" type="tel" value="{{ old('phone', Auth::user()->phone ?? '') }}" />
+                            <small id="phone-error-mobile" class="text-error block mt-1 ml-1 {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
+                        </div>
                     </div>
-                </div>
-                <div class="space-y-1">
-                    <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Email</label>
-                    <div class="relative group">
-                        <input class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md opacity-70" type="email" value="{{ Auth::user()->email }}" disabled/>
+                    <div class="space-y-1">
+                        <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Email</label>
+                        <div class="relative group">
+                            <input class="w-full h-12 px-4 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary-container transition-all text-body-md opacity-70" type="email" value="{{ Auth::user()->email }}" disabled />
+                        </div>
                     </div>
-                </div>
-                {{-- Ảnh đại diện vừa cắt (JS: cropImage() trong profile.js) — nút sửa avatar ở khối
+                    {{-- Ảnh đại diện vừa cắt (JS: cropImage() trong profile.js) — nút sửa avatar ở khối
                 mobile phía trên dùng CHUNG modal cắt ảnh với bản desktop (#avatarInput/#croppedAvatarInput
                 chỉ khai báo 1 lần trong form desktop), nhưng form desktop bị ẩn trên mobile nên
                 new FormData() của form NÀY sẽ không lấy được giá trị từ input nằm ở form khác. Cần 1
                 input ẩn RIÊNG cho form mobile, được cropImage() đồng bộ giá trị song song. --}}
-                <input type="hidden" name="cropped_avatar" id="croppedAvatarInputMobile">
-                <button type="submit" class="w-full h-12 bg-primary-container text-white font-label-md text-label-md rounded-lg active:scale-95 transition-transform shadow-md mt-4 hover:shadow-lg">
-                    Lưu thay đổi
-                </button>
-            </section>
-        </form>
+                    <input type="hidden" name="cropped_avatar" id="croppedAvatarInputMobile">
+                    <button type="submit" class="w-full h-12 bg-primary-container text-white font-label-md text-label-md rounded-lg active:scale-95 transition-transform shadow-md mt-4 hover:shadow-lg">
+                        Lưu thay đổi
+                    </button>
+                </section>
+            </form>
 
-        <section class="space-y-3 mb-8">
-            <h3 class="font-headline text-headline-md-mobile text-on-surface mb-2">Cài đặt khác</h3>
-            <a href="#password" onclick="showTab('password'); return false;" class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-primary-container/10 transition-colors group shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-primary-container">lock_reset</span>
-                    <span class="font-label-md text-label-md text-on-surface">Đổi mật khẩu</span>
-                </div>
-                <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">chevron_right</span>
-            </a>
-            <a href="{{ route('logout') }}" class="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-error-container/20 transition-colors group shadow-sm">
-                <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-error">logout</span>
-                    <span class="font-label-md text-label-md text-error">Đăng xuất</span>
-                </div>
-            </a>
-        </section>
+            <section class="space-y-3 mb-8">
+                <h3 class="font-headline text-headline-md-mobile text-on-surface mb-2">Cài đặt khác</h3>
+                <a href="#password" onclick="showTab('password'); return false;" class="flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-primary-container/10 transition-colors group shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary-container">lock_reset</span>
+                        <span class="font-label-md text-label-md text-on-surface">Đổi mật khẩu</span>
+                    </div>
+                    <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">chevron_right</span>
+                </a>
+                <a href="{{ route('logout') }}" class="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-outline-variant active:bg-error-container/20 transition-colors group shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-error">logout</span>
+                        <span class="font-label-md text-label-md text-error">Đăng xuất</span>
+                    </div>
+                </a>
+            </section>
         </div>
 
 
@@ -426,13 +426,13 @@
                         <span class="material-symbols-outlined text-primary">lock_reset</span>
                         Đổi mật khẩu
                     </h3>
-                    
+
                     <!-- Mật khẩu hiện tại (Mobile) -->
                     <div class="space-y-1">
                         <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Mật khẩu hiện tại</label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3.5 text-outline select-none text-[20px]">lock</span>
-                            <input id="current_password_mob" name="current_password" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Mật khẩu hiện tại"/>
+                            <input id="current_password_mob" name="current_password" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Mật khẩu hiện tại" />
                             <button type="button" class="absolute right-3.5 text-outline hover:text-primary transition-colors focus:outline-none toggle-password-visibility" data-target="current_password_mob">
                                 <span class="material-symbols-outlined select-none text-[20px]">visibility</span>
                             </button>
@@ -445,7 +445,7 @@
                         <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Mật khẩu mới</label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3.5 text-outline select-none text-[20px]">lock_open</span>
-                            <input id="new_password_mob" name="new_password" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Mật khẩu mới"/>
+                            <input id="new_password_mob" name="new_password" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Mật khẩu mới" />
                             <button type="button" class="absolute right-3.5 text-outline hover:text-primary transition-colors focus:outline-none toggle-password-visibility" data-target="new_password_mob">
                                 <span class="material-symbols-outlined select-none text-[20px]">visibility</span>
                             </button>
@@ -458,7 +458,7 @@
                         <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Xác nhận mật khẩu mới</label>
                         <div class="relative flex items-center">
                             <span class="material-symbols-outlined absolute left-3.5 text-outline select-none text-[20px]">enhanced_encryption</span>
-                            <input id="new_password_confirmation_mob" name="new_password_confirmation" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Xác nhận mật khẩu mới"/>
+                            <input id="new_password_confirmation_mob" name="new_password_confirmation" class="w-full h-12 pl-11 pr-11 rounded-lg bg-[#F0F9F0] border-0 ring-1 ring-outline-variant focus:ring-2 focus:ring-primary transition-all text-body-md outline-none" type="password" required placeholder="Xác nhận mật khẩu mới" />
                             <button type="button" class="absolute right-3.5 text-outline hover:text-primary transition-colors focus:outline-none toggle-password-visibility" data-target="new_password_confirmation_mob">
                                 <span class="material-symbols-outlined select-none text-[20px]">visibility</span>
                             </button>

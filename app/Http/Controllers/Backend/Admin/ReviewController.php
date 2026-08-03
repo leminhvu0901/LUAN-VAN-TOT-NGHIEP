@@ -101,6 +101,10 @@ class ReviewController
 
     /**
      * Chuyển đổi trạng thái hiển thị của đánh giá (toggle visible/hidden).
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho hàm doToggleVisibility() trong file JS: [public/js/backend/admin/reviews/index.js]
+     *   để thay đổi nhãn giao diện (Đang hiển thị/Đang ẩn) và cập nhật số liệu thống kê.
      */
     public function toggleVisibility(Request $request, $id)
     {
@@ -319,6 +323,10 @@ class ReviewController
 
     /**
      * Xóa hàng loạt đánh giá theo mảng id truyền lên từ giao diện.
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho hàm doBulkDelete() trong file JS: [public/js/backend/admin/reviews/index.js]
+     *   để hiển thị hộp thoại Swal thông báo kết quả thành công/thất bại và reload danh sách.
      */
     public function bulkDelete(Request $request)
     {

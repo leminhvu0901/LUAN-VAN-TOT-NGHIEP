@@ -22,12 +22,17 @@ use Illuminate\Validation\ValidationException;
 
 class CartController
 {
+    // Nạp các dịch vụ hỗ trợ tính giá giỏ hàng, tính phí vận chuyển và áp dụng chương trình khuyến mãi
     public function __construct(
-        private readonly CartPricingService $cartPricing,
-        private readonly ShippingQuoteService $shippingQuote,
-        private readonly PromotionService $promotions,
+        private readonly CartPricingService $sv_cartPricing,
+        private readonly ShippingQuoteService $sv_shippingQuote,
+        private readonly PromotionService $sv_promotions,
     ) {}
 
+    /**
+     * Xác định xem giỏ hàng thuộc về người dùng đã đăng nhập (lấy theo user_id)
+     * hay khách vãng lai chưa đăng nhập (lấy theo session_id hiện tại của trình duyệt).
+     */
     private function getCartIdentifier()
     {
         if (Auth::check()) {
@@ -38,6 +43,10 @@ class CartController
         return ['session_id' => $sessionId];
     }
 
+    /**
+     * Truy vấn tìm kiếm giỏ hàng hiện tại. Nếu chưa có giỏ hàng tương ứng
+     * với định danh (user_id hoặc session_id), hệ thống sẽ tạo mới một giỏ hàng trống trong DB.
+     */
     private function getOrCreateCart()
     {
         $identifier = $this->getCartIdentifier();
@@ -50,6 +59,7 @@ class CartController
         }
         $cart = $cart->first();
 
+        // Tạo giỏ hàng mới nếu chưa từng có
         if (!$cart) {
             $cartId = \App\Models\Cart::query()->insertGetId(array_merge($identifier, [
                 'created_at' => now(),
@@ -61,16 +71,25 @@ class CartController
         return $cart;
     }
 
+    /**
+     * Tìm kiếm giỏ hàng hiện tại mà không tự động tạo mới (trả về null nếu không tìm thấy)
+     */
     private function findCart(): ?Cart
     {
         $identifier = $this->getCartIdentifier();
         return Cart::query()->where(key($identifier), current($identifier))->first();
     }
 
+    /**
+     * Lấy toàn bộ thông tin chi tiết của giỏ hàng hiện tại để render ra giao diện (ví dụ: giỏ hàng trượt Sidebar).
+     * Hàm này đồng thời tính toán tổng tiền tạm tính, nạp kèm danh sách topping, và kiểm tra xem giỏ hàng 
+     * có đủ điều kiện nhận quà tặng hoặc giảm giá từ các chương trình khuyến mãi combo hay không.
+     */
     public function getCartData()
     {
-        $cart = $this->findCart();
+        $cart = $this->findCart();// Tìm kiếm giỏ hàng hiện tại
 
+        // Nếu người dùng chưa có giỏ hàng, trả về mảng trống
         if (!$cart) {
             return response()->json([
                 'success' => true,
@@ -81,6 +100,7 @@ class CartController
             ]);
         }
 
+        // Lấy danh sách các món nước trong giỏ hàng và kết nối với bảng sản phẩm để lấy thông tin Tên, Ảnh
         $items = \App\Models\CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.cart_id', $cart->id)
@@ -89,6 +109,8 @@ class CartController
             ->get();
 
         $itemIds = $items->pluck('id');
+
+        // Lấy toàn bộ topping đi kèm của các món nước trong giỏ hàng bằng một câu truy vấn duy nhất (Eager Loading thủ công)
         $itemToppings = \App\Models\CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
@@ -97,15 +119,14 @@ class CartController
 
         $total = 0;
         foreach ($items as $item) {
+            // Lọc ra các topping tương ứng với từng dòng sản phẩm
             $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
+            // Cộng dồn tổng tiền tạm tính (Giá đã gồm size + topping * Số lượng)
             $total += $item->unit_price * $item->quantity;
         }
 
-        // Xem trước thưởng combo ngay ở ngăn kéo giỏ hàng — chỉ để HIỂN THỊ (không phải số tiền/lưu
-        // DB), nên dùng thẳng $items thô (đã có product_id+quantity) không cần CartPricingService.
-        // Kênh 'delivery' vì ngăn kéo giỏ hàng chỉ phục vụ khách tự mua trên website (không phải POS).
-        // Không truyền context mã giảm giá (ngăn kéo này chưa từng hiển thị tương tác với coupon).
-        $comboEntries = $this->promotions->resolveComboRewards($items, 'delivery')['entries'];
+        // Giải quyết các phần thưởng combo khuyến mãi (quà tặng đính kèm, tiền chiết khấu combo)
+        $comboEntries = $this->sv_promotions->resolveComboRewards($items, 'delivery')['entries']; //// Xử lý và tính toán tất cả các phần thưởng Combo (giảm giá & tặng quà) cho giỏ hàng
         $gifts = collect($comboEntries)->where('type', 'gift');
         $comboDiscount = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
@@ -115,17 +136,25 @@ class CartController
             'count' => count($items),
             'total' => $total,
             'formatted_total' => number_format($total, 0, ',', '.') . 'đ',
-            'gifts' => $gifts->map(fn ($g) => [
+            // Trả về danh sách quà tặng combo kèm số lượng để JS render ra giỏ hàng
+            'gifts' => $gifts->map(fn($g) => [
                 'gift_product_name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
             ])->values(),
             'combo_discount' => $comboDiscount,
             'formatted_combo_discount' => $comboDiscount > 0 ? number_format($comboDiscount, 0, ',', '.') . 'đ' : null,
-        ]);
+        ]); // main.js - updateCartUI(), POS create.js
     }
 
+    /**
+     * Thêm một sản phẩm với các tuỳ chọn tuỳ biến vào giỏ hàng.
+     * Thuật toán so khớp: Nếu ly nước mới thêm có cùng ID sản phẩm, cùng Size, cùng Mức đường, Mức đá
+     * và đặc biệt là cùng chính xác bộ Topping đã chọn -> Hệ thống sẽ gộp số lượng lại. 
+     * Nếu lệch dù chỉ 1 tuỳ chọn hoặc 1 topping -> Hệ thống sẽ tạo một dòng mới trong giỏ hàng.
+     */
     public function add(Request $request)
     {
+        // 1. Kiểm tra định dạng dữ liệu đầu vào gửi lên
         $validated = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
@@ -138,6 +167,8 @@ class CartController
 
         $productId = (int) $validated['product_id'];
         $quantity = (int) ($validated['quantity'] ?? 1);
+
+        // Xác định Size: Nếu khách không chọn, tự động lấy Size có giá phụ thu thấp nhất
         $sizeName = $validated['size_name'] ?? null;
         if (empty($sizeName)) {
             $defaultSize = \App\Models\ProductSize::query()
@@ -149,16 +180,19 @@ class CartController
             }
         }
 
+        // Xác định mức đường (Mặc định là 100% đường nếu trống)
         $sugarLevel = $request->input('sugar_level');
         if ($sugarLevel === null) {
             $sugarLevel = '100';
         }
 
+        // Xác định mức đá (Mặc định là đá bình thường nếu trống)
         $iceLevel = $request->input('ice_level');
         if ($iceLevel === null) {
             $iceLevel = 'normal';
         }
 
+        // Loại bỏ các ID topping trùng lặp trong mảng yêu cầu
         $toppingIds = array_values(array_unique($validated['toppings'] ?? []));
 
         $product = \App\Models\Product::query()->where('id', $productId)->first();
@@ -166,12 +200,12 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
 
-        // Kiểm tra sản phẩm còn hàng không
+        // Ngăn chặn thêm sản phẩm vào giỏ nếu sản phẩm đó đã bị tắt hoạt động (hết hàng/ngừng bán)
         if (!$product->is_active) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này đã hết hàng, không thể thêm vào giỏ hàng.']);
         }
 
-        // Tính giá dựa theo size
+        // Tính đơn giá bắt đầu bằng giá cơ bản của sản phẩm
         $unitPrice = $product->base_price;
         if ($sizeName) {
             $sizeRecord = \App\Models\ProductSize::query()
@@ -181,10 +215,11 @@ class CartController
             if (!$sizeRecord) {
                 return response()->json(['success' => false, 'message' => 'Kích thước không hợp lệ cho sản phẩm này.'], 422);
             }
+            // Cộng thêm tiền chênh lệch kích cỡ
             $unitPrice += $sizeRecord->price_adjustment;
         }
 
-        // Tính giá dựa theo topping
+        // Tính toán phụ thu từ danh sách các Topping được chọn thêm
         $tops = [];
         if (!empty($toppingIds)) {
             $tops = \App\Models\Topping::query()
@@ -193,17 +228,24 @@ class CartController
                 ->where('toppings.is_available', 1)
                 ->whereIn('toppings.id', $toppingIds)
                 ->select('toppings.*')->get();
+
+            // Đảm bảo số lượng topping hợp lệ khớp với số lượng gửi lên
             if ($tops->count() !== count($toppingIds)) {
                 return response()->json(['success' => false, 'message' => 'Topping không hợp lệ cho sản phẩm này.'], 422);
             }
             foreach ($tops as $t) {
+                // Cộng dồn tiền topping vào đơn giá món nước
                 $unitPrice += $t->price;
             }
         }
 
         $cart = $this->getOrCreateCart();
 
-        // Tìm các items cùng product_id, size, sugar, ice
+        // =========================================================================
+        // THUẬT TOÁN SO KHỚP SẢN PHẨM TRÙNG TRONG GIỎ HÀNG
+        // =========================================================================
+
+        // Bước 1: Tìm tất cả các món nước trong giỏ có chung Product, Size, Đường và Đá
         $potentialItems = \App\Models\CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
@@ -214,22 +256,25 @@ class CartController
 
         $existingItem = null;
         $reqTops = $toppingIds;
-        sort($reqTops);
+        sort($reqTops); // Sắp xếp mảng ID topping yêu cầu tăng dần để chuẩn bị so sánh
 
+        // Bước 2: Duyệt qua các món nước tìm được, so sánh danh sách Topping đi kèm của chúng
         foreach ($potentialItems as $pi) {
             $piToppings = \App\Models\CartItemTopping::query()
                 ->where('cart_item_id', $pi->id)
                 ->pluck('topping_id')
                 ->toArray();
 
-            sort($piToppings);
+            sort($piToppings); // Sắp xếp mảng ID topping của món trong giỏ tăng dần
 
+            // So sánh 2 mảng đã được sắp xếp. Nếu trùng khít -> Đã tìm thấy ly nước y hệt cấu hình
             if ($piToppings == $reqTops) {
                 $existingItem = $pi;
                 break;
             }
         }
 
+        // Bước 3: Nếu tìm thấy ly nước trùng cấu hình -> Cập nhật cộng dồn số lượng (tối đa 99 ly)
         if ($existingItem) {
             \App\Models\CartItem::query()
                 ->where('id', $existingItem->id)
@@ -238,6 +283,7 @@ class CartController
                     'updated_at' => now()
                 ]);
         } else {
+            // Nếu không trùng khớp -> Tạo mới một dòng sản phẩm trong giỏ hàng
             $newItemId = \App\Models\CartItem::query()->insertGetId([
                 'cart_id' => $cart->id,
                 'product_id' => $productId,
@@ -250,6 +296,7 @@ class CartController
                 'updated_at' => now()
             ]);
 
+            // Lưu liên kết các topping đi kèm của ly nước mới tạo này vào cơ sở dữ liệu
             if (!empty($tops)) {
                 $inserts = [];
                 foreach ($tops as $t) {
@@ -263,9 +310,13 @@ class CartController
             }
         }
 
+        // Trả về dữ liệu giỏ hàng mới nhất sau khi thêm
         return $this->getCartData();
     }
 
+    /**
+     * Xóa một sản phẩm cụ thể khỏi giỏ hàng của khách hàng
+     */
     public function remove(Request $request)
     {
         $validated = $request->validate(['item_id' => ['required', 'integer']]);
@@ -281,7 +332,10 @@ class CartController
         return $this->getCartData();
     }
 
-    public function update(Request $request)
+    /**
+     * Cập nhật số lượng mua của một sản phẩm trong giỏ hàng (khi nhấn tăng/giảm nút cộng trừ)
+     */
+    public function  update(Request $request)
     {
         $validated = $request->validate([
             'item_id' => ['required', 'integer'],
@@ -302,10 +356,9 @@ class CartController
         return $this->getCartData();
     }
 
-    // Xóa nhiều sản phẩm cùng lúc ("Xóa đã chọn") - dùng đúng danh sách item_id đang được tick chọn
-    // ở ngăn kéo giỏ hàng (cùng checkbox dùng cho "chọn để thanh toán"), scope theo cart_id của
-    // CHÍNH người dùng đang đăng nhập giống remove()/update() ở trên, không tin item_id gửi lên thuộc
-    // về giỏ hàng nào.
+    /**
+     * Xóa hàng loạt các sản phẩm được tích chọn trong giỏ hàng (tính năng "Xóa đã chọn")
+     */
     public function removeMany(Request $request)
     {
         $validated = $request->validate([
@@ -324,7 +377,9 @@ class CartController
         return $this->getCartData();
     }
 
-    // Xóa toàn bộ giỏ hàng ("Xóa tất cả").
+    /**
+     * Xóa toàn bộ sản phẩm có trong giỏ hàng của khách hàng (làm trống giỏ hàng)
+     */
     public function clear(Request $request)
     {
         $cart = $this->findCart();
@@ -336,16 +391,21 @@ class CartController
         return $this->getCartData();
     }
 
+    /**
+     * Thêm toàn bộ các sản phẩm còn đang bán trong mục "Yêu thích" vào lại giỏ hàng.
+     * Mặc định các món này sẽ lấy kích cỡ chuẩn, 100% đường và đá bình thường.
+     */
     public function addAll(Request $request)
     {
         if (!Auth::check()) {
             return response()->json(['success' => false, 'message' => 'Bạn cần đăng nhập để sử dụng tính năng này']);
         }
 
+        // Lấy danh sách sản phẩm yêu thích còn kinh doanh
         $favorites = \App\Models\Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->where('favorites.user_id', Auth::id())
-            ->where('products.is_active', 1) // Chỉ thêm sản phẩm còn hàng
+            ->where('products.is_active', 1)
             ->select('products.id', 'products.base_price')
             ->get();
 
@@ -356,6 +416,7 @@ class CartController
         $cart = $this->getOrCreateCart();
 
         foreach ($favorites as $product) {
+            // Xác định size mặc định rẻ nhất
             $defaultSize = \App\Models\ProductSize::query()
                 ->where('product_id', $product->id)
                 ->orderBy('price_adjustment', 'asc')
@@ -366,6 +427,7 @@ class CartController
             $sugarLevel = '100';
             $iceLevel = 'normal';
 
+            // Kiểm tra xem sản phẩm mặc định này đã có trong giỏ chưa
             $existingItem = \App\Models\CartItem::query()
                 ->where('cart_id', $cart->id)
                 ->where('product_id', $product->id)
@@ -374,14 +436,13 @@ class CartController
                 ->where('ice_level', $iceLevel)
                 ->first();
 
-            // We also need to make sure this existing item doesn't have toppings,
-            // but for simplicity we'll just check the basic fields.
+            // Chỉ gộp số lượng nếu ly nước trong giỏ đó không chứa topping (vì ly yêu thích thêm nhanh không có topping)
             $hasNoToppings = true;
             if ($existingItem) {
                 $hasToppings = \App\Models\CartItemTopping::query()->where('cart_item_id', $existingItem->id)->exists();
                 if ($hasToppings) {
                     $hasNoToppings = false;
-                    $existingItem = null; // force create new item
+                    $existingItem = null; // Tạo mới dòng nếu ly cũ trong giỏ có topping
                 }
             }
 
@@ -410,6 +471,15 @@ class CartController
         return $this->getCartData();
     }
 
+    /**
+     * Ghi nhận danh sách ID các sản phẩm được người dùng tích chọn thanh toán vào Session.
+     * Điều này đảm bảo khi chuyển hướng sang trang thanh toán (Checkout), hệ thống chỉ tính tiền
+     * cho những món nước được chọn, thay vì thanh toán toàn bộ giỏ hàng.
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho hàm cartProceedToCheckout() trong file JS: [public/js/frontend/layout/main.js]
+     *   để điều hướng sang trang /checkout khi thành công.
+     */
     public function setSelected(Request $request)
     {
         $validated = $request->validate([
@@ -417,12 +487,12 @@ class CartController
             'selected_item_ids.*' => ['integer', 'min:1'],
         ]);
 
-        // Verify the IDs actually belong to this user's cart (server-side security)
         $cart = $this->findCart();
         if (!$cart) {
             return response()->json(['success' => false, 'message' => 'Giỏ hàng không tồn tại.'], 400);
         }
 
+        // Xác thực chặt chẽ phía Server: Đảm bảo các ID sản phẩm gửi lên thực sự thuộc giỏ hàng của user này
         $validIds = CartItem::query()
             ->where('cart_id', $cart->id)
             ->whereIn('id', $validated['selected_item_ids'])
@@ -433,6 +503,7 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Không có sản phẩm hợp lệ được chọn.'], 422);
         }
 
+        // Lưu danh sách ID hợp lệ vào Session
         session(['selected_cart_item_ids' => $validIds]);
 
         return response()->json([
@@ -442,6 +513,11 @@ class CartController
         ]);
     }
 
+    /**
+     * Mở trang hiển thị thông tin thanh toán (Checkout).
+     * Hàm này kiểm tra trạng thái hoạt động của cửa hàng (giờ đóng mở cửa), nạp danh sách địa chỉ nhận hàng,
+     * tính toán giá tạm tính cho các sản phẩm đã chọn, và áp dụng trước các chương trình chiết khấu combo/quà tặng.
+     */
     public function checkout()
     {
         if (!Auth::check()) {
@@ -450,14 +526,13 @@ class CartController
 
         $userId = Auth::id();
 
-        // Fetch user addresses
+        // Lấy danh sách địa chỉ của khách hàng (ưu tiên địa chỉ mặc định lên đầu)
         $addresses = \App\Models\UserAddress::query()
             ->where('user_id', $userId)
             ->orderBy('is_default', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Fetch user's cart
         $cart = \App\Models\Cart::query()
             ->where('user_id', $userId)
             ->first();
@@ -466,11 +541,11 @@ class CartController
         $subtotal = 0;
         if ($cart) {
             try {
-                // Đọc danh sách id sản phẩm đã chọn từ session (null = lấy toàn bộ giỏ)
+                // Đọc danh sách ID sản phẩm khách đã tick chọn thanh toán lưu trong Session
                 $selectedIds = session('selected_cart_item_ids');
 
-                // Nếu có selectedIds, validate lại phía server rằng chúng thuộc cart của user này
                 if (!empty($selectedIds)) {
+                    // Xác thực lại tính hợp lệ của danh sách ID sản phẩm
                     $validSelectedIds = CartItem::query()
                         ->where('cart_id', $cart->id)
                         ->whereIn('id', $selectedIds)
@@ -478,33 +553,33 @@ class CartController
                         ->toArray();
                     $selectedIds = !empty($validSelectedIds) ? $validSelectedIds : null;
                 } else {
-                    $selectedIds = null; // fallback: tất cả giỏ
+                    $selectedIds = null; // Mặc định thanh toán toàn bộ giỏ nếu session trống
                 }
 
-                $items = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
+                // Gọi CartPricingService để tính toán giá tiền (áp dụng các chiết khấu thành viên nếu có)
+                $items = $this->sv_cartPricing->pricedItems($cart, selectedIds: $selectedIds);
                 foreach ($items as $item) {
                     $item->name = $item->product->name;
                     $item->image = $item->product->image;
                     $item->toppings = $item->calculated_toppings;
                 }
-                $subtotal = $this->cartPricing->subtotal($items);
+                $subtotal = $this->sv_cartPricing->subtotal($items);
             } catch (ValidationException $exception) {
                 return redirect('/')->withErrors($exception->errors());
             }
         }
 
-        // If cart is empty, redirect back to products or home with a warning
+        // Trả về trang chủ kèm cảnh báo nếu giỏ thanh toán trống
         if ($items->isEmpty()) {
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        // Thưởng combo đang đủ điều kiện — chỉ để HIỂN THỊ ở trang checkout, số tiền/quà tặng thật sự
-        // được vật chất hóa lại từ đầu trong OrderService::create() khi đặt hàng thật. Không truyền
-        // context mã giảm giá (trang này chưa tính coupon trước khi đặt hàng thật).
-        $comboEntries = $this->promotions->resolveComboRewards($items, 'delivery')['entries'];
+        // Tính toán hiển thị quà tặng combo và mức chiết khấu combo trực quan tại trang checkout
+        $comboEntries = $this->sv_promotions->resolveComboRewards($items, 'delivery')['entries'];
         $gifts = collect($comboEntries)->where('type', 'gift')->values()->all();
         $comboDiscount = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
+        // Xác định ngưỡng miễn phí vận chuyển theo hạng thành viên (Diamond được miễn phí hoàn toàn)
         $freeShipThreshold = (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
         if ($user) {
@@ -521,7 +596,7 @@ class CartController
             }
         }
 
-        // 1. Kiểm tra tắt nhận đơn hàng
+        // 1. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản trị của Admin
         $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
         $isClosed = !$receiveEnabled;
         $closedReason = null;
@@ -529,15 +604,15 @@ class CartController
         if ($isClosed) {
             $closedReason = 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!';
         } else {
-            // 2. Kiểm tra giờ đóng/mở cửa
+            // 2. Kiểm tra giờ hoạt động của cửa hàng (Hỗ trợ cấu hình chạy qua đêm)
             $open = \App\Models\Setting::getValue('store_open_time', '08:00');
             $close = \App\Models\Setting::getValue('store_close_time', '22:00');
             $nowStr = now()->format('H:i');
-            
+
             $isOpen = false;
             if ($open < $close) {
                 $isOpen = ($nowStr >= $open && $nowStr <= $close);
-            } else { // Qua đêm
+            } else { // Khung giờ mở qua đêm
                 $isOpen = ($nowStr >= $open || $nowStr <= $close);
             }
             if (!$isOpen) {
@@ -546,6 +621,7 @@ class CartController
             }
         }
 
+        // Khởi tạo token chống đặt lặp đơn (Idempotency token) và lưu vào Session
         $checkoutToken = (string) Str::uuid();
         session(['checkout_token' => $checkoutToken]);
 
@@ -556,6 +632,11 @@ class CartController
         return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts', 'comboDiscount'));
     }
 
+    /**
+     * Tính toán khoảng cách vận chuyển thực tế qua API bản đồ Geoapify.
+     * Nếu địa chỉ của người dùng chưa có toạ độ (vĩ độ, kinh độ), hệ thống sẽ geocode ngầm 
+     * địa chỉ dạng chữ qua Geoapify Geocoding API để xác định tọa độ và lưu trữ lại sử dụng lâu dài.
+     */
     public function calculateDistance(Request $request, \App\Services\GeoapifyService $geoapify)
     {
         $addressId = $request->query('address_id');
@@ -570,17 +651,10 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Địa chỉ không hợp lệ'], 400);
         }
 
-        // Thiếu tọa độ (địa chỉ cũ nhập tay, chưa từng chọn qua bản đồ) -> geocode chuỗi địa chỉ qua
-        // Geoapify Geocoding API để lấy tọa độ, rồi lưu lại vào DB để dùng ngay từ lần sau.
+        // Tự động Geocode nếu địa chỉ thiếu tọa độ GPS và lưu
         if (empty($address->latitude) || empty($address->longitude)) {
-            // Đã xác nhận qua test thật với API Geoapify: (1) CỐ Ý bỏ Phường/Xã khỏi chuỗi truy vấn —
-            // cụm "Phường 8" (phường đặt tên bằng số) khiến Geoapify hiểu sai địa chỉ hoàn toàn (trả về
-            // tọa độ ở Bắc Ninh/Hà Nội thay vì TP.HCM, confidence=0); (2) BẮT BUỘC phải có "Việt Nam" ở
-            // cuối — thiếu quốc gia thì Geoapify trả về 0 kết quả hoàn toàn (không parse được). Chỉ dùng
-            // "địa chỉ cụ thể + quận/huyện + tỉnh/thành + Việt Nam" cho kết quả đúng ổn định
-            // (confidence=1.0, match_type=full_match khi kiểm tra thật).
             $destAddress = $address->specific_address . ', ' . $address->district . ', ' . $address->province . ', Việt Nam';
-            $geocoded = $geoapify->geocodeAddress($destAddress);
+            $geocoded = $geoapify->geocodeAddress($destAddress);// Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ - kinh độ)
             if ($geocoded) {
                 $address->latitude = $geocoded['lat'];
                 $address->longitude = $geocoded['lng'];
@@ -592,23 +666,20 @@ class CartController
             }
         }
 
-        // Tái dùng ĐÚNG luồng tính khoảng cách thật (Geoapify Routing API -> OpenRouteService dự phòng
-        // -> ước lượng cố định theo quận/huyện) đang dùng cho đơn hàng thật ở ShippingQuoteService, đảm
-        // bảo số hiển thị ở màn hình checkout luôn khớp với số tính phí thật khi đặt hàng.
-        $result = $this->shippingQuote->distanceForWithSource($address);
+        // Sử dụng ShippingQuoteService để tính toán khoảng cách thực tế (theo tuyến đường đi)
+        $result = $this->sv_shippingQuote->distanceForWithSource($address);
 
         return response()->json([
             'success' => true,
             'distance_km' => $result['distance_km'],
             'is_mock' => $result['is_mock'],
             'message' => $result['is_mock'] ? 'Sử dụng khoảng cách mô phỏng dự phòng.' : null,
-        ]);
+        ]); // checkout.js - updateDistanceForAddress()
     }
 
-    // Giỏ hàng đã tính giá (calculated_unit_price/product load sẵn) + tổng đã chọn, đúng theo cách
-    // checkout() đang dựng danh sách món — dùng CHUNG ở đây để validateCoupon() không còn phải tin số
-    // subtotal/quantity do JS gửi lên (trước đây $subtotal lấy thẳng từ request, có thể bị sửa tùy ý
-    // trong DevTools). Trả collection rỗng nếu chưa có giỏ hàng.
+    /**
+     * Lấy danh sách sản phẩm đã được tính giá cụ thể của người dùng để chuẩn bị validate Coupon giảm giá
+     */
     private function pricedSelectedItems(): \Illuminate\Support\Collection
     {
         $cart = $this->findCart();
@@ -625,12 +696,15 @@ class CartController
         }
 
         try {
-            return $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
+            return $this->sv_cartPricing->pricedItems($cart, selectedIds: $selectedIds);
         } catch (ValidationException) {
             return collect();
         }
     }
 
+    /**
+     * Xác minh tính hợp lệ và tính mức tiền được khấu trừ khi áp dụng Mã giảm giá (Coupon)
+     */
     public function validateCoupon(Request $request)
     {
         $code = strtoupper(trim($request->input('coupon_code')));
@@ -638,14 +712,18 @@ class CartController
         if ($items->isEmpty()) {
             return response()->json(['valid' => false, 'message' => 'Giỏ hàng của bạn đang trống.']);
         }
-        $subtotal = $this->cartPricing->subtotal($items);
+        $subtotal = $this->sv_cartPricing->subtotal($items);//tính tổng số tiền của giỏ hàng trước khi áp dụng mã giảm giá.
         $totalQuantity = (int) $items->sum('quantity');
-        $user = Auth::check() ? Auth::user() : null;
+        
+        if (Auth::check()) {
+            $user = Auth::user();
+        } else {
+            $user = null;
+        }
 
         try {
-            // Trang checkout của khách hàng luôn là đơn giao hàng (không có tùy chọn nhận tại quầy) ->
-            // mã chỉ dành riêng cho "Tại quầy" bị PromotionService từ chối ở đây (channel='delivery').
-            $result = $this->promotions->resolveBestDiscount($items, $subtotal, $user, 'delivery', $totalQuantity, $code);
+            // Chọn mã giảm giá tốt nhất cho giỏ hàng, kiểm tra hợp lệ
+            $result = $this->sv_promotions->resolveBestDiscount($items, $subtotal, $user, 'delivery', $totalQuantity, $code);
         } catch (ValidationException $e) {
             return response()->json(['valid' => false, 'message' => collect($e->errors())->flatten()->first()]);
         }
@@ -660,21 +738,20 @@ class CartController
             'discount_value' => $coupon->value,
             'discount_type' => $coupon->type,
             'max_discount_amount' => $coupon->max_discount_amount,
-            // Cho JS hiển thị rõ mã áp dụng cho phạm vi nào (toàn đơn/sản phẩm/danh mục cụ thể).
             'scope' => $coupon->scope,
+            // Mô tả phạm vi áp dụng cho sản phẩm hoặc danh mục cụ thể để hiển thị trực quan lên giao diện
             'scope_label' => match ($coupon->scope) {
                 'product' => 'Áp dụng cho: ' . $coupon->products->pluck('name')->implode(', '),
                 'category' => 'Áp dụng cho danh mục: ' . $coupon->categories->pluck('name')->implode(', '),
                 default => null,
             },
-        ]);
+        ]); // checkout.js - applyCouponBtn click listener - 1182
     }
 
-    // Phụ thu thời tiết hiển thị ở trang checkout. TOÀN BỘ phép tính (bật/tắt, mức %, ép thời tiết để
-    // demo, quy tắc miễn ship thì miễn phụ thu) nằm trong ShippingQuoteService::weatherSurcharge() —
-    // ở đây chỉ dựng lại đúng mức phí ship rồi gọi sang, để số hiện trên màn hình luôn khớp số thật
-    // lúc tạo đơn. Trước đây hàm này tự tính riêng (bỏ qua cờ bật/tắt, hard-code 5/10/15% và công thức
-    // phí ship 3.000đ/km) nên có thể hiện một đằng, tính tiền một nẻo.
+    /**
+     * Tính toán khoản phụ thu thời tiết xấu (ví dụ mưa bão, ngập lụt) dựa theo tọa độ giao hàng.
+     * Hệ thống tự động liên kết với API thời tiết hoặc cấu hình thủ công trong trang quản trị.
+     */
     public function calculateWeatherFee(Request $request)
     {
         $address = \App\Models\UserAddress::query()
@@ -689,6 +766,7 @@ class CartController
         $subtotal = (float) $request->query('subtotal', 0);
         $distanceKm = (float) $request->query('distance_km', 0);
 
+        // Lấy ngưỡng được miễn phí vận chuyển theo hạng thành viên
         $threshold = match (Auth::user()?->membership_level) {
             'silver' => 120000.0,
             'gold' => 90000.0,
@@ -696,13 +774,14 @@ class CartController
             default => (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000),
         };
 
-        // Dựng lại phí ship theo ĐÚNG công thức của ShippingQuoteService::quote().
+        // Tính phí vận chuyển cơ bản dựa theo khoảng cách km
         $baseFee = (float) \App\Models\Setting::getValue('shipping_base_fee', 15000);
         $feePerKm = (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000);
         $shippingFee = $distanceKm <= 2 ? $baseFee : $baseFee + ($distanceKm - 2) * $feePerKm;
-        $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee);
+        $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee); // Miễn ship nếu đạt ngưỡng
 
-        $result = $this->shippingQuote->weatherSurcharge(
+        // Tính toán mức phụ thu thời tiết xấu dựa trên phí vận chuyển chuẩn thông qua ShippingQuoteService
+        $result = $this->sv_shippingQuote->weatherSurcharge(
             $shippingFee,
             $address->latitude ? (float) $address->latitude : null,
             $address->longitude ? (float) $address->longitude : null,
@@ -712,6 +791,6 @@ class CartController
             'success' => true,
             'fee' => $result['fee'],
             'condition' => $result['label'],
-        ]);
+        ]); // checkout.js - updateWeatherFeeForAddress()
     }
 }

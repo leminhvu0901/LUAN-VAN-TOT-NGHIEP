@@ -4,28 +4,25 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
-// Gọi Geoapify (Geocoding API + Routing API) phía server. Không chứa nghiệp vụ tính phí — chỉ trả
-// về khoảng cách/tọa độ thô, nơi gọi (ShippingQuoteService/CartController) tự quyết định cách dùng.
-// Mọi lỗi (thiếu key/timeout/HTTP lỗi/JSON không hợp lệ) đều trả về null một cách im lặng, nơi gọi
-// tự rơi về dự phòng của chính nó — không bao giờ ném exception ra ngoài.
 class GeoapifyService
 {
+    // Lấy API Key Geoapify từ file cấu hình
     private function apiKey(): ?string
     {
-        return config('services.geoapify.key');
+        return config('services.geoapify.key'); // Đọc API key Geoapify cấu hình trong file config/services.php
     }
 
-    // Khoảng cách lái xe thật (km, làm tròn 1 chữ số thập phân) giữa 2 tọa độ qua Geoapify Routing
-    // API. null nếu thiếu key/lỗi mạng/HTTP lỗi/không có route.
+    // Tính khoảng cách lái xe thực tế (km) giữa hai tọa độ
     public function drivingDistanceKm(float $originLat, float $originLng, float $destLat, float $destLng): ?float
     {
-        $key = $this->apiKey();
+        $key = $this->apiKey(); // Lấy API Key phục vụ gọi API bên ngoài
         if (!$key) {
             return null;
         }
 
         try {
-            $response = Http::timeout(8)->get('https://api.geoapify.com/v1/routing', [
+            // Gọi API tính toán tuyến đường (Routing API) của Geoapify
+            $response = Http::timeout(8)->get('https://api.geoapify.com/v1/routing', [ // Gọi HTTP GET đến dịch vụ Routing của Geoapify
                 'waypoints' => "{$originLat},{$originLng}|{$destLat},{$destLng}",
                 'mode' => 'drive',
                 'apiKey' => $key,
@@ -35,54 +32,71 @@ class GeoapifyService
                 return null;
             }
 
+            // Lấy khoảng cách đơn vị mét từ phản hồi JSON
             $meters = $response->json('features.0.properties.distance');
-            return is_numeric($meters) ? round($meters / 1000, 1) : null;
+
+            // Đổi từ mét sang km và làm tròn 1 chữ số thập phân
+            if (is_numeric($meters)) {
+                return round($meters / 1000, 1);
+            } else {
+                return null;
+            }
         } catch (\Throwable) {
             return null;
         }
     }
 
-    // Chuyển địa chỉ dạng chữ -> tọa độ thật qua Geoapify Geocoding API (forward). Trả về mảng
-    // ['lat','lng','confidence','formatted'] hoặc null nếu thiếu key/lỗi mạng/HTTP lỗi/không tìm thấy.
-    //   - confidence (0..1, từ rank.confidence): nơi gọi tự quyết ngưỡng để coi kết quả là "mơ hồ".
-    //   - formatted: địa chỉ tham khảo Geoapify chuẩn hóa (chỉ để hiển thị/đối chiếu, KHÔNG ghi đè
-    //     tỉnh/thành, phường/xã khách đã nhập).
-    //   - $biasLat/$biasLng (tùy chọn): proximity bias — ưu tiên kết quả gần điểm này (vd quanh cửa
-    //     hàng) để tên đường trùng ở nhiều tỉnh không nhảy nhầm ra tỉnh khác.
+    // Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ - kinh độ)
     public function geocodeAddress(string $address, ?float $biasLat = null, ?float $biasLng = null): ?array
     {
-        $key = $this->apiKey();
+        $key = $this->apiKey(); // Lấy API Key phục vụ gọi API bên ngoài
         if (!$key) {
             return null;
         }
 
         try {
+            // Chuẩn bị tham số cho API tra cứu địa chỉ (Geocoding API)
             $params = [
                 'text' => $address,
                 'lang' => 'vi',
                 'limit' => 1,
                 'apiKey' => $key,
             ];
+
+            // Thêm tham số định vị ưu tiên theo khu vực quanh tọa độ mốc nếu có
             if ($biasLat !== null && $biasLng !== null) {
                 $params['bias'] = 'proximity:' . $biasLng . ',' . $biasLat;
             }
 
-            $response = Http::timeout(8)->get('https://api.geoapify.com/v1/geocode/search', $params);
+            // Gọi Geocoding API của Geoapify để tìm tọa độ
+            $response = Http::timeout(8)->get('https://api.geoapify.com/v1/geocode/search', $params); // Gọi HTTP GET đến dịch vụ Geocoding của Geoapify
 
+            // Trả về null nếu phản hồi HTTP từ server bị lỗi
             if (!$response->successful()) {
                 return null;
             }
 
+            // Lấy danh sách thuộc tính kết quả tìm kiếm địa chỉ từ JSON
             $props = $response->json('features.0.properties');
+
+            // Bắt buộc phải có đủ tọa độ Vĩ độ (lat) và Kinh độ (lon)
             if (!isset($props['lat'], $props['lon'])) {
                 return null;
             }
 
+            // Lấy địa chỉ đã định dạng chuẩn từ kết quả API
+            if (isset($props['formatted'])) {
+                $formatted = $props['formatted'];
+            } else {
+                $formatted = '';
+            }
+
+            // Trả về mảng chứa tọa độ, độ tin cậy và địa chỉ chuẩn hóa
             return [
                 'lat' => (float) $props['lat'],
                 'lng' => (float) $props['lon'],
                 'confidence' => (float) ($props['rank']['confidence'] ?? 0),
-                'formatted' => $props['formatted'] ?? '',
+                'formatted' => $formatted,
             ];
         } catch (\Throwable) {
             return null;

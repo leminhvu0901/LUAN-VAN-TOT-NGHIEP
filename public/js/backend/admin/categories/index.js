@@ -1,12 +1,22 @@
 /**
- * Xử lý lọc danh sách danh mục bằng AJAX
+ * index.js - Xử lý danh sách danh mục sản phẩm ở khu vực Admin
+ * Các tính năng bao gồm:
+ * - Gọi AJAX lọc dữ liệu theo bộ tìm kiếm (debounce 400ms) và dropdown lọc.
+ * - Chuyển tiếp các trang (Phân trang AJAX).
+ * - Xóa đơn lẻ danh mục và tạo hiệu ứng CSS trượt biến mất.
+ * - Xóa hàng loạt danh mục đã chọn (Bulk Delete) có hộp thoại xác nhận.
+ * - Tự động đồng bộ và giữ trạng thái tích chọn checkbox sau khi tải AJAX.
  */
 document.addEventListener('DOMContentLoaded', function () {
-    const filterForm = document.getElementById('filter-form');
-    const tableContainer = document.getElementById('table-container');
-    const btnClearFilter = document.getElementById('btn-clear-filter');
+    // === PHẦN TỬ DOM ===
+    const filterForm = document.getElementById('filter-form'); // Form bộ lọc đầu trang
+    const tableContainer = document.getElementById('table-container'); // Khung chứa bảng danh mục
+    const btnClearFilter = document.getElementById('btn-clear-filter'); // Nút xóa lọc
 
-    // Hàm gọi AJAX lấy dữ liệu
+    /**
+     * Gọi AJAX lấy dữ liệu danh sách danh mục từ server
+     * @param {string|null} urlStr - URL phân trang cần chuyển tiếp, null để lấy theo bộ lọc form hiện tại
+     */
     function fetchCategories(urlStr = null) {
         let url;
         if (urlStr) {
@@ -18,9 +28,10 @@ document.addEventListener('DOMContentLoaded', function () {
             url.search = searchParams.toString();
         }
 
-        // Cập nhật thanh địa chỉ trình duyệt
+        // Cập nhật thanh địa chỉ URL của trình duyệt
         window.history.pushState({}, '', url);
 
+        // Hiển thị hiệu ứng mờ loading
         const loader = document.getElementById('table-loader');
         if (loader) {
             loader.classList.remove('hidden');
@@ -30,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.style.pointerEvents = 'none';
         }
 
+        // Gọi request lấy dữ liệu dạng JSON
         fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -38,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
             .then(response => response.json())
             .then(data => {
+                // Cập nhật thống kê số lượng danh mục
                 if (data.total !== undefined) {
                     const totalStat = document.getElementById('total-categories-stat');
                     if (totalStat) totalStat.innerText = data.total;
@@ -51,6 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (inactiveStat) inactiveStat.innerText = data.inactive;
                 }
                 
+                // Ghi đè mã HTML bảng mới vào view
                 if (data.html) {
                     const tableWrapper = document.getElementById("categories-table-wrapper");
                     if (tableWrapper) {
@@ -61,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.dispatchEvent(new Event("tableDataLoaded"));
                 }
 
-                // Hiện / Ẩn nút Xóa lọc
+                // Hiện/Ẩn nút xóa bộ lọc dựa trên tham số đang chạy
                 if (btnClearFilter) {
                     const hasFilters = [...new URLSearchParams(url.search)].some(([key, val]) =>
                         (key === 'search' && val !== '') ||
@@ -73,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Lỗi khi tải dữ liệu danh mục:', error))
             .finally(() => {
+                // Ẩn vòng xoay loading
                 if (loader) {
                     loader.classList.add('hidden');
                     loader.classList.remove('flex');
@@ -82,12 +97,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Lắng nghe thay đổi dropdown
+    // Lắng nghe sự kiện thay đổi của các bộ lọc Select
     filterForm.querySelectorAll('select').forEach(select => {
         select.addEventListener('change', () => fetchCategories());
     });
 
-    // Tìm kiếm với debounce
+    // Debounce tìm kiếm 400ms để tránh quá tải máy chủ
     let timeout = null;
     const searchInput = filterForm.querySelector('input[name="search"]');
     if (searchInput) {
@@ -97,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Nút Xóa lọc
+    // Nhấn nút "Xóa lọc" để đặt lại toàn bộ form lọc về mặc định
     if (btnClearFilter) {
         btnClearFilter.addEventListener('click', function (e) {
             e.preventDefault();
@@ -111,8 +126,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Phân trang và Xóa bằng AJAX
+    // Sử dụng cơ chế ủy quyền sự kiện (Event Delegation) trên bảng dữ liệu
     tableContainer.addEventListener('click', function (e) {
+        // 1. Chuyển trang phân trang
         const pageLink = e.target.closest('.ajax-pagination a');
         if (pageLink) {
             e.preventDefault();
@@ -120,13 +136,14 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // 2. Click nút xóa một danh mục đơn lẻ
         const deleteBtn = e.target.closest('.delete-category-btn');
         if (deleteBtn) {
             e.preventDefault();
             const id = deleteBtn.dataset.id;
             const url = deleteBtn.dataset.url;
             
-            // Tìm tên danh mục từ row
+            // Lấy tên danh mục để đưa vào câu hỏi xác nhận
             let name = 'danh mục này';
             const row = deleteBtn.closest('tr') || deleteBtn.closest('.bg-white.p-4.rounded-2xl');
             if (row) {
@@ -141,6 +158,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.fetchCategories = fetchCategories;
 });
 
+/**
+ * Hiển thị hộp thoại xác nhận trước khi xóa danh mục đơn lẻ
+ */
 function deleteCategoryAjax(id, name, url) {
     window.AdminAlert.confirm(
         `Bạn có chắc muốn xóa danh mục "${name}"? Hành động này không thể hoàn tác.`,
@@ -149,6 +169,9 @@ function deleteCategoryAjax(id, name, url) {
     );
 }
 
+/**
+ * Đặt lại trạng thái chọn nhiều dòng của danh mục về ban đầu
+ */
 window.resetCategorySelection = function() {
     window.isGlobalSelectAll = false;
     if (window.selectedCategoryIds) window.selectedCategoryIds.clear();
@@ -164,6 +187,9 @@ window.resetCategorySelection = function() {
     }
 };
 
+/**
+ * Thực thi gửi request DELETE AJAX xóa danh mục
+ */
 function doDeleteAjax(id, url) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
         || document.querySelector('input[name="_token"]')?.value
@@ -181,7 +207,7 @@ function doDeleteAjax(id, url) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // Xóa dòng khỏi bảng với hiệu ứng
+                // Xóa dòng dữ liệu khỏi bảng với hiệu ứng trượt biến mất mượt mà
                 const row = document.getElementById('category-row-' + id);
                 if (row) {
                     row.style.transition = 'all 0.3s ease';
@@ -202,7 +228,7 @@ function doDeleteAjax(id, url) {
 }
 
 // ============================================================
-// Xử lý Xóa nhiều cho Danh mục
+// XỬ LÝ CHỌN NHIỀU VÀ XÓA HÀNG LOẠT (BULK DELETE CATEGORIES)
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     const tableContainer = document.getElementById('table-container');
@@ -210,8 +236,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedCountSpan = document.getElementById('selected-count');
 
     window.isGlobalSelectAll = false;
-    window.selectedCategoryIds = new Set();
+    window.selectedCategoryIds = new Set(); // Set lưu trữ danh sách ID được chọn
 
+    /**
+     * Cập nhật số hiển thị và ẩn/hiện nút "Xóa nhiều" dựa trên số lượng tích chọn
+     */
     function updateBulkDeleteButton() {
         const selectAllEls = document.querySelectorAll('.js-select-all');
         const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
@@ -249,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(tableContainer) {
         tableContainer.addEventListener('change', function(e) {
+            // 1. Tích chọn / bỏ chọn hộp "Chọn tất cả" ở đầu bảng
             if (e.target.classList.contains('js-select-all')) {
                 const isChecked = e.target.checked;
                 window.isGlobalSelectAll = isChecked;
@@ -261,7 +291,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (isChecked) window.selectedCategoryIds.add(cb.value);
                 });
                 updateBulkDeleteButton();
-            } else if (e.target.classList.contains('row-checkbox')) {
+            } 
+            // 2. Tích chọn từng dòng danh mục đơn lẻ
+            else if (e.target.classList.contains('row-checkbox')) {
                 if (e.target.checked) {
                     window.selectedCategoryIds.add(e.target.value);
                 } else {
@@ -276,7 +308,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Khôi phục trạng thái checkbox sau khi fetch AJAX
+    // Khôi phục trạng thái Checkbox của người dùng sau khi fetch AJAX bằng MutationObserver
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList') {
@@ -308,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(tableContainer, { childList: true, subtree: true });
     }
 
-
+    // Hộp thoại xác nhận trước khi thực hiện xóa nhiều danh mục
     window.submitBulkDelete = function() {
         const selectAllEls = document.querySelectorAll('.js-select-all');
         const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
@@ -329,14 +361,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }, titleText);
     };
 
-
     const submitBtn = document.getElementById('bulk-delete-btn');
     if (submitBtn) {
         submitBtn.addEventListener('click', window.submitBulkDelete);
     }
 
+    /**
+     * Gửi request POST AJAX thực thi xóa hàng loạt danh mục
+     */
     function executeBulkDelete(isSelectAll) {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
             || document.querySelector('input[name="_token"]')?.value || '';
         
         const form = document.getElementById('bulk-delete-form');

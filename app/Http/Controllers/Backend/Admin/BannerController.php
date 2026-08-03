@@ -254,6 +254,10 @@ class BannerController
 
     /**
      * XÓA NHIỀU BANNER
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
+     *   trong file JS: [public/js/backend/admin/banners/index.js] để hiển thị thông báo kết quả.
      */
     public function bulkDelete(Request $request)
     {
@@ -322,6 +326,10 @@ class BannerController
 
     /**
      * BẬT/TẮT TRẠNG THÁI NHANH BẰNG AJAX
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho hàm toggleBannerStatusAjax() trong file JS: [public/js/backend/admin/banners/index.js]
+     *   để cập nhật lại badge màu hiển thị trạng thái và làm mới số liệu thống kê.
      */
     public function toggleStatus(Request $request, $id)
     {

@@ -1,3 +1,8 @@
+// =========================================================================
+// CẤU HÌNH TÙY BIẾN HỆ THỐNG TAILWIND CSS CHO TRANG BACKEND ADMIN
+// Định nghĩa: Font chữ chính (Be Vietnam Pro), bảng mã màu Material Design 3,
+// kích thước, khoảng cách và bo góc đồng bộ chuẩn thiết kế.
+// =========================================================================
 tailwind.config = {
     darkMode: "class",
     theme: {

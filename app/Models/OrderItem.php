@@ -10,15 +10,18 @@ use Illuminate\Database\Eloquent\Model;
  */
 class OrderItem extends Model
 {
+    // Tắt tính năng tự động ghi nhận thời gian tạo/sửa (created_at, updated_at) vì bảng chi tiết đơn hàng không cần thiết phải lưu thông tin này
     public $timestamps = false;
+    
     // Tên bảng dữ liệu được quản lý bởi model này
     protected $table = 'order_items';
     
-    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng order_items
+    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng order_items (không khóa cột nào)
     protected $guarded = [];
 
+    // Cấu hình ép kiểu dữ liệu khi lấy dữ liệu ra khỏi cơ sở dữ liệu
     protected $casts = [
-        'options' => 'array',
+        'options' => 'array', // Ép kiểu cột 'options' lưu dưới dạng JSON ở DB thành mảng array trong PHP (để lưu topping, size...)
     ];
 
     /**
@@ -40,9 +43,9 @@ class OrderItem extends Model
     }
 
     /**
-     * URL ảnh sản phẩm đã chụp lại (snapshot) lúc đặt hàng. Dùng upload_url() để trỏ đúng cả ảnh cũ
-     * (public/images/) lẫn ảnh tải lên mới (public/uploads/ - gắn Railway Volume); ghép cứng tiền tố
-     * 'images/' sẽ tạo ra /images/uploads/... và ảnh bị vỡ. Trả về ảnh mặc định khi chưa có ảnh.
+     * Accessor ảo (Attribute) để lấy URL ảnh sản phẩm đã chụp lại (snapshot) lúc đặt hàng.
+     * Dùng upload_url() để tạo URL cho đường dẫn ảnh tương đối trong public/images/.
+     * Trả về ảnh mặc định (placeholder.jpg) khi chưa có ảnh.
      */
     public function getProductImageUrlAttribute()
     {

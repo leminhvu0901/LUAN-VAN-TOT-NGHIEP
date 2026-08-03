@@ -6,26 +6,30 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-// Admin/nhân viên đăng nhập rồi vẫn xem được giao diện khách hàng (trang chủ, sản phẩm, giỏ hàng,
-// checkout...) vì các route này không có middleware chặn theo role — chỉ khách/thường dân mới nên
-// đứng ở đây. Chặn tại đây, tự đẩy về đúng khu vực quản trị của họ. Khách vãng lai (chưa đăng nhập)
-// và khách hàng (role=customer) không bị ảnh hưởng.
 class RedirectStaffFromFrontend
 {
+    // Tự động chuyển hướng quản trị viên và nhân viên khỏi các trang dành cho khách hàng
     public function handle(Request $request, Closure $next)
     {
+        // Cho qua nếu là khách vãng lai chưa đăng nhập
         if (!Auth::check()) {
             return $next($request);
         }
 
         $user = Auth::user();
 
+        // Chuyển hướng nếu là quản trị viên Admin
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
+        // Chuyển hướng nhân viên về đúng Dashboard tương ứng với công việc
         if ($user->role === 'staff') {
-            return redirect()->route($user->staff_type === 'delivery' ? 'staff.delivery.dashboard' : 'staff.reception.dashboard');
+            if ($user->staff_type === 'delivery') {
+                return redirect()->route('staff.delivery.dashboard');
+            } else {
+                return redirect()->route('staff.reception.dashboard');
+            }
         }
 
         return $next($request);

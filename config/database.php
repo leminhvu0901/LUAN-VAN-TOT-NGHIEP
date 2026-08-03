@@ -5,33 +5,13 @@ use Pdo\Mysql;
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Database Connection Name
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify which of the database connections below you wish
-    | to use as your default connection for database operations. This is
-    | the connection which will be utilized unless another connection
-    | is explicitly specified when you execute a query / statement.
-    |
-    */
-
+    // Tên kết nối cơ sở dữ liệu mặc định
     'default' => env('DB_CONNECTION', 'sqlite'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Database Connections
-    |--------------------------------------------------------------------------
-    |
-    | Below are all of the database connections defined for your application.
-    | An example configuration is provided for each database system which
-    | is supported by Laravel. You're free to add / remove connections.
-    |
-    */
-
+    // Cấu hình danh sách các kết nối cơ sở dữ liệu
     'connections' => [
 
+        // Cơ sở dữ liệu SQLite (lưu file trực tiếp trên ổ đĩa)
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
@@ -44,6 +24,7 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
+        // Cơ sở dữ liệu MySQL (phổ biến nhất)
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
@@ -64,6 +45,7 @@ return [
             ]) : [],
         ],
 
+        // Cơ sở dữ liệu MariaDB (hệ quản trị mã nguồn mở tương thích MySQL)
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -84,6 +66,7 @@ return [
             ]) : [],
         ],
 
+        // Cơ sở dữ liệu PostgreSQL (mạnh mẽ và bảo mật cao)
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
@@ -99,6 +82,7 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // Cơ sở dữ liệu Microsoft SQL Server (do Microsoft phát triển)
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
@@ -110,49 +94,30 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            // 'encrypt' => env('DB_ENCRYPT', 'yes'),
-            // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Migration Repository Table
-    |--------------------------------------------------------------------------
-    |
-    | This table keeps track of all the migrations that have already run for
-    | your application. Using this information, we can determine which of
-    | the migrations on disk haven't actually been run on the database.
-    |
-    */
-
+    // Tên bảng ghi nhận lịch sử các bản cập nhật CSDL (migration)
     'migrations' => [
         'table' => 'migrations',
         'update_date_on_publish' => true,
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Redis Databases
-    |--------------------------------------------------------------------------
-    |
-    | Redis is an open source, fast, and advanced key-value store that also
-    | provides a richer body of commands than a typical key-value system
-    | such as Memcached. You may define your connection settings here.
-    |
-    */
-
+    // Cấu hình các kết nối tới cơ sở dữ liệu RAM ảo Redis
     'redis' => [
 
+        // Client thư viện kết nối (phpredis hoặc predis)
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
+        // Tùy chọn chung cho toàn bộ kết nối Redis
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
             'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
+        // Kết nối cơ sở dữ liệu Redis chính
         'default' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
@@ -166,6 +131,7 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        // Kết nối cơ sở dữ liệu Redis dùng riêng cho hệ thống lưu Cache
         'cache' => [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),

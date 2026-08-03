@@ -1,32 +1,23 @@
-// checkout.js - Frontend Checkout Logic
+// ============================================================
+// checkout.js — Toàn bộ logic trang Thanh toán (Checkout)
+// Bao gồm: bản đồ địa chỉ, geocode, mã giảm giá, điểm thưởng,
+// tính phí ship, chọn phương thức thanh toán, đặt hàng.
+// ============================================================
 
 let map;
 let marker;
 
-// Danh mục hành chính (Tỉnh/Thành + Phường/Xã) — nguồn tin cậy CHÍNH cho khu vực, tải qua AJAX từ
-// backend (KHÔNG hard-code ở đây). provincesData: [{code,name}] | null (chưa tải/lỗi).
-// wardsDataByProvince: cache theo province_code -> [{code,name,province_code}] | null.
+// Dữ liệu Tỉnh/Thành và Phường/Xã từ server
 let provincesData = null;
 let provincesLoading = false;
 let wardsDataByProvince = {};
 let wardsLoading = false;
 
-// Dữ liệu cho 2 combobox có tìm kiếm. Select ẩn vẫn giữ code hành chính chính thức;
-// ô search chỉ đảm nhiệm hiển thị và lọc tên (kể cả khi khách gõ không dấu).
-const areaSearchItems = { province: [], ward: [] };
-
-// Phương thức xác định vị trí đang chọn: 'gps' | 'map' | 'manual'.
+// Các biến trạng thái chọn vị trí, bản đồ và bộ đếm thời gian
 let locationMethod = 'map';
-// Khách đã tự CHỌN (change thật, không phải set bằng code) 1 trong 2 select Tỉnh/Thành-Phường/Xã
-// trong phiên mở modal này chưa -> nếu rồi, gợi ý từ Geoapify KHÔNG được tự chọn lại đè lên (mục 6).
-// Mở modal Sửa với dữ liệu đã lưu KHÔNG bật cờ này (chỉ preselect, không phải khách tự chọn).
 let areaUserSelected = false;
-// Tương tự cho ô "Địa chỉ cụ thể": chỉ chặn geocode tự điền khi khách đã gõ tay, không phải vì ô đang
-// có sẵn giá trị cũ từ địa chỉ đã lưu (mở modal Sửa).
 let specificUserEdited = false;
-// Ở mode 'map': tọa độ khách vừa chấm nhưng CHƯA bấm "Xác nhận" (chỉ commit sau khi xác nhận).
 let pendingMapLatLng = null;
-// Debounce reverse geocode khi kéo/chấm marker liên tục.
 let mapReverseTimer = null;
 
 // Đọc key Geoapify đã truyền từ Blade qua window.checkoutConfig — đọc lại mỗi lần gọi (không cache
@@ -56,12 +47,7 @@ function setLocStatus(state, extraText) {
     boxEl.className = 'mb-4 flex items-center gap-2 text-sm font-medium rounded-xl px-3 py-2.5 bg-surface-container-lowest ' + cfg[2];
 }
 
-// Chuyển phương thức xác định vị trí. KHÔNG reset họ tên/SĐT/loại địa chỉ, KHÔNG tự gửi form.
-// CÓ reset cờ "khách đã tự sửa khu vực/địa chỉ cụ thể" khi thực sự đổi sang 1 phương thức KHÁC:
-// các cờ này chỉ nhằm chặn Geoapify tự đè lên trong lúc khách đang thao tác ở CÙNG 1 phương thức
-// (mục 5/6); nếu để nguyên khi khách chủ động chuyển tab thì địa chỉ cũ (gõ tay ở tab "Nhập địa chỉ"
-// chẳng hạn) sẽ bị khoá cứng, không nhảy theo vị trí mới chấm ở tab "Vị trí hiện tại"/"Chọn trên bản
-// đồ" nữa — đúng bug đã gặp.
+// Chuyển đổi phương thức tìm vị trí (GPS, Bản đồ, hoặc Nhập tay)
 function setLocationMethod(method) {
     if (!['gps', 'map', 'manual'].includes(method)) method = 'map';
     const methodChanged = method !== locationMethod;
@@ -112,16 +98,16 @@ function setLocationMethod(method) {
 
     if (method === 'manual') {
         setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'manual');
-        // Đủ dữ liệu sẵn rồi (vd quay lại mode này, hoặc mở form Sửa) -> dò lại luôn không cần đợi gõ thêm.
         scheduleManualForwardGeocode();
     } else {
-        // Trạng thái: đã có tọa độ -> ok, chưa có -> idle.
         setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'idle');
     }
 
     updateSaveButtonState();
 }
 
+// Khởi tạo bản đồ Leaflet lần đầu (chỉ chạy 1 lần — nếu đã khởi tạo rồi thì bỏ qua).
+// Dùng tile Geoapify, đặt marker có thể kéo thả ở trung tâm mặc định (Q.8, HCM).
 function initMapIfNeeded() {
     if (map) return;
     const mapEl = document.getElementById('addressMap');
@@ -151,10 +137,7 @@ function initMapIfNeeded() {
     });
 }
 
-// Xử lý khi khách chấm/kéo marker — hành vi theo mode:
-//   - gps: khách đang chỉnh lại vị trí GPS của mình -> commit ngay (đặt lat/lng + reverse geocode).
-//   - map: chỉ PREVIEW, lưu vào pendingMapLatLng + hiện nút "Xác nhận vị trí này". Chỉ commit lat/lng
-//     sau khi bấm xác nhận (mục 3). Reverse geocode preview khu vực (debounce) nhưng không commit tọa độ.
+// Xử lý khi chọn/kéo marker trên bản đồ (GPS lưu ngay, Bản đồ hiển thị xem trước)
 function onMapPointPicked(lat, lng) {
     if (locationMethod === 'gps') {
         document.getElementById('addr_lat').value = lat.toFixed(6);
@@ -192,21 +175,11 @@ function confirmMapLocation() {
     updateSaveButtonState();
 }
 
-// ==============================================================================================
-// MODE 'manual': trước đây gõ xong địa chỉ là gửi mù, chỉ có backend tự dò tọa độ lúc lưu (khách
-// không thấy được kết quả dò đúng hay sai -> hay bị tính sai khoảng cách/phí ship). Giờ tự dò NGAY
-// khi khách gõ đủ khu vực + địa chỉ cụ thể, ghim lên bản đồ (đã hiện sẵn ở mode này) để khách nhìn
-// thấy và TỰ kéo ghim chỉnh lại nếu sai — cùng cơ chế commit-ngay-khi-kéo mà onMapPointPicked() đã
-// có sẵn cho mode 'gps' (không cần bấm "Xác nhận" thêm lần nữa, vì gõ địa chỉ tay đã là 1 lần xác nhận).
-// ==============================================================================================
+// Tự động tìm vị trí (Geocode) khi người dùng nhập địa chỉ bằng tay ở mode 'manual'
 let manualGeocodeTimer = null;
-// Cùng ngưỡng với backend (ProfileController::GEOCODE_MIN_CONFIDENCE) — dưới mức này vẫn ghim (để
-// khách còn thấy mà tự sửa) nhưng cảnh báo rõ là chưa chắc đúng, thay vì âm thầm coi như đã đúng.
 const MANUAL_GEOCODE_MIN_CONFIDENCE = 0.3;
 
-// Ghép chuỗi địa chỉ để forward-geocode — CÙNG QUY TẮC với backend (resolveLocation() trong
-// ProfileController): bỏ "Phường <số>" (Geoapify hiểu sai dạng số), luôn thêm "Việt Nam" ở cuối
-// (thiếu quốc gia dễ ra 0 kết quả hoặc lạc sang nước khác).
+// Tạo chuỗi địa chỉ đầy đủ để tìm vị trí
 function buildManualAddressQuery() {
     const specific = (document.getElementById('addr_specific').value || '').trim();
     const wardName = (document.getElementById('addr_ward_search').value || '').trim();
@@ -220,12 +193,16 @@ function buildManualAddressQuery() {
     return query;
 }
 
+// Lên lịch chạy forward-geocode sau 900ms kể từ lần gõ cuối cùng (debounce),
+// tránh gọi API liên tục khi khách đang gõ dở địa chỉ.
 function scheduleManualForwardGeocode() {
     if (locationMethod !== 'manual') return;
     if (manualGeocodeTimer) clearTimeout(manualGeocodeTimer);
     manualGeocodeTimer = setTimeout(runManualForwardGeocode, 900);
 }
 
+// Thực sự gọi Geoapify Forward-Geocode: ghép địa chỉ từ form → tìm toạ độ → ghim bản đồ.
+// Chạy trong nền sau khi scheduleManualForwardGeocode() kích hoạt.
 function runManualForwardGeocode() {
     if (locationMethod !== 'manual') return;
     const query = buildManualAddressQuery();
@@ -282,8 +259,7 @@ function runManualForwardGeocode() {
         });
 }
 
-// Khoảng cách đường chim bay (km) — CHỈ để cảnh báo mềm "ngoài phạm vi" ở modal, KHÔNG dùng tính phí
-// ship (phí ship tính bằng Geoapify Routing ở server, công thức không đổi).
+// Tính khoảng cách đường chim bay phục vụ cảnh báo vị trí
 function straightLineKm(lat1, lng1, lat2, lng2) {
     const toRad = function (d) { return d * Math.PI / 180; };
     const R = 6371;
@@ -294,8 +270,7 @@ function straightLineKm(lat1, lng1, lat2, lng2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Nếu vị trí vượt bán kính giao hàng tối đa -> hiện trạng thái "Ngoài phạm vi giao hàng" (cảnh báo
-// mềm, KHÔNG chặn lưu — enforcement thật vẫn ở bước chọn địa chỉ khi checkout). Trả true nếu ngoài phạm vi.
+// Cảnh báo nếu địa chỉ nằm ngoài bán kính giao hàng
 function flagOutOfRange(lat, lng) {
     const cfg = window.checkoutConfig || {};
     if (!cfg.shopLat || !cfg.shopLng || !cfg.shippingMaxDistanceKm) return false;
@@ -307,12 +282,7 @@ function flagOutOfRange(lat, lng) {
     return false;
 }
 
-// Áp dữ liệu geocode vào ô "Khu vực" — CHỈ khi khách CHƯA tự sửa (mục 5: Geoapify không ghi đè khu
-// vực khách nhập). CỐ Ý KHÔNG dùng props.county/props.city — đã xác nhận qua test thật: dữ liệu
-// quận/huyện của Geoapify cho TP.HCM sai. Chỉ props.state (tỉnh/thành) + props.suburb (phường/xã) đáng tin.
-// Gợi ý Tỉnh/Thành + Phường/Xã từ Geoapify (reverse geocode) — CHỈ tự chọn option khi đối chiếu CHẮC
-// CHẮN (so khớp tên đã chuẩn hoá) với danh mục hành chính đã tải; không đối chiếu được thì bỏ qua,
-// để khách tự chọn (mục 6). Không bao giờ tự chọn nếu khách đã tự chọn tay trong phiên này.
+// Điền thông tin Tỉnh/Thành/Phường/Xã lấy từ toạ độ bản đồ
 function applyLocationProperties(props) {
     if (areaUserSelected) return;
     if (!provincesData) return;
@@ -359,21 +329,16 @@ function fetchReverse(lat, lng, type) {
         .then(data => (data && data.features && data.features[0] && data.features[0].properties) || null);
 }
 
+// Lấy thông tin địa chỉ (số nhà, tên đường, khu vực) từ tọa độ
 function reverseGeocode(lat, lng) {
     const key = geoapifyKey();
     if (!key) return;
-    // Ưu tiên type=building để lấy SỐ NHÀ + tên đường của toà nhà gần nhất (đã xác nhận qua test thật:
-    // reverse mặc định chỉ ra "Hẻm ... Bông Sao" không số, còn type=building ra "252 Bông Sao"). Không
-    // có toà nhà gần -> fallback reverse mặc định (vẫn đủ khu vực + tên đường).
     fetchReverse(lat, lng, 'building')
         .then(props => props || fetchReverse(lat, lng, null))
         .then(props => {
             if (!props) return;
             applyLocationProperties(props);
 
-            // Gợi ý "Địa chỉ cụ thể" (số nhà + tên đường) CHỈ khi khách CHƯA tự gõ tay ô này trong phiên
-            // hiện tại — không đè text khách đã gõ. Ô đang có sẵn giá trị cũ (vd mở modal Sửa) vẫn được
-            // cập nhật khi khách chấm lại điểm mới, vì đó không phải khách tự gõ.
             const specificParts = [props.housenumber, props.street].filter(Boolean);
             const specificEl = document.getElementById('addr_specific');
             if (specificEl && !specificUserEdited && specificParts.length > 0) {
@@ -397,6 +362,12 @@ function normalizeVN(str) {
         .trim();
 }
 
+// ============================================================
+// COMBOBOX TÌM KIẾM TỈNH / PHƯỜNG
+// Gồm: ô search có lọc không dấu, dropdown tùy chỉnh, select ẩn giữ code hành chính.
+// ============================================================
+
+// Trả về object chứa các phần tử DOM của combobox 'province' hoặc 'ward'.
 function areaSearchElements(which) {
     return {
         search: document.getElementById(which === 'province' ? 'addr_province_search' : 'addr_ward_search'),
@@ -407,16 +378,19 @@ function areaSearchElements(which) {
     };
 }
 
+// Gán danh sách items mới vào combobox và vẽ lại toàn bộ options.
 function setAreaSearchItems(which, items) {
     areaSearchItems[which] = Array.isArray(items) ? items : [];
     renderAreaOptions(which, '');
 }
 
+// Cập nhật nội dung ô search (chỉ hiển thị, không ảnh hưởng select ẩn).
 function setAreaSearchValue(which, value) {
     const { search } = areaSearchElements(which);
     if (search) search.value = value || '';
 }
 
+// Vẽ lại danh sách option trong dropdown (có lọc theo query, so khớp không dấu).
 function renderAreaOptions(which, query) {
     const { options, empty, select } = areaSearchElements(which);
     if (!options || !empty) return;
@@ -527,13 +501,14 @@ function handleAreaSearchKeydown(event, which) {
     }
 }
 
+// Mã hoá ký tự đặc biệt HTML để tránh XSS khi nhúng tên tỉnh/phường vào innerHTML.
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
 }
 
-// Hiện/ẩn lỗi ngay dưới đúng select (mục 8) + đánh dấu aria-invalid (mục 10).
+// Hiển thị hoặc ẩn thông báo lỗi của khu vực chọn
 function showAreaError(which, msg) {
     const help = document.getElementById(which === 'province' ? 'provinceHelpText' : 'wardHelpText');
     const sel = document.getElementById(which === 'province' ? 'addr_province_select' : 'addr_ward_select');
@@ -543,8 +518,7 @@ function showAreaError(which, msg) {
     if (search) search.setAttribute('aria-invalid', msg ? 'true' : 'false');
 }
 
-// Tải danh sách Tỉnh/Thành phố (1 lần, cache lại) — nguồn hành chính chính thức qua backend proxy,
-// KHÔNG hard-code danh sách ở đây (mục 3).
+// Tải danh sách Tỉnh/Thành phố từ server
 function loadProvinces() {
     if (provincesData) {
         setAreaSearchItems('province', provincesData);
@@ -600,13 +574,11 @@ function loadProvinces() {
         });
 }
 
-// Tải danh sách Phường/Xã CỦA 1 tỉnh (chỉ tải theo tỉnh, không tải cả nước — mục 3.4), cache theo
-// province_code.
+// Tải danh sách Phường/Xã thuộc một tỉnh/thành
 function loadWardsFor(provinceCode) {
     const fillWardOptions = function (wards) {
         const provinceSelect = document.getElementById('addr_province_select');
-        // Nếu khách đã đổi sang tỉnh khác trong lúc request đang chạy, chỉ cache kết quả cũ,
-        // không được vẽ nhầm danh sách phường/xã của tỉnh trước đó.
+        // Tránh ghi đè nếu người dùng đã đổi sang tỉnh khác trước khi tải xong
         if (provinceSelect && provinceSelect.value !== String(provinceCode)) return;
         const wardSelect = document.getElementById('addr_ward_select');
         const wardSearch = document.getElementById('addr_ward_search');
@@ -667,7 +639,7 @@ function loadWardsFor(provinceCode) {
         });
 }
 
-// Khách CHỌN tay Tỉnh/Thành phố (change thật trên select).
+// Xử lý khi chọn Tỉnh/Thành phố
 function onProvinceChange() {
     areaUserSelected = true;
     const sel = document.getElementById('addr_province_select');
@@ -675,7 +647,7 @@ function onProvinceChange() {
     document.getElementById('addr_province_code').value = code;
     showAreaError('province', '');
 
-    // Đổi tỉnh -> reset phường/xã + yêu cầu chọn lại (mục 3.3).
+    // Đổi tỉnh -> reset phường/xã
     document.getElementById('addr_ward_code').value = '';
     showAreaError('ward', '');
     const wardSel = document.getElementById('addr_ward_select');
@@ -691,7 +663,7 @@ function onProvinceChange() {
     }
     setAreaSearchItems('ward', []);
 
-    // Tọa độ cũ (nếu có) không còn chắc khớp với tỉnh mới -> xóa, yêu cầu xác định lại vị trí (mục 3.3).
+    // Reset tọa độ cũ để yêu cầu định vị lại
     document.getElementById('addr_lat').value = '';
     document.getElementById('addr_lng').value = '';
     pendingMapLatLng = null;
@@ -703,19 +675,18 @@ function onProvinceChange() {
     if (code) loadWardsFor(parseInt(code, 10));
 }
 
-// Khách CHỌN tay Phường/Xã (change thật trên select).
+// Xử lý khi chọn Phường/Xã
 function onWardChange() {
     areaUserSelected = true;
     const sel = document.getElementById('addr_ward_select');
     document.getElementById('addr_ward_code').value = sel && sel.value ? sel.value : '';
     showAreaError('ward', '');
     updateSaveButtonState();
-    // Chọn xong Phường/Xã là địa chỉ đã đủ 3 phần (khu vực + địa chỉ cụ thể) -> dò vị trí luôn, không
-    // cần đợi khách gõ thêm gì (trường hợp khách gõ "Địa chỉ cụ thể" TRƯỚC rồi mới chọn khu vực sau).
+    // Tự động tìm tọa độ khi đã có đủ thông tin địa chỉ
     scheduleManualForwardGeocode();
 }
 
-// Reset 2 select về trạng thái ban đầu (chế độ Thêm mới).
+// Reset các ô chọn khu vực về rỗng
 function resetAreaSelects() {
     areaUserSelected = false;
     document.getElementById('addr_province_code').value = '';
@@ -739,9 +710,7 @@ function resetAreaSelects() {
     setAreaSearchItems('ward', []);
 }
 
-// Chế độ Sửa: dữ liệu cũ chỉ có TÊN tỉnh/phường (không có code) -> đối chiếu theo tên đã chuẩn hoá để
-// tự chọn đúng option (mục 7.5). Không khớp được (tên đã đổi/sáp nhập) -> để trống, yêu cầu khách tự
-// chọn lại (mục 9) — KHÔNG bật areaUserSelected vì đây là preselect, không phải khách tự chọn.
+// Tự động chọn khu vực theo tên (phục vụ chế độ Sửa địa chỉ)
 function preselectAreaByName(provinceName, wardName) {
     loadProvinces().then(provinces => {
         if (!provinces) return;
@@ -768,9 +737,7 @@ function preselectAreaByName(provinceName, wardName) {
     });
 }
 
-// Bật/tắt nút "Hoàn thành" theo tính hợp lệ (mục 7). Hợp lệ khi: họ tên + SĐT (đúng định dạng VN) +
-// khu vực (đã chọn cả 2 select) + địa chỉ cụ thể + (đã có tọa độ HOẶC mode manual có thể geocode khi
-// lưu) + KHÔNG đang trong lúc tải tỉnh/phường (mục 9).
+// Cập nhật trạng thái nút lưu địa chỉ dựa trên tính hợp lệ của dữ liệu đầu vào
 function updateSaveButtonState() {
     const btn = document.getElementById('btnSaveAddress');
     if (!btn) return;
@@ -783,16 +750,14 @@ function updateSaveButtonState() {
     const locationOk = hasCoords || locationMethod === 'manual';
     const notLoading = !provincesLoading && !wardsLoading;
 
-    // Chỉ báo lỗi SĐT khi khách ĐÃ gõ gì đó mà sai định dạng — không báo ngay khi ô còn trống, tránh
-    // dọa người dùng trước khi họ kịp gõ. Trước đây nút Lưu chỉ âm thầm bị disable, không giải thích
-    // lý do, khiến người dùng gõ sai mà không biết vì sao không lưu được.
+    // Báo lỗi nếu định dạng số điện thoại sai
     const phoneErrorEl = document.getElementById('addr_phone_error');
     if (phoneErrorEl) phoneErrorEl.classList.toggle('hidden', phone === '' || phoneOk);
 
     btn.disabled = !(fullname && phoneOk && areaOk && specific && locationOk && notLoading);
 }
 
-// GPS (mục 2): xin quyền vị trí, hiển thị trạng thái, đặt marker + reverse geocode, cho kéo chỉnh.
+// Lấy vị trí GPS hiện tại của trình duyệt
 function getCurrentLocation() {
     if (!navigator.geolocation) {
         setLocStatus('notfound', 'Trình duyệt không hỗ trợ định vị GPS');
@@ -843,6 +808,7 @@ function getCurrentLocation() {
     );
 }
 
+// Đặt loại địa chỉ ('home' hoặc 'office') và cập nhật giao diện nút chọn.
 function setAddrType(type) {
     document.getElementById('addr_type').value = type;
     const homeBtn = document.getElementById('btnTypeHome');
@@ -856,8 +822,7 @@ function setAddrType(type) {
     });
 }
 
-// isEdit=false: mở modal ở chế độ thêm mới (form trống). isEdit=true + data: mở ở chế độ sửa,
-// điền sẵn dữ liệu từ data-* của nút "Sửa" đã bấm (fullname/phone/specific/province/district/ward/...).
+// Mở modal thêm hoặc sửa địa chỉ (isEdit = true để chỉnh sửa)
 function openAddressModal(isEdit = false, data = null) {
     const modal = document.getElementById('addressModal');
     if (!modal) return;
@@ -880,7 +845,7 @@ function openAddressModal(isEdit = false, data = null) {
         document.getElementById('addr_lng').value = data.longitude || '';
         document.getElementById('addr_formatted').value = '';
         document.getElementById('addr_default').checked = String(data.isDefault) === '1' || data.isDefault === true;
-        
+
         specificUserEdited = false;
         areaUserSelected = false;
         setAddrType(data.type === 'office' ? 'office' : 'home');
@@ -896,24 +861,24 @@ function openAddressModal(isEdit = false, data = null) {
         document.getElementById('addr_lng').value = '';
         document.getElementById('addr_formatted').value = '';
         document.getElementById('addr_default').checked = false;
-        
+
         specificUserEdited = false;
         resetAreaSelects();
         setAddrType('home');
     }
 
-    // Mặc định mở ở mode "Chọn trên bản đồ" (setLocationMethod cũng lo init/định vị lại bản đồ).
+    // Mở bản đồ ở chế độ mặc định hoặc theo địa chỉ cũ
     setLocationMethod(isEdit && data && data.locationMethod ? data.locationMethod : 'map');
     updateSaveButtonState();
 }
 
+// Đóng modal thêm/sửa địa chỉ (thêm class 'hidden' vào overlay).
 function closeAddressModal() {
     const modal = document.getElementById('addressModal');
     if (modal) modal.classList.add('hidden');
 }
 
-// Ủy quyền sự kiện: bấm bất kỳ nút .add-address-btn nào (kể cả ở khối "chưa có địa chỉ") mở modal
-// thêm mới; bấm .edit-address-btn đọc dữ liệu từ data-* của chính nút đó để mở modal ở chế độ sửa.
+// Ủy quyền click mở modal thêm hoặc sửa địa chỉ
 document.addEventListener('click', function (event) {
     const addBtn = event.target.closest('.add-address-btn');
     if (addBtn) {
@@ -940,6 +905,9 @@ document.addEventListener('click', function (event) {
     }
 });
 
+// Lưu địa chỉ (thêm mới hoặc cập nhật): đọc toàn bộ giá trị từ form modal,
+// validate phía client, sau đó POST lên /profile/address (hoặc /profile/address/{id}).
+// Thành công → reload trang để cập nhật danh sách địa chỉ.
 function saveAddress() {
     const id = document.getElementById('addr_id').value;
     const fullname = document.getElementById('addr_fullname').value.trim();
@@ -963,7 +931,7 @@ function saveAddress() {
         if (!wardCode) showAreaError('ward', 'Vui lòng chọn Phường/Xã.');
         return;
     }
-    // gps/map bắt buộc phải có tọa độ; manual để backend tự geocode khi lưu.
+    // gps/map yêu cầu tọa độ, manual để server tự dò khi lưu
     if (method !== 'manual' && !lat) {
         if (window.FrontendAlert) window.FrontendAlert.error('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".'); else alert('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".');
         return;
@@ -986,7 +954,7 @@ function saveAddress() {
 
     const url = id ? `/profile/address/${id}` : '/profile/address';
 
-    // Store state in localStorage to restore simulator values on reload
+    // Lưu trạng thái địa chỉ chọn vào localStorage
     const stateObj = {
         selected_address_id: id || 'new',
         weather: document.getElementById('weather_select') ? document.getElementById('weather_select').value : null,
@@ -1007,7 +975,7 @@ function saveAddress() {
             if (ok && data.success) {
                 window.location.reload();
             } else {
-                // Backend không geocode được (mode manual mơ hồ) -> báo trạng thái + gợi ý, không đóng modal.
+                // Xử lý khi server không xác định được tọa độ nhập tay
                 setLocStatus('notfound', 'Không tìm thấy địa chỉ');
                 if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.'); else alert(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.');
                 updateSaveButtonState();
@@ -1036,7 +1004,7 @@ window.toggleAreaSearch = toggleAreaSearch;
 window.filterAreaOptions = filterAreaOptions;
 window.handleAreaSearchKeydown = handleAreaSearchKeydown;
 
-// Bật/tắt nút "Hoàn thành" theo thời gian thực khi khách gõ các trường bắt buộc.
+// Lắng nghe thay đổi trên các ô nhập để cập nhật nút lưu địa chỉ
 document.addEventListener('DOMContentLoaded', function () {
     ['addr_fullname', 'addr_phone', 'addr_specific'].forEach(function (elId) {
         const el = document.getElementById(elId);
@@ -1044,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     const specificEl = document.getElementById('addr_specific');
     if (specificEl) {
-        // Khách tự gõ ô "Địa chỉ cụ thể" -> đánh dấu, để reverseGeocode() không tự điền đè lên nữa.
+        // Đánh dấu người dùng tự nhập địa chỉ cụ thể để không bị reverseGeocode ghi đè
         specificEl.addEventListener('input', function () {
             specificUserEdited = true;
             scheduleManualForwardGeocode();
@@ -1063,6 +1031,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// ============================================================
+// TÍNH TIỀN, MÃ GIẢM GIÁ, ĐIỂM THƯỞNG, PHÍ SHIP, CHỌN ĐỊA CHỈ
+// Toàn bộ chạy sau khi DOM đã sẵn sàng (DOMContentLoaded).
+// ============================================================
 document.addEventListener('DOMContentLoaded', function () {
     const priceSummaryEl = document.getElementById('price-summary');
     if (!priceSummaryEl) return;
@@ -1070,8 +1042,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const subtotal = parseInt(priceSummaryEl.dataset.subtotal);
     let discount = 0;
     let pointsDiscount = 0;
-    // Giảm giá combo (nếu có) đã được server tự động áp dụng sẵn (không cần khách nhập mã) — cộng vào
-    // tổng giảm giá khi tính lại total ở calculateTotal(), y hệt cách discount/pointsDiscount đã làm.
+    // Giảm giá từ chương trình combo
     const comboDiscount = parseInt(priceSummaryEl.dataset.comboDiscount) || 0;
 
     const shippingDistanceText = document.getElementById('summary-shipping-distance-text');
@@ -1103,9 +1074,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
     const checkoutForm = document.getElementById('checkout-form');
 
-    // Mọi ô nhập (địa chỉ, mã giảm giá, điểm...) đều nằm TRONG form checkout -> nhấn Enter ở 1 ô text
-    // đơn dòng sẽ submit form = ĐẶT HÀNG NGAY ngoài ý muốn. Chặn Enter-submit ở các ô <input> (textarea
-    // giữ nguyên để xuống dòng bình thường). Việc đặt hàng chỉ được thực hiện qua nút "Đặt hàng".
+    // Chặn phím Enter tự động submit form khi đang nhập liệu
     if (checkoutForm) {
         checkoutForm.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
@@ -1114,6 +1083,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Cập nhật action của form checkout theo phương thức thanh toán đang chọn
+    // (COD → /checkout, MoMo → /checkout/momo, VNPay → /checkout/vnpay).
     function updateFormAction() {
         const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
         if (selectedPayment && checkoutForm) {
@@ -1127,11 +1098,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Đặt hàng qua fetch thay vì form POST cổ điển — trước đây khi tạo đơn thất bại (hết hàng, cửa
-    // hàng đóng cửa, phiên thanh toán hết hạn...) trình duyệt tải lại cả trang checkout đột ngột, mất
-    // vị trí cuộn/trạng thái đang thao tác dở. Submit thành công (COD lẫn MoMo) đều kết thúc bằng điều
-    // hướng thật (sang /orders hoặc sang cổng MoMo) nên vẫn giữ đúng trải nghiệm "đi tới trang khác",
-    // chỉ riêng trường hợp LỖI mới ở lại trang hiện tại thay vì tải lại toàn bộ.
+    // Gửi yêu cầu đặt hàng qua fetch để tránh tải lại trang khi gặp lỗi
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', function (event) {
             event.preventDefault();
@@ -1184,18 +1151,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
-    
+
     // Set initial form action on load
     updateFormAction();
 
+    // === CẬP NHẬT HIỂN THỊ VIỀN KHI CHỌN PHƯƠNG THỨC THANH TOÁN (PAYMENT METHODS BORDER) ===
+    // Giúp tô màu viền nổi bật (màu xanh lá chủ đạo) cho phương thức thanh toán đang được tích chọn (COD, MoMo, VNPAY...)
     function updateBorders(radios) {
         radios.forEach(radio => {
-            const label = radio.closest('label');
+            const label = radio.closest('label'); // Tìm thẻ label bọc ngoài input radio
             if (label) {
                 if (radio.checked) {
+                    // Nếu đang được chọn: Đổi viền dày hơn, màu xanh lá primary và nền xanh lá nhạt
                     label.classList.add('border-2', 'border-primary', 'bg-primary-container/10');
                     label.classList.remove('border-outline-variant');
                 } else {
+                    // Nếu không được chọn: Phục hồi viền mỏng xám nhạt mặc định
                     label.classList.remove('border-2', 'border-primary', 'bg-primary-container/10');
                     label.classList.add('border-outline-variant');
                 }
@@ -1203,37 +1174,42 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Initialize borders
+    // Khởi chạy đồng bộ viền ban đầu khi trang thanh toán vừa tải xong
     updateBorders(paymentRadios);
 
-    // Apply coupon
-    let discountPercent = 0;
-    let maxDiscountAmount = 0;
-    // Phạm vi mã đang áp dụng ('order' | 'product' | 'category') — quyết định calculateTotal() có
-    // được phép tự tính lại số giảm theo % hay phải giữ nguyên số server đã tính (xem calculateTotal).
+    // === XỬ LÝ ÁP DỤNG MÃ GIẢM GIÁ (APPLY COUPON LOGIC VIA AJAX FETCH) ===
+    let discountPercent = 0; // Tỷ lệ giảm giá (%) nếu mã áp dụng theo tỷ lệ
+    let maxDiscountAmount = 0; // Số tiền giảm tối đa (đối với mã giảm theo % có kèm trần giảm)
+    // Phạm vi áp dụng của mã giảm giá ('order' - Toàn đơn, 'product' - Theo sản phẩm, 'category' - Theo danh mục)
     let couponScope = 'order';
+
     if (applyCouponBtn && couponInput) {
+        // Lắng nghe sự kiện click nút "Áp dụng" mã giảm giá
         applyCouponBtn.addEventListener('click', () => {
+            // Chuẩn hóa chuỗi mã: xóa khoảng trắng thừa ở hai đầu và chuyển sang chữ IN HOA
             const code = couponInput.value.trim().toUpperCase();
 
+            // Trường hợp 1: Nếu người dùng để trống ô nhập mã và bấm Áp dụng (hoặc xóa sạch mã cũ đi)
             if (code === '') {
                 discount = 0;
                 discountPercent = 0;
                 maxDiscountAmount = 0;
                 couponScope = 'order';
-                couponMessage.innerText = '';
-                discountRow.classList.add('hidden');
-                document.getElementById('hidden_coupon_code').value = '';
-                calculateTotal();
+                couponMessage.innerText = ''; // Xóa thông báo lỗi/thành công cũ
+                discountRow.classList.add('hidden'); // Ẩn dòng hiển thị số tiền giảm ở bảng tóm tắt hóa đơn
+                document.getElementById('hidden_coupon_code').value = ''; // Xóa sạch mã trong input ẩn gửi lên form đặt hàng
+                calculateTotal(); // Tính toán lại tổng tiền gốc
                 return;
             }
 
-            const token = document.querySelector('input[name="_token"]').value;
-            const currentSubtotal = subtotal;
+            const token = document.querySelector('input[name="_token"]').value; // Lấy mã token CSRF bảo mật của Laravel
+            const currentSubtotal = subtotal; // Đọc tổng tiền hàng hiện tại (chưa tính ship)
 
+            // Hiển thị trạng thái đang xử lý để phản hồi người dùng
             couponMessage.innerText = 'Đang kiểm tra...';
             couponMessage.className = 'text-xs text-on-surface-variant font-medium mt-1';
 
+            // Gửi request POST AJAX kiểm tra tính hợp lệ của mã giảm giá trên hệ thống cơ sở dữ liệu
             fetch('/checkout/validate-coupon', {
                 method: 'POST',
                 headers: {
@@ -1245,42 +1221,52 @@ document.addEventListener('DOMContentLoaded', function () {
                     subtotal: currentSubtotal
                 })
             })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.valid) {
-                        discount = parseFloat(data.discount_amount) || 0;
-                        couponScope = data.scope || 'order';
-                        if (data.discount_type === 'percent') {
-                            discountPercent = data.discount_value;
-                            maxDiscountAmount = data.max_discount_amount ? parseFloat(data.max_discount_amount) : 0;
-                        } else {
-                            discountPercent = 0;
-                            maxDiscountAmount = 0;
-                        }
-
-                        // Mã theo sản phẩm/danh mục -> nói rõ áp dụng cho món/danh mục nào.
-                        couponMessage.innerText = data.scope_label
-                            ? data.message + ' ' + data.scope_label
-                            : data.message;
-                        couponMessage.className = 'text-xs text-primary font-bold mt-1';
+            .then(res => res.json()) // Chuyển đổi dữ liệu phản hồi từ máy chủ sang dạng JSON
+            .then(data => {
+                // Trường hợp 2: Nếu mã giảm giá hợp lệ và được server chấp nhận
+                if (data.valid) {
+                    discount = parseFloat(data.discount_amount) || 0; // Nhận số tiền giảm thực tế từ server tính toán
+                    couponScope = data.scope || 'order'; // Phạm vi áp dụng của mã giảm
+                    
+                    // Nếu là hình thức giảm giá theo phần trăm (%)
+                    if (data.discount_type === 'percent') {
+                        discountPercent = data.discount_value; // Lưu tỷ lệ phần trăm (ví dụ: 10 đại diện cho 10%)
+                        maxDiscountAmount = data.max_discount_amount ? parseFloat(data.max_discount_amount) : 0; // Trần giảm giá (ví dụ: tối đa 50k)
                     } else {
-                        discount = 0;
+                        // Nếu giảm theo số tiền mặt cố định (ví dụ: giảm thẳng 20k)
                         discountPercent = 0;
-                        couponScope = 'order';
-                        couponMessage.innerText = data.message;
-                        couponMessage.className = 'text-xs text-error font-bold mt-1';
+                        maxDiscountAmount = 0;
                     }
-                    calculateTotal();
-                })
-                .catch(err => {
-                    console.error(err);
+
+                    // Hiển thị thông báo thành công màu xanh lá cây
+                    // Nếu mã có phạm vi áp dụng đặc biệt (như sản phẩm/danh mục cụ thể), hiển thị nhãn phạm vi đó đi kèm
+                    couponMessage.innerText = data.scope_label
+                        ? data.message + ' ' + data.scope_label
+                        : data.message;
+                    couponMessage.className = 'text-xs text-primary font-bold mt-1';
+                } else {
+                    // Trường hợp 3: Mã giảm giá không hợp lệ (hết hạn, không đủ điều kiện đơn tối thiểu, nhập sai...)
                     discount = 0;
                     discountPercent = 0;
-                    maxDiscountAmount = 0;
-                    couponMessage.innerText = 'Có lỗi xảy ra khi kiểm tra mã.';
+                    couponScope = 'order';
+                    // Hiển thị thông báo lỗi màu đỏ từ Backend trả về
+                    couponMessage.innerText = data.message;
                     couponMessage.className = 'text-xs text-error font-bold mt-1';
-                    calculateTotal();
-                });
+                }
+                
+                // Luôn gọi hàm tính toán lại tổng tiền để cập nhật bảng tóm tắt hóa đơn mới
+                calculateTotal();
+            })
+            .catch(err => {
+                // Trường hợp 4: Lỗi kết nối mạng, mất mạng hoặc server gặp sự cố ngoài ý muốn
+                console.error('Lỗi kiểm tra mã giảm giá:', err);
+                discount = 0;
+                discountPercent = 0;
+                maxDiscountAmount = 0;
+                couponMessage.innerText = 'Có lỗi xảy ra khi kiểm tra mã.';
+                couponMessage.className = 'text-xs text-error font-bold mt-1';
+                calculateTotal();
+            });
         });
     }
 
@@ -1345,17 +1331,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Tính lại tổng tiền và cập nhật UI tóm tắt đơn hàng:
+    // Tổng = subtotal + phí ship (theo km) + phụ phí thời tiết - giảm giá coupon - đổi điểm - giảm combo.
+    // Tính lại tổng tiền và cập nhật giao diện tóm tắt hóa đơn
     function calculateTotal() {
+        // Lấy khoảng cách (mặc định 2.5km nếu chưa định vị xong)
         const hiddenDist = document.getElementById('hidden_distance_km');
         const distanceKm = hiddenDist ? parseFloat(hiddenDist.value) : 2.5;
 
+        // Lấy phụ phí thời tiết xấu (nếu có)
         const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
         const weatherFee = hiddenWeatherFee ? parseFloat(hiddenWeatherFee.value) : 0;
 
+        // Kiểm tra xem đơn hàng có đủ điều kiện Freeship không
         const freeShipThreshold = config.freeShippingMinimum;
         const freeShip = subtotal >= freeShipThreshold;
 
-        // Calculate shipping base + per km fee dynamic calculation
+        // Tính phí vận chuyển (2km đầu tính phí cơ bản, các km sau tính thêm phí/km)
         let distanceFee = 0;
         if (!freeShip) {
             if (distanceKm <= 2) {
@@ -1366,10 +1358,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         distanceFee = Math.round(distanceFee);
 
-        // Tính lại số tiền giảm theo % — CHỈ đúng với mã giảm TOÀN ĐƠN, vì chỉ khi đó phần trăm mới
-        // áp trên toàn bộ subtotal. Với mã theo sản phẩm/danh mục, số giảm phải tính trên riêng phần
-        // hàng hợp lệ (server đã tính sẵn và trả về discount_amount) — tính lại ở đây sẽ ra số lớn
-        // hơn thực tế, hiện sai cho khách. Nên các mã đó giữ nguyên số server trả về.
+        // Tính số tiền giảm theo phần trăm của mã coupon
         if (discountPercent > 0 && couponScope === 'order') {
             discount = Math.round(subtotal * (discountPercent / 100));
             if (maxDiscountAmount && maxDiscountAmount > 0 && discount > maxDiscountAmount) {
@@ -1378,18 +1367,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (discount > subtotal) discount = subtotal;
         }
 
+        // Tổng tất cả các khoản giảm giá (Mã coupon + Điểm tích lũy + Giảm combo)
         const totalDiscount = discount + pointsDiscount + comboDiscount;
 
-        // Calculate final total
+        // Công thức tính tổng tiền cuối cùng (Tổng = Hàng + Ship + Thời tiết - Giảm giá)
         const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - totalDiscount);
 
-        // Update UI
+        // Hiển thị số km khoảng cách lên giao diện
         const distValEl = document.getElementById('summary-distance-km-val');
         if (distValEl) distValEl.innerText = distanceKm.toFixed(1);
 
         const freeShipRow = document.getElementById('summary-free-ship-row');
         const shippingDistRow = document.getElementById('summary-shipping-distance-row');
 
+        // Nếu vượt quá khoảng cách giao hàng tối đa của quán -> Khóa không cho đặt hàng
         if (distanceKm > config.shippingMaxDistanceKm) {
             if (orderBtn) {
                 orderBtn.disabled = true;
@@ -1404,8 +1395,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (weatherRowOver) weatherRowOver.classList.add('hidden');
             if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
         } else {
+            // Trong phạm vi giao hàng -> Mở khóa nút đặt hàng và đổi nhãn nút theo phương thức thanh toán
             if (orderBtn) {
-                // Ensure button is not disabled due to hours
                 const isClosed = document.getElementById('order-submit-btn').dataset.closed === '1';
                 if (!isClosed) {
                     orderBtn.disabled = false;
@@ -1427,8 +1418,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            // Free ship logic
+            // Hiển thị phí ship và phụ phí thời tiết phù hợp lên giao diện
             if (freeShip) {
+                // Được Freeship -> Ẩn dòng tiền ship, hiện dòng thông báo Freeship
                 if (freeShipRow) freeShipRow.classList.remove('hidden');
                 if (shippingDistRow) shippingDistRow.classList.add('hidden');
                 if (shippingDistanceText) shippingDistanceText.innerText = '0đ';
@@ -1437,6 +1429,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (weatherRow) weatherRow.classList.add('hidden');
                 if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
             } else {
+                // Không được Freeship -> Hiện số tiền ship và tiền phụ thu thời tiết nếu có
                 if (freeShipRow) freeShipRow.classList.add('hidden');
                 if (shippingDistRow) shippingDistRow.classList.remove('hidden');
                 if (shippingDistanceText) shippingDistanceText.innerText = distanceFee.toLocaleString('vi-VN') + 'đ';
@@ -1451,9 +1444,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
+            // Hiển thị tổng số tiền khách cần thanh toán
             if (totalText) totalText.innerText = total.toLocaleString('vi-VN') + 'đ';
         }
 
+        // Hiển thị hoặc ẩn dòng tóm tắt số tiền được giảm giá
         if (totalDiscount > 0) {
             if (discountRow) discountRow.classList.remove('hidden');
             if (discountText) discountText.innerText = '-' + totalDiscount.toLocaleString('vi-VN') + 'đ';
@@ -1462,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Address list toggle
+    // Sự kiện ẩn/hiện danh sách đổi địa chỉ nhận hàng
     const changeAddressBtn = document.getElementById('change-address-btn');
     const addressListPanel = document.getElementById('address-list-panel');
     if (changeAddressBtn && addressListPanel) {
@@ -1471,13 +1466,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Selecting alternative address
+    // Sự kiện khi người dùng đổi địa chỉ nhận hàng khác trên danh sách
     const addressRadios = document.querySelectorAll('input[name="address_selector"]');
     const hiddenAddressIdInput = document.getElementById('selected_address_id');
     const activeAddressName = document.getElementById('active-address-name');
     const activeAddressPhone = document.getElementById('active-address-phone');
     const activeAddressDetails = document.getElementById('active-address-details');
 
+    // Hàm gọi API của Laravel để tính khoảng cách thực tế đến địa chỉ mới chọn
     function updateDistanceForAddress(addressId) {
         if (!addressId) return;
 
@@ -1494,10 +1490,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         hiddenDist.value = distanceKm;
                     }
 
-                    updateWeatherFeeForAddress(addressId, distanceKm);
+                    updateWeatherFeeForAddress(addressId, distanceKm);//tính phí thời tiết
 
-                    calculateTotal();
+                    calculateTotal();// Tính lại tổng tiền
 
+                    // Hiển thị ghi chú cách tính tiền ship và nguồn tính (thực tế hay giả lập)
                     const calcDesc = document.getElementById('distance-calc-desc');
                     if (calcDesc) {
                         const fmtBase = config.shippingBaseFee.toLocaleString('vi-VN');
@@ -1518,6 +1515,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
+    // Lấy phụ phí thời tiết xấu (mưa/bão) từ backend (/checkout/weather-fee).
+    // Phụ phí được tính dựa trên điều kiện thời tiết thực tế tại vị trí giao hàng.
     function updateWeatherFeeForAddress(addressId, distanceKm) {
         if (!addressId) return;
 
@@ -1573,6 +1572,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Xóa địa chỉ giao hàng ngay từ trang Checkout (POST /profile/address/{id}/delete).
+// Sau khi xóa thành công → reload trang để cập nhật danh sách địa chỉ.
 async function deleteAddressCheckout(id) {
     if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return;
     try {

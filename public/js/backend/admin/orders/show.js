@@ -1,3 +1,17 @@
+/**
+ * show.js - Xử lý các thao tác tương tác trong trang chi tiết đơn hàng (Order Details Page)
+ * Các tính năng bao gồm:
+ * - Thay thế ảnh phụ lỗi bằng ảnh mặc định khi tải ảnh thất bại (`applyFallbackImage`).
+ * - Nhấn nút "In hóa đơn" kích hoạt hộp thoại in mặc định của trình duyệt (`window.print()`).
+ * - Thao tác Hủy đơn thường: Đưa ra hộp thoại nhắc nhở lý do hủy tối thiểu 5 ký tự.
+ * - Thao tác Hoàn tiền & Hủy đơn (dành cho thanh toán online ví dụ MoMo): Gọi API tích hợp ví MoMo hoàn tiền tự động trực tiếp cho khách hàng trước khi hủy hóa đơn.
+ * - Submit các form chuyển trạng thái đơn hàng thông qua AJAX fetch mà không gây reload tải lại trang liên tục.
+ */
+
+/**
+ * Tự động gán ảnh dự phòng khi tải ảnh đại diện sản phẩm bị lỗi
+ * @param {HTMLImageElement} image - Thẻ img bị tải lỗi
+ */
 function applyFallbackImage(image) {
     if (image.dataset.fallbackApplied === "true") return;
 
@@ -5,15 +19,20 @@ function applyFallbackImage(image) {
     image.src = image.dataset.fallbackSrc;
 }
 
+/**
+ * Khởi tạo toàn bộ sự kiện khi vào trang chi tiết đơn hàng
+ */
 function initOrderShowPage() {
     const printButton = document.getElementById("order-print-btn");
 
+    // 1. Gắn sự kiện nút In hóa đơn đơn hàng
     if (printButton) {
         printButton.addEventListener("click", function () {
             window.print();
         });
     }
 
+    // 2. Tải ảnh dự phòng nếu lỗi tải ảnh
     document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
         image.addEventListener("error", function () {
             applyFallbackImage(this);
@@ -24,7 +43,7 @@ function initOrderShowPage() {
         }
     });
 
-    // Xử lý nút hủy đơn hàng
+    // 3. Xử lý nút hủy đơn hàng thường (Thanh toán khi nhận hàng COD)
     const cancelBtn = document.getElementById('cancel-order-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function () {
@@ -58,7 +77,7 @@ function initOrderShowPage() {
         });
     }
 
-    // Xử lý nút "Hoàn tiền & Hủy đơn" (đơn MoMo đã thanh toán)
+    // 4. Xử lý nút "Hoàn tiền & Hủy đơn" (Dành cho đơn thanh toán Online qua MoMo/VNPay đã thanh toán)
     const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
     if (refundCancelBtn) {
         refundCancelBtn.addEventListener('click', function () {
@@ -68,7 +87,7 @@ function initOrderShowPage() {
             if (window.AdminAlert && window.AdminAlert.prompt) {
                 window.AdminAlert.prompt(
                     'Hoàn tiền & hủy đơn hàng?',
-                    'Hệ thống sẽ gọi hoàn tiền MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
+                    'Hệ thống sẽ gọi hoàn tiền ví MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
                     'Nhập lý do hủy đơn...',
                     function (reason, isConfirmed) {
                         if (isConfirmed && reason && reason.trim().length >= 5) {
@@ -81,7 +100,7 @@ function initOrderShowPage() {
                     5
                 );
             } else {
-                const reason = prompt('Hệ thống sẽ gọi hoàn tiền MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):');
+                const reason = prompt('Hệ thống sẽ gọi hoàn tiền ví MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):');
                 if (reason && reason.trim().length >= 5) {
                     reasonInput.value = reason.trim();
                     submitOrderActionForm(form);
@@ -92,7 +111,7 @@ function initOrderShowPage() {
         });
     }
 
-    // Form đơn giản "Xác nhận đơn"/"Hoàn thành" — submit qua fetch thay vì tải lại cả trang.
+    // 5. Ngăn chặn submit tải lại trang cho các nút cập nhật trạng thái đơn (Xác nhận đơn, Giao hàng...)
     document.querySelectorAll('form[action*="/status"]').forEach(function (form) {
         if (form.id === 'cancel-order-form' || form.id === 'refund-cancel-order-form') return;
         form.addEventListener('submit', function (event) {
@@ -102,14 +121,16 @@ function initOrderShowPage() {
     });
 }
 
+/**
+ * Đọc CSRF Token lưu trữ trong thẻ meta đầu trang
+ */
 function getShowPageCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute('content') : '';
 }
 
 /**
- * Hiện thông báo lỗi/thành công dùng chung cho toàn trang chi tiết đơn — ưu tiên toast AdminAlert
- * (đã nạp sẵn ở layout dùng chung), alert() thô chỉ dùng khi AdminAlert vì lý do gì đó chưa nạp được.
+ * Hiển thị thông báo Toast thành công hoặc thất bại cho trang chi tiết đơn
  */
 function showOrderActionMessage(message, type) {
     if (window.AdminAlert && type === 'error' && window.AdminAlert.error) {
@@ -122,12 +143,11 @@ function showOrderActionMessage(message, type) {
 }
 
 /**
- * Submit 1 form thao tác đơn hàng (xác nhận/hủy/hoàn tiền) qua fetch. Thành công thì tải lại trang để
- * hiển thị đúng trạng thái/nút bấm mới. Lỗi thì hiện thông báo tại chỗ, KHÔNG tải lại trang.
+ * Thực thi gửi submit form thay đổi trạng thái đơn hàng bất đồng bộ (fetch)
  */
 function submitOrderActionForm(form) {
     const btn = form.querySelector('button[type="submit"]');
-    if (btn) btn.disabled = true;
+    if (btn) btn.disabled = true; // Disable nút bấm chống click đúp gửi trùng request
 
     fetch(form.action, {
         method: 'POST',
@@ -145,6 +165,7 @@ function submitOrderActionForm(form) {
                 if (btn) btn.disabled = false;
                 return;
             }
+            // Thành công: Reload tải lại trang để hiển thị chính xác trạng thái mới và các nút điều hướng tiếp theo
             window.location.reload();
         })
         .catch(function () {
@@ -153,4 +174,5 @@ function submitOrderActionForm(form) {
         });
 }
 
+// Khởi tạo kích hoạt trang chi tiết đơn
 initOrderShowPage();

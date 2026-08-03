@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Services\AdministrativeDivisionService;
 
-// Cấp dữ liệu tỉnh/thành + phường/xã cho form địa chỉ (checkout.blade.php) — AJAX, KHÔNG hard-code
-// danh sách ở Blade/JS. Chỉ đọc, không cần CSRF riêng (route GET trong nhóm auth có sẵn).
+// Cung cấp dữ liệu tỉnh/thành + phường/xã cho form địa chỉ qua AJAX.
+// Toàn bộ dữ liệu lấy từ AdministrativeDivisionService (không hard-code trong Blade/JS).
 class AdministrativeDivisionController
 {
+    // Inject service xử lý dữ liệu địa chính vào controller
     public function __construct(private AdministrativeDivisionService $service)
     {
     }
 
+    /**
+     * Trả về danh sách tất cả Tỉnh/Thành phố.
+     * Route: GET /administrative/provinces
+     */
     public function provinces()
     {
-        $provinces = $this->service->provinces();
+        $provinces = $this->service->provinces(); // Gọi service lấy danh sách tỉnh
+
+        // Nếu service trả về null (lỗi nguồn dữ liệu) → báo lỗi 503
         if ($provinces === null) {
             return response()->json([
                 'success' => false,
@@ -22,12 +29,19 @@ class AdministrativeDivisionController
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => $provinces]);
+        return response()->json(['success' => true, 'data' => $provinces]); // checkout.js - loadProvinces()
     }
 
+    /**
+     * Trả về danh sách Phường/Xã thuộc một Tỉnh/Thành phố cụ thể.
+     * Route: GET /administrative/provinces/{provinceCode}/wards
+     * $provinceCode: mã số tỉnh do JS gửi lên khi user chọn tỉnh
+     */
     public function wards(int $provinceCode)
     {
-        $wards = $this->service->wardsOf($provinceCode);
+        $wards = $this->service->wardsOf($provinceCode); // Lọc phường/xã theo mã tỉnh
+
+        // Nếu service trả về null (mã tỉnh không hợp lệ hoặc lỗi nguồn dữ liệu) → báo lỗi 503
         if ($wards === null) {
             return response()->json([
                 'success' => false,
@@ -35,6 +49,6 @@ class AdministrativeDivisionController
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => $wards]);
+        return response()->json(['success' => true, 'data' => $wards]); // checkout.js - loadWardsFor()
     }
 }

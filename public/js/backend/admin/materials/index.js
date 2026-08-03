@@ -1,7 +1,19 @@
+/**
+ * index.js - Quản lý trang danh sách vật tư khu vực Admin
+ * Các tính năng bao gồm:
+ * - Lọc dữ liệu AJAX (fetch) theo ô tìm kiếm (debounce 400ms), trạng thái và sắp xếp.
+ * - Khởi tạo định dạng tiền tệ cho ô nhập Giá vốn ở form Thêm mới vật tư.
+ * - Phân trang AJAX và giữ nguyên trạng thái tích chọn checkbox giữa các trang.
+ * - Xóa đơn lẻ vật tư bằng AJAX, tự động cuộn lại đúng vị trí cuộn cũ (`pendingScrollY`).
+ * - Xóa hàng loạt vật tư đã chọn (Bulk Delete) có hộp thoại xác nhận chi tiết.
+ * - Đồng bộ trạng thái Checkbox của bảng (bao gồm hỗ trợ trạng thái bán chọn Indeterminate).
+ * - Tự động tải lại trang khi người dùng nhấn nút Back/Forward của trình duyệt để tránh lỗi hiển thị chuỗi JSON thô (Popstate).
+ */
 (function () {
     "use strict";
 
     document.addEventListener("DOMContentLoaded", function () {
+        // === PHẦN TỬ DOM ===
         const page = document.getElementById("materials-index-page");
         const filterForm = document.getElementById("filter-form");
         const tableContainer = document.getElementById("table-container");
@@ -17,19 +29,24 @@
 
         if (!page || !filterForm || !tableContainer) return;
 
+        // Quản lý trạng thái tích chọn checkbox hàng loạt (State)
         const state = {
-            globalSelectAll: false,
-            selectedIds: new Set(),
-            excludedIds: new Set(),
+            globalSelectAll: false, // true khi tích chọn toàn bộ tất cả bản ghi trên mọi trang
+            selectedIds: new Set(), // Set chứa ID được chọn thủ công
+            excludedIds: new Set(), // Set chứa ID bị loại trừ (khi bật globalSelectAll nhưng bỏ tích một vài dòng)
         };
         let searchTimeout = null;
-        let activeRequest = null;
+        let activeRequest = null; // Quản lý AbortController để hủy các request AJAX cũ nếu người dùng thao tác nhanh
 
+        // Liên kết định dạng tiền tệ cho trường Giá vốn ở form Thêm mới
         MaterialsCommon.bindCurrencyInput(
             document.getElementById("add-formatted-price"),
             document.getElementById("add-raw-price"),
         );
 
+        /**
+         * Hiện/Ẩn hiệu ứng mờ loading trên bảng dữ liệu
+         */
         function setLoaderVisible(visible) {
             if (!tableContainer) return;
             if (visible) {
@@ -41,16 +58,25 @@
             }
         }
 
+        /**
+         * Lấy tổng số lượng vật tư khớp bộ lọc lưu trong input ẩn
+         */
         function getTotalCount() {
             return Number.parseInt(document.getElementById("total-materials-count")?.value || "0", 10) || 0;
         }
 
+        /**
+         * Tính toán chính xác số lượng vật tư đang được tích chọn
+         */
         function getSelectedCount() {
             return state.globalSelectAll
                 ? Math.max(getTotalCount() - state.excludedIds.size, 0)
                 : state.selectedIds.size;
         }
 
+        /**
+         * Đặt lại trạng thái lựa chọn hàng loạt về ban đầu
+         */
         function resetSelection() {
             state.globalSelectAll = false;
             state.selectedIds.clear();
@@ -58,6 +84,9 @@
             syncCheckboxes();
         }
 
+        /**
+         * Cập nhật hiển thị số lượng và ẩn/hiện nút "Xóa nhiều"
+         */
         function updateBulkDeleteButton() {
             const count = getSelectedCount();
 
@@ -72,6 +101,9 @@
             }
         }
 
+        /**
+         * Đồng bộ hóa lại hiển thị checkbox của bảng theo dữ liệu trong State
+         */
         function syncCheckboxes() {
             const rowCheckboxes = [
                 ...tableContainer.querySelectorAll(".material-checkbox:not(:disabled)"),
@@ -83,6 +115,7 @@
                     : state.selectedIds.has(checkbox.value);
             });
 
+            // Đồng bộ nút "Chọn tất cả" ở đầu bảng (gồm cả trạng thái gạch ngang bán chọn Indeterminate)
             const selectAllEls = tableContainer.querySelectorAll(".js-select-all");
             if (selectAllEls.length > 0) {
                 selectAllEls.forEach((selectAll) => {
@@ -100,10 +133,14 @@
             updateBulkDeleteButton();
         }
 
+        /**
+         * Xây dựng URL chứa các tham số lọc hiện hành
+         */
         function buildFilterUrl() {
             const url = new URL(filterForm.action, window.location.origin);
             const params = new URLSearchParams(new FormData(filterForm));
 
+            // Loại bỏ các tham số mặc định để URL thanh lịch hơn
             for (const [key, value] of [...params.entries()]) {
                 if (!value || value === "all" || value === "newest") params.delete(key);
             }
@@ -112,20 +149,24 @@
             return url;
         }
 
+        /**
+         * Đồng bộ ngược form lọc từ tham số trên URL (phục vụ Popstate)
+         */
         function syncFilterFormFromUrl(url) {
             if (searchInput) searchInput.value = url.searchParams.get("search") || "";
             if (statusSelect) {
                 statusSelect.value = url.searchParams.get("status") || "all";
-                // Trigger change to update custom UI if it exists
                 statusSelect.dispatchEvent(new Event('change'));
             }
             if (sortSelect) {
                 sortSelect.value = url.searchParams.get("sort") || "newest";
-                // Trigger change to update custom UI if it exists
                 sortSelect.dispatchEvent(new Event('change'));
             }
         }
 
+        /**
+         * Hiện/Ẩn nút Xóa lọc
+         */
         function updateClearFilterButton() {
             if (!clearFilterButton) return;
             const hasFilters =
@@ -135,12 +176,15 @@
             clearFilterButton.style.display = hasFilters ? "flex" : "none";
         }
 
+        /**
+         * Gửi request AJAX tải lại bảng dữ liệu vật tư
+         */
         async function loadTableData(url = buildFilterUrl(), options = {}) {
             const { preserveSelection = false, pushHistory = true } = options;
             const targetUrl = new URL(url, window.location.origin);
 
             if (!preserveSelection) resetSelection();
-            if (activeRequest) activeRequest.abort();
+            if (activeRequest) activeRequest.abort(); // Hủy request cũ để tránh Race Condition nếu gõ phím quá nhanh
             const requestController = new AbortController();
             activeRequest = requestController;
             setLoaderVisible(true);
@@ -175,6 +219,7 @@
             }
         }
 
+        // Helper thêm trường ẩn vào form trước khi submit
         function appendHiddenInput(form, name, value) {
             const input = document.createElement("input");
             input.type = "hidden";
@@ -183,15 +228,19 @@
             form.appendChild(input);
         }
 
+        /**
+         * Gửi POST AJAX thực hiện xóa hàng loạt vật tư
+         */
         async function executeBulkDelete() {
             if (!bulkDeleteForm) return;
 
             const url = bulkDeleteForm.action;
             const formData = new FormData(bulkDeleteForm);
 
-            // Xóa các input cũ
+            // Dọn dẹp các trường ẩn cũ
             bulkDeleteForm.querySelectorAll('input:not([name="_token"])').forEach(input => input.remove());
 
+            // Đóng gói danh sách ID cần xóa vào FormData
             if (state.globalSelectAll) {
                 formData.append("delete_all_pages", "1");
                 const params = new URLSearchParams(window.location.search);
@@ -226,7 +275,7 @@
                             showConfirmButton: false
                         });
                     }
-                    window.pendingScrollY = currentScrollY;
+                    window.pendingScrollY = currentScrollY; // Lưu vị trí cuộn màn hình để phục hồi sau khi render bảng mới
                     resetSelection();
                     loadTableData();
                 } else {
@@ -245,6 +294,9 @@
             }
         }
 
+        /**
+         * Hiển thị cảnh báo confirm trước khi xóa hàng loạt
+         */
         async function submitBulkDelete() {
             const count = getSelectedCount();
             if (count === 0) return;
@@ -259,11 +311,13 @@
             if (confirmed) executeBulkDelete();
         }
 
+        // Đăng ký sự kiện submit form bộ lọc
         filterForm.addEventListener("submit", function (event) {
             event.preventDefault();
             loadTableData();
         });
 
+        // Debounce tìm kiếm vật tư tự động sau khi ngừng gõ 400ms
         searchInput?.addEventListener("input", function () {
             resetSelection();
             clearTimeout(searchTimeout);
@@ -273,6 +327,7 @@
         statusSelect?.addEventListener("change", () => loadTableData());
         sortSelect?.addEventListener("change", () => loadTableData());
 
+        // Nhấn nút xóa bộ lọc đưa các ô nhập về giá trị mặc định ban đầu
         clearFilterButton?.addEventListener("click", function (event) {
             event.preventDefault();
             filterForm.reset();
@@ -291,14 +346,16 @@
         bulkDeleteButton?.addEventListener("click", submitBulkDelete);
         bulkDeselectBtn?.addEventListener("click", resetSelection);
 
+        // Bắt sự kiện click nút phân trang AJAX
         tableContainer.addEventListener("click", function (event) {
             const paginationLink = event.target.closest(".ajax-pagination a");
             if (!paginationLink) return;
 
             event.preventDefault();
-            loadTableData(paginationLink.href, { preserveSelection: true });
+            loadTableData(paginationLink.href, { preserveSelection: true }); // Giữ lại tích chọn khi sang trang khác
         });
 
+        // Lắng nghe sự kiện check/uncheck các dòng dữ liệu để cập nhật danh sách chọn
         tableContainer.addEventListener("change", function (event) {
             if (event.target.classList.contains("js-select-all")) {
                 state.globalSelectAll = event.target.checked;
@@ -322,6 +379,7 @@
             syncCheckboxes();
         });
 
+        // Xác nhận xóa vật tư đơn lẻ
         tableContainer.addEventListener("submit", async function (event) {
             const deleteForm = event.target.closest(".js-material-delete-form");
             if (!deleteForm) return;
@@ -339,7 +397,7 @@
                     
                     try {
                         const response = await fetch(url, {
-                            method: "POST", // Vì Laravel dùng DELETE qua method spoofing _method=DELETE
+                            method: "POST", // Laravel spoofing _method=DELETE
                             body: new FormData(deleteForm),
                             headers: {
                                 "X-Requested-With": "XMLHttpRequest",
@@ -349,7 +407,7 @@
                         
                         const data = await response.json();
                         if (data.success) {
-                            window.pendingScrollY = currentScrollY;
+                            window.pendingScrollY = currentScrollY; // Giữ vị trí cuộn màn hình
                             loadTableData();
                         } else {
                             if (typeof Swal !== 'undefined') {
@@ -371,14 +429,12 @@
             }
         });
 
-        // Xử lý nút điều hướng Back/Forward trình duyệt (popstate). Trước đây gọi lại loadTableData()
-        // (fetch kèm Accept: application/json) để "đồng bộ" bảng theo URL vừa quay lại — nhưng có
-        // trường hợp (vd bfcache khôi phục trang) khiến JSON trả về bị hiển thị thẳng ra thành nội
-        // dung trang thay vì được JS chèn vào bảng. Tải lại thẳng trang an toàn hơn nhiều.
+        // Xử lý reload cứng khi popstate (Back/Forward trình duyệt) để tránh lỗi render ra chuỗi JSON thô
         window.addEventListener("popstate", function () {
             window.location.reload();
         });
 
+        // Đợi bảng render xong thì phục hồi lại đúng vị trí cuộn chuột trước khi xóa/thay đổi trạng thái
         document.addEventListener("tableDataLoaded", function () {
             if (window.pendingScrollY !== undefined) {
                 window.scrollTo({ top: window.pendingScrollY, behavior: 'instant' });

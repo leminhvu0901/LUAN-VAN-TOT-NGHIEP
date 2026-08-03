@@ -1,34 +1,41 @@
-// ===== Filter buttons for popular products (trang chủ) =====
+// ===== Bộ lọc sản phẩm nổi bật trên Trang chủ =====
 (function () {
+    // Lấy danh sách các nút lọc và lưới hiển thị sản phẩm
     var pillButtons = document.querySelectorAll('#home-pill-filters .home-popular__filter-btn');
     var grid = document.querySelector('.home-products-grid');
-    var currentFilter = 'all';
+    var currentFilter = 'all'; // Bộ lọc hiện tại (mặc định là 'all')
 
+    // Hàm thực hiện lọc và sắp xếp sản phẩm
     function applyHomeFilter() {
         if (!grid) return;
 
+        // Chuyển danh sách NodeList thành Array để sử dụng hàm sort()
         var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
         var visibleCount = 0;
 
-        // Sort cards based on filter
+        // Sắp xếp các thẻ sản phẩm theo tiêu chí của bộ lọc đang chọn
         cards.sort(function (a, b) {
             if (currentFilter === 'hot') {
+                // Sắp xếp theo số lượng bán (data-sold) giảm dần
                 return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute('data-sold') || 0);
             } else if (currentFilter === 'new') {
+                // Sắp xếp theo ngày đăng dạng timestamp (data-date) giảm dần
                 return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute('data-date') || 0);
             } else if (currentFilter === 'sale') {
+                // Đẩy các sản phẩm đang giảm giá (data-is-sale = 1) lên trước
                 return parseInt(b.getAttribute('data-is-sale') || 0) - parseInt(a.getAttribute('data-is-sale') || 0);
             } else {
-                // 'all': sort by composite score (60% sales + 40% rating)
+                // Chế độ mặc định 'all': Sắp xếp theo điểm tổng hợp (60% lượng bán + 40% điểm đánh giá sao)
                 return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute('data-score') || 0);
             }
         });
 
-        // Filter & show max 6 matching cards
+        // Lọc hiển thị và giới hạn tối đa số sản phẩm phù hợp
         var shown = 0;
         cards.forEach(function (card) {
-            grid.appendChild(card);
+            grid.appendChild(card); // Gắn lại thẻ vào grid theo thứ tự mới đã sắp xếp
 
+            // Kiểm tra xem sản phẩm có khớp bộ lọc hay không
             var isMatch = true;
             if (currentFilter === 'hot') {
                 isMatch = card.getAttribute('data-is-hot') === '1';
@@ -38,6 +45,7 @@
                 isMatch = card.getAttribute('data-is-sale') === '1';
             }
 
+            // Hiển thị sản phẩm nếu khớp và chưa vượt quá số lượng tối đa (hiện tối đa 7 sản phẩm)
             if (isMatch && shown < 7) {
                 card.style.display = '';
                 shown++;
@@ -46,7 +54,7 @@
                 card.style.display = 'none';
             }
 
-            // Badge visibility
+            // Xử lý hiển thị huy hiệu (Badge) tương ứng để tránh đè nhãn lên nhau
             var hotBadge = card.querySelector('.home-prod-card__badge--hot');
             var newBadge = card.querySelector('.home-prod-card__badge--new');
             var saleBadge = card.querySelector('.home-prod-card__badge--sale');
@@ -63,13 +71,14 @@
                 if (newBadge) newBadge.style.display = 'none';
                 if (hotBadge) hotBadge.style.display = '';
             } else {
+                // Ở chế độ Tất cả: Ưu tiên hiện nhãn Sale -> Hot -> New
                 if (saleBadge) saleBadge.style.display = '';
                 if (hotBadge) hotBadge.style.display = saleBadge ? 'none' : '';
                 if (newBadge) newBadge.style.display = (saleBadge || hotBadge) ? 'none' : '';
             }
         });
 
-        // Show/hide empty message
+        // Hiển thị hoặc ẩn thông báo khi không có sản phẩm nào
         var emptyMsg = document.getElementById('home-empty-msg');
         if (visibleCount === 0) {
             if (!emptyMsg) {
@@ -87,31 +96,34 @@
         }
     }
 
+    // Lắng nghe sự kiện click trên các nút lọc danh mục
     pillButtons.forEach(function (btn) {
         btn.addEventListener('click', function () {
+            // Loại bỏ class kích hoạt cũ và thêm vào nút vừa click
             pillButtons.forEach(function (b) {
                 b.classList.remove('home-popular__filter-btn--active');
             });
             this.classList.add('home-popular__filter-btn--active');
             currentFilter = this.getAttribute('data-filter');
-            applyHomeFilter();
+            applyHomeFilter(); // Chạy lại bộ lọc
         });
     });
 
-    // Initial render
+    // Chạy bộ lọc lần đầu khi load trang
     applyHomeFilter();
 })();
 
 
-// ===== Animated stat counters =====
+// ===== Hiệu ứng chạy số tự động (Stat counters) =====
 (function () {
+    // Hàm thực hiện tăng số dần đều
     function animateCounter(el, target, suffix, duration) {
         var start = 0;
         var startTime = null;
         function step(timestamp) {
             if (!startTime) startTime = timestamp;
             var progress = Math.min((timestamp - startTime) / duration, 1);
-            // Ease out cubic
+            // Sử dụng công thức Ease Out Cubic để chuyển động chậm dần về sau
             var eased = 1 - Math.pow(1 - progress, 3);
             var current = Math.round(eased * target);
             el.textContent = current + suffix;
@@ -120,37 +132,38 @@
         requestAnimationFrame(step);
     }
 
+    // Khởi tạo và kích hoạt đếm số chạy
     function startCounters() {
         document.querySelectorAll('.home-hero__stat-num').forEach(function (el) {
-            var raw = el.textContent.trim(); // e.g. "50+", "4.9★", "30'"
+            var raw = el.textContent.trim(); // Lấy văn bản thô, ví dụ: "50+", "4.9★", "30'"
             var match = raw.match(/^([\d.]+)(.*)$/);
             if (!match) return;
-            var num = parseFloat(match[1]);
-            var suffix = match[2];
+            var num = parseFloat(match[1]); // Lấy phần số
+            var suffix = match[2];          // Lấy phần hậu tố (+ / ★ / ')
             el.textContent = '0' + suffix;
-            animateCounter(el, num, suffix, 1600);
+            animateCounter(el, num, suffix, 1600); // Thực hiện chạy trong 1.6 giây
         });
     }
 
-    // Delay to match the entrance animation (0.5s delay + some time)
+    // Trì hoãn một chút để đồng bộ với hiệu ứng xuất hiện ban đầu (hero entrance animation)
     setTimeout(startCounters, 800);
 })();
 
-// Navbar scroll glassmorphism effect
+// ===== Hiệu ứng kính mờ (Glassmorphism) cho Thanh điều hướng khi cuộn trang =====
 const navbar = document.querySelector('.happy-navbar');
 if (navbar) {
     window.addEventListener('scroll', function () {
         if (window.scrollY > 20) {
-            navbar.classList.add('navbar--scrolled');
+            navbar.classList.add('navbar--scrolled'); // Thêm class tạo viền mờ khi cuộn xuống
         } else {
-            navbar.classList.remove('navbar--scrolled');
+            navbar.classList.remove('navbar--scrolled'); // Gỡ class khi cuộn lại lên đầu trang
         }
     }, { passive: true });
 }
 
-// Wishlist toggle is handled globally in main.js via inline onclick handlers
+// Chức năng Thêm vào danh sách yêu thích được xử lý tập trung trong file main.js thông qua sự kiện inline onclick
 
-// Hero Auto Slider (4s) with Dot navigation
+// ===== Trình chiếu Banner tự động (Hero Auto Slider 4 giây) =====
 (function () {
     var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
     var heroTitle = document.getElementById('hero-title');
@@ -159,22 +172,23 @@ if (navbar) {
     var currentIdx = 0;
     var slideInterval = null;
 
+    // Hàm chuyển đổi sang slide mong muốn
     function showSlide(nextIdx) {
         if (nextIdx === currentIdx) return;
         var prevIdx = currentIdx;
 
-        // Slide out the current one to the left
+        // Đẩy slide hiện tại trượt ra phía bên trái
         sliderImgs[prevIdx].classList.remove('active');
         sliderImgs[prevIdx].classList.add('prev-slide');
 
-        // Update index
+        // Cập nhật chỉ số slide hiện hành
         currentIdx = nextIdx;
 
-        // Slide in the new one from the right
+        // Trượt slide mới vào từ phía bên phải
         sliderImgs[currentIdx].classList.remove('prev-slide');
         sliderImgs[currentIdx].classList.add('active');
 
-        // Update active class on dots
+        // Cập nhật trạng thái các chấm chỉ báo (Dots indicator)
         dots.forEach(function (dot, idx) {
             if (idx === currentIdx) {
                 dot.classList.add('active');
@@ -183,12 +197,12 @@ if (navbar) {
             }
         });
 
-        // Remove prev-slide class after animation finishes
+        // Xóa class của slide cũ sau khi hiệu ứng hoàn tất
         setTimeout(function () {
             sliderImgs[prevIdx].classList.remove('prev-slide');
         }, 800);
 
-        // Update title dynamically
+        // Cập nhật tiêu đề động cho Banner
         if (heroTitle) {
             heroTitle.innerText = sliderImgs[currentIdx].dataset.title || '';
         }
@@ -206,7 +220,7 @@ if (navbar) {
             }
         }
 
-        // Update link dynamically
+        // Cập nhật đường link nút bấm mua sắm của slide đó
         var primaryBtn = document.querySelector('.home-hero__btn--primary');
         if (primaryBtn) {
             var slideLink = sliderImgs[currentIdx].dataset.link;
@@ -214,6 +228,7 @@ if (navbar) {
         }
     }
 
+    // Bắt đầu tự động chuyển slide
     function startAutoSlide() {
         stopAutoSlide();
         slideInterval = setInterval(function () {
@@ -222,50 +237,49 @@ if (navbar) {
         }, 4000);
     }
 
+    // Dừng tự động chuyển slide
     function stopAutoSlide() {
         if (slideInterval) {
             clearInterval(slideInterval);
         }
     }
 
-    // Attach click listener to dots
+    // Lắng nghe sự kiện click trên các chấm chỉ báo slide
     dots.forEach(function (dot) {
         dot.addEventListener('click', function () {
             var targetIdx = parseInt(this.getAttribute('data-slide-index'));
             showSlide(targetIdx);
-            startAutoSlide(); // Reset auto slide timer
+            startAutoSlide(); // Reset lại bộ hẹn giờ tự động chuyển slide
         });
     });
 
-    // Start auto slider on load
+    // Kích hoạt tự động trượt khi tải trang
     startAutoSlide();
 })();
 
-// Thanh chỉ báo vị trí cuộn ngang cho khối "Danh mục nổi bật" (.home-categories) — khối này ẩn thanh
-// cuộn gốc của trình duyệt (xem CSS .home-categories { scrollbar-width: none }) nên trên mobile/tablet
-// không còn gợi ý nào cho biết còn danh mục ở bên phải để vuốt sang. Tính lại width/vị trí "thumb"
-// theo đúng tỉ lệ cuộn thật (scrollLeft / (scrollWidth - clientWidth)) mỗi khi cuộn, đổi kích thước
-// màn hình, hoặc số danh mục thay đổi.
+
+// ===== Thanh chỉ báo vị trí cuộn ngang tùy chỉnh cho Danh mục nổi bật =====
+// Khối danh mục này ẩn thanh cuộn mặc định của trình duyệt để tăng thẩm mỹ,
+// do đó ta cần tính toán thủ công độ dài và vị trí thanh cuộn tùy chỉnh để người dùng (đặc biệt là Mobile)
+// nhận biết được là danh sách còn tiếp tục kéo ngang qua phải.
 (function () {
     var track = document.getElementById('home-categories');
     var scrollbar = document.getElementById('home-categories-scrollbar');
     var thumb = document.getElementById('home-categories-scrollbar-thumb');
     if (!track || !scrollbar || !thumb) return;
 
+    // Cập nhật chiều dài và vị trí của thanh cuộn tùy chỉnh
     function updateThumb() {
         var scrollableWidth = track.scrollWidth - track.clientWidth;
 
-        // Nội dung vừa đủ khung nhìn (không cần cuộn, thường gặp ở tablet/màn rộng) -> ẩn hẳn thanh
-        // chỉ báo, tránh hiện một thanh chỉ báo "giả" không có tác dụng gì.
+        // Nếu nội dung nằm gọn hoàn toàn trong khung (không cần cuộn) -> Ẩn thanh cuộn
         if (scrollableWidth <= 0) {
             scrollbar.style.visibility = 'hidden';
             return;
         }
         scrollbar.style.visibility = 'visible';
 
-        // Độ rộng "thumb" tỉ lệ với phần khung nhìn đang thấy được so với tổng chiều rộng nội dung —
-        // giống hệt cách thanh cuộn trình duyệt gốc hoạt động (cuộn ngang căn dài đường, cuộn ngang ít
-        // thì thumb dài, cuộn ngang nhiều thì thumb ngắn).
+        // Độ rộng nút trượt (thumb) tỉ lệ thuận với lượng hiển thị trong khung so với toàn bộ nội dung
         var thumbWidthPct = Math.max(15, Math.min(100, (track.clientWidth / track.scrollWidth) * 100));
         var maxTranslatePct = 100 - thumbWidthPct;
         var scrolledPct = (track.scrollLeft / scrollableWidth) * maxTranslatePct;

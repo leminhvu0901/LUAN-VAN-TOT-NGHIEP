@@ -10,8 +10,7 @@ class ProductController
 {
     /**
      * Hiển thị trang thông tin chi tiết của một sản phẩm.
-     * 
-     * @param string $slug - Đường dẫn thân thiện của sản phẩm (ví dụ: 'tra-sua-tran-chau')
+
      */
     public function show($slug)
     {
@@ -55,10 +54,7 @@ class ProductController
             ->select('toppings.*')
             ->get();
 
-        // 4. Lấy trang đầu tiên các lượt đánh giá mới nhất kèm thông tin người dùng (chỉ lấy đánh giá
-        // công khai) — dùng paginate() (không phải limit()->get()) để cùng 1 partial reviews-list-full
-        // vừa render được lần tải trang đầu tiên vừa render được kết quả fetch từ reviews-filter.js
-        // (cả 2 đều gọi $reviews->hasMorePages()/currentPage()).
+        // 4. Lấy trang đầu tiên các lượt đánh giá mới nhất kèm thông tin người dùng
         $reviews = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
@@ -251,9 +247,6 @@ class ProductController
 
     /**
      * Lọc + phân trang đánh giá của 1 sản phẩm qua AJAX — dùng chung cho cả trang chi tiết sản phẩm
-     * (view=full, class pd-review-*) và trang "Xem đánh giá" (view=compact, class Tailwind riêng).
-     * Luôn trả về HTML đã render sẵn (không bọc JSON) vì endpoint này CHỈ được gọi qua fetch từ JS,
-     * không có chế độ "trang đầy đủ" — JS tự thay/nối vào danh sách hiện có.
      */
     public function reviews($productId, Request $request)
     {
@@ -289,6 +282,7 @@ class ProductController
             ? 'frontend.products.partials.reviews-list-full'
             : 'frontend.products.partials.reviews-list-compact';
 
+        // Trả về HTML giao diện danh sách đánh giá cho hàm fetchReviews() trong file [public/js/frontend/products/reviews-filter.js]
         return view($view, compact('reviews', 'isFiltered'));
     }
 }

@@ -244,6 +244,13 @@ class StaffAccountController
         return response()->json(['success' => true, 'message' => 'Đã xóa tài khoản nhân viên.']);
     }
 
+    /**
+     * Cập nhật quyền hạn/phân loại vai trò của nhân viên (Lễ tân / Shipper).
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho khối lắng nghe thay đổi staff-type-select 
+     *   trong file JS: [public/js/backend/admin/staff-accounts/index.js] để hiển thị thông báo thành công hoặc khôi phục giá trị cũ nếu lỗi.
+     */
     public function updateType(Request $request, $id)
     {
         // Chỉ tác động tài khoản role=staff — không đụng customer/admin dù ID có trùng.
@@ -270,6 +277,13 @@ class StaffAccountController
         ]);
     }
 
+    /**
+     * Khóa hoặc kích hoạt tài khoản nhân viên.
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho khối lắng nghe toggle-status 
+     *   trong file JS: [public/js/backend/admin/staff-accounts/index.js] để cập nhật giao diện hiển thị trạng thái và thông báo kết quả.
+     */
     public function toggleStatus(Request $request, $id)
     {
         try {

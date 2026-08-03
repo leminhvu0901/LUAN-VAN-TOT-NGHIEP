@@ -1,32 +1,43 @@
+/**
+ * imports.js - Quản lý nhập/xuất kho và thanh lý các lô vật tư (Materials & Lots Management)
+ * Các tính năng bao gồm:
+ * - Tự động tính toán tổng tiền dựa trên số lượng nhập và đơn giá vốn cố định.
+ * - Khởi tạo chọn ngày hết hạn (Flatpickr) kèm khống chế minDate (ngày tối thiểu hợp lệ).
+ * - Mở hộp thoại sửa vật tư: Giới hạn không cho sửa đơn vị & giá vốn nếu vật tư đó đã phát sinh lô nhập kho.
+ * - Mở hộp thoại sửa lô nhập kho: Khống chế số lượng nhập mới không được bé hơn số lượng đã tiêu hao thực tế.
+ * - Mở hộp thoại xuất kho (Consume) & thanh lý (Dispose) lô vật tư: Khống chế lượng xuất tối đa bằng tồn kho thực tế của lô đó.
+ * - Hộp thoại xác nhận xóa vật tư vĩnh viễn khỏi hệ thống.
+ */
 (function () {
     "use strict";
 
     document.addEventListener("DOMContentLoaded", function () {
         const page = document.getElementById("materials-imports-page");
-        if (!page) return;
+        if (!page) return; // Chỉ kích hoạt logic nếu đang đứng tại đúng trang quản lý vật tư
 
-        const createImportQuantity = document.getElementById("create-import-quantity");
-        const formattedTotalPrice = document.getElementById("formatted_total_price");
-        const rawTotalPrice = document.getElementById("total_price");
-        const createImportForm = document.getElementById("form-create-import");
-        const editFormattedPrice = document.getElementById("edit-formatted-price");
-        const editRawPrice = document.getElementById("edit-price");
+        const createImportQuantity = document.getElementById("create-import-quantity"); // Input số lượng nhập
+        const formattedTotalPrice = document.getElementById("formatted_total_price"); // Input tổng tiền (hiện định dạng)
+        const rawTotalPrice = document.getElementById("total_price"); // Input tổng tiền ẩn (chứa số thô)
+        const createImportForm = document.getElementById("form-create-import"); // Form tạo phiếu nhập
+        const editFormattedPrice = document.getElementById("edit-formatted-price"); // Form sửa vật tư - input giá hiển thị
+        const editRawPrice = document.getElementById("edit-price"); // Form sửa vật tư - input giá ẩn
 
+        // Liên kết định dạng tiền tệ tự động cho form Thêm mới và Sửa vật tư
         MaterialsCommon.bindCurrencyInput(formattedTotalPrice, rawTotalPrice);
         MaterialsCommon.bindCurrencyInput(editFormattedPrice, editRawPrice);
 
-        // Initialize flatpickr on date inputs
+        // Khởi tạo chọn ngày hết hạn bằng Flatpickr
         if (typeof flatpickr !== 'undefined') {
             const createExpirationInput = document.getElementById("create-expiration-date");
             if (createExpirationInput) {
                 flatpickr(createExpirationInput, {
-                    dateFormat: "Y-m-d",
+                    dateFormat: "Y-m-d", // Định dạng lưu trữ MySQL
                     altInput: true,
-                    altFormat: "d/m/Y",
+                    altFormat: "d/m/Y", // Định dạng hiển thị thân thiện người Việt
                     locale: "vn",
                     disableMobile: true,
                     monthSelectorType: "static",
-                    minDate: createExpirationInput.dataset.minDate || ""
+                    minDate: createExpirationInput.dataset.minDate || "" // Hạn chế không cho chọn ngày đã qua
                 });
             }
 
@@ -43,18 +54,21 @@
             }
         }
 
+        // Tự động tính toán tổng tiền khi nhập số lượng
         if (createImportQuantity && formattedTotalPrice && rawTotalPrice) {
             const unitPrice = Number(createImportQuantity.dataset.unitPrice) || 0;
 
             createImportQuantity.addEventListener("input", function () {
                 const quantity = Number(this.value) || 0;
                 
+                // Khống chế số lượng nhập dưới 1000 cho mỗi lần nhập tránh sai số lớn
                 if (quantity >= 1000) {
                     MaterialsCommon.setFieldError(this, "Số lượng nhập phải bé hơn 1000.", false);
                 } else {
                     MaterialsCommon.setFieldError(this, "", false);
                 }
 
+                // Tính tổng tiền = Số lượng * Giá vốn vật tư
                 const total = Math.round(quantity * unitPrice);
 
                 if (total > 0) {
@@ -68,6 +82,7 @@
             });
         }
 
+        // Ràng buộc số lượng nhập ở form chỉnh sửa phiếu nhập
         const editImportQuantity = document.getElementById("edit-import-quantity");
         if (editImportQuantity) {
             editImportQuantity.addEventListener("input", function () {
@@ -80,6 +95,7 @@
             });
         }
 
+        // Chặn submit form nhập kho nếu tổng tiền không hợp lệ
         createImportForm?.addEventListener("submit", function (event) {
             const totalPrice = Number(rawTotalPrice?.value);
             if (Number.isFinite(totalPrice) && totalPrice > 0 && totalPrice <= 9999999999.99) return;
@@ -94,10 +110,12 @@
             formattedTotalPrice?.focus();
         });
 
+        // Lắng nghe sự kiện click trong trang danh sách (sử dụng Event Delegation)
         page.addEventListener("click", function (event) {
+            // 1. Nhấn nút mở Modal Chỉnh sửa thông tin vật tư chính
             const editMaterialButton = event.target.closest(".js-edit-material");
             if (editMaterialButton) {
-                const hasImports = editMaterialButton.dataset.hasImports === "true";
+                const hasImports = editMaterialButton.dataset.hasImports === "true"; // Kiểm tra vật tư đã từng nhập kho chưa
                 const nameInput = document.getElementById("edit-name");
                 const unitInput = document.getElementById("edit-unit");
                 const form = document.getElementById("form-edit");
@@ -107,9 +125,12 @@
                     nameInput.value = editMaterialButton.dataset.name || "";
                     MaterialsCommon.validateTextInput(nameInput);
                 }
+                
                 if (unitInput) {
                     unitInput.value = editMaterialButton.dataset.unit || "";
                     unitInput.dataset.allowedExistingValue = editMaterialButton.dataset.unit || "";
+                    
+                    // NẾU VẬT TƯ ĐÃ CÓ PHIẾU NHẬP: Khóa trường đơn vị tính để tránh làm sai lệch báo cáo cũ
                     unitInput.readOnly = hasImports;
                     unitInput.classList.toggle("bg-gray-100", hasImports);
                     unitInput.title = hasImports
@@ -117,24 +138,29 @@
                         : "";
                     MaterialsCommon.validateTextInput(unitInput);
                 }
+                
                 if (editFormattedPrice && editRawPrice) {
                     MaterialsCommon.syncCurrencyValue(
                         editFormattedPrice,
                         editRawPrice,
                         editMaterialButton.dataset.price,
                     );
+                    
+                    // NẾU VẬT TƯ ĐÃ CÓ PHIẾU NHẬP: Khóa giá vốn vì hệ thống sẽ tính tự động dựa trên bình quân gia quyền của các lô nhập
                     editFormattedPrice.readOnly = hasImports;
                     editFormattedPrice.classList.toggle("bg-gray-100", hasImports);
                     editFormattedPrice.title = hasImports
                         ? "Giá vốn được tính tự động từ các phiếu nhập."
                         : "";
                 }
+                
                 if (form) form.action = editMaterialButton.dataset.action;
                 if (formAction) formAction.value = editMaterialButton.dataset.action;
                 MaterialsCommon.openModal("modal-edit");
                 return;
             }
 
+            // 2. Nhấn nút mở Modal Chỉnh sửa thông tin lô nhập kho (Lot)
             const editImportButton = event.target.closest(".js-edit-import");
             if (editImportButton) {
                 const quantityInput = document.getElementById("edit-import-quantity");
@@ -150,6 +176,7 @@
                 if (idText) idText.textContent = `LOT-${editImportButton.dataset.id}`;
                 if (quantityInput) {
                     quantityInput.value = editImportButton.dataset.quantity;
+                    // Số lượng nhập tối thiểu phải bằng lượng nguyên liệu đã sử dụng thực tế (consumed) để tránh âm kho
                     quantityInput.min = Math.max(
                         1,
                         Math.ceil(Number(editImportButton.dataset.consumed) || 0),
@@ -179,6 +206,7 @@
                 return;
             }
 
+            // 3. Nhấn nút mở Modal thanh lý (hủy bỏ) nguyên liệu bị hỏng/hết hạn
             const disposeButton = event.target.closest(".js-dispose-batch");
             if (disposeButton) {
                 const quantityInput = document.getElementById("dispose-batch-quantity");
@@ -191,7 +219,7 @@
 
                 if (quantityInput) {
                     quantityInput.value = "";
-                    quantityInput.max = disposeButton.dataset.max;
+                    quantityInput.max = disposeButton.dataset.max; // Giới hạn lượng hủy tối đa bằng tồn kho thực tế của lô
                 }
                 if (unitText) unitText.textContent = disposeButton.dataset.unit;
                 if (maxText) maxText.textContent = disposeButton.dataset.max;
@@ -202,6 +230,7 @@
                 MaterialsCommon.openModal("modal-dispose-batch");
             }
 
+            // 4. Nhấn nút mở Modal xuất kho nguyên liệu thủ công để chế biến
             const consumeButton = event.target.closest(".js-consume-batch");
             if (consumeButton) {
                 const quantityInput = document.getElementById("consume-batch-quantity");
@@ -214,7 +243,7 @@
 
                 if (quantityInput) {
                     quantityInput.value = "";
-                    quantityInput.max = consumeButton.dataset.max;
+                    quantityInput.max = consumeButton.dataset.max; // Giới hạn lượng xuất tối đa bằng tồn kho thực tế của lô
                 }
                 if (unitText) unitText.textContent = consumeButton.dataset.unit;
                 if (maxText) maxText.textContent = consumeButton.dataset.max;
@@ -226,6 +255,7 @@
             }
         });
 
+        // 5. Xử lý sự kiện nhấn submit xóa vĩnh viễn vật tư
         page.addEventListener("submit", async function (event) {
             const deleteForm = event.target.closest(".js-material-delete-form");
             if (!deleteForm) return;

@@ -43,7 +43,7 @@ class VnpayController
      */
     public function createPayment(Request $request)
     {
-        $result = $this->createPendingOrderForOnlinePayment($request, 'vnpay');
+        $result = $this->createPendingOrderForOnlinePayment($request, 'vnpay');//tạo một đơn hàng tạm thời
         if (!($result instanceof \App\Models\Order)) {
             return $result;
         }
@@ -314,7 +314,7 @@ class VnpayController
             return redirect()->route('checkout')->with('error', 'Không tìm thấy đơn hàng.');
         }
 
-        if (!$this->verifySignature($data)) {
+        if (!$this->verifySignature($data)) {//Xác thực chữ ký
             Log::warning('VNPay return: invalid or missing signature', ['orderId' => $orderId]);
             return redirect()->route('orders')->with('info', "Đang chờ xác nhận thanh toán từ VNPay cho đơn hàng {$orderId}.");
         }
@@ -340,7 +340,7 @@ class VnpayController
             return redirect()->route('orders')->with('success', "Thanh toán VNPay thành công! Đơn hàng {$orderId} đã được xác nhận.");
         }
 
-        // ❌ Thanh toán thất bại / người dùng ấn Hủy giao dịch
+        // Thanh toán thất bại / người dùng ấn Hủy giao dịch
         if ($order->delivery_type === 'pickup') {
             return redirect()->route('staff.reception.orders.show', $order->id)
                 ->with('error', 'Thanh toán VNPay chưa hoàn tất. Bạn có thể thử lại hoặc hủy đơn.');

@@ -1,3 +1,9 @@
+// =========================================================================
+// CẤU HÌNH TÙY BIẾN TAILWIND CSS DÀNH RIÊNG CHO TRANG HỒ SƠ KHÁCH HÀNG
+// Chứa mã màu, font chữ chính (Plus Jakarta Sans & Be Vietnam Pro), 
+// khoảng cách (spacing), bo góc (borderRadius) chuẩn thiết kế Material 3.
+// preflight: false để tránh đè CSS reset lên bố cục trang ngoài.
+// =========================================================================
 tailwind.config = {
   darkMode: "class",
   corePlugins: {

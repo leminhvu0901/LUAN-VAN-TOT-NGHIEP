@@ -1,8 +1,15 @@
 /**
- * Xử lý trang khuyến mãi: flash message, lọc AJAX, phân trang, checkbox và xoá.
+ * index.js - Quản lý trang danh sách chương trình khuyến mãi khu vực Admin
+ * Các tính năng bao gồm:
+ * - Hiển thị thông báo Toast SweetAlert2 khi có Flash Session thành công hoặc lỗi từ server gửi xuống.
+ * - AJAX tải lại bảng dữ liệu danh sách khuyến mãi và cập nhật các con số thống kê ở đầu trang.
+ * - Lọc AJAX thời gian thực (Live Search) với debounce 400ms.
+ * - Tích chọn hàng loạt checkbox (đồng bộ cả desktop và mobile), hỗ trợ gọi API nhận mảng ID toàn bộ các trang để chọn tất cả.
+ * - Xóa khuyến mãi đơn lẻ bằng AJAX kèm hiệu ứng trượt CSS và tự động lùi trang phân trang nếu trang hiện tại bị xóa trống.
+ * - Xóa hàng loạt khuyến mãi đã chọn bằng AJAX có hộp thoại cảnh báo SweetAlert2 bo tròn hiện đại.
  */
 document.addEventListener("DOMContentLoaded", function () {
-    // Hiển thị thông báo flash nếu Blade đã đẩy dữ liệu vào DOM
+    // === 1. HIỂN THỊ THÔNG BÁO FLASH MESSAGE TỪ SERVER ===
     const flashData = document.getElementById("promotion-flash-data");
     if (flashData && typeof Swal !== "undefined") {
         const successMessage = flashData.dataset.success || "";
@@ -49,6 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // === PHẦN TỬ DOM CHÍNH ===
     const filterForm = document.getElementById("filter-form");
     const tableContainer = document.getElementById("table-container");
     const btnClearFilter = document.getElementById("btn-clear-filter");
@@ -56,12 +64,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const selectedCountSpan = document.getElementById("selected-count");
     const deselectBtn = document.getElementById("bulk-deselect-btn");
 
-    // =====================
-    // Quản lý chọn nhiều dòng trong bảng
-    // =====================
-    window.selectedPromotionIds = new Set();
+    // =========================================================
+    // XỬ LÝ CHỌN CHECKBOX HÀNG LOẠT (BULK ACTIONS SELECTION)
+    // =========================================================
+    window.selectedPromotionIds = new Set(); // Set lưu trữ ID các mã khuyến mãi được chọn
 
-    // CẬP NHẬT TRẠNG THÁI NÚT XÓA HÀNG LOẠT
+    /**
+     * Cập nhật hiển thị số lượng và trạng thái ẩn hiện nút "Xóa nhiều"
+     */
     function updateBulkDeleteButton() {
         const count = window.selectedPromotionIds.size;
         if (bulkDeleteContainer) {
@@ -83,7 +93,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Đồng bộ lại checkbox sau khi bảng được render lại bằng AJAX
+    /**
+     * Đồng bộ hóa lại trạng thái tích chọn checkbox các dòng trong bảng
+     */
     function syncCheckboxes() {
         const allCheckboxes = document.querySelectorAll(".row-checkbox");
         let checkedCount = 0;
@@ -93,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (hasId) checkedCount++;
         });
 
-        // Đồng bộ checkbox SelectAll ở cả desktop và mobile
+        // Đồng bộ nút "Chọn tất cả" ở cả giao diện Desktop và Mobile
         const selectAllEl = document.getElementById("selectAll");
         const selectAllMobileEl = document.getElementById("selectAll-mobile");
         
@@ -102,12 +114,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (selectAllMobileEl) selectAllMobileEl.checked = isAllChecked;
     }
 
-    // LẮNG NGHE SỰ KIỆN CLICK TRÊN CHECKBOX SELECT ALL & ROW CHECKBOX (Dùng Event Delegation)
+    // Đăng ký sự kiện thay đổi check/uncheck (sử dụng Event Delegation)
     document.addEventListener("change", function (e) {
+        // 1. Tích chọn nút Check tất cả
         if (e.target && e.target.classList.contains("js-select-all")) {
             const checked = e.target.checked;
             if (checked) {
-                // Fetch tất cả ID khớp bộ lọc hiện tại xuyên trang
+                // Gọi API lấy toàn bộ danh sách ID thỏa mãn bộ lọc hiện tại trên server
                 let url = new URL(filterForm.action);
                 let params = new URLSearchParams(new FormData(filterForm));
                 params.set("fetch_all_ids", "1");
@@ -129,13 +142,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     })
                     .catch((err) => console.error("Lỗi lấy danh sách ID khuyến mãi:", err));
             } else {
-                // Bỏ chọn tất cả xuyên trang
+                // Bỏ tích chọn toàn bộ
                 window.selectedPromotionIds.clear();
                 syncCheckboxes();
                 updateBulkDeleteButton();
             }
         }
 
+        // 2. Tích chọn checkbox của một hàng khuyến mãi đơn lẻ
         if (e.target && e.target.classList.contains("row-checkbox")) {
             const val = String(e.target.value);
             if (e.target.checked) {
@@ -156,7 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Lấy dữ liệu khuyến mãi mới từ server và cập nhật lại bảng mà không cần tải lại cả trang.
+    // === TẢI DỮ LIỆU BẢNG KHUYẾN MÃI BẰNG AJAX ===
     function fetchPromotions(urlStr = null) {
         let url;
         if (urlStr) {
@@ -180,10 +194,10 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((response) => response.json())
             .then((data) => {
                 if (data.html) {
-                    tableContainer.innerHTML = data.html;
+                    tableContainer.innerHTML = data.html; // Đè bảng mới
                 }
 
-                // Cập nhật thống kê
+                // Cập nhật lại các con số thống kê ở đầu trang
                 if (data.stats) {
                     const totalEl = document.getElementById("stat-total");
                     const activeEl = document.getElementById("stat-active");
@@ -193,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (expiredEl) expiredEl.textContent = data.stats.expired;
                 }
 
-                // Tự động lùi về trang trước nếu trang hiện tại rỗng
+                // Tự động lùi trang phân trang nếu trang hiện tại bị trống sau khi load lại
                 const checkboxes = tableContainer.querySelectorAll(".row-checkbox");
                 if (checkboxes.length === 0) {
                     const pageParam = url.searchParams.get("page");
@@ -208,6 +222,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     const totalInput = document.getElementById("total-promotions-count");
                     if (totalInput) totalInput.value = data.total;
                 }
+                
+                // Ẩn hiện nút xóa lọc
                 if (btnClearFilter) {
                     const hasFilters = [
                         ...new URLSearchParams(url.search),
@@ -228,11 +244,12 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Tự động lọc lại khi đổi select
+    // Tự động tải lại bảng khi thay đổi bộ lọc dropdown
     filterForm.querySelectorAll("select").forEach((select) => {
         select.addEventListener("change", () => fetchPromotions());
     });
 
+    // Debounce tìm kiếm tự động sau khi dừng gõ phím 400ms
     let timeout = null;
     const searchInput = filterForm.querySelector('input[name="search"]');
     if (searchInput) {
@@ -242,20 +259,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Đặt lại form lọc về trạng thái ban đầu khi click "Xóa lọc"
     if (btnClearFilter) {
         btnClearFilter.addEventListener("click", function (e) {
             e.preventDefault();
             filterForm.reset();
             filterForm.querySelectorAll("select").forEach((s) => {
                 if (s.name === "sort") s.value = "newest";
-                else s.value = "all"; // bao gồm cả select[name="verification"]
+                else s.value = "all";
             });
             if (searchInput) searchInput.value = "";
             fetchPromotions();
         });
     }
 
-    // Bắt click vào link phân trang trong vùng bảng để chuyển sang AJAX
+    // Bắt sự kiện click link phân trang trong bảng
     tableContainer.addEventListener("click", function (e) {
         const pageLink = e.target.closest(".pagination-container a");
         if (pageLink) {
@@ -264,9 +282,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // =====================
-    // Xoá hàng loạt bằng AJAX
-    // =====================
+    // === CẤU HÌNH POPUP SWEETALERT2 DÙNG CHUNG ===
     const swalConfig = {
         icon: "warning",
         width: "320px",
@@ -289,6 +305,7 @@ document.addEventListener("DOMContentLoaded", function () {
         buttonsStyling: false,
     };
 
+    // Hiển thị hộp thoại xác nhận trước khi xóa nhiều khuyến mãi
     window.submitBulkDelete = function () {
         const count = window.selectedPromotionIds.size;
         if (count === 0) return;
@@ -310,6 +327,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
+    /**
+     * Gửi request POST AJAX thực thi xóa hàng loạt mã khuyến mãi
+     */
     function executeBulkDelete() {
         const csrfToken =
             document.querySelector('meta[name="csrf-token"]')?.content ||
@@ -353,7 +373,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
-                    fetchPromotions();
+                    fetchPromotions(); // Tải lại bảng dữ liệu
                 } else {
                     throw new Error(data.message || "Xóa thất bại");
                 }
@@ -387,7 +407,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Escape chuỗi để tránh chèn HTML
+/**
+ * Hàm dọn dẹp chuỗi HTML tránh các lỗ hổng chèn mã độc (XSS)
+ */
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")
@@ -397,7 +419,11 @@ function escapeHtml(value) {
         .replaceAll("'", "&#39;");
 }
 
-// Xoá một khuyến mãi đơn lẻ
+/**
+ * Hiển thị hộp thoại xác nhận xóa một chương trình khuyến mãi đơn lẻ
+ * @param {number} id - ID khóa chính của khuyến mãi
+ * @param {string} code - Mã code khuyến mãi (ví dụ: KMABCD)
+ */
 function deletePromotion(id, code) {
     if (typeof Swal !== "undefined") {
         Swal.fire({
@@ -434,7 +460,9 @@ function deletePromotion(id, code) {
     }
 }
 
-// Gửi request DELETE và cập nhật lại giao diện sau khi xoá
+/**
+ * Gửi request DELETE AJAX xóa khuyến mãi đơn lẻ và làm mờ dòng biến mất
+ */
 function doDelete(id) {
     const csrfToken =
         document.querySelector('meta[name="csrf-token"]')?.content ||
@@ -457,6 +485,8 @@ function doDelete(id) {
                 window.selectedPromotionIds.delete(String(id));
                 const row = document.getElementById("promo-row-" + id);
                 const card = document.getElementById("promo-card-" + id);
+                
+                // Thực thi hiệu ứng CSS trượt biến mất mượt mà trước khi xóa khỏi DOM
                 if (row) {
                     row.style.transition = "all 0.3s ease";
                     row.style.opacity = "0";
@@ -487,7 +517,7 @@ function doDelete(id) {
                     });
                 }
                 
-                // Kích hoạt re-fetch sau khi xóa thành công để cập nhật thống kê + phân trang
+                // Gọi AJAX cập nhật lại thống kê số lượng và dữ liệu bảng sau khi hiệu ứng kết thúc
                 setTimeout(() => {
                     const tableContainer = document.getElementById("table-container");
                     if (tableContainer) {
@@ -496,7 +526,7 @@ function doDelete(id) {
                         const formData = new FormData(filterForm);
                         url.search = new URLSearchParams(formData).toString();
                         
-                        // Lùi trang nếu xóa mục cuối
+                        // Lùi về trang phân trang trước nếu xóa dòng cuối cùng
                         const checkboxes = tableContainer.querySelectorAll(".row-checkbox");
                         if (checkboxes.length === 0) {
                             const pageParam = url.searchParams.get("page");
@@ -505,7 +535,6 @@ function doDelete(id) {
                             }
                         }
 
-                        // Gọi lại fetch để cập nhật thống kê + table HTML
                         fetch(url.toString(), {
                             headers: {
                                 "X-Requested-With": "XMLHttpRequest",
@@ -525,58 +554,21 @@ function doDelete(id) {
                                     if (activeEl) activeEl.textContent = resData.stats.active;
                                     if (expiredEl) expiredEl.textContent = resData.stats.expired;
                                 }
-                                // Đồng bộ lại checkbox
-                                const allCheckboxes = document.querySelectorAll(".row-checkbox");
-                                allCheckboxes.forEach((cb) => {
-                                    cb.checked = window.selectedPromotionIds.has(cb.value);
-                                });
-                                // Đồng bộ bulk delete buttons
-                                const count = window.selectedPromotionIds.size;
-                                const bulkDeleteContainer = document.getElementById("bulk-delete-container");
-                                const deselectBtn = document.getElementById("bulk-deselect-btn");
-                                const selectedCountSpan = document.getElementById("selected-count");
-                                if (bulkDeleteContainer) {
-                                    bulkDeleteContainer.classList.toggle("hidden", count === 0);
-                                }
-                                if (deselectBtn) {
-                                    deselectBtn.classList.toggle("hidden", count === 0);
-                                }
-                                if (selectedCountSpan) {
-                                    selectedCountSpan.textContent = count;
-                                }
+                                syncCheckboxes();
+                                updateBulkDeleteButton();
                             });
                     }
                 }, 310);
             } else {
-                if (typeof Swal !== "undefined") {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Thất bại",
-                        text: data.message || "Xóa thất bại. Vui lòng thử lại.",
-                        width: "320px",
-                        padding: "1rem",
-                        confirmButtonText: "Đóng",
-                        buttonsStyling: false,
-                        customClass: {
-                            popup: "rounded-xl shadow-xl border border-gray-100",
-                            title: "text-base font-bold text-gray-800",
-                            confirmButton:
-                                "px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm",
-                            icon: "transform scale-[0.6] -mt-3 -mb-2",
-                            actions: "mt-3 w-full flex justify-center",
-                        },
-                    });
-                } else {
-                    alert("Xóa thất bại. Vui lòng thử lại.");
-                }
+                throw new Error(data.message || "Xóa thất bại. Vui lòng thử lại.");
             }
         })
-        .catch(() => {
+        .catch((err) => {
             if (typeof Swal !== "undefined") {
                 Swal.fire({
                     icon: "error",
                     title: "Lỗi",
-                    text: "Có lỗi xảy ra khi xóa. Vui lòng thử lại.",
+                    text: err.message || "Có lỗi xảy ra khi xóa.",
                     width: "320px",
                     padding: "1rem",
                     confirmButtonText: "Đóng",
@@ -591,12 +583,12 @@ function doDelete(id) {
                     },
                 });
             } else {
-                alert("Có lỗi xảy ra khi xóa. Vui lòng thử lại.");
+                alert(err.message || "Có lỗi xảy ra khi xóa.");
             }
         });
 }
 
-// Lắng nghe sự kiện click trên nội dung bảng để xóa bằng Event Delegation
+// Lắng nghe sự kiện click nút xóa khuyến mãi ngoài bảng (sử dụng Event Delegation)
 document.addEventListener("DOMContentLoaded", function () {
     const tableContainer = document.getElementById("table-container");
     if (tableContainer) {

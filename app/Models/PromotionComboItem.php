@@ -8,14 +8,25 @@ use Illuminate\Database\Eloquent\Model;
 // khách phải mua ĐỦ TẤT CẢ các dòng của cùng 1 promotion mới tính là đã mua đủ combo đó.
 class PromotionComboItem extends Model
 {
+    // Tên bảng quản lý các sản phẩm trong combo
     protected $table = 'promotion_combo_items';
+
+    // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
     protected $guarded = [];
 
+    /**
+     * Mối quan hệ Nhiều - Một (Belongs To) với model Promotion.
+     * Mỗi dòng sản phẩm yêu cầu trong combo này sẽ thuộc về một chương trình khuyến mãi (Promotion) cha.
+     */
     public function promotion()
     {
         return $this->belongsTo(Promotion::class, 'promotion_id');
     }
 
+    /**
+     * Mối quan hệ Nhiều - Một (Belongs To) với model Product.
+     * Xác định sản phẩm (Product) cụ thể nào bắt buộc phải có trong combo này.
+     */
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');

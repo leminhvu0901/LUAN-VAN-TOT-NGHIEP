@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Backend\Admin;
 
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class DashboardController
         $now = Carbon::now();
         $startOfToday = Carbon::today();
         $endOfToday = Carbon::tomorrow()->subSecond();
-        
+
         $startOfYesterday = Carbon::yesterday();
         $endOfYesterday = Carbon::today()->subSecond();
 
@@ -73,14 +74,14 @@ class DashboardController
         $pendingOrdersCount = Order::where('status', 'pending')->count();
         $shippingOrdersCount = Order::where('status', 'shipping')->count();
         $cancelledOrdersCount = Order::where('status', 'cancelled')->count();
-        
+
         $unhandledReviewsCount = Review::where('is_visible', 0)->count();
         $hiddenProductsCount = Product::where('is_active', 0)->count();
 
         // Cảnh báo kho nguyên liệu
         $outOfStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '<=', 0)->count();
         $lowStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '>', 0)->where('current_stock', '<', 5)->count();
-        
+
         // Hạn sử dụng nguyên liệu
         $expiringMaterialsCount = Material::where('is_active', true)
             ->whereHas('imports', function ($subQuery) {
@@ -253,7 +254,7 @@ class DashboardController
                 'time' => $order->created_at,
                 'icon' => 'shopping_cart',
                 'color' => 'emerald',
-                'text' => "Đơn hàng " . ($order->order_code ?: '#HPY-'.$order->id) . " vừa được đặt bởi khách hàng " . $order->customer_name,
+                'text' => "Đơn hàng " . ($order->order_code ?: '#HPY-' . $order->id) . " vừa được đặt bởi khách hàng " . $order->customer_name,
                 'link' => route('admin.orders.show', $order->id)
             ]);
         });

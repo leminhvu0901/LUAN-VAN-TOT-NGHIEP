@@ -1,360 +1,463 @@
 <?php
-// Import class Route của Laravel để khai báo các đường dẫn
+ 
 use Illuminate\Support\Facades\Route;
-
-use App\Models\Banner;
-
-
-// Admin/nhân viên đăng nhập rồi thì không được đứng ở giao diện khách hàng — tự đẩy về đúng khu vực
-// quản trị của họ (xem RedirectStaffFromFrontend). Khách vãng lai + khách hàng thường không bị ảnh hưởng.
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║    1. KHÁCH HÀNG - TUYẾN ĐƯỜNG CÔNG KHAI (CUSTOMER - PUBLIC ROUTES)   ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
 Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->group(function () {
-    Route::get('/', function () {
-        // Lấy tất cả banner đang kích hoạt và trong thời gian áp dụng, sắp xếp theo thứ tự hiển thị
-        $now = now();
-        $banners = \App\Models\Banner::where('is_active', 1)
-            ->where(function ($q) use ($now) {
-                $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
-            })
-            ->where(function ($q) use ($now) {
-                $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
-            })
-            ->orderBy('display_order', 'asc')
-            ->get();
-
-        // Truy vấn lấy danh mục sản phẩm (categories) kèm theo số lượng sản phẩm của từng danh mục
-        $categories = \App\Models\Category::query()
-            ->leftJoin('products', function ($join) { // Kết nối bảng products
-                $join->on('categories.id', '=', 'products.category_id'); // Điều kiện: id danh mục = category_id của sản phẩm
-            })
-            ->select('categories.id', 'categories.name', \Illuminate\Support\Facades\DB::raw('COUNT(products.id) as product_count')) // Đếm tổng số sản phẩm
-            ->where('categories.is_active', 1) // Chỉ lấy các danh mục đang mở
-            ->groupBy('categories.id', 'categories.name', 'categories.display_order') // Gom nhóm để đếm chính xác
-            ->orderBy('categories.display_order') // Sắp xếp thứ tự hiển thị
-            ->get(); // Thực thi truy vấn và lấy kết quả
-
-        return view('frontend.home', compact('banners', 'categories'));
-    });
-
-    // DS  SP
+ 
+    // Trang chủ hiển thị banner và danh mục sản phẩm
+    Route::get('/', [App\Http\Controllers\Frontend\HomeController::class, 'index'])->name('home');
+ 
+    // Trang danh sách sản phẩm
     Route::get('/products', [App\Http\Controllers\Frontend\ProductController::class, 'index'])->name('products');
-
-    // CHI TIET SAN PHAM
+ 
+    // Trang chi tiết sản phẩm
     Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
-
-    // Lọc/phân trang đánh giá 1 sản phẩm qua AJAX (dùng chung cho trang chi tiết sản phẩm và trang "Xem đánh giá")
+ 
+    // Lấy danh sách đánh giá sản phẩm qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/products/{productId}/reviews', [App\Http\Controllers\Frontend\ProductController::class, 'reviews'])->name('products.reviews');
+ 
 });
-
-
-
-// TÀI KHOẢN & XÁC THỰC
-// ĐĂNG KÝ
+ 
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║          2. XÁC THỰC TÀI KHOẢN (AUTHENTICATION & OTP ROUTES)          ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
+// Chuyển hướng đến trang chủ và hiển thị modal đăng ký
 Route::get('/register', function () {
     return redirect('/')->with('show_register', true);
 })->name('register');
-
-// FORM ĐĂNG KÝ
+ 
+// Xử lý thông tin đăng ký tài khoản mới
 Route::post('/register', [App\Http\Controllers\Frontend\AuthController::class, 'postRegister'])->name('register.post');
-
-// Đưa về trang chủ hiện model đăng nhập
+ 
+// Chuyển hướng đến trang chủ và hiển thị modal đăng nhập
 Route::get('/login', function () {
     return redirect('/')->with('show_login', true);
 })->name('login');
-
-
-// FORM ĐĂNG NHẬP FORM
+ 
+// Xử lý thông tin đăng nhập tài khoản
 Route::post('/login', [App\Http\Controllers\Frontend\AuthController::class, 'postLogin'])->name('login.post');
-
-// GIAO DIEN NHAP MA OTP
+ 
+// Trang nhập mã xác nhận OTP
 Route::get('/verify-otp', [App\Http\Controllers\Frontend\AuthController::class, 'getVerifyOtp'])->name('verify.otp');
-
-// GIAO DIEN NHAP MA OTP + XAC MINH
+ 
+// Xử lý mã OTP người dùng gửi lên
 Route::post('/verify-otp', [App\Http\Controllers\Frontend\AuthController::class, 'postVerifyOtp'])->name('verify.otp.post');
-
-// GUI LAI MA OTP
+ 
+// Gửi lại mã xác nhận OTP mới
 Route::get('/resend-otp', [App\Http\Controllers\Frontend\AuthController::class, 'resendOtp'])->name('resend.otp');
-
-// HUY XOA CS OTP KHI HUY
+ 
+// Hủy bỏ phiên xác minh OTP hiện tại
 Route::post('/cancel-otp', [App\Http\Controllers\Frontend\AuthController::class, 'cancelOtp'])->name('verify.otp.cancel');
-
-//  DANG NHAP BANG GG
+ 
+// Chuyển hướng đăng nhập bằng tài khoản Google
 Route::get('/auth/google', [App\Http\Controllers\Frontend\AuthController::class, 'redirectToGoogle'])->name('auth.google');
-
-// TRA VE KEM THONG TIN
+ 
+// Xử lý thông tin đăng nhập Google trả về
 Route::get('/auth/google/callback', [App\Http\Controllers\Frontend\AuthController::class, 'handleGoogleCallback']);
-
-// DANG XUAT
+ 
+// Đăng xuất tài khoản người dùng
 Route::get('/logout', [App\Http\Controllers\Frontend\AuthController::class, 'logout'])->name('logout');
-
-// QUEN MAT KHAU GET
+ 
+// Chuyển hướng đến trang chủ và hiển thị modal quên mật khẩu
 Route::get('/forgot-password', function () {
     return redirect('/')->with('show_forgot', true);
 })->name('forgot-password');
-
-// QUEN MAT KHAU POST
+ 
+// Gửi link yêu cầu thiết lập lại mật khẩu
 Route::post('/forgot-password', [App\Http\Controllers\Frontend\AuthController::class, 'postForgotPassword'])->name('forgot-password.post');
-
-// THAY KHAU MOI GET
+ 
+// Trang hiển thị giao diện nhập mật khẩu mới
 Route::get('/reset-password', [App\Http\Controllers\Frontend\AuthController::class, 'getResetPassword'])->name('reset.password.get');
-// THAY KHAU MOI POST
+ 
+// Xử lý cập nhật mật khẩu mới của người dùng
 Route::post('/reset-password', [App\Http\Controllers\Frontend\AuthController::class, 'postResetPassword'])->name('reset.password.post');
-
-// CHUC NANG USER
+ 
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║    3. KHÁCH HÀNG - ĐÃ ĐĂNG NHẬP (CUSTOMER - AUTHENTICATED ROUTES)     ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
 Route::middleware(['auth'])->group(function () {
-
-    // --- Hồ sơ cá nhân ---
-    // Hiển thị trang Hồ sơ. Chặn admin/nhân viên (RedirectStaffFromFrontend) — chỉ áp cho các trang
-    // render giao diện thật (GET), KHÔNG áp cho toàn bộ nhóm 'auth' này vì nhiều endpoint bên dưới
-    // (/cart/*, /checkout/distance, /checkout/weather-fee, /checkout/validate-coupon...) được lễ tân
-    // dùng chung làm hạ tầng dựng đơn tại quầy (xem Reception/OrderController) — chặn cả nhóm sẽ làm
-    // hỏng luồng tạo đơn tại quầy.
+ 
+    // Trang hồ sơ thông tin cá nhân
     Route::get('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'index'])
         ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('profile');
-
-    // Cập nhật thông tin Hồ sơ (Tên, SĐT, Avatar...)
+ 
+    // Cập nhật thông tin tài khoản cá nhân
     Route::post('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
-
-    // Kiểm tra ngầm (AJAX, khi đang gõ) định dạng + trùng lặp SĐT — báo lỗi ngay không cần đợi Lưu
+ 
+    // Kiểm tra trùng lặp số điện thoại qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/profile/check-phone', [App\Http\Controllers\Frontend\ProfileController::class, 'checkPhone'])->name('profile.check_phone');
-
-    // Đổi mật khẩu tài khoản
+ 
+    // Đổi mật khẩu tài khoản người dùng
     Route::post('/profile/change-password', [App\Http\Controllers\Frontend\ProfileController::class, 'changePassword'])->name('profile.change-password');
-
-    // --- Lịch sử mua hàng & Đánh giá ---
-    // Xem danh sách đơn hàng đã đặt
+ 
+    // Trang lịch sử danh sách đơn hàng đã mua
     Route::get('/orders', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'index'])
         ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('orders');
+ 
+    // Đặt lại đơn hàng cũ đã mua
     Route::post('/orders/{order}/reorder', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'reorder'])->name('orders.reorder');
+ 
+    // Hủy bỏ đơn hàng đang chờ xác nhận
     Route::post('/orders/{order}/cancel', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'cancel'])->name('orders.cancel');
-
-    // Hiện giao diện đánh giá (Review) 1 sản phẩm nằm trong 1 đơn hàng cụ thể
+ 
+    // Trang viết đánh giá cho sản phẩm đã mua
     Route::get('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'create'])
         ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('review.create');
-
-    // Gửi đánh giá (số sao, nhận xét) vào Database
+ 
+    // Lưu đánh giá sản phẩm mới vào CSDL
     Route::post('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'store'])->name('review.store');
-
-    // Chỉnh sửa đánh giá đã gửi (chỉ trong vòng 7 ngày — xem ReviewController::EDIT_WINDOW_DAYS)
+ 
+    // Cập nhật nội dung đánh giá sản phẩm
     Route::put('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'update'])->name('review.update');
-
-    // Bật/tắt trạng thái Yêu thích sản phẩm (Thả tim)
+ 
+    // Bật/Tắt yêu thích sản phẩm (nút thả tim) [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/favorite/toggle', [App\Http\Controllers\Frontend\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
-
-    // --- Giỏ hàng (Các thao tác sửa đổi giỏ hàng cần đăng nhập) ---
-    // Thêm 1 sản phẩm mới vào giỏ
+ 
+    // Thêm sản phẩm vào giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/add', [App\Http\Controllers\Frontend\CartController::class, 'add']);
-
-    // Bấm nút xóa sản phẩm khỏi giỏ
+ 
+    // Xóa một món ra khỏi giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/remove', [App\Http\Controllers\Frontend\CartController::class, 'remove']);
-
-    // Bấm "Xóa đã chọn" - xóa nhiều sản phẩm đang được tick chọn cùng lúc
+ 
+    // Xóa nhiều sản phẩm đã chọn trong giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/remove-many', [App\Http\Controllers\Frontend\CartController::class, 'removeMany'])->name('cart.remove-many');
-
-    // Bấm "Xóa tất cả" - xóa sạch giỏ hàng
+ 
+    // Xóa toàn bộ sản phẩm trong giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/clear', [App\Http\Controllers\Frontend\CartController::class, 'clear'])->name('cart.clear');
-
-    // Bấm nút (+), (-) để cập nhật số lượng
+ 
+    // Cập nhật số lượng của món trong giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/update', [App\Http\Controllers\Frontend\CartController::class, 'update']);
-
-    // Bấm "Thêm tất cả vào giỏ" ở bên ngăn kéo Yêu Thích
+ 
+    // Thêm toàn bộ danh sách sản phẩm yêu thích vào giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/add-all', [App\Http\Controllers\Frontend\CartController::class, 'addAll']);
-
-    // Lưu danh sách sản phẩm ĐÃ CHỌN vào session trước khi sang trang checkout
+ 
+    // Lưu các sản phẩm được chọn thanh toán vào Session [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cart/set-selected', [App\Http\Controllers\Frontend\CartController::class, 'setSelected'])->name('cart.set-selected');
-
-    // --- Dữ liệu hành chính (tỉnh/thành + phường/xã) cho form địa chỉ ---
+ 
+    // Lấy danh sách Tỉnh/Thành phố hành chính [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/administrative/provinces', [App\Http\Controllers\Frontend\AdministrativeDivisionController::class, 'provinces'])->name('administrative.provinces');
+ 
+    // Lấy danh sách Quận/Huyện dựa theo Tỉnh/Thành phố [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/administrative/provinces/{provinceCode}/wards', [App\Http\Controllers\Frontend\AdministrativeDivisionController::class, 'wards'])->name('administrative.wards');
-
-    // --- Quản lý Danh bạ Địa chỉ nhận hàng ---
-    // Lưu địa chỉ mới
+ 
+    // Lưu địa chỉ giao hàng mới của khách
     Route::post('/profile/address', [App\Http\Controllers\Frontend\ProfileController::class, 'storeAddress'])->name('profile.address.store');
-
-    // Chỉnh sửa địa chỉ đã có (dựa theo id)
+ 
+    // Cập nhật thông tin địa chỉ giao hàng
     Route::post('/profile/address/{id}', [App\Http\Controllers\Frontend\ProfileController::class, 'updateAddress'])->name('profile.address.update');
-    // Xóa địa chỉ (dựa theo id)
-
+ 
+    // Xóa địa chỉ giao hàng ra khỏi danh sách
     Route::post('/profile/address/{id}/delete', [App\Http\Controllers\Frontend\ProfileController::class, 'deleteAddress'])->name('profile.address.delete');
-    // Đánh dấu 1 địa chỉ làm địa chỉ mặc định
+ 
+    // Cấu hình địa chỉ làm địa chỉ mặc định nhận hàng
     Route::post('/profile/address/{id}/default', [App\Http\Controllers\Frontend\ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
-
-    // --- Thanh toán đơn hàng (Checkout) ---
-    // Mở trang Thanh toán
+ 
+    // Trang điền thông tin và thanh toán đơn hàng (Checkout)
     Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])
         ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('checkout');
-    // Nút "Đặt hàng" (Phương thức COD), lưu đơn hàng vào Database
+ 
+    // Lưu đơn hàng mới với hình thức thanh toán COD
     Route::post('/checkout', [App\Http\Controllers\Frontend\CustomerOrderController::class, 'store'])->name('checkout.store');
-
-    // Các đường dẫn phụ trợ (API) gọi ngầm qua AJAX:
-    // Tính khoảng cách km giao hàng
+ 
+    // Tính toán khoảng cách giao hàng bằng tọa độ [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/checkout/distance', [App\Http\Controllers\Frontend\CartController::class, 'calculateDistance']);
-
-    // Tính phụ phí thời tiết
+ 
+    // Tính toán phụ phí vận chuyển thời tiết xấu [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/checkout/weather-fee', [App\Http\Controllers\Frontend\CartController::class, 'calculateWeatherFee']);
-
-    // Kiểm tra Mã giảm giá (Coupon) có hợp lệ không
+ 
+    // Kiểm tra tính hợp lệ của mã giảm giá khi áp dụng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/checkout/validate-coupon', [App\Http\Controllers\Frontend\CartController::class, 'validateCoupon']);
-
-    // --- Thanh toán qua ví điện tử MoMo ---
-    // Gửi yêu cầu trừ tiền sang máy chủ MoMo
+ 
+    // Tạo yêu cầu thanh toán qua cổng điện tử MoMo
     Route::post('/checkout/momo', [App\Http\Controllers\Frontend\MomoController::class, 'createPayment'])->name('momo.pay');
-
-    // Sau khi quét mã MoMo xong, khách bị đá ngược về route này để xem màn hình "Thanh toán thành công"
+ 
+    // Nhận thông tin phản hồi từ cổng MoMo sau khi thanh toán
     Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
-
-    // --- Thanh toán qua cổng VNPay ---
-    // Khác MoMo: không gọi API, VnpayController tự build URL đã ký chữ ký rồi redirect thẳng.
+ 
+    // Tạo yêu cầu thanh toán qua cổng điện tử VNPay
     Route::post('/checkout/vnpay', [App\Http\Controllers\Frontend\VnpayController::class, 'createPayment'])->name('vnpay.pay');
+ 
+    // Nhận thông tin phản hồi từ cổng VNPay sau khi thanh toán
     Route::get('/checkout/vnpay/return', [App\Http\Controllers\Frontend\VnpayController::class, 'handleReturn'])->name('vnpay.return');
+ 
 });
-
-// ==============================================
-// IPN MOMO/VNPAY & GIAO DIỆN GIỎ HÀNG
-// ==============================================
-
-// IPN của MoMo (Server-to-Server). MoMo gọi ngầm vào đường dẫn này để báo cáo kết quả giao dịch. BẮT BUỘC PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)!
+ 
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║ 4. THANH TOÁN ONLINE - KÊNH IPN SERVER-TO-SERVER (PAYMENT IPN ROUTING)║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
+// Kênh nhận dữ liệu trạng thái IPN tự động từ MoMo (Server-to-Server)
 Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
-
-// IPN của VNPay (Server-to-Server, gọi bằng GET theo tài liệu VNPay — khác MoMo dùng POST). BẮT BUỘC
-// PHẢI BỎ CHẶN ĐĂNG NHẬP (Public)! Phải luôn trả JSON {"RspCode":...} — xem VnpayController::handleIpn().
+ 
+// Kênh nhận dữ liệu trạng thái IPN tự động từ VNPay (Server-to-Server)
 Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController::class, 'handleIpn'])->name('vnpay.ipn');
-
-// API lấy dữ liệu giỏ hàng để vẽ lên ngăn kéo (Sidebar). Route này public để ai cũng xem được giỏ hàng của chính họ
+ 
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║               5. TIỆN ÍCH CHUNG (GENERAL UTILITIES)                   ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
+// Lấy thông tin giỏ hàng hiện tại phục vụ hiển thị Sidebar [TRẢ VỀ JSON/AJAX CHO JS]
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
-
-// Chatbox trả lời nhanh - ô nhập câu hỏi tự do (rule-based intent, không AI). Public (khách chưa
-// đăng nhập cũng dùng được), chỉ đọc dữ liệu, có rate limit chống spam.
+ 
+// Gửi câu hỏi tự do lên chatbot phản hồi nhanh [TRẢ VỀ JSON/AJAX CHO JS]
 Route::post('/quick-chat/ask', [App\Http\Controllers\Frontend\QuickChatController::class, 'ask'])
     ->middleware('throttle:20,1')
     ->name('quick-chat.ask');
-
-// Route hỗ trợ dev test nhanh kết nối Database
-// Development-only authentication and database routes were intentionally removed.
-
-
-//4. ADMIN & QUẢN TRỊ VIÊN
-
+ 
+ 
+// =========================================================================
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║              6. QUẢN TRỊ VIÊN - ADMIN (ADMINISTRATOR ROUTES)          ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+// =========================================================================
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
-    // Dashboard
+ 
+    // Trang tổng quan báo cáo quản trị Admin Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Backend\Admin\DashboardController::class, 'index'])->name('dashboard');
-
-    // QUẢN LÝ KHÁCH HÀNG
+ 
+    // --- QUẢN LÝ KHÁCH HÀNG (CUSTOMER MANAGEMENT) ---
+    // Xóa hàng loạt tài khoản khách hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('customers/bulk-delete', [App\Http\Controllers\Backend\Admin\CustomerController::class, 'bulkDelete'])->name('customers.bulk_delete');
+ 
+    // Khóa hoặc mở khóa tài khoản khách hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('customers/{id}/toggle-status', [App\Http\Controllers\Backend\Admin\CustomerController::class, 'toggleStatus'])->name('customers.toggle_status');
+ 
+    // Quản lý thông tin tài khoản khách hàng (CRUD)
     Route::resource('customers', App\Http\Controllers\Backend\Admin\CustomerController::class);
-
-    // Xem danh sách toàn bộ đơn hàng của quán
+ 
+    // --- QUẢN LÝ ĐƠN HÀNG (ORDER MANAGEMENT) ---
+    // Xem danh sách toàn bộ đơn hàng của cửa hàng
     Route::get('/orders', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'index'])->name('orders.index');
-
-    // Xuất báo cáo đơn hàng ra file Excel/CSV
+ 
+    // Xuất báo cáo đơn hàng ra tệp Excel/CSV
     Route::get('/orders/export', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'export'])->name('orders.export');
-
-    // Xem chi tiết đơn hàng
+ 
+    // Xem thông tin chi tiết đơn hàng
     Route::get('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'show'])->name('orders.show');
+ 
+    // Cập nhật trạng thái xử lý đơn hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{id}/status', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'updateStatus'])->name('orders.status.update');
-    // Dispatcher theo payment_method (momo/vnpay) — xem OnlinePaymentGatewayController.
+ 
+    // Thực hiện hoàn tiền cho các đơn thanh toán điện tử [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'refund'])->name('orders.refund');
+ 
+    // Xóa đơn hàng ra khỏi hệ thống
     Route::delete('/orders/{id}', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'destroy'])->name('orders.destroy');
+ 
+    // Xóa hàng loạt các đơn hàng được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/bulk-delete', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'bulkDelete'])->name('orders.bulk_delete');
-
-    // QUẢN LÝ SẢN PHẨM
+ 
+    // --- QUẢN LÝ SẢN PHẨM & DANH MỤC (PRODUCT & CATEGORY MANAGEMENT) ---
+    // Xóa hàng loạt sản phẩm được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('products/bulk-delete', [App\Http\Controllers\Backend\Admin\HardenedProductController::class, 'bulkDelete'])->name('products.bulk_delete');
+ 
+    // Quản lý danh mục món nước sản phẩm (CRUD)
     Route::resource('products', App\Http\Controllers\Backend\Admin\HardenedProductController::class)->except(['show']);
+ 
+    // Xóa hình ảnh thư viện sản phẩm (Gallery)
     Route::delete('products/gallery/{id}', [App\Http\Controllers\Backend\Admin\HardenedProductController::class, 'deleteGalleryImage'])->name('products.gallery.destroy');
-
-    // QUẢN LÝ KHUYẾN MÃI
-    Route::post('promotions/bulk-delete', [App\Http\Controllers\Backend\Admin\PromotionController::class, 'bulkDelete'])->name('promotions.bulk_delete');
-    Route::resource('promotions', App\Http\Controllers\Backend\Admin\PromotionController::class)->except(['show']);
-
-    // QUẢN LÝ ĐÁNH GIÁ
-    Route::post('reviews/bulk-delete', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'bulkDelete'])->name('reviews.bulk_delete');
-    Route::resource('reviews', App\Http\Controllers\Backend\Admin\ReviewController::class)->except(['show']);
-    Route::post('reviews/{id}/toggle-visibility', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle_visibility');
-    Route::delete('reviews/{id}/image', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'deleteImage'])->name('reviews.delete_image');
-
-    // QUẢN LÝ DANH MỤC
+ 
+    // Xóa hàng loạt danh mục được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\Admin\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
+ 
+    // Quản lý danh mục món nước của cửa hàng (CRUD)
     Route::resource('categories', App\Http\Controllers\Backend\Admin\CategoryController::class)->except(['show']);
-
-    // QUẢN LÝ BANNER
+ 
+    // --- QUẢN LÝ KHUYẾN MÃI (PROMOTION MANAGEMENT) ---
+    // Xóa hàng loạt mã khuyến mãi được chọn [TRẢ VỀ JSON/AJAX CHO JS]
+    Route::post('promotions/bulk-delete', [App\Http\Controllers\Backend\Admin\PromotionController::class, 'bulkDelete'])->name('promotions.bulk_delete');
+ 
+    // Quản lý các chương trình khuyến mãi và mã ưu đãi (CRUD)
+    Route::resource('promotions', App\Http\Controllers\Backend\Admin\PromotionController::class)->except(['show']);
+ 
+    // --- QUẢN LÝ ĐÁNH GIÁ (REVIEW MANAGEMENT) ---
+    // Xóa hàng loạt đánh giá sản phẩm được chọn [TRẢ VỀ JSON/AJAX CHO JS]
+    Route::post('reviews/bulk-delete', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'bulkDelete'])->name('reviews.bulk_delete');
+ 
+    // Quản lý danh sách đánh giá của khách hàng (CRUD)
+    Route::resource('reviews', App\Http\Controllers\Backend\Admin\ReviewController::class)->except(['show']);
+ 
+    // Ẩn hoặc hiện bình luận đánh giá ngoài giao diện khách [TRẢ VỀ JSON/AJAX CHO JS]
+    Route::post('reviews/{id}/toggle-visibility', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'toggleVisibility'])->name('reviews.toggle_visibility');
+ 
+    // Xóa hình ảnh đi kèm bình luận đánh giá
+    Route::delete('reviews/{id}/image', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'deleteImage'])->name('reviews.delete_image');
+ 
+    // --- QUẢN LÝ BANNER QUẢNG CÁO (BANNER MANAGEMENT) ---
+    // Xóa hàng loạt các banner được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('banners/bulk-delete', [App\Http\Controllers\Backend\Admin\BannerController::class, 'bulkDelete'])->name('banners.bulk_delete');
+ 
+    // Khóa hoặc mở hoạt động của các banner trang chủ [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('banners/{id}/toggle-status', [App\Http\Controllers\Backend\Admin\BannerController::class, 'toggleStatus'])->name('banners.toggle_status');
+ 
+    // Quản lý các banner trang chủ của cửa hàng (CRUD)
     Route::resource('banners', App\Http\Controllers\Backend\Admin\BannerController::class)->except(['show']);
-
-    // BÁO CÁO & THỐNG KÊ
+ 
+    // --- BÁO CÁO THỐNG KÊ (REPORTS MANAGEMENT) ---
+    // Trang hiển thị thống kê báo cáo của cửa hàng
     Route::get('reports', [App\Http\Controllers\Backend\Admin\ReportController::class, 'index'])->name('reports.index');
+ 
+    // Xuất báo cáo hoạt động thống kê ra tệp tin
     Route::get('reports/export', [App\Http\Controllers\Backend\Admin\ReportController::class, 'export'])->name('reports.export');
-
-    // CẤU HÌNH HỆ THỐNG
+ 
+    // --- CẤU HÌNH HỆ THỐNG (SYSTEM SETTINGS) ---
+    // Trang cấu hình thông số và thiết lập hệ thống
     Route::get('settings', [App\Http\Controllers\Backend\Admin\SettingController::class, 'index'])->name('settings.index');
+ 
+    // Cập nhật giá trị các thiết lập hệ thống
     Route::put('settings', [App\Http\Controllers\Backend\Admin\SettingController::class, 'update'])->name('settings.update');
-
-    // QUẢN LÝ KHO
+ 
+    // --- QUẢN LÝ KHO NGUYÊN LIỆU (INVENTORY MANAGEMENT) ---
+    // Xóa hàng loạt các loại nguyên vật liệu trong kho [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');
-    //danh mục gốc
+ 
+    // Quản lý danh mục các loại nguyên vật liệu trong kho (CRUD)
     Route::resource('materials', App\Http\Controllers\Backend\Admin\MaterialController::class)->except(['create', 'edit', 'show']);
-
-    // Nhập kho
+ 
+    // Xem lịch sử nhập kho của một loại nguyên liệu
     Route::get('materials/{material}/imports', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'imports'])->name('materials.imports');
+ 
+    // Tạo phiếu nhập kho lô nguyên vật liệu mới
     Route::post('materials/{material}/imports', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'storeImport'])->name('materials.imports.store');
+ 
+    // Cập nhật thông tin phiếu nhập kho nguyên liệu
     Route::put('materials/imports/{import}', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'updateImport'])->name('materials.imports.update');
-
-    //Hủy Kho (Vứt bỏ):
+ 
+    // Thực hiện hủy bỏ lô nguyên vật liệu hết hạn sử dụng
     Route::post('materials/imports/{import}/dispose-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'disposeBatch'])->name('materials.imports.dispose_batch');
-
-    // Xuất kho sử dụng - LUÔN chọn đúng 1 lô cụ thể (nút "Xuất" trên từng dòng lô) - cùng cách làm
-    // với bên lễ tân (staff.reception.materials.imports.consume_batch).
+ 
+    // Thực hiện xuất kho nguyên vật liệu để pha chế nước uống
     Route::post('materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
-
-    // QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (staff-accounts)
+ 
+    // --- QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (STAFF ACCOUNTS MANAGEMENT) ---
+    // Khóa hoặc kích hoạt tài khoản nhân viên [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('staff-accounts/{id}/toggle-status', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'toggleStatus'])->name('staff_accounts.toggle_status');
+ 
+    // Cập nhật quyền hạn/phân loại vai trò của nhân viên [TRẢ VỀ JSON/AJAX CHO JS]
     Route::patch('staff-accounts/{id}/staff-type', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'updateType'])->name('staff_accounts.update_type');
+ 
+    // Quản lý thông tin tài khoản các nhân viên cửa hàng (CRUD)
     Route::resource('staff-accounts', App\Http\Controllers\Backend\Staff\StaffAccountController::class)->names('staff_accounts')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+ 
 });
-
-// 5. KHU VỰC NHÂN VIÊN LỄ TÂN (receptionist)
+ 
+/*
+|--------------------------------------------------------------------------
+| 7. NHÂN VIÊN - LỄ TÂN (STAFF RECEPTIONIST ROUTES)
+|--------------------------------------------------------------------------
+*/
 Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', \App\Http\Middleware\IsReceptionist::class])->group(function () {
+ 
+    // Trang tổng quan của nhân viên lễ tân
     Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Reception\DashboardController::class, 'index'])->name('dashboard');
-
+ 
+    // --- QUẢN LÝ ĐƠN HÀNG (POS & ORDER MANAGEMENT) ---
+    // Xem danh sách đơn hàng cần xử lý
     Route::get('/orders', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'index'])->name('orders.index');
-    // Đặt trước /orders/{order} để tránh "create" bị route-model-binding hiểu nhầm là 1 order id.
+ 
+    // Mở trang tạo đơn hàng trực tiếp tại quầy cho khách (POS)
     Route::get('/orders/create', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'createOrder'])->name('orders.create');
+ 
+    // Tính toán trước tổng tiền đơn hàng tại quầy qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/orders/preview-total', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'previewTotal'])->name('orders.preview_total');
+ 
+    // Lưu đơn hàng trực tiếp tại quầy vào hệ thống [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'storeOrder'])->name('orders.store');
+ 
+    // Tìm nhanh thông tin khách hàng bằng số điện thoại [TRẢ VỀ JSON/AJAX CHO JS]
     Route::get('/customers/search', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'searchCustomer'])->name('customers.search');
+ 
+    // Xem chi tiết một đơn hàng cụ thể
     Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'show'])->name('orders.show');
+ 
+    // Cập nhật trạng thái xử lý đơn hàng của lễ tân [TRẢ VỀ JSON/AJAX CHO JS]
     Route::patch('/orders/{order}/status', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'updateStatus'])->name('orders.status.update');
-    // Dispatcher theo payment_method (momo/vnpay) — xem OnlinePaymentGatewayController.
+ 
+    // Xử lý yêu cầu hoàn tiền cho các đơn thanh toán điện tử [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/refund', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'refund'])->name('orders.refund');
+ 
+    // Phân công nhân viên shipper đi giao đơn hàng cụ thể [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/assign-delivery', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'assignDelivery'])->name('orders.assign_delivery');
+ 
+    // Khởi tạo yêu cầu thanh toán online cho đơn hàng sẵn có [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/pay-online', [App\Http\Controllers\Frontend\OnlinePaymentGatewayController::class, 'payExisting'])->name('orders.pay_online');
+ 
+    // Lễ tân xác nhận đã nhận đủ tiền mặt từ khách tại quầy [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');
-
+ 
+    // --- QUẢN LÝ KHO VẬT TƯ TẠI QUẦY (LOCAL INVENTORY MANAGEMENT) ---
+    // Xem danh sách nguyên vật liệu kho tại quầy lễ tân
     Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'index'])->name('materials.index');
+ 
+    // Xem lịch sử nhập kho các lô nguyên vật liệu của quầy lễ tân
     Route::get('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'imports'])->name('materials.imports');
+ 
+    // Nhập thêm lô nguyên vật liệu mới tại quầy lễ tân
     Route::post('/materials/{material}/imports', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'storeImport'])->name('materials.imports.store');
-    // Xuất kho sử dụng - LUÔN từ một lô cụ thể (nút "Xuất" trên từng dòng lô), cùng cách làm với admin.
+ 
+    // Thực hiện xuất kho nguyên vật liệu để pha chế tại quầy
     Route::post('/materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
-
+ 
+    // --- QUẢN LÝ KHUYẾN MÃI & HỒ SƠ CÁ NHÂN (PROMOTIONS & PROFILE) ---
+    // Xem danh sách các mã khuyến mãi đang hoạt động
     Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\PromotionController::class, 'index'])->name('promotions.index');
-    // Hồ sơ cá nhân chỉ để XEM — nhân viên không có quyền tự sửa thông tin tài khoản, chỉ admin
-    // mới được sửa (qua /admin/staff-accounts/{id}/edit).
+ 
+    // Xem thông tin hồ sơ tài khoản cá nhân của lễ tân
     Route::get('/profile', [App\Http\Controllers\Backend\Staff\StaffProfileController::class, 'edit'])->name('profile.edit');
-
+ 
+    // --- ĐỐI SOÁT COD SHIPPER (COD SETTLEMENT) ---
+    // Trang đối soát nộp tiền mặt COD của nhân viên giao hàng
     Route::get('/cod-settlement', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'index'])->name('cod_settlement.index');
+ 
+    // Xác nhận đã nhận tiền COD nộp về của một đơn hàng cụ thể [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cod-settlement/orders/{order}/settle', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'settleOne'])->name('cod_settlement.settle_one');
+ 
+    // Xác nhận đã nhận đủ toàn bộ tiền COD nộp về của shipper trong ca [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/cod-settlement/staff/{deliveryStaff}/settle-all', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'settleAll'])->name('cod_settlement.settle_all');
+ 
 });
-
-// 6. KHU VỰC NHÂN VIÊN VẬN CHUYỂN (delivery) — chỉ thấy đơn được phân công cho chính mình
+ 
+/*
+|--------------------------------------------------------------------------
+| 8. NHÂN VIÊN - GIAO HÀNG (STAFF DELIVERY/SHIPPER ROUTES)
+|--------------------------------------------------------------------------
+*/
 Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \App\Http\Middleware\IsDelivery::class])->group(function () {
+ 
+    // Trang tổng quan của nhân viên shipper giao hàng
     Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Delivery\DashboardController::class, 'index'])->name('dashboard');
-
+ 
+    // Xem danh sách các đơn hàng được giao đi giao
     Route::get('/orders', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'index'])->name('orders.index');
+ 
+    // Xem chi tiết thông tin và địa chỉ đơn hàng cần giao
     Route::get('/orders/{order}', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'show'])->name('orders.show');
+ 
+    // Shipper xác nhận đang đi giao đơn hàng này [TRẢ VỀ JSON KHI GỌI AJAX]
     Route::patch('/orders/{order}/ship', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'ship'])->name('orders.ship');
+ 
+    // Shipper xác nhận đã giao đơn hàng thành công và thu tiền COD (nếu có) [TRẢ VỀ JSON KHI GỌI AJAX]
     Route::patch('/orders/{order}/complete', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'complete'])->name('orders.complete');
+ 
+    // Shipper báo cáo giao hàng thất bại kèm theo lý do cụ thể [TRẢ VỀ JSON KHI GỌI AJAX]
     Route::patch('/orders/{order}/fail', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'fail'])->name('orders.fail');
-
+ 
+    // Xem thông tin hồ sơ tài khoản cá nhân của shipper
     Route::get('/profile', [App\Http\Controllers\Backend\Staff\StaffProfileController::class, 'edit'])->name('profile.edit');
+ 
 });

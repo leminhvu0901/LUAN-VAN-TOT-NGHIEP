@@ -9,6 +9,13 @@ use Illuminate\Http\Request;
 // Chỉ đọc dữ liệu công khai, không nhận user_id từ request, không ghi log nội dung câu hỏi.
 class QuickChatController
 {
+    /**
+     * Gửi câu hỏi và trả về câu trả lời tự động kèm các gợi ý động/sản phẩm/khuyến mãi dạng JSON.
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON về cho hàm submitAsk() trong file JS: [public/js/frontend/layout/quick-chatbox.js]
+     *   để hiển thị bong bóng chat của Bot và các thẻ sản phẩm/khuyến mãi đính kèm.
+     */
     public function ask(Request $request, QuickChatService $service)
     {
         $data = $request->validate([
@@ -27,9 +34,9 @@ class QuickChatController
         }
 
         if (!empty($data['intent'])) {
-            return response()->json($service->askByIntent($data['intent']));
+            return response()->json($service->askByIntent($data['intent']));//// Trả lời trực tiếp khi người dùng chọn nút gợi ý
         }
 
-        return response()->json($service->ask($data['question']));
+        return response()->json($service->ask($data['question']));// Trả lời dựa trên câu hỏi người dùng
     }
 }

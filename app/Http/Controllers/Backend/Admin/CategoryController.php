@@ -149,7 +149,7 @@ class CategoryController
 
         $data = $request->except(['image_url']);
         $data['is_active'] = $request->has('is_active') ? 1 : 0;
-        
+
         if (empty($data['display_order'])) {
             $data['display_order'] = 0;
         }
@@ -168,7 +168,7 @@ class CategoryController
         // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
         if ($category->products()->count() > 0) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Không thể xóa danh mục đang có sản phẩm!'
             ]);
         }
@@ -179,6 +179,10 @@ class CategoryController
 
     /**
      * XÓA NHIỀU DANH MỤC
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
+     *   trong file JS: [public/js/backend/admin/categories/index.js] để hiển thị thông báo kết quả.
      */
     public function bulkDelete(Request $request)
     {
@@ -202,7 +206,7 @@ class CategoryController
             $categories = $query->get();
             $deletedCount = 0;
             $failedCount = 0;
-            
+
             foreach ($categories as $category) {
                 if ($category->products()->count() > 0) {
                     $failedCount++;
@@ -211,7 +215,7 @@ class CategoryController
                     $deletedCount++;
                 }
             }
-            
+
             $msg = "Đã xóa {$deletedCount} danh mục.";
             if ($failedCount > 0) {
                 $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
@@ -230,7 +234,7 @@ class CategoryController
             $categories = Category::whereIn('id', $request->category_ids)->get();
             $deletedCount = 0;
             $failedCount = 0;
-            
+
             foreach ($categories as $category) {
                 if ($category->products()->count() > 0) {
                     $failedCount++;

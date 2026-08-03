@@ -8,57 +8,83 @@ use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-// Đối soát tiền COD: nhân viên vận chuyển thu tiền mặt từ khách khi hoàn thành đơn, sau đó phải
-// nộp lại cho lễ tân/quầy. Trang này cho lễ tân biết chính xác đơn nào đã nộp, đơn nào shipper còn giữ.
+/**
+ * Controller Đối soát tiền mặt thu hộ (COD - Cash On Delivery).
+ * Nhân viên giao hàng (Shipper) khi đi giao đơn online sẽ thu tiền mặt từ khách hàng, sau đó phải nộp lại cho quầy.
+ * Trang này giúp Lễ tân quản lý số tiền shipper đang cầm, xác nhận shipper đã nộp tiền mặt cho quán.
+ */
 class CodController
 {
-    public function __construct(private readonly OrderWorkflowService $orderWorkflow) {}
+    // Inject dịch vụ quản lý trạng thái đơn hàng và đối soát tiền
+    public function __construct(private readonly OrderWorkflowService $sv_orderWorkflow) {}
 
+    /**
+     * Hiển thị giao diện đối soát tiền COD cho từng nhân viên giao hàng.
+     */
     public function index()
     {
+        // Lấy danh sách toàn bộ nhân viên giao hàng (Shipper) đang hoạt động
         $deliveryStaffList = User::where('role', 'staff')->where('staff_type', 'delivery')->orderBy('name')->get();
 
+        // Gom nhóm các đơn hàng hoàn thành cần nộp tiền theo từng Shipper
         $groups = $deliveryStaffList->map(function (User $staff) {
-            $unsettledOrders = Order::where('delivery_staff_id', $staff->id)
-                ->where('payment_method', 'cod')
-                ->where('status', 'completed')
-                ->whereNull('cod_settled_at')
+            $unsettledOrders = Order::where('delivery_staff_id', $staff->id) // Tìm đơn do Shipper này phụ trách
+                ->where('payment_method', 'cod') // Phương thức thanh toán khi nhận hàng
+                ->where('status', 'completed') // Đơn giao đã hoàn thành công
+                ->whereNull('cod_settled_at') // Tiền mặt thu hộ chưa được đối soát (chưa nộp quầy)
                 ->orderBy('created_at')
                 ->get();
 
+            // Tính tổng số tiền COD mà Shipper này đã nộp quầy thành công trong ngày hôm nay
             $settledTotalToday = (float) Order::where('delivery_staff_id', $staff->id)
                 ->where('payment_method', 'cod')
                 ->where('status', 'completed')
-                ->whereDate('cod_settled_at', today())
+                ->whereDate('cod_settled_at', today()) // Lọc theo ngày hôm nay
                 ->sum('final_amount');
 
             return [
                 'staff' => $staff,
                 'unsettled_orders' => $unsettledOrders,
-                'unsettled_total' => (float) $unsettledOrders->sum('final_amount'),
+                'unsettled_total' => (float) $unsettledOrders->sum('final_amount'), // Tổng tiền Shipper còn đang nợ chưa nộp quầy
                 'settled_total_today' => $settledTotalToday,
             ];
         });
 
-        return view('backend.staff.reception.cod-settlement.index', compact('groups'));
+        return view('backend.staff.reception.cod-settlement.index', compact('groups')); // Trả về giao diện đối soát tiền mặt
     }
 
+    /**
+     * Xác nhận đối soát cho một đơn hàng COD riêng lẻ.
+     * 
+     * Phản hồi trả về:
+     * - Trả về dữ liệu JSON báo thành công cho JS tại file [public/js/backend/staff/reception/cod-settlement/index.js]
+     *   để JS cập nhật và làm ẩn dòng đơn hàng vừa đối soát thành công.
+     */
     public function settleOne(Request $request, Order $order)
     {
-        $this->orderWorkflow->settleCod($order, Auth::id());
+        $this->sv_orderWorkflow->settleCod($order, Auth::id()); // Gọi workflow service đánh dấu đơn hàng đã nộp tiền (lưu ID người nhận là lễ tân hiện tại)
         $message = "Đã xác nhận nhận tiền COD cho đơn {$order->order_code}.";
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]);
+            return response()->json(['success' => true, 'message' => $message]); // Trả phản hồi JSON cho AJAX
         }
         return back()->with('success', $message);
     }
 
+    /**
+     * Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn treo của một Shipper cụ thể.
+     * 
+     * Phản hồi trả về:
+     * - Trả về dữ liệu JSON báo thành công cho JS tại file [public/js/backend/staff/reception/cod-settlement/index.js]
+     *   để JS cập nhật lại bảng công nợ của tài xế đó mà không cần reload trang.
+     */
     public function settleAll(Request $request, User $deliveryStaff)
     {
+        // Ngăn chặn nếu đối tượng truyền vào không phải là tài khoản Shipper
         abort_unless($deliveryStaff->role === 'staff' && $deliveryStaff->staff_type === 'delivery', 404);
 
-        $count = $this->orderWorkflow->settleAllCodForDeliveryStaff($deliveryStaff->id, Auth::id());
+        // Gọi workflow service đối soát toàn bộ đơn COD của shipper này, trả về số lượng đơn được đối soát
+        $count = $this->sv_orderWorkflow->settleAllCodForDeliveryStaff($deliveryStaff->id, Auth::id());
 
         if ($count === 0) {
             $message = "{$deliveryStaff->name} không có đơn COD nào cần đối soát.";
@@ -70,7 +96,7 @@ class CodController
 
         $message = "Đã xác nhận nộp quầy {$count} đơn COD từ {$deliveryStaff->name}.";
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]);
+            return response()->json(['success' => true, 'message' => $message]); // Trả phản hồi JSON cho AJAX
         }
         return back()->with('success', $message);
     }

@@ -1,12 +1,24 @@
 /**
- * Xử lý danh sách banner (Tìm kiếm, Lọc, Phân trang, Xóa, Bật/Tắt trạng thái) bằng AJAX
+ * index.js - Xử lý danh sách banner ở trang quản trị (Admin Banners Control)
+ * Các chức năng bao gồm:
+ * - Tìm kiếm nhanh (Search) kết hợp debounce tránh quá tải server.
+ * - Lọc AJAX nâng cao theo trạng thái, vị trí hiển thị và sắp xếp.
+ * - Chuyển trang (Phân trang AJAX) không tải lại trang.
+ * - Xóa đơn lẻ hoặc xóa hàng loạt banner có hộp thoại xác nhận.
+ * - Bật/Tắt trạng thái hoạt động trực tiếp ngoài danh sách bằng AJAX.
+ * - Khôi phục và cố định vị trí cuộn cuộn màn hình để tối ưu trải nghiệm người dùng.
  */
 document.addEventListener('DOMContentLoaded', function () {
-    const filterForm = document.getElementById('filter-form');
-    const tableContainer = document.getElementById('table-container');
-    const btnClearFilter = document.getElementById('btn-clear-filter');
+    // === PHẦN TỬ DOM ===
+    const filterForm = document.getElementById('filter-form'); // Form bộ lọc đầu trang
+    const tableContainer = document.getElementById('table-container'); // Vùng chứa bảng dữ liệu
+    const btnClearFilter = document.getElementById('btn-clear-filter'); // Nút hủy toàn bộ bộ lọc
 
-    // Hàm gọi AJAX lấy danh sách banner
+    /**
+     * Hàm gọi AJAX lấy danh sách banner từ server dựa trên các bộ lọc
+     * @param {string|null} urlStr - URL của trang cần tải (nếu chuyển trang), null để lấy theo form lọc hiện tại
+     * @param {boolean} preserveScroll - true để giữ nguyên vị trí cuộn hiện tại của màn hình
+     */
     function fetchBanners(urlStr = null, preserveScroll = false) {
         let url;
         if (urlStr) {
@@ -18,28 +30,29 @@ document.addEventListener('DOMContentLoaded', function () {
             url.search = searchParams.toString();
         }
 
-        // Cập nhật thanh địa chỉ trình duyệt
+        // Cập nhật thanh địa chỉ URL của trình duyệt
         window.history.pushState({}, '', url);
 
-        // Lưu vị trí cuộn hiện tại (hỗ trợ cả main-content-area và window)
+        // Lấy container cuộn thực tế của layout (phân vùng #main-content-area hoặc thẻ html)
         const scrollContainer = document.getElementById('main-content-area') || document.documentElement;
         const tableWrapper = document.getElementById("banners-table-wrapper");
 
-        // Lưu vị trí cuộn tuyệt đối để dùng khi xoá hoặc cập nhật trạng thái
+        // Lưu trữ vị trí cuộn chuột hiện tại
         const currentScrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
 
-        // Chỉ giữ cố định vị trí nút ở đáy nếu chuyển trang (urlStr !== null) và đang cuộn xuống dưới
+        // Xác định xem có phải đang chuyển trang hay không
         const isPaging = (urlStr !== null);
         const shouldPreserve = isPaging || preserveScroll;
         const scrollFromBottom = (isPaging && tableWrapper && scrollContainer && scrollContainer.scrollTop > 100)
             ? (tableWrapper.scrollHeight - scrollContainer.scrollTop)
             : 0;
 
-        // Giữ nguyên chiều cao hiện tại để tránh giật giao diện (layout shift)
+        // Đặt chiều cao tối thiểu tạm thời cho bảng để chống hiện tượng giật giật màn hình khi tải trang (Layout Shift)
         if (tableWrapper) {
             tableWrapper.style.minHeight = tableWrapper.offsetHeight + 'px';
         }
 
+        // Hiển thị vòng xoay loading
         const loader = document.getElementById('table-loader');
         if (loader) {
             loader.classList.remove('hidden');
@@ -49,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
             tableContainer.style.pointerEvents = 'none';
         }
 
+        // Gửi request GET AJAX lên server nhận phản hồi JSON chứa HTML render sẵn
         fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -57,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
             .then(response => response.json())
             .then(data => {
-                // Cập nhật thống kê
+                // Cập nhật các thẻ số liệu thống kê ở đầu trang quản lý banner
                 if (data.total !== undefined) {
                     const totalStat = document.getElementById('total-banners-stat');
                     if (totalStat) totalStat.innerText = data.total;
@@ -79,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (expiredStat) expiredStat.innerText = data.expired;
                 }
 
-                // Cập nhật nội dung bảng/card
+                // Ghi đè HTML bảng dữ liệu mới nhận được vào view
                 if (data.html) {
                     const tableWrapper = document.getElementById("banners-table-wrapper");
                     if (tableWrapper) {
@@ -90,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.dispatchEvent(new Event("tableDataLoaded"));
                 }
 
-                // Hiện / Ẩn nút Xóa lọc
+                // Hiện hoặc Ẩn nút Xóa lọc tùy theo có tham số lọc nào khác mặc định đang hoạt động
                 if (btnClearFilter) {
                     const hasFilters = [...new URLSearchParams(url.search)].some(([key, val]) =>
                         (key === 'search' && val !== '') ||
@@ -100,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     btnClearFilter.style.display = hasFilters ? 'flex' : 'none';
                 }
 
-                // Phục hồi vị trí cuộn
+                // Phục hồi lại vị trí cuộn của người dùng sau khi nạp xong dữ liệu
                 if (shouldPreserve) {
                     if (isPaging && scrollFromBottom > 0 && tableWrapper && scrollContainer) {
                         scrollContainer.scrollTop = tableWrapper.scrollHeight - scrollFromBottom;
@@ -117,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Lỗi khi tải dữ liệu banner:', error))
             .finally(() => {
+                // Ẩn vòng xoay loading
                 if (loader) {
                     loader.classList.add('hidden');
                     loader.classList.remove('flex');
@@ -124,12 +139,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 tableContainer.style.opacity = '1';
                 tableContainer.style.pointerEvents = 'auto';
 
-                // Giải phóng min-height sau khi hoàn tất tải dữ liệu
+                // Giải phóng thuộc tính chiều cao tối thiểu tạm thời của bảng
                 if (tableWrapper) {
                     tableWrapper.style.minHeight = '';
                 }
 
-                // Cập nhật lại vị trí cuộn sau khi gỡ min-height để tránh giật
+                // Đảm bảo cập nhật vị trí cuộn một lần nữa sau khi đã gỡ min-height
                 if (shouldPreserve) {
                     if (isPaging && scrollFromBottom > 0 && tableWrapper && scrollContainer) {
                         scrollContainer.scrollTop = tableWrapper.scrollHeight - scrollFromBottom;
@@ -140,13 +155,13 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Lắng nghe thay đổi dropdown lọc
+    // Lắng nghe sự kiện thay đổi của các bộ lọc dạng Select
     if (filterForm) {
         filterForm.querySelectorAll('select').forEach(select => {
             select.addEventListener('change', () => fetchBanners());
         });
 
-        // Tìm kiếm với debounce
+        // Tìm kiếm với cơ chế Debounce 400ms để tối ưu hóa hiệu năng
         let timeout = null;
         const searchInput = filterForm.querySelector('input[name="search"]');
         if (searchInput) {
@@ -157,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Nút Xóa lọc
+    // Xử lý khi nhấn nút "Xóa lọc" để reset form về trạng thái ban đầu
     if (btnClearFilter) {
         btnClearFilter.addEventListener('click', function (e) {
             e.preventDefault();
@@ -172,10 +187,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Phân trang bằng AJAX & Các sự kiện trong bảng (sử dụng Event Delegation)
+    // Ủy quyền sự kiện click trên toàn bộ bảng dữ liệu
     if (tableContainer) {
         tableContainer.addEventListener('click', function (e) {
-            // Phân trang
+            // 1. Nhấn liên kết phân trang AJAX
             const pageLink = e.target.closest('.ajax-pagination a');
             if (pageLink) {
                 e.preventDefault();
@@ -183,14 +198,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Nút xóa đơn lẻ
+            // 2. Nhấn nút xóa một banner đơn lẻ
             const deleteBtn = e.target.closest('.delete-banner-btn');
             if (deleteBtn) {
                 e.preventDefault();
                 const id = deleteBtn.dataset.id;
                 const url = deleteBtn.dataset.url;
 
-                // Tìm tiêu đề banner
+                // Trích xuất tiêu đề banner để hiện trong modal xác nhận
                 let title = 'banner này';
                 const row = deleteBtn.closest('.select-row-tr');
                 if (row) {
@@ -202,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Nút bật/tắt hiển thị trạng thái bằng AJAX
+            // 3. Nhấn nút bật/tắt hiển thị trạng thái hoạt động nhanh của banner
             const toggleBtn = e.target.closest('.toggle-status-btn');
             if (toggleBtn) {
                 e.preventDefault();
@@ -216,6 +231,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.fetchBanners = fetchBanners;
 });
 
+/**
+ * Gửi request DELETE AJAX xóa một banner và tạo hiệu ứng trượt mờ biến mất
+ */
 function deleteBannerAjax(id, title, url) {
     if (!window.AdminAlert) return;
 
@@ -242,6 +260,7 @@ function deleteBannerAjax(id, title, url) {
 
                         if (rows.length > 0) {
                             rows.forEach(row => {
+                                // Tạo hiệu ứng CSS trượt ngang và ẩn mờ dần khi xóa
                                 row.style.transition = 'all 0.3s ease';
                                 row.style.opacity = '0';
                                 row.style.transform = 'translateX(20px)';
@@ -268,11 +287,8 @@ function deleteBannerAjax(id, title, url) {
     );
 }
 
-
-
-
 /**
- * Bật/tắt hiển thị trạng thái banner bằng AJAX
+ * Gửi request POST AJAX thay đổi nhanh trạng thái hoạt động (is_active) của banner
  */
 function toggleBannerStatusAjax(btn, url) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
@@ -297,7 +313,7 @@ function toggleBannerStatusAjax(btn, url) {
                     window.AdminAlert.success(data.message, 'Thành công');
                 }
 
-                // Cập nhật lại toàn bộ bảng để lấy thông tin trạng thái / màu sắc badge chuẩn xác nhất
+                // Cập nhật lại bảng dữ liệu AJAX để làm mới badge trạng thái và thống kê
                 if (typeof window.fetchBanners === 'function') {
                     window.fetchBanners(null, true);
                 }
@@ -315,15 +331,18 @@ function toggleBannerStatusAjax(btn, url) {
 }
 
 // ============================================================
-// Xử lý Chọn hàng loạt (Bulk Actions) cho Banner
+// XỬ LÝ CHỌN NHIỀU BANNER ĐỂ THỰC THI XÓA HÀNG LOẠT (BULK ACTIONS)
 // ============================================================
 document.addEventListener('DOMContentLoaded', function () {
     const tableContainer = document.getElementById('table-container');
     const selectedCountSpan = document.getElementById('selected-count');
 
     window.isGlobalSelectAllBanners = false;
-    window.selectedBannerIds = new Set();
+    window.selectedBannerIds = new Set(); // Set chứa danh sách ID được chọn
 
+    /**
+     * Cập nhật hiển thị số lượng và ẩn/hiện nút "Xóa nhiều"
+     */
     function updateBulkDeleteButton() {
         let countText = window.selectedBannerIds.size;
 
@@ -357,6 +376,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    /**
+     * Đặt lại trạng thái lựa chọn hàng loạt về ban đầu
+     */
     window.resetBannerSelection = function () {
         window.isGlobalSelectAllBanners = false;
         if (window.selectedBannerIds) window.selectedBannerIds.clear();
@@ -370,11 +392,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (tableContainer) {
         tableContainer.addEventListener('change', function (e) {
+            // 1. Nhấn nút Checkbox chọn tất cả ở đầu bảng
             if (e.target.classList.contains('js-select-all')) {
                 const isChecked = e.target.checked;
                 window.isGlobalSelectAllBanners = isChecked;
 
-                // Đồng bộ checkbox tất cả (bao gồm cả mobile và desktop check-all)
+                // Đồng bộ checkbox tất cả ở cả header bảng desktop và mobile
                 document.querySelectorAll('.js-select-all').forEach(el => el.checked = isChecked);
 
                 if (!isChecked) {
@@ -385,7 +408,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (isChecked) window.selectedBannerIds.add(cb.value);
                 });
                 updateBulkDeleteButton();
-            } else if (e.target.classList.contains('row-checkbox')) {
+            } 
+            // 2. Nhấn chọn/bỏ chọn checkbox của từng hàng banner đơn lẻ
+            else if (e.target.classList.contains('row-checkbox')) {
                 if (e.target.checked) {
                     window.selectedBannerIds.add(e.target.value);
                 } else {
@@ -403,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Khôi phục trạng thái checkbox sau khi fetch AJAX bằng MutationObserver
+    // Đồng bộ lại trạng thái tích chọn checkbox sau khi nạp bảng bằng AJAX
     const observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             if (mutation.type === 'childList') {
@@ -434,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function () {
         observer.observe(tableContainer, { childList: true, subtree: true });
     }
 
-    // Hành động xóa nhiều
+    // Hiển thị hộp thoại xác nhận trước khi thực hiện xóa nhiều
     window.submitBulkDeleteBanners = function () {
         if (window.selectedBannerIds.size === 0) return;
 
@@ -459,6 +484,10 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.addEventListener('click', window.submitBulkDeleteBanners);
     }
 
+    /**
+     * Gửi request POST AJAX thực thi xóa hàng loạt banner
+     * @param {boolean} isSelectAll - true để xóa toàn bộ bản ghi khớp bộ lọc ở mọi trang
+     */
     function executeBulkDelete(isSelectAll) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
             || document.querySelector('input[name="_token"]')?.value || '';

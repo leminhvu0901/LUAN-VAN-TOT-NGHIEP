@@ -1,26 +1,30 @@
 /**
- * form.js - Xử lý form Thêm/Sửa Khuyến mãi
- * - Chọn loại (percent/fixed): cập nhật UI + đổi định dạng
- * - Format VND cho các trường tiền
- * - Nút tự sinh mã, đếm ký tự mô tả
- * - Validation phía client
+ * form-common.js - Xử lý logic dùng chung cho Form Thêm mới / Chỉnh sửa Chương trình khuyến mãi
+ * Các tính năng bao gồm:
+ * - Định dạng tiền tệ VND 2 chiều thời gian thực khi gõ (cho display input và hidden input).
+ * - Bật/Tắt lựa chọn loại khuyến mãi: Theo tỷ lệ % hoặc Số tiền cố định.
+ * - Ẩn/Hiện linh hoạt các trường cấu hình theo phạm vi áp dụng (Toàn đơn hàng, theo Sản phẩm, Danh mục, hoặc Combo mua sắm).
+ * - Nút "Tự sinh mã" tự động tạo chuỗi mã code ngẫu nhiên gồm chữ cái và chữ số có hiệu ứng highlight nhấp nháy.
+ * - Đếm ngược số lượng ký tự nhập ở ô Mô tả (giới hạn 100 ký tự) hiển thị cảnh báo đỏ khi gần hết.
+ * - Cấu hình thêm/xóa động các sản phẩm thành phần trong gói Combo (Combo Items Repeater).
+ * - Validate chặt chẽ dữ liệu combo và quà tặng kèm trước khi gửi lên server.
+ * - Bật/Tắt chế độ lịch lặp lại (Recurring) hoặc lịch cố định và khởi tạo bộ chọn Flatpickr.
  */
 document.addEventListener('DOMContentLoaded', function () {
 
     // === PHẦN TỬ DOM ===
-    // Lấy các node cần dùng trong form thêm/sửa khuyến mãi
     const typePercentLabel = document.getElementById('type-percent-label');
     const typeFixedLabel = document.getElementById('type-fixed-label');
     const typeInputs = document.querySelectorAll('input[name="type"]');
     const maxDiscountWrap = document.getElementById('max-discount-wrap');
     const valueUnitLabel = document.getElementById('value-unit');
 
-    // Display inputs (hiển thị cho user)
+    // Các trường hiển thị định dạng cho người dùng xem
     const displayValue = document.getElementById('display-value');
     const displayMaxDiscount = document.getElementById('display-max-discount');
     const displayMinOrder = document.getElementById('display-min-order');
 
-    // Hidden inputs (gửi lên server - giá trị thuần số)
+    // Các trường input ẩn lưu trữ số nguyên thuần gửi lên máy chủ
     const hiddenValue = document.getElementById('promo-value');
     const hiddenMaxDiscount = document.getElementById('promo-max-discount');
     const hiddenMinOrder = document.getElementById('promo-min-order');
@@ -30,10 +34,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const descriptionInput = document.getElementById('promo-description');
     const descCount = document.getElementById('desc-count');
 
-    // === TIỆN ÍCH ===
+    // === TIỆN ÍCH ĐỊNH DẠNG TIỀN TỆ ===
 
-    /** Chuyển số sang định dạng VND hiển thị: 50000 → "50.000" */
-    // Chuẩn hoá số để hiển thị dễ đọc cho người dùng
+    /**
+     * Chuyển đổi số nguyên thuần túy sang định dạng hiển thị VNĐ có dấu chấm
+     * Ví dụ: 50000 -> "50.000"
+     */
     function formatVND(raw) {
         if (!raw && raw !== 0) return '';
         const num = parseInt(String(raw).replace(/\D/g, ''), 10);
@@ -41,8 +47,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return num.toLocaleString('vi-VN');
     }
 
-    /** Lấy số thuần từ chuỗi VND: "50.000" → 50000 */
-    // Bóc ký tự định dạng, chỉ giữ phần số để gửi lên server
+    /**
+     * Loại bỏ các ký tự định dạng, bóc lấy số nguyên thuần
+     * Ví dụ: "50.000" -> 50000
+     */
     function parseVND(str) {
         const cleaned = String(str).replace(/\./g, '').replace(/,/g, '').trim();
         const num = parseInt(cleaned, 10);
@@ -50,32 +58,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Gắn logic VND 2 chiều cho cặp (displayEl, hiddenEl)
-     * - Khi gõ: format ngay, cập nhật hidden
-     * - Khi focus: bỏ format để dễ gõ
-     * - Khi blur: format lại
+     * Đăng ký liên kết định dạng VNĐ 2 chiều cho cặp ô nhập (Hiển thị & Ẩn)
+     * - Khi nhập: Tự động định dạng dấu chấm phân cách hàng nghìn.
+     * - Khi focus: Tạm thời đưa về số thuần túy để người dùng dễ gõ/sửa.
+     * - Khi rời đi (blur): Định dạng lại hoàn chỉnh.
      */
-    // Dùng chung cho các ô tiền để đồng bộ hiển thị và giá trị gửi đi
     function bindVNDInput(displayEl, hiddenEl) {
         if (!displayEl || !hiddenEl) return;
 
         displayEl.addEventListener('input', function () {
-            // Cho phép chỉ nhập số và dấu chấm
             let raw = this.value.replace(/[^\d]/g, '');
             const num = parseInt(raw, 10);
             hiddenEl.value = isNaN(num) ? '' : num;
 
-            // Format ngay khi gõ
+            // Format trực tiếp khi đang gõ phím và bảo lưu vị trí con trỏ chuột
             const pos = this.selectionStart;
             const oldLen = this.value.length;
             this.value = raw ? parseInt(raw).toLocaleString('vi-VN') : '';
-            // Giữ cursor
             const newLen = this.value.length;
             this.setSelectionRange(pos + (newLen - oldLen), pos + (newLen - oldLen));
         });
 
         displayEl.addEventListener('focus', function () {
-            // Khi focus: hiển thị số thuần không có dấu chấm để dễ gõ
             if (hiddenEl.value) {
                 this.value = hiddenEl.value;
             }
@@ -83,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         displayEl.addEventListener('blur', function () {
-            // Khi blur: format lại
             if (hiddenEl.value) {
                 this.value = parseInt(hiddenEl.value).toLocaleString('vi-VN');
             } else {
@@ -92,23 +95,27 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Gắn VND cho các trường tiền
+    // Gán định dạng tiền tệ VNĐ cho các trường Giảm giá tối đa và Đơn hàng tối thiểu
     bindVNDInput(displayMaxDiscount, hiddenMaxDiscount);
     bindVNDInput(displayMinOrder, hiddenMinOrder);
 
-    // === LOẠI KHUYẾN MÃI ===
+    // === PHÂN LOẠI HÌNH THỨC GIẢM GIÁ ===
 
-    // Đọc loại khuyến mãi đang được chọn trên form
+    /**
+     * Đọc kiểu giảm giá hiện tại (Phần trăm hoặc Tiền cố định)
+     */
     function getCurrentType() {
         const checked = document.querySelector('input[name="type"]:checked');
         return checked ? checked.value : 'percent';
     }
 
-    // Cập nhật giao diện theo loại khuyến mãi percent/fixed
+    /**
+     * Cập nhật giao diện tương ứng khi người dùng đổi loại giảm giá
+     */
     function updateTypeUI(selectedType) {
         const isPercent = (selectedType === 'percent');
 
-        // Cập nhật card style
+        // Đổi màu viền xanh lá chủ đạo Material Design khi được chọn
         if (typePercentLabel) {
             typePercentLabel.classList.toggle('border-emerald-500', isPercent);
             typePercentLabel.classList.toggle('bg-emerald-50', isPercent);
@@ -122,24 +129,23 @@ document.addEventListener('DOMContentLoaded', function () {
             typeFixedLabel.classList.toggle('bg-white', isPercent);
         }
 
-        // Ẩn/hiện max_discount_amount (chỉ cần khi giảm %)
+        // Chỉ hiển thị trường "Số tiền giảm tối đa" khi chọn hình thức giảm giá theo phần trăm
         if (maxDiscountWrap) {
             maxDiscountWrap.style.display = isPercent ? '' : 'none';
         }
 
-        // Cập nhật nhãn đơn vị + định dạng ô giá trị
+        // Thay đổi nhãn đơn vị đo lường tương ứng
         if (valueUnitLabel) {
             valueUnitLabel.textContent = isPercent ? '(% tỷ lệ)' : '(VNĐ cố định)';
         }
 
-        // Khi đổi loại: reset display value rồi format lại
+        // Chuyển đổi cơ chế gõ và định dạng số cho ô nhập Giá trị giảm
         if (displayValue && hiddenValue) {
             const raw = hiddenValue.value;
             if (isPercent) {
-                // Giảm %: chỉ hiển thị số, không format dấu chấm
+                // Nhập phần trăm: Chỉ cho nhập số thô, tối đa 100
                 displayValue.value = raw || '';
                 displayValue.placeholder = 'VD: 20';
-                // Tháo binding VND nếu có
                 displayValue.onblur = null;
                 displayValue.onfocus = null;
                 displayValue.oninput = function () {
@@ -148,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     this.value = v;
                 };
             } else {
-                // Giảm cố định: format VND
+                // Nhập số tiền cố định: Áp dụng định dạng VNĐ có dấu chấm hàng nghìn
                 displayValue.value = raw ? parseInt(raw).toLocaleString('vi-VN') : '';
                 displayValue.placeholder = 'VD: 50.000';
                 bindVNDInput(displayValue, hiddenValue);
@@ -156,13 +162,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Khởi tạo: đọc loại hiện tại
+    // Khởi tạo trạng thái giao diện loại giảm giá ban đầu
     const initialType = getCurrentType();
     updateTypeUI(initialType);
 
-    // Nếu type là percent ban đầu: gắn input handler cho display-value (số thô)
     if (initialType === 'percent' && displayValue && hiddenValue) {
-        // Với % thì không cần định dạng VND, chỉ cho nhập số
         displayValue.oninput = function () {
             let v = this.value.replace(/[^\d.]/g, '');
             hiddenValue.value = v;
@@ -170,9 +174,8 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    // Xử lý click chọn loại
+    // Gắn sự kiện click đổi loại hình thức giảm giá khi nhấp vào thẻ bọc
     if (typePercentLabel) {
-        // Click vào card % sẽ chọn radio tương ứng và cập nhật UI
         typePercentLabel.addEventListener('click', function () {
             const radio = this.querySelector('input[type="radio"]');
             if (radio) radio.checked = true;
@@ -180,7 +183,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     if (typeFixedLabel) {
-        // Click vào card tiền cố định sẽ chuyển sang kiểu fixed
         typeFixedLabel.addEventListener('click', function () {
             const radio = this.querySelector('input[type="radio"]');
             if (radio) radio.checked = true;
@@ -188,16 +190,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === PHẠM VI ÁP DỤNG (toàn đơn / sản phẩm / danh mục / combo) ===
-    // Ẩn/hiện các khối trường phụ thuộc phạm vi. Combo không dùng "Loại khuyến mãi"/"Giá trị giảm"
-    // chung của promotion (nó có discount_type/discount_value riêng trong khối combo) nên ẩn luôn
-    // khối đó (server cũng bỏ qua 2 trường đó với scope này).
+    // === CẤU HÌNH PHẠM VI ÁP DỤNG KHUYẾN MÃI ===
     const scopeOptions = document.querySelectorAll('.scope-option');
     const scopeProductFields = document.getElementById('scope-product-fields');
     const scopeCategoryFields = document.getElementById('scope-category-fields');
     const scopeComboFields = document.getElementById('scope-combo-fields');
     const moneyDiscountFields = document.getElementById('money-discount-fields');
 
+    /**
+     * Ẩn hiện các phân vùng nhập liệu cấu hình riêng cho từng loại phạm vi
+     */
     function updateScopeUI(selectedScope) {
         scopeOptions.forEach(function (option) {
             const isActive = option.dataset.scope === selectedScope;
@@ -207,9 +209,12 @@ document.addEventListener('DOMContentLoaded', function () {
             option.classList.toggle('bg-white', !isActive);
         });
 
+        // Ẩn hiện vùng cấu hình chọn sản phẩm, danh mục, hoặc combo
         if (scopeProductFields) scopeProductFields.classList.toggle('hidden', selectedScope !== 'product');
         if (scopeCategoryFields) scopeCategoryFields.classList.toggle('hidden', selectedScope !== 'category');
         if (scopeComboFields) scopeComboFields.classList.toggle('hidden', selectedScope !== 'combo');
+        
+        // Với Combo: Giảm giá và quà tặng được quy định riêng nên ẩn cấu hình giảm giá chung của toàn hóa đơn
         if (moneyDiscountFields) moneyDiscountFields.classList.toggle('hidden', selectedScope === 'combo');
     }
 
@@ -229,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateScopeUI(getCurrentScope());
     }
 
-    // Lọc nhanh danh sách sản phẩm khi chọn phạm vi "theo sản phẩm" (danh sách có thể rất dài).
+    // Lọc nhanh danh sách sản phẩm bằng cách gõ từ khóa (phục vụ khi phạm vi là theo Sản phẩm)
     const productSearch = document.getElementById('product-search');
     if (productSearch) {
         productSearch.addEventListener('input', function () {
@@ -241,20 +246,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === NÚT TỰ SINH MÃ ===
+    // === NÚT TỰ SINH MÃ CODE KHUYẾN MÃI ===
     if (btnGenCode && promoCodeInput) {
-        // Tạo code ngẫu nhiên khi bấm nút "Tự sinh"
         btnGenCode.addEventListener('click', function () {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            // Sinh mã 6 ký tự (KM- là prefix, tổng 9 ký tự ≤ 10)
             let suffix = '';
             for (let i = 0; i < 6; i++) {
                 suffix += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            const code = 'KM' + suffix; // 8 ký tự ≤ 10
+            const code = 'KM' + suffix; // Sinh mã ngẫu nhiên gồm tiền tố KM + 6 ký tự
             promoCodeInput.value = code;
 
-            // Hiệu ứng highlight
+            // Hiệu ứng nhấp nháy viền xanh lá highlight báo hiệu mã mới được sinh ra
             promoCodeInput.style.borderColor = '#10b981';
             promoCodeInput.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.2)';
             setTimeout(() => {
@@ -264,26 +267,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === ĐẾM KÝ TỰ MÔ TẢ ===
+    // === ĐẾM NGƯỢC KÝ TỰ MÔ TẢ ===
     if (descriptionInput && descCount) {
-        // Hiển thị số ký tự đã nhập để tránh vượt quá giới hạn 100 ký tự
         const updateCount = () => {
             const len = descriptionInput.value.length;
             descCount.textContent = len + '/100';
+            // Cảnh báo màu cam khi đạt 75 ký tự, màu đỏ khi đạt từ 90 ký tự trở lên
             descCount.style.color = len >= 90 ? '#ef4444' : (len >= 75 ? '#f59e0b' : '');
         };
         descriptionInput.addEventListener('input', updateCount);
-        updateCount(); // Khởi tạo ban đầu
+        updateCount();
     }
 
-    // === VALIDATION CLIENT ===
+    // === KIỂM TRA TÍNH HỢP LỆ TRƯỚC KHI GỬI (CLIENT-SIDE VALIDATION) ===
     const form = document.getElementById('promotion-form');
     if (form) {
-        // Chặn submit nếu giá trị giảm không hợp lệ
         form.addEventListener('submit', function (e) {
-            // Combo không dùng "giá trị giảm" chung của promotion (nó có khối riêng bên dưới, kiểm
-            // tra ở validateComboBeforeSubmit) — bỏ qua toàn bộ kiểm tra bên dưới, nếu không sẽ chặn
-            // nhầm mọi lần lưu combo.
+            // Nếu là phạm vi Combo, chuyển sang hàm validate combo riêng
             if (getCurrentScope() === 'combo') {
                 if (!validateComboBeforeSubmit()) {
                     e.preventDefault();
@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const selectedType = getCurrentType();
             const rawValue = hiddenValue ? parseFloat(hiddenValue.value) : NaN;
 
+            // Kiểm tra bắt buộc giá trị giảm phải lớn hơn 0
             if (isNaN(rawValue) || rawValue <= 0) {
                 e.preventDefault();
                 if (displayValue) {
@@ -305,6 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // Nếu giảm theo tỷ lệ %, khống chế không được vượt quá 100%
             if (selectedType === 'percent' && rawValue > 100) {
                 e.preventDefault();
                 if (displayValue) {
@@ -318,14 +320,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === COMBO: danh sách sản phẩm bắt buộc (repeater) ===
-    // Mirror của initSizes() ở products/form-common.js — clone 1 dòng {select sản phẩm, input số
-    // lượng, nút xoá}, xoá dòng qua event delegation.
+    // =========================================================
+    // XỬ LÝ KHỐI COMBO MUA SẮM (COMBO ITEMS REPEATER & REWARDS)
+    // =========================================================
+    
+    /**
+     * Khởi tạo tính năng thêm/xóa nhanh các sản phẩm bắt buộc trong gói Combo
+     */
     function initComboItems() {
         const container = document.getElementById('combo-items');
         const addButton = document.getElementById('add-combo-item');
         if (!container || !addButton) return;
 
+        // Tạo cấu trúc hàng sản phẩm mới gồm dropdown sản phẩm, ô số lượng và nút xóa
         function createComboItemRow() {
             const row = document.createElement('div');
             row.className = 'combo-item-row grid grid-cols-1 sm:grid-cols-[1fr_120px_40px] gap-2';
@@ -339,12 +346,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         addButton.addEventListener('click', function () {
+            // Cho phép thêm tối đa 20 sản phẩm thành phần trong một combo
             if (container.querySelectorAll('.combo-item-row').length < 20) {
                 container.appendChild(createComboItemRow());
                 if (typeof window.initCustomSelects === 'function') window.initCustomSelects();
             }
         });
 
+        // Xóa dòng sản phẩm (sử dụng Event Delegation để nhận diện nút xóa mới thêm)
         container.addEventListener('click', function (event) {
             const button = event.target.closest('.js-remove-combo-item');
             if (!button) return;
@@ -358,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     initComboItems();
 
-    // === COMBO: 2 thành phần thưởng độc lập (Giảm giá / Tặng quà) ===
+    // === Cấu hình phần thưởng cho gói Combo (Giảm giá hoặc Tặng quà) ===
     const comboHasDiscount = document.getElementById('combo_has_discount');
     const comboHasGift = document.getElementById('combo_has_gift');
     const comboDiscountFields = document.getElementById('combo-discount-fields');
@@ -369,6 +378,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const comboDiscountValueUnit = document.getElementById('combo-discount-value-unit');
     const comboMaxDiscountWrap = document.getElementById('combo-max-discount-wrap');
 
+    /**
+     * Ẩn hiện các trường cấu hình thưởng giảm tiền/tặng quà tương ứng với checkbox được chọn
+     */
     function updateComboRewardUI() {
         if (comboDiscountFields && comboHasDiscount) comboDiscountFields.classList.toggle('hidden', !comboHasDiscount.checked);
         if (comboGiftFields && comboHasGift) comboGiftFields.classList.toggle('hidden', !comboHasGift.checked);
@@ -379,6 +391,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return checked ? checked.value : 'percent';
     }
 
+    /**
+     * Đổi giao diện phần hình thức giảm giá của riêng gói Combo (Phần trăm hoặc Tiền mặt)
+     */
     function updateComboDiscountTypeUI(selectedType) {
         const isPercent = selectedType === 'percent';
         if (comboDiscountTypePercentLabel) {
@@ -422,21 +437,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateComboDiscountTypeUI(getComboDiscountType());
 
-    // Kiểm tra trước khi submit combo: phải chọn ≥1 sản phẩm hợp lệ, và bật ít nhất 1 trong 2 thưởng
-    // (server cũng validate lại — đây chỉ là phản hồi nhanh cho admin, không thay thế validate server).
+    /**
+     * Ràng buộc dữ liệu chi tiết của Combo trước khi submit form
+     */
     function validateComboBeforeSubmit() {
         const productSelects = Array.from(document.querySelectorAll('#combo-items select[name="combo_product_ids[]"]'));
         const hasProduct = productSelects.some((sel) => sel.value);
+        
+        // 1. Phải có chọn ít nhất một sản phẩm bắt buộc trong combo
         if (!hasProduct) {
             alert('Vui lòng chọn ít nhất 1 sản phẩm cho combo.');
             return false;
         }
 
+        // 2. Phải tích chọn tối thiểu 1 hình thức thưởng: hoặc Giảm giá hoặc Tặng quà kèm theo
         if (!(comboHasDiscount && comboHasDiscount.checked) && !(comboHasGift && comboHasGift.checked)) {
             alert('Combo phải có ít nhất giảm giá hoặc tặng quà.');
             return false;
         }
 
+        // 3. Nếu chọn giảm giá combo, khống chế số tiền giảm phải hợp lệ lớn hơn 0
         if (comboHasDiscount && comboHasDiscount.checked) {
             const rawValue = comboDiscountValueInput ? parseFloat(comboDiscountValueInput.value) : NaN;
             if (isNaN(rawValue) || rawValue <= 0) {
@@ -445,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        // 4. Nếu chọn tặng kèm sản phẩm quà tặng, kiểm tra bắt buộc điền sản phẩm tặng và số lượng tặng hợp lệ
         if (comboHasGift && comboHasGift.checked) {
             const giftProduct = document.querySelector('#combo-gift-fields select[name="gift_product_id"]');
             const giftQty = document.querySelector('#combo-gift-fields input[name="gift_quantity"]');
@@ -461,14 +482,14 @@ document.addEventListener('DOMContentLoaded', function () {
         return true;
     }
 
-    // === RECURRING TOGGLE ===
-    // Hiện/ẩn phần lịch cố định hoặc lặp lại theo checkbox recurring
+    // === TÍNH NĂNG CHU KỲ LẶP LẠI (RECURRING SCHEDULE) ===
     const isRecurringCb = document.getElementById('is_recurring_cb');
     const fixedTimeWrapper = document.getElementById('fixed_time_wrapper');
     const recurringTimeWrapper = document.getElementById('recurring_time_wrapper');
 
     if (isRecurringCb && fixedTimeWrapper && recurringTimeWrapper) {
         isRecurringCb.addEventListener('change', function () {
+            // Bật/tắt ẩn hiện phân khúc cài đặt lịch cụ thể hoặc lịch lặp lại hàng ngày/tuần
             if (this.checked) {
                 fixedTimeWrapper.classList.add('hidden');
                 recurringTimeWrapper.classList.remove('hidden');
@@ -479,15 +500,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === FLAT PICKER INITIALIZATION ===
+    // === KHỞI TẠO BỘ CHỌN FLAT PICKER CHO THỜI HẠN CHƯƠNG TRÌNH ===
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".promotion-date-picker", {
             enableTime: true,
-            dateFormat: "Y-m-d H:i:S", // Định dạng chuẩn gửi lên Laravel
+            dateFormat: "Y-m-d H:i:S", // Định dạng lưu trữ chuẩn MySQL
             altInput: true,
-            altFormat: "d/m/Y H:i", // Định dạng hiển thị thân thiện
+            altFormat: "d/m/Y H:i", // Hiển thị thân thiện
             locale: "vn",
-            disableMobile: true, // Ép dùng giao diện flatpickr trên điện thoại thay vì native picker
+            disableMobile: true,
             time_24hr: true
         });
     }

@@ -1,11 +1,22 @@
+/**
+ * index.js - Quản lý danh sách khách hàng khu vực Admin
+ * Các tính năng bao gồm:
+ * - Lọc danh sách AJAX (fetch) theo ô tìm kiếm (debounce 400ms) và bộ lọc dropdown.
+ * - Chuyển trang phân trang không tải lại trang (AJAX pagination).
+ * - Chọn nhiều (Checkbox) và Xóa hàng loạt khách hàng bất đồng bộ.
+ * - Bật/Tắt trạng thái hoạt động (Khóa/Mở khóa) có prompt ghi nhận lý do khóa tài khoản.
+ * - Xóa đơn lẻ tài khoản khách hàng bằng AJAX.
+ */
 document.addEventListener('DOMContentLoaded', function () {
-    // ---------------------------------------------------------
-    // 1. TỰ ĐỘNG LỌC DỮ LIỆU KHI THAY ĐỔI SELECT HOẶC GÕ TÌM KIẾM
-    // ---------------------------------------------------------
-    const filterForm = document.getElementById('filter-form');
-    const tableContainer = document.getElementById('table-container');
-    const btnClearFilter = document.getElementById('btn-clear-filter');
+    // === PHẦN TỬ DOM ===
+    const filterForm = document.getElementById('filter-form'); // Form bộ lọc
+    const tableContainer = document.getElementById('table-container'); // Khung chứa bảng danh sách
+    const btnClearFilter = document.getElementById('btn-clear-filter'); // Nút xóa lọc
     
+    /**
+     * Tải dữ liệu danh sách khách hàng bằng AJAX
+     * @param {string|null} urlStr - URL phân trang cần tải tiếp theo, null để lọc từ đầu
+     */
     function fetchCustomers(urlStr = null) {
         let url;
         if (urlStr) {
@@ -16,10 +27,12 @@ document.addEventListener('DOMContentLoaded', function () {
             url.search = new URLSearchParams(formData).toString();
         }
 
+        // Cập nhật URL trên thanh địa chỉ của trình duyệt mà không reload
         window.history.pushState({}, '', url);
         tableContainer.style.opacity = '0.5';
         tableContainer.style.pointerEvents = 'none';
 
+        // Gửi truy vấn nhận phản hồi JSON chứa mã html render sẵn của bảng
         fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -29,8 +42,9 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.html) {
-                tableContainer.innerHTML = data.html;
+                tableContainer.innerHTML = data.html; // Ghi đè bảng mới vào giao diện
             }
+            // Ẩn/Hiện nút xóa bộ lọc
             if (btnClearFilter) {
                 const hasFilters = [...new URLSearchParams(url.search)].some(([key, val]) =>
                     (key === 'search' && val !== '') ||
@@ -38,8 +52,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
                 btnClearFilter.style.display = hasFilters ? 'inline-block' : 'none';
             }
-            syncCheckboxes();
-            updateBulkDeleteUI();
+            syncCheckboxes(); // Đồng bộ lại checkbox theo dữ liệu đã chọn trước đó
+            updateBulkDeleteUI(); // Cập nhật lại trạng thái nút Xóa nhiều
         })
         .catch(error => console.error('Lỗi khi tải dữ liệu khách hàng:', error))
         .finally(() => {
@@ -48,11 +62,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Đăng ký sự kiện đổi bộ lọc trong form lọc
     if (filterForm) {
         filterForm.querySelectorAll('select').forEach(select => {
             select.addEventListener('change', () => fetchCustomers());
         });
 
+        // Debounce tìm kiếm tự động sau khi dừng gõ 400ms
         let searchTimeout;
         const searchInput = filterForm.querySelector('input[name="search"]');
         if (searchInput) {
@@ -62,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         
+        // Nhấn nút Xóa bộ lọc đưa form về mặc định ban đầu
         if (btnClearFilter) {
             btnClearFilter.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -76,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Xử lý phân trang bằng AJAX
+    // Phân trang bằng AJAX
     document.addEventListener('click', function (e) {
         const paginationLink = e.target.closest('#table-container nav a');
         if (paginationLink) {
@@ -86,14 +103,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // =========================================================
-    // 2. XỬ LÝ CHECK ALL VÀ CẬP NHẬT GIAO DIỆN NÚT XÓA NHIỀU
+    // XỬ LÝ CHỌN CHECKBOX HÀNG LOẠT (BULK ACTIONS SELECTION)
     // =========================================================
     const bulkDeleteContainer = document.getElementById('bulk-delete-container');
     const selectedCountSpan = document.getElementById('selected-count');
     const deselectBtn = document.getElementById('bulk-deselect-btn');
 
-    window.selectedCustomerIds = new Set();
+    window.selectedCustomerIds = new Set(); // Set lưu trữ ID các khách hàng được tích chọn
 
+    /**
+     * Cập nhật số đếm và ẩn hiện nút "Xóa nhiều"
+     */
     function updateBulkDeleteUI() {
         const count = window.selectedCustomerIds.size;
         
@@ -118,7 +138,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Đồng bộ lại UI checkbox sau khi fetch AJAX
+    /**
+     * Đồng bộ hóa lại hiển thị checkbox của các hàng dựa theo danh sách trong Set
+     */
     function syncCheckboxes() {
         const allCheckboxes = document.querySelectorAll('.row-checkbox');
         allCheckboxes.forEach(cb => {
@@ -131,16 +153,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Đăng ký sự kiện thay đổi của các Checkbox
     document.addEventListener('change', function (e) {
+        // 1. Tích chọn nút Check tất cả ở tiêu đề bảng
         if (e.target && e.target.classList.contains('js-select-all')) {
             const checked = e.target.checked;
             document.querySelectorAll('.js-select-all').forEach(el => el.checked = checked);
             if (checked) {
-                // Fetch tất cả ID
+                // Đọc toàn bộ danh sách ID khách hàng thỏa mãn bộ lọc hiện tại trên server
                 const url = new URL(filterForm.action);
                 const formData = new FormData(filterForm);
                 url.search = new URLSearchParams(formData).toString();
-                url.searchParams.set('fetch_all_ids', '1');
+                url.searchParams.set('fetch_all_ids', '1'); // Tham số đặc biệt chỉ lấy mảng ID
 
                 const selectAllEl = e.target;
                 selectAllEl.disabled = true;
@@ -164,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     selectAllEl.disabled = false;
                 });
             } else {
+                // Bỏ chọn tất cả
                 window.selectedCustomerIds.clear();
                 document.querySelectorAll('.row-checkbox').forEach(cb => {
                     cb.checked = false;
@@ -171,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateBulkDeleteUI();
             }
         }
+        // 2. Tích chọn checkbox của một hàng đơn lẻ
         if (e.target && e.target.classList.contains('row-checkbox')) {
             if (e.target.checked) window.selectedCustomerIds.add(e.target.value);
             else window.selectedCustomerIds.delete(e.target.value);
@@ -184,10 +210,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ---------------------------------------------------------
-    // 3. XÓA NHIỀU KHÁCH HÀNG (AJAX VỚI SWEETALERT2)
-    // 3. XÓA NHIỀU KHÁCH HÀNG (AJAX VỚI ADMINALERT)
-    // ---------------------------------------------------------
+    // =========================================================
+    // XÓA HÀNG LOẠT KHÁCH HÀNG (BULK DELETE AJAX WITH ADMINALERT)
+    // =========================================================
     document.addEventListener('click', function (e) {
         const bulkDeleteBtn = e.target.closest('.js-bulk-delete');
         if (bulkDeleteBtn) {
@@ -213,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(data => {
                     if (data.success) {
                         window.AdminAlert.success(data.message, 'Thành công!');
-                        setTimeout(() => window.location.reload(), 1500);
+                        setTimeout(() => window.location.reload(), 1500); // Reload trang để làm mới dữ liệu
                     } else {
                         window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
                     }
@@ -226,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ---------------------------------------------------------
-    // 4. BẬT/TẮT TRẠNG THÁI KHÁCH HÀNG BẰNG TOGGLE (AJAX)
-    // ---------------------------------------------------------
+    // =========================================================
+    // BẬT/TẮT TRẠNG THÁI KHÁCH HÀNG (MỞ/KHÓA TÀI KHOẢN QUA AJAX)
+    // =========================================================
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('toggle-status')) {
             const checkbox = e.target;
@@ -237,9 +262,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const statusTextId = `status-text-${customerId}`;
             const statusTextEl = document.getElementById(statusTextId);
 
+            // Hàm thực thi cập nhật trạng thái hoạt động lên máy chủ
             const performToggle = (lockReason = null) => {
-                // Tạm thời disable checkbox trong lúc gọi API
-                checkbox.disabled = true;
+                checkbox.disabled = true; // Disable checkbox tạm thời chống click dồn dập
 
                 fetch(`/admin/customers/${customerId}/toggle-status`, {
                     method: 'POST',
@@ -257,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.success) {
                         window.AdminAlert.success(data.message, 'Thành công!');
 
-                        // Cập nhật lại chữ "Hoạt động" / "Bị khóa"
+                        // Cập nhật văn bản nhãn màu trạng thái ngoài view
                         if (statusTextEl) {
                             if (isActive) {
                                 statusTextEl.textContent = 'Hoạt động';
@@ -274,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                     } else {
-                        checkbox.checked = !isActive;
+                        checkbox.checked = !isActive; // Hoàn tác lựa chọn checkbox nếu lỗi
                         window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
                     }
                 })
@@ -286,8 +311,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             };
 
+            // Nếu người dùng chọn khóa tài khoản (Active từ 1 -> 0)
             if (isActive === 0) {
-                // Prompt cho lý do khóa tài khoản
+                // Hiển thị Prompt yêu cầu nhập lý do khóa tài khoản khách
                 if (window.AdminAlert && window.AdminAlert.prompt) {
                     window.AdminAlert.prompt(
                         'Khóa tài khoản?',
@@ -297,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (isConfirmed && reason) {
                                 performToggle(reason);
                             } else {
-                                checkbox.checked = true; // Revert
+                                checkbox.checked = true; // Hoàn tác bật lại checkbox
                             }
                         },
                         'Vui lòng nhập lý do khóa tài khoản!',
@@ -308,15 +334,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (reason !== null && reason.trim() !== "") {
                         performToggle(reason.trim());
                     } else {
-                        checkbox.checked = true; // Revert
+                        checkbox.checked = true;
                     }
                 }
             } else {
+                // Nếu là kích hoạt tài khoản
                 performToggle();
             }
         }
     });
 
+    // Sự kiện hủy bỏ toàn bộ tích chọn checkbox
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             window.selectedCustomerIds.clear();
@@ -326,9 +354,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+/**
+ * Xóa một tài khoản khách hàng đơn lẻ bất đồng bộ (AJAX)
+ */
 window.deleteCustomer = function(id) {
     window.AdminAlert.confirm('Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.', function() {
-        // Tìm form tương ứng và submit bằng AJAX
         const form = document.getElementById('delete-form-' + id);
         if (form) {
             const formData = new FormData(form);
@@ -345,7 +375,8 @@ window.deleteCustomer = function(id) {
                 if (data.success) {
                     window.AdminAlert.success(data.message, 'Thành công!');
                     if (window.selectedCustomerIds) window.selectedCustomerIds.clear();
-                    // Kích hoạt load lại bảng mà không giật trang
+                    
+                    // Gọi bộ lọc kích hoạt AJAX tải lại bảng mà không cần tải lại toàn trang
                     const select = document.querySelector('#filter-form select');
                     if (select) select.dispatchEvent(new Event('change'));
                 } else {

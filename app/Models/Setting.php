@@ -7,19 +7,26 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
-    // Các trường có thể điền hàng loạt (Mass Assignment)
+    // Các cột dữ liệu được phép điền nhanh (mass-assign)
+    // group: nhóm cấu hình, key: tên cấu hình, value: giá trị, type: kiểu dữ liệu (để ép kiểu khi xuất)
     protected $fillable = ['group', 'key', 'value', 'type'];
 
     /**
-     * Lấy giá trị cấu hình theo Key (có sử dụng Cache vĩnh viễn để tối ưu hiệu năng)
+     * Lấy giá trị cấu hình theo Key (tên cấu hình).
+     * Hàm này tự động cache kết quả vĩnh viễn (rememberForever) để tránh việc phải liên tục truy vấn SQL,
+     * giúp tăng tốc độ phản hồi của hệ thống.
+     * 
+     * @param string $key Tên cấu hình cần lấy.
+     * @param mixed $default Giá trị trả về mặc định nếu cấu hình không tồn tại.
+     * @return mixed Giá trị cấu hình sau khi đã được ép kiểu dữ liệu thực tế.
      */
     public static function getValue(string $key, $default = null)
     {
-        // Cache vĩnh viễn giá trị cấu hình, tránh truy vấn database liên tục
+        // Cache vĩnh viễn giá trị cấu hình theo key, nếu có trong cache thì lấy ngay, nếu chưa thì chạy hàm Closure bên dưới để lấy từ DB
         return Cache::rememberForever("setting.{$key}", function () use ($key, $default) {
             $setting = self::where('key', $key)->first();
             if (!$setting) {
-                return $default; // Trả về giá trị mặc định nếu cấu hình chưa tồn tại
+                return $default; // Trả về giá trị mặc định nếu cấu hình chưa tồn tại trong DB
             }
 
             $value = $setting->value;
@@ -33,34 +40,37 @@ class Setting extends Model
             switch ($type) {
                 case 'integer':
                 case 'int':
-                    return (int)$value;
+                    return (int) $value;
                 case 'decimal':
                 case 'float':
                 case 'double':
                 case 'numeric':
-                    return (float)$value;
+                    return (float) $value;
                 case 'boolean':
                 case 'bool':
+                    // Chuyển chuỗi "true"/"false" sang kiểu boolean thực sự
                     return filter_var($value, FILTER_VALIDATE_BOOLEAN);
                 case 'json':
                 case 'array':
+                    // Giải mã chuỗi JSON trong DB thành mảng array trong PHP
                     return json_decode($value, true);
                 default:
-                    return (string)$value;
+                    return (string) $value;
             }
         });
     }
 
     /**
-     * Lưu/Cập nhật giá trị cấu hình và xóa bộ nhớ đệm (Cache) tương ứng
+     * Lưu hoặc cập nhật một cấu hình cụ thể, đồng thời xóa bộ nhớ đệm (Cache) tương ứng.
+     * Khi xóa Cache, ở lần gọi getValue() tiếp theo, hệ thống sẽ tự động lấy giá trị mới từ DB và lưu vào Cache lại.
      */
     public static function setValue(string $key, $value, string $group = 'general', string $type = 'string'): void
     {
-        // Cập nhật hoặc Tạo mới nếu chưa có
+        // Cập nhật giá trị nếu đã tồn tại, hoặc tạo mới nếu chưa có
         self::updateOrCreate(
             ['key' => $key],
             [
-                'value' => $value !== null ? (string)$value : null,
+                'value' => $value !== null ? (string) $value : null,
                 'group' => $group,
                 'type' => $type
             ]
@@ -71,7 +81,8 @@ class Setting extends Model
     }
 
     /**
-     * Lưu hàng loạt cấu hình trong cùng một nhóm
+     * Lưu/Cập nhật hàng loạt cấu hình trong cùng một nhóm (group)
+     * Nhận đầu vào là một mảng có khóa là tên cấu hình và giá trị cấu hình (ví dụ: ['shipping_fee' => 15000])
      */
     public static function setMany(array $settings, string $group = 'general'): void
     {

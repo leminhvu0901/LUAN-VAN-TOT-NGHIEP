@@ -13,9 +13,7 @@ use Laravel\Socialite\Facades\Socialite;
 class AuthController
 {
     /**
-     * Thời gian hiệu lực của mã OTP (giây). Trước đây ghi 60 giây nhưng thực tế email đi qua Gmail
-     * thường mất vài giây tới vài chục giây mới tới nơi, cộng thêm thời gian người dùng mở mail và gõ
-     * mã -> 60 giây quá ngắn, rất dễ hết hạn oan.
+     * Thời gian hiệu lực của mã OTP (giây). 
      */
     private const OTP_LIFETIME_SECONDS = 300;
 
@@ -84,7 +82,7 @@ class AuthController
 
         // 3. Tạo mã OTP gồm 4 số ngẫu nhiên
         $otp = rand(1000, 9999);
-        
+
         // 4. Lưu dữ liệu đăng ký tạm thời vào Session (Chưa lưu ngay vào DB)
         session([
             'register_data' => [
@@ -99,7 +97,7 @@ class AuthController
             'verify_otp' => $otp,
             'verify_otp_time' => now() // Ghi lại mốc thời gian tạo mã để kiểm tra hết hạn
         ]);
-        
+
         // Ghi log mã OTP vào file log của hệ thống để tiện cho việc kiểm thử/debug
         \Illuminate\Support\Facades\Log::info("OTP for register {$email} is: {$otp}");
 
@@ -158,7 +156,7 @@ class AuthController
 
         // Ghép các ký tự số lẻ trong mảng thành một chuỗi OTP hoàn chỉnh
         $enteredOtp = implode('', $request->input('otp'));
-        
+
         // Lấy thông tin OTP và dữ liệu đăng ký tạm thời từ Session ra
         $sessionOtp = $request->session()->get('verify_otp');
         $sessionTime = $request->session()->get('verify_otp_time');
@@ -167,15 +165,6 @@ class AuthController
 
         // 2. So khớp mã OTP người dùng nhập với mã đã gửi
         if ($enteredOtp == $sessionOtp) {
-            // Kiểm tra mã OTP đã quá hạn hay chưa.
-            // (1) Carbon 3 trả về giá trị CÓ DẤU, nên now()->diffInSeconds($sessionTime) với
-            //     $sessionTime ở quá khứ luôn ra số ÂM -> điều kiện "> 60" cũ không bao giờ đúng,
-            //     tức mã OTP thực tế không bao giờ hết hạn. Phải so sánh đúng chiều.
-            // (2) BẮT BUỘC parse lại: config/session.php dùng serialization 'json', mà JSON không
-            //     giữ được object PHP -> khi đọc ra từ session (driver database/file trên thật),
-            //     $sessionTime là CHUỖI chứ không phải Carbon. Gọi thẳng ->diffInSeconds() trên
-            //     chuỗi sẽ văng fatal error 500. Bộ test không lộ ra lỗi này vì phpunit.xml đặt
-            //     SESSION_DRIVER=array (giữ nguyên object trong bộ nhớ, không qua JSON).
             $otpIssuedAt = $sessionTime ? \Illuminate\Support\Carbon::parse($sessionTime) : null;
             if (!$otpIssuedAt || $otpIssuedAt->diffInSeconds(now()) > self::OTP_LIFETIME_SECONDS) {
                 return $this->otpError($request, 'Mã OTP đã hết hạn. Vui lòng nhấn Gửi lại để nhận mã mới.');
@@ -268,13 +257,13 @@ class AuthController
 
         $email = $request->session()->get('verify_email');
         $otp = rand(1000, 9999); // Tạo lại mã ngẫu nhiên mới
-        
+
         // Ghi đè OTP mới kèm mốc thời gian hiện tại vào session
         session([
             'verify_otp' => $otp,
             'verify_otp_time' => now()
         ]);
-        
+
         \Illuminate\Support\Facades\Log::info("OTP for resend {$email} is: {$otp}");
 
         // Gửi lại thư điện tử mới chứa mã OTP vừa cập nhật — bọc try/catch cùng lý do với postRegister()
@@ -314,7 +303,7 @@ class AuthController
     /**
      * Xử lý yêu cầu Đăng nhập bằng Email & Mật khẩu thông thường.
      */
-    public function postLogin(Request $request)
+    public function  postLogin(Request $request)
     {
         // 1. Kiểm tra tính bắt buộc của Email và Mật khẩu
         $request->validate([
@@ -387,10 +376,10 @@ class AuthController
     public function logout(Request $request)
     {
         Auth::logout(); // Hủy trạng thái đăng nhập trong ứng dụng
-        
+
         $request->session()->invalidate(); // Hủy bỏ và xóa sạch tất cả dữ liệu lưu trong session hiện tại
         $request->session()->regenerateToken(); // Khởi tạo lại token bảo mật CSRF mới
-        
+
         return redirect('/');
     }
 
@@ -411,7 +400,7 @@ class AuthController
             // Tắt xác thực chứng chỉ SSL tạm thời trên môi trường local phát triển để tránh lỗi cURL
             $guzzle = new \GuzzleHttp\Client(['verify' => false]);
             $googleUser = Socialite::driver('google')->setHttpClient($guzzle)->user();
-            
+
             // Tìm kiếm xem tài khoản Email của Google này đã đăng ký trên hệ thống của ta chưa
             $user = User::where('email', $googleUser->getEmail())->first();
 
@@ -460,7 +449,6 @@ class AuthController
             }
 
             return redirect('/');
-
         } catch (\Exception $e) {
             // Ghi lỗi chi tiết vào hệ thống log để lập trình viên theo dõi
             Log::error('Google Login Error: ' . $e->getMessage());
@@ -501,7 +489,7 @@ class AuthController
             'verify_otp_time' => now(),
             'is_forgot_password' => true // Đánh dấu đây là phiên xác thực quên mật khẩu
         ]);
-        
+
         \Illuminate\Support\Facades\Log::info("OTP for forgot password {$email} is: {$otp}");
 
         // 4. Gửi email chứa mã OTP khôi phục mật khẩu — bọc try/catch cùng lý do với postRegister():

@@ -1,9 +1,24 @@
+/**
+ * index.js - Quản lý trang danh sách đơn hàng khu vực Admin
+ * Các tính năng bao gồm:
+ * - Tìm kiếm thời gian thực (Live Search) và bộ lọc nâng cao kết hợp Flatpickr chọn khoảng ngày.
+ * - AJAX load lại danh sách bảng đơn hàng và cập nhật số liệu thống kê.
+ * - Xóa đơn hàng đơn lẻ bằng AJAX và tự động tính toán quay lại trang trước nếu trang hiện tại hết đơn.
+ * - Chọn hàng loạt checkbox (bao gồm cơ chế Select All kết hợp Exclude đặc biệt cho các trang).
+ * - Tự động thiết kế thay thế select trạng thái đơn bằng Custom Dropdown đẹp mắt, định vị thông minh chống tràn màn hình.
+ * - Tự động hiển thị hộp thoại cảnh báo lý do hủy đơn (SweetAlert2 nhập Textarea) được bo góc đồng nhất.
+ * - Phục hồi lại vị trí cuộn chuột sau khi tải AJAX danh sách mới.
+ */
+
 let searchTimeout = null;
 let form;
 let tableContainer;
 let loader;
 let loadAbortController;
 
+/**
+ * Reset lại toàn bộ bộ nhớ chọn nhiều đơn hàng về trạng thái ban đầu
+ */
 function resetOrderSelection() {
     if (!window.selectedOrderIds) return;
     window.selectedOrderIds.clear();
@@ -12,21 +27,27 @@ function resetOrderSelection() {
     updateBulkDeleteButton();
 }
 
+/**
+ * Gửi request AJAX tải danh sách đơn hàng mới
+ * @param {string|null} url - Đường dẫn cần tải, mặc định lấy theo bộ lọc form hiện tại
+ */
 function loadTableData(url = null) {
     if (!url) {
         const formData = new FormData(form);
         const params = new URLSearchParams(formData);
-
         url = form.action + "?" + params.toString();
     }
 
+    // Cập nhật lại thanh địa chỉ URL trình duyệt
     window.history.pushState({}, "", url);
 
     loader.classList.remove("hidden");
     loader.classList.add("flex");
 
+    // Hủy bỏ request AJAX đang chạy dở để tránh xung đột dữ liệu trả về
     if (loadAbortController) loadAbortController.abort();
     loadAbortController = new AbortController();
+    
     fetch(url, {
         signal: loadAbortController.signal,
         headers: {
@@ -39,10 +60,10 @@ function loadTableData(url = null) {
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 return res.json();
             }
-
             return res.text().then((text) => ({ table_html: text }));
         })
         .then((data) => {
+            // Cập nhật HTML bảng danh sách
             if (data.table_html) {
                 const tableWrapper = document.getElementById("orders-table-wrapper");
                 if (tableWrapper) {
@@ -52,9 +73,10 @@ function loadTableData(url = null) {
                 }
                 
                 attachPaginationListeners();
-                document.dispatchEvent(new Event("tableDataLoaded"));
+                document.dispatchEvent(new Event("tableDataLoaded")); // Phát tín hiệu đã nạp bảng xong
             }
 
+            // Cập nhật HTML các thẻ thống kê tổng quan ở trên
             if (data.stats_html) {
                 const statsContainer = document.getElementById("stats-container");
                 if (statsContainer) statsContainer.innerHTML = data.stats_html;
@@ -71,6 +93,9 @@ function loadTableData(url = null) {
         });
 }
 
+/**
+ * Trì hoãn gửi request tìm kiếm (Debounce 500ms) khi người dùng gõ từ khóa
+ */
 function handleLiveSearch() {
     resetOrderSelection();
     clearTimeout(searchTimeout);
@@ -78,9 +103,12 @@ function handleLiveSearch() {
 }
 
 function attachPaginationListeners() {
-    // Không cần nữa vì đã dùng event delegation ở dưới
+    // Không dùng nữa vì đã tối ưu chuyển sang Event Delegation ở dưới
 }
 
+/**
+ * Cập nhật số lượng hiển thị và trạng thái ẩn hiện của nút "Xóa nhiều"
+ */
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
@@ -113,8 +141,9 @@ function updateBulkDeleteButton() {
     }
 }
 
-
-
+/**
+ * Hiển thị cảnh báo xác nhận trước khi xóa nhiều đơn hàng
+ */
 function submitBulkDelete() {
     const selectAllEls = document.querySelectorAll(".js-select-all");
     const isSelectAll = selectAllEls.length > 0 ? selectAllEls[0].checked : false;
@@ -137,9 +166,13 @@ function submitBulkDelete() {
     }, titleText);
 }
 
+/**
+ * Đóng gói và submit form thực thi xóa hàng loạt đơn hàng
+ */
 function executeBulkDelete(isSelectAll) {
     const bulkDeleteForm = document.getElementById("bulk-delete-form");
 
+    // Xóa các input ẩn cũ
     bulkDeleteForm
         .querySelectorAll('input:not([name="_token"])')
         .forEach((el) => el.remove());
@@ -151,6 +184,7 @@ function executeBulkDelete(isSelectAll) {
         inputAll.value = "1";
         bulkDeleteForm.appendChild(inputAll);
 
+        // Chuyển toàn bộ tham số bộ lọc hiện hành thành các input ẩn gửi kèm form
         const urlParams = new URLSearchParams(window.location.search);
         for (const [key, value] of urlParams.entries()) {
             if (key !== "page" && value !== "") {
@@ -161,6 +195,7 @@ function executeBulkDelete(isSelectAll) {
                 bulkDeleteForm.appendChild(input);
             }
         }
+        // Thêm các ID được bỏ tích chọn khỏi danh sách chọn tất cả
         window.excludedOrderIds.forEach((id) => {
             const input = document.createElement("input");
             input.type = "hidden";
@@ -169,6 +204,7 @@ function executeBulkDelete(isSelectAll) {
             bulkDeleteForm.appendChild(input);
         });
     } else {
+        // Thêm các ID được tích chọn
         window.selectedOrderIds.forEach((id) => {
             const input = document.createElement("input");
             input.type = "hidden";
@@ -181,6 +217,9 @@ function executeBulkDelete(isSelectAll) {
     bulkDeleteForm.submit();
 }
 
+/**
+ * Hiển thị cảnh báo confirm trước khi xóa một đơn hàng đơn lẻ
+ */
 function deleteOrderAjax(btn) {
     window.AdminAlert.confirm(
         "Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
@@ -189,6 +228,9 @@ function deleteOrderAjax(btn) {
     );
 }
 
+/**
+ * Thực thi gửi request DELETE AJAX xóa một đơn hàng
+ */
 function executeDeleteOrderAjax(btn) {
     const url = btn.dataset.url;
     const orderId = btn.dataset.id;
@@ -207,11 +249,13 @@ function executeDeleteOrderAjax(btn) {
             if (data.success) {
                 window.AdminAlert.success(data.message || "Xóa đơn hàng thành công!");
 
+                // Xóa dòng đơn hàng khỏi view ở cả desktop/mobile
                 document.querySelectorAll(`[data-order-id="${orderId}"]`).forEach(el => el.remove());
 
                 const remainingCards = document.querySelectorAll('.mobile-card').length;
                 const remainingRows = document.querySelectorAll('tbody tr[data-order-id]').length;
 
+                // Nếu trang hiện tại bị xóa sạch đơn hàng, tự động quay lại trang phân trang trước
                 if (remainingCards === 0 && remainingRows === 0) {
                     const urlParams = new URLSearchParams(window.location.search);
                     let page = parseInt(urlParams.get('page')) || 1;
@@ -222,7 +266,7 @@ function executeDeleteOrderAjax(btn) {
                 }
 
                 resetOrderSelection();
-                window.pendingScrollY = currentScrollY;
+                window.pendingScrollY = currentScrollY; // Giữ vị trí cuộn màn hình
                 loadTableData(window.location.href);
             } else {
                 window.AdminAlert.error(data.message || "Có lỗi xảy ra, không thể xóa đơn hàng!");
@@ -234,6 +278,9 @@ function executeDeleteOrderAjax(btn) {
         });
 }
 
+/**
+ * Khởi tạo ô tìm kiếm, Flatpickr và lắng nghe submit form lọc
+ */
 function initSearchAndFilters() {
     form = document.getElementById("search-form");
     tableContainer = document.getElementById("table-container");
@@ -241,6 +288,7 @@ function initSearchAndFilters() {
 
     document.getElementById("search-input").addEventListener("input", handleLiveSearch);
 
+    // Cấu hình Flatpickr cho khoảng ngày bắt đầu và kết thúc đặt hàng
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".orders-date-picker", {
             dateFormat: "Y-m-d",
@@ -274,6 +322,9 @@ function initSearchAndFilters() {
     attachPaginationListeners();
 }
 
+/**
+ * Khởi tạo bắt các sự kiện thay đổi dữ liệu bảng (Check All, Chọn dòng, Đổi trạng thái)
+ */
 function initTableEvents() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
 
@@ -287,7 +338,7 @@ function initTableEvents() {
         bulkDeleteBtn.addEventListener("click", submitBulkDelete);
     }
     
-    // Thêm event delegation cho phân trang (giống hệt trang products)
+    // Phân trang bằng Event Delegation để không bị mất sự kiện sau khi cập nhật AJAX
     if (tableContainer) {
         tableContainer.addEventListener("click", function (event) {
             const pageLink = event.target.closest(".ajax-pagination a, .pagination-container a");
@@ -299,11 +350,11 @@ function initTableEvents() {
     }
 
     tableContainer.addEventListener("change", function (e) {
+        // 1. Checkbox chọn tất cả
         if (e.target.classList.contains("js-select-all")) {
             const isChecked = e.target.checked;
             window.isGlobalSelectAll = isChecked;
 
-            // Sync all select all checkboxes
             document.querySelectorAll(".js-select-all").forEach(cb => {
                 if (cb !== e.target) cb.checked = isChecked;
             });
@@ -322,6 +373,7 @@ function initTableEvents() {
             return;
         }
 
+        // 2. Checkbox chọn từng dòng đơn hàng
         if (e.target.classList.contains("order-checkbox")) {
             if (window.isGlobalSelectAll) {
                 if (e.target.checked) window.excludedOrderIds.delete(e.target.value);
@@ -345,14 +397,15 @@ function initTableEvents() {
             return;
         }
 
+        // 3. Xử lý đổi trạng thái trực tiếp trong bảng danh sách
         if (e.target.classList.contains("js-order-status-select")) {
             if (e.target.value !== "cancelled") {
                 e.target.form.submit();
                 return;
             }
             const select = e.target;
-            // Cùng phong cách bo tròn/màu sắc thương hiệu với AdminAlert.prompt() (xem admin/layout.js)
-            // thay vì để Swal.fire() mặc định trần trụi (viền vuông, nút tím xám mặc định của thư viện).
+            
+            // Nếu đổi trạng thái sang HỦY ĐƠN: Hiển thị Prompt SweetAlert2 yêu cầu lý do hủy
             Swal.fire({
                 title: "Lý do hủy đơn",
                 input: "textarea",
@@ -376,15 +429,16 @@ function initTableEvents() {
                 inputValidator: (value) => !value || value.trim().length < 5 ? "Vui lòng nhập ít nhất 5 ký tự." : undefined,
             }).then((result) => {
                 if (!result.isConfirmed) {
-                    select.value = select.dataset.currentStatus;
+                    select.value = select.dataset.currentStatus; // Rollback trạng thái cũ nếu hủy bỏ
                     return;
                 }
+                // Tạo input lý do ẩn để gửi kèm form
                 const reason = document.createElement("input");
                 reason.type = "hidden";
                 reason.name = "cancel_reason";
                 reason.value = result.value.trim();
                 select.form.appendChild(reason);
-                select.form.submit();
+                select.form.submit(); // Submit form chính thức thay đổi trạng thái và ghi nhận lý do hủy đơn
             });
         }
     });
@@ -397,6 +451,7 @@ function initTableEvents() {
         }
     });
 
+    // Đồng bộ lại checkbox sau khi bảng render xong
     document.addEventListener("tableDataLoaded", function () {
         if (window.pendingScrollY !== undefined) {
             window.scrollTo({ top: window.pendingScrollY, behavior: 'instant' });
@@ -405,7 +460,6 @@ function initTableEvents() {
 
         if (window.isGlobalSelectAll) {
             document.querySelectorAll(".js-select-all").forEach(cb => cb.checked = true);
-
             document.querySelectorAll(".order-checkbox").forEach((cb) => {
                 cb.checked = true;
                 window.selectedOrderIds.add(cb.value);
@@ -426,9 +480,10 @@ function initTableEvents() {
         }
 
         updateBulkDeleteButton();
-        initOrderStatusCustomDropdowns();
+        initOrderStatusCustomDropdowns(); // Khởi tạo lại Custom Dropdown cho trạng thái
     });
 
+    // Theo dõi thay đổi cấu trúc bảng để tự động cập nhật số lượng nút chọn hàng loạt
     const observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
             if (mutation.type === "childList") {
@@ -438,9 +493,13 @@ function initTableEvents() {
     });
     observer.observe(tableContainer, { childList: true, subtree: true });
 }
+
 let activeMenu = null;
 let activeBtn = null;
 
+/**
+ * Đóng Custom Dropdown đang mở
+ */
 function closeActiveMenu() {
     if (activeMenu) {
         activeMenu.remove();
@@ -449,43 +508,44 @@ function closeActiveMenu() {
     activeBtn = null;
 }
 
+/**
+ * Tính toán tọa độ vị trí thả xuống để định vị Custom Dropdown thông minh (chống tràn lề)
+ */
 function positionMenu(btn, menu) {
     if (!btn || !menu) return;
     const rect = btn.getBoundingClientRect();
     const menuHeight = menu.offsetHeight || 180;
     const menuWidth = menu.offsetWidth;
 
-    // Check spaces
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
 
     let top, left;
 
-    // Left position alignment
     left = rect.left;
-    // Mobile safety boundary
     if (left + menuWidth > window.innerWidth - 8) {
         left = window.innerWidth - menuWidth - 8;
     }
     if (left < 8) left = 8;
 
     if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
-        // Open upwards
-        top = rect.top - menuHeight - 4;
+        top = rect.top - menuHeight - 4; // Mở ngược lên trên nếu phía dưới không đủ chỗ hiển thị
     } else {
-        // Open downwards
-        top = rect.bottom + 4;
+        top = rect.bottom + 4; // Mở xuôi xuống dưới bình thường
     }
 
     menu.style.top = top + 'px';
     menu.style.left = left + 'px';
 }
 
+/**
+ * Tự động tìm các thẻ select trạng thái đơn hàng để bọc thành Custom Dropdown giao diện Material Design
+ */
 function initOrderStatusCustomDropdowns() {
     const selects = document.querySelectorAll('.order-status-select:not(.custom-dropdown-initialized)');
     selects.forEach(select => {
         select.classList.add('custom-dropdown-initialized');
-        select.classList.add('sr-only');
+        select.classList.add('sr-only'); // Ẩn select gốc của trình duyệt
 
         const wrapper = document.createElement('div');
         wrapper.className = 'custom-order-status-dropdown w-full lg:w-auto relative inline-block';
@@ -506,7 +566,7 @@ function initOrderStatusCustomDropdowns() {
     });
 }
 
-// 1. Click delegation
+// 1. Đăng ký Click delegation cho các sự kiện mở menu và chọn trạng thái
 document.addEventListener('click', function (e) {
     const clickedItem = e.target.closest('.status-option-item');
     if (clickedItem) {
@@ -536,7 +596,7 @@ document.addEventListener('click', function (e) {
         activeBtn = btn;
         const select = btn.selectEl;
 
-        // Create portal menu
+        // Tạo menu tùy chọn động gắn trực tiếp vào cuối thẻ body (Portal Menu) để không bị cắt bởi overflow của bảng
         const menu = document.createElement('div');
         menu.className = 'status-options-menu portal-menu fixed py-1 shadow-xl text-left';
         
@@ -591,7 +651,7 @@ document.addEventListener('click', function (e) {
     closeActiveMenu();
 });
 
-// 2. Global event listeners to close menu on scroll / resize / Escape
+// 2. Lắng nghe các sự kiện cuộn trang, đổi kích thước, bấm nút Esc để đóng menu đang mở
 window.addEventListener('scroll', closeActiveMenu, { capture: true, passive: true });
 window.addEventListener('resize', closeActiveMenu, { passive: true });
 
@@ -620,13 +680,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initOrderStatusCustomDropdowns();
 });
 
-// Bấm nút Quay lại/Tiến (kể cả nút back trên chuột) trước đây gọi loadTableData(window.location.href)
-// để "đồng bộ" lại bảng theo URL vừa quay lại — nhưng loadTableData() gửi fetch() kèm header
-// Accept: application/json để LẤY DỮ LIỆU JSON hiển thị vào bảng, không phải để xem cả trang. Trong
-// một số tình huống quay lại (vd bfcache khôi phục trang, hoặc trình duyệt tải lại thẳng URL đó thay
-// vì chỉ đổi lịch sử), JSON trả về đó có thể bị hiển thị thẳng ra thành nội dung trang thay vì được
-// JS chèn vào bảng — hiện ra như 1 trang toàn chữ JSON thô. Tải lại thẳng trang (chắc chắn luôn nhận
-// đúng HTML đầy đủ, đã tự kiểm chứng) an toàn hơn nhiều so với tự vá lại bằng fetch.
+// Xử lý nạp popstate (Reload cứng trang khi bấm nút Quay lại/Tiến để tránh lỗi JSON thô)
 window.addEventListener("popstate", function () {
     window.location.reload();
 });

@@ -330,7 +330,7 @@ class MomoController
             return redirect()->route('checkout')->with('error', 'Không tìm thấy đơn hàng.');
         }
 
-        if (!$this->verifyMomoSignature($data)) {
+        if (!$this->verifyMomoSignature($data)) {// Xác thực chữ ký MoMo
             // Chữ ký thiếu/sai → không thể tin cậy nguồn gốc request này, không đụng vào payment_status.
             Log::warning('MoMo return: invalid or missing signature', ['orderId' => $orderId]);
             return redirect()->route('orders')->with('info', "Đang chờ xác nhận thanh toán từ MoMo cho đơn hàng {$orderId}.");
@@ -369,7 +369,7 @@ class MomoController
             return redirect()->route('orders')->with('success', "Thanh toán MoMo thành công! Đơn hàng {$orderId} đã được xác nhận.");
         }
 
-        // ❌ Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán
+        //  Thanh toán thất bại / người dùng ấn Quay về chưa thanh toán
         if ($order->delivery_type === 'pickup') {
             // Đơn tại quầy đã đặt trước tồn kho thật (không có giỏ hàng nào để "giữ nguyên") —
             // không tự xóa, để lễ tân thử thanh toán lại hoặc hủy đúng quy trình (giải phóng tồn kho đàng hoàng).
@@ -418,7 +418,7 @@ class MomoController
         }
 
         if ($resultCode === 0) {
-            // ✅ Thanh toán thành công
+            //  Thanh toán thành công
             try {
                 $this->orderWorkflow->markPaid($order, (string) ($data['transId'] ?? ''), (float) ($data['amount'] ?? 0));
             } catch (ValidationException $e) {

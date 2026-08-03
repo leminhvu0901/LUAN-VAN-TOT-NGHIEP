@@ -123,10 +123,10 @@ class PromotionController
 
         // Trả dữ liệu danh sách + thống kê sang Blade để render giao diện
         return view('backend.admin.promotions.index', compact(
-            'promotions',//ds
-            'totalPromotions',//tong
-            'activePromotions',//ma hoat dong
-            'expiredPromotions'// ma het han
+            'promotions', //ds
+            'totalPromotions', //tong
+            'activePromotions', //ma hoat dong
+            'expiredPromotions' // ma het han
         ));
     }
 
@@ -273,7 +273,7 @@ class PromotionController
     private function validateRequest(Request $request, ?int $promotionId = null): void
     {
         $validator = Validator::make($request->all(), $this->validationRules($promotionId), $this->validationMessages());
-        $validator->after(fn ($v) => $this->validateComboRules($v, $request));
+        $validator->after(fn($v) => $this->validateComboRules($v, $request));
         $validator->validate();
     }
 
@@ -281,10 +281,19 @@ class PromotionController
     private function comboOnlyFields(): array
     {
         return [
-            'product_ids', 'category_ids',
-            'combo_product_ids', 'combo_quantities', 'combo_has_discount', 'combo_has_gift',
-            'discount_type', 'discount_value', 'combo_max_discount_amount',
-            'gift_product_id', 'gift_quantity', 'max_applications_per_order', 'auto_add_gift',
+            'product_ids',
+            'category_ids',
+            'combo_product_ids',
+            'combo_quantities',
+            'combo_has_discount',
+            'combo_has_gift',
+            'discount_type',
+            'discount_value',
+            'combo_max_discount_amount',
+            'gift_product_id',
+            'gift_quantity',
+            'max_applications_per_order',
+            'auto_add_gift',
         ];
     }
 
@@ -489,6 +498,10 @@ class PromotionController
 
     /**
      * XÓA NHIỀU KHUYẾN MÃI
+     * 
+     * Phản hồi trả về:
+     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
+     *   trong file JS: [public/js/backend/admin/promotions/index.js] để hiển thị hộp thoại Swal báo cáo kết quả.
      */
     public function bulkDelete(Request $request)
     {

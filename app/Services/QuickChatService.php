@@ -16,7 +16,7 @@ class QuickChatService
     {
         $question = trim($question);
         if ($question === '') {
-            return $this->plainResponse('Vui lòng nhập câu hỏi.');
+            return $this->plainResponse('Vui lòng nhập câu hỏi.');// Đóng gói câu trả lời dạng văn bản đơn giản
         }
 
         return [
@@ -38,11 +38,12 @@ class QuickChatService
                 'answer' => config('quick_chat.fallback_freeform'),
                 'items' => [],
                 'action_url' => null,
-                'suggestions' => $this->fallbackSuggestions(),
+                'suggestions' => $this->fallbackSuggestions(),//Tạo danh sách nút gợi ý mặc định khi không tìm thấy kết quả phù hợp
             ];
         }
 
-        return $this->buildResponseForIntent($intent);
+        return $this->buildResponseForIntent($intent);// Điều hướng đến hàm xử lý tương ứng của từng intent
+
     }
 
     // Đóng gói câu trả lời dạng văn bản đơn giản
@@ -81,12 +82,12 @@ class QuickChatService
     private function buildResponseForIntent(array $intent): array
     {
         $response = match ($intent['handler']) {
-            'product' => $this->handleProductListing($intent),
-            'promotion' => $this->handlePromotion($intent),
-            'order_tracking' => $this->handleOrderTracking(),
-            'opening_hours' => $this->handleOpeningHours(),
-            'contact' => $this->handleContact(),
-            default => $this->handleStatic($intent),
+            'product' => $this->handleProductListing($intent), // Hàm hiển thị danh sách sản phẩm
+            'promotion' => $this->handlePromotion($intent),    // Hàm hiển thị chương trình khuyến mãi
+            'order_tracking' => $this->handleOrderTracking(), // Hàm xử lý tra cứu đơn hàng
+            'opening_hours' => $this->handleOpeningHours(),   // Hàm hiển thị giờ đóng/mở cửa
+            'contact' => $this->handleContact(),               // Hàm hiển thị thông tin liên hệ của quán
+            default => $this->handleStatic($intent),           // Hàm xử lý các câu trả lời tĩnh có sẵn
         };
 
         $response['intent'] = $intent['id'];
@@ -94,7 +95,7 @@ class QuickChatService
         if (!empty($intent['suggest_intents'])) {
             $extra = [];
             foreach ($intent['suggest_intents'] as $subId) {
-                $sub = $this->findIntent($subId);
+                $sub = $this->findIntent($subId); // Tìm cấu hình của intent gợi ý phụ
                 if ($sub) {
                     $extra[] = ['intent_id' => $sub['id'], 'topic_key' => null, 'label' => $sub['label']];
                 }
@@ -125,9 +126,10 @@ class QuickChatService
     // Xử lý hiển thị danh sách sản phẩm bán chạy
     private function handleProductListing(array $intent): array
     {
-        $products = $this->applyOrder($this->baseProductQuery(), null)->limit(4)->get();
-
-        return $this->productResponse($products, $intent['answer'], null);
+        // Thực hiện câu lệnh SQL lấy 4 sản phẩm bán chạy nhất
+        $products = $this->applyOrder($this->baseProductQuery(), null)->limit(4)->get(); 
+ 
+        return $this->productResponse($products, $intent['answer'], null); // Đóng gói câu trả lời sản phẩm
     }
 
     // Tạo câu truy vấn sản phẩm cơ bản có tính tổng số lượng đã bán
@@ -180,7 +182,7 @@ class QuickChatService
     private function productResponse($products, ?string $answer, ?string $sugarGuidance): array
     {
         if ($products->isEmpty()) {
-            return $this->honestNoMatch($sugarGuidance);
+            return $this->honestNoMatch($sugarGuidance); // Gọi hàm xử lý khi không có sản phẩm nào
         }
 
         if ($sugarGuidance !== null) {
@@ -189,7 +191,7 @@ class QuickChatService
 
         return [
             'answer' => $answer,
-            'items' => $this->buildProductItems($products),
+            'items' => $this->buildProductItems($products), // Định dạng danh sách sản phẩm thành dạng JSON hiển thị
             'action_url' => route('products'),
             'suggestions' => [],
         ];
@@ -207,7 +209,7 @@ class QuickChatService
             'answer' => $answer,
             'items' => [],
             'action_url' => route('products'),
-            'suggestions' => $this->categorySuggestions(),
+            'suggestions' => $this->categorySuggestions(), // Lấy danh sách các nút gợi ý danh mục (Trà sữa, Cà phê...)
         ];
     }
 

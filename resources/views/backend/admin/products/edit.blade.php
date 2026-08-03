@@ -42,9 +42,8 @@
                     <div class="js-image-upload-trigger border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64">
                         <input type="file" id="image-upload" name="image" class="hidden" accept="image/*">
                         
-                        {{-- upload_url() (qua accessor image_url) tự nhận diện ảnh nằm ở public/uploads/
-                             (ảnh tải lên mới, gắn Railway Volume) hay public/images/ (ảnh cũ) - ghép cứng
-                             tiền tố 'images/' sẽ tạo ra /images/uploads/... và ảnh mới bị vỡ. --}}
+                        {{-- upload_url() (qua accessor image_url) tạo URL từ đường dẫn tương đối trong
+                             public/images/. --}}
                         @php
                             $imageUrl = $product->image ? $product->image_url : '';
                         @endphp

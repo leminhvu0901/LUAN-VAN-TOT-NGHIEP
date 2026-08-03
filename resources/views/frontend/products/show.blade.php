@@ -3,8 +3,8 @@
 
 @section('content')
 @php
-    $discountInfo = $product->discount_info;
-    $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
+$discountInfo = $product->discount_info;
+$effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
 @endphp
 {{-- Thẻ wrapper bao bọc chi tiết sản phẩm, đồng thời truyền id sản phẩm và giá cơ bản qua thuộc tính data để JS đọc --}}
 <div class="pd-wrapper" data-product-id="{{ $product->id }}" data-base-price="{{ $effectivePrice }}">
@@ -24,21 +24,21 @@
             <div class="pd-gallery__main">
                 {{-- Huy hiệu trạng thái Bán chạy (Hot), Sản phẩm mới (New) hoặc Giảm giá --}}
                 @if($discountInfo && $product->is_active)
-                    <span class="pd-badge pd-badge--sale" style="background: linear-gradient(135deg, #e11d48, #7c3aed); color: #fff; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);">🏷️ {{ $discountInfo['label'] }}</span>
+                <span class="pd-badge pd-badge--sale" style="background: linear-gradient(135deg, #e11d48, #7c3aed); color: #fff; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);">🏷️ {{ $discountInfo['label'] }}</span>
                 @elseif($isHot && $product->is_active)
-                    <span class="pd-badge pd-badge--hot">🔥 BESTSELLER</span>
+                <span class="pd-badge pd-badge--hot">🔥 BESTSELLER</span>
                 @elseif($isNew && $product->is_active)
-                    <span class="pd-badge pd-badge--new">✨ Mới</span>
+                <span class="pd-badge pd-badge--new">✨ Mới</span>
                 @endif
                 @if(!$product->is_active)
-                    <span class="out-of-stock-overlay" style="font-size:1.2rem; padding: 0.6rem 1.6rem;">Hết Hàng</span>
+                <span class="out-of-stock-overlay" style="font-size:1.2rem; padding: 0.6rem 1.6rem;">Hết Hàng</span>
                 @endif
 
                 {{-- Nút yêu thích sản phẩm (Wishlist). Nếu đã được yêu thích ($isFavorite = true), class 'is-active' sẽ tô màu đỏ cho trái tim --}}
                 <button class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}"
-                        id="pd-wishlist-btn"
-                        onclick="toggleFavorite(this, {{ $product->id }})"
-                        aria-label="Yêu thích">
+                    id="pd-wishlist-btn"
+                    onclick="toggleFavorite(this, {{ $product->id }})"
+                    aria-label="Yêu thích">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
@@ -46,28 +46,28 @@
 
                 {{-- Ảnh lớn hiển thị sản phẩm chính. Có sự kiện onerror tải ảnh placeholder nếu ảnh chính bị lỗi --}}
                 <img id="pd-main-img"
-                     src="{{ $product->image_url }}"
-                     alt="{{ $product->name }}"
-                     class="pd-gallery__img"
-                     onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                    src="{{ $product->image_url }}"
+                    alt="{{ $product->name }}"
+                    class="pd-gallery__img"
+                    onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
             </div>
 
             {{-- Các ảnh thu nhỏ (Thumbnails) bổ sung ở phía dưới ảnh chính --}}
             <div class="pd-gallery__thumbs" id="pd-thumbs">
                 <div class="pd-gallery__thumb is-active" onclick="switchImage(this, '{{ $product->image_url }}')">
                     <img src="{{ $product->image_url }}"
-                         alt="{{ $product->name }}"
-                         onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                        alt="{{ $product->name }}"
+                        onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
-                
+
                 @if($product->images)
-                    @foreach($product->images as $galleryImg)
-                        <div class="pd-gallery__thumb" onclick="switchImage(this, '{{ $galleryImg->image_url }}')">
-                            <img src="{{ $galleryImg->image_url }}"
-                                 alt="{{ $product->name }}"
-                                 onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
-                        </div>
-                    @endforeach
+                @foreach($product->images as $galleryImg)
+                <div class="pd-gallery__thumb" onclick="switchImage(this, '{{ $galleryImg->image_url }}')">
+                    <img src="{{ $galleryImg->image_url }}"
+                        alt="{{ $product->name }}"
+                        onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                </div>
+                @endforeach
                 @endif
             </div>
         </div>
@@ -83,14 +83,25 @@
                     {{-- Tính toán làm tròn điểm số để đổ màu ngôi sao (Filled, Half, Empty) --}}
                     @php $avgR = round($product->avg_rating * 2) / 2; @endphp
                     @for($i = 1; $i <= 5; $i++)
-                        @if($i <= floor($avgR))
-                            <svg class="pd-star pd-star--filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
+                        @if($i <=floor($avgR))
+                        <svg class="pd-star pd-star--filled" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" /></svg>
                         @elseif($i == ceil($avgR) && $avgR != floor($avgR))
-                            <svg class="pd-star pd-star--half" viewBox="0 0 24 24"><defs><linearGradient id="half{{ $i }}"><stop offset="50%" stop-color="#f59e0b"/><stop offset="50%" stop-color="#d1d5db"/></linearGradient></defs><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#half{{ $i }})"/></svg>
+                        <svg class="pd-star pd-star--half" viewBox="0 0 24 24">
+                            <defs>
+                                <linearGradient id="half{{ $i }}">
+                                    <stop offset="50%" stop-color="#f59e0b" />
+                                    <stop offset="50%" stop-color="#d1d5db" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#half{{ $i }})" />
+                        </svg>
                         @else
-                            <svg class="pd-star pd-star--empty" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
+                        <svg class="pd-star pd-star--empty" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" />
+                        </svg>
                         @endif
-                    @endfor
+                        @endfor
                 </div>
                 <span class="pd-rating-score">{{ number_format($product->avg_rating, 1) }}</span>
                 <span class="pd-rating-count">({{ $product->review_count }} đánh giá)</span>
@@ -101,11 +112,11 @@
             {{-- Giá bán của sản phẩm --}}
             <div class="pd-info__price-row" style="display: flex; align-items: baseline; gap: 10px;">
                 @if($discountInfo)
-                    <span class="pd-info__price-old" style="font-size: 1.2rem; font-weight: 600; color: #9ca3af; text-decoration: line-through;">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
-                    <span class="pd-info__price" id="pd-price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
-                    <span style="background: #ef4444; color: #fff; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">{{ $discountInfo['label'] }}</span>
+                <span class="pd-info__price-old" style="font-size: 1.2rem; font-weight: 600; color: #9ca3af; text-decoration: line-through;">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
+                <span class="pd-info__price" id="pd-price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
+                <span style="background: #ef4444; color: #fff; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">{{ $discountInfo['label'] }}</span>
                 @else
-                    <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                <span class="pd-info__price" id="pd-price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
                 @endif
             </div>
 
@@ -117,15 +128,15 @@
                 <div class="pd-option-chips" id="pd-sizes">
                     @foreach($sizes as $i => $size)
                     <button class="pd-chip {{ $i === 0 ? 'is-active' : '' }}"
-                            data-size-name="{{ $size->size_name }}"
-                            data-price-adj="{{ $size->price_adjustment }}"
-                            onclick="selectSize(this)"
-                            id="size-btn-{{ $loop->iteration }}">
+                        data-size-name="{{ $size->size_name }}"
+                        data-price-adj="{{ $size->price_adjustment }}"
+                        onclick="selectSize(this)"
+                        id="size-btn-{{ $loop->iteration }}">
                         Size {{ $size->size_name }}
                         @if($size->price_adjustment > 0)
-                            <span class="pd-chip__adj">(+{{ number_format($size->price_adjustment, 0, ',', '.') }}đ)</span>
+                        <span class="pd-chip__adj">(+{{ number_format($size->price_adjustment, 0, ',', '.') }}đ)</span>
                         @else
-                            <span class="pd-chip__adj">(+0đ)</span>
+                        <span class="pd-chip__adj">(+0đ)</span>
                         @endif
                     </button>
                     @endforeach
@@ -162,7 +173,9 @@
                 <div class="dropdown">
                     <button class="btn w-100 text-start topping-dropdown-btn pd-topping-dropdown-btn" type="button" id="toppingDropdown">
                         <span id="topping-summary" class="pd-topping-summary">Chọn topping (không bắt buộc....)</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron pd-dropdown-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dropdown-chevron pd-dropdown-chevron">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
                     </button>
                     <ul class="dropdown-menu w-100 shadow-lg pd-topping-dropdown-menu" aria-labelledby="toppingDropdown">
                         @foreach($toppings as $topping)
@@ -197,18 +210,18 @@
                 @if($product->is_active)
                 <button class="pd-add-cart-btn" id="pd-add-cart" onclick="addToCartFromDetail()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 01-8 0"/>
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <path d="M16 10a4 4 0 01-8 0" />
                     </svg>
                     Thêm vào giỏ hàng
                 </button>
                 @else
                 <button class="pd-add-cart-btn pd-add-cart-btn--sold-out" id="pd-add-cart" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 01-8 0"/>
+                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <path d="M16 10a4 4 0 01-8 0" />
                     </svg>
                     Hết hàng
                 </button>
@@ -218,14 +231,21 @@
             {{-- Nhãn đảm bảo chất lượng và thời gian giao hàng --}}
             <div class="pd-badges-row">
                 <div class="pd-badge-item">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                        <rect x="1" y="3" width="15" height="13" rx="2" />
+                        <path d="M16 8h4l3 3v5h-7V8z" />
+                        <circle cx="5.5" cy="18.5" r="2.5" />
+                        <circle cx="18.5" cy="18.5" r="2.5" />
+                    </svg>
                     <div>
                         <div class="pd-badge-item__title">Giao hàng</div>
                         <div class="pd-badge-item__sub">Trong 20–30 phút</div>
                     </div>
                 </div>
                 <div class="pd-badge-item">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
                     <div>
                         <div class="pd-badge-item__title">Chất lượng</div>
                         <div class="pd-badge-item__sub">Nguyên liệu sạch</div>
@@ -255,8 +275,9 @@
                 <div class="pd-reviews-score__num">{{ number_format($product->avg_rating, 1) }}</div>
                 <div class="pd-reviews-score__stars">
                     @for($i=1;$i<=5;$i++)
-                        <svg class="pd-star {{ $i <= round($product->avg_rating) ? 'pd-star--filled' : 'pd-star--empty' }}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
-                    @endfor
+                        <svg class="pd-star {{ $i <= round($product->avg_rating) ? 'pd-star--filled' : 'pd-star--empty' }}" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" /></svg>
+                        @endfor
                 </div>
                 <div class="pd-reviews-score__total">{{ $product->review_count }} đánh giá</div>
             </div>
@@ -283,7 +304,7 @@
             <div class="pd-review-filters">
                 <button type="button" class="pd-review-filter-btn review-filter-btn is-active" data-rating="" data-has-image="">Tất cả</button>
                 @for($star = 5; $star >= 1; $star--)
-                    <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
+                <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
                 @endfor
                 <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
             </div>
@@ -307,19 +328,24 @@
                 <div class="pd-rel-card__body">
                     <p class="pd-rel-card__name">{{ $rel->name }}</p>
                     <div class="pd-rel-card__stats">
-                        <svg class="pd-rel-rating-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <svg class="pd-rel-rating-star" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
                         <span>{{ number_format($rel->avg_rating, 1) }}</span>
                     </div>
                     @php $relDiscount = $rel->discount_info; @endphp
                     @if($relDiscount)
-                        <span class="home-prod-card__price-old" style="font-size: 11px;">{{ number_format($relDiscount['old_price'], 0, ',', '.') }}đ</span>
-                        <span class="pd-rel-card__price">{{ number_format($relDiscount['sale_price'], 0, ',', '.') }}đ</span>
+                    <span class="home-prod-card__price-old" style="font-size: 11px;">{{ number_format($relDiscount['old_price'], 0, ',', '.') }}đ</span>
+                    <span class="pd-rel-card__price">{{ number_format($relDiscount['sale_price'], 0, ',', '.') }}đ</span>
                     @else
-                        <span class="pd-rel-card__price">{{ number_format($rel->base_price, 0, ',', '.') }}đ</span>
+                    <span class="pd-rel-card__price">{{ number_format($rel->base_price, 0, ',', '.') }}đ</span>
                     @endif
                     {{-- Nút thêm nhanh sản phẩm tương tự vào giỏ hàng --}}
                     <button class="pd-rel-card__add" onclick="event.preventDefault(); addToCart({{ $rel->id }})" aria-label="Thêm vào giỏ">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
                     </button>
                 </div>
             </a>

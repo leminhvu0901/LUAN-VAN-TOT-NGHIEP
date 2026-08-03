@@ -1,9 +1,22 @@
+/**
+ * index.js - Quản lý danh sách tài khoản nhân viên khu vực Admin
+ * Các tính năng bao gồm:
+ * - Lọc danh sách AJAX theo từ khóa tìm kiếm (debounce 400ms) và bộ lọc dropdown.
+ * - Phân trang AJAX mượt mà không tải lại trang.
+ * - Thay đổi trực tiếp Chức vụ nhân viên (Lễ tân/Pha chế hoặc Giao hàng) có hộp thoại xác nhận quyền hạn.
+ * - Xóa tài khoản nhân viên bằng AJAX (chỉ cho phép xóa khi tài khoản chưa phát sinh dữ liệu lịch sử hoạt động hệ thống).
+ * - Bật/Tắt trạng thái hoạt động (Khóa/Mở khóa tài khoản) kèm bộ nhập lý do khóa.
+ */
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. TỰ ĐỘNG LỌC DỮ LIỆU KHI THAY ĐỔI SELECT HOẶC GÕ TÌM KIẾM
-    const filterForm = document.getElementById('filter-form');
-    const tableContainer = document.getElementById('table-container');
-    const btnClearFilter = document.getElementById('btn-clear-filter');
+    // === PHẦN TỬ DOM ===
+    const filterForm = document.getElementById('filter-form'); // Form bộ lọc đầu trang
+    const tableContainer = document.getElementById('table-container'); // Khung chứa bảng dữ liệu
+    const btnClearFilter = document.getElementById('btn-clear-filter'); // Nút xóa lọc
     
+    /**
+     * Gửi request AJAX tải danh sách nhân viên
+     * @param {string|null} urlStr - URL phân trang cần tải tiếp theo, null để lọc từ đầu
+     */
     function fetchStaff(urlStr = null) {
         let url;
         if (urlStr) {
@@ -14,6 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
             url.search = new URLSearchParams(formData).toString();
         }
 
+        // Cập nhật lại thanh địa chỉ trình duyệt
         window.history.pushState({}, '', url);
         tableContainer.style.opacity = '0.5';
         tableContainer.style.pointerEvents = 'none';
@@ -27,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.html) {
-                tableContainer.innerHTML = data.html;
+                tableContainer.innerHTML = data.html; // Ghi đè bảng mới vào giao diện
             }
             if (btnClearFilter) {
                 const hasFilters = [...new URLSearchParams(url.search)].some(([key, val]) =>
@@ -44,11 +58,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Đăng ký sự kiện đổi dropdown trong bộ lọc
     if (filterForm) {
         filterForm.querySelectorAll('select').forEach(select => {
             select.addEventListener('change', () => fetchStaff());
         });
 
+        // Debounce gõ phím tìm kiếm 400ms
         let searchTimeout;
         const searchInput = filterForm.querySelector('input[name="search"]');
         if (searchInput) {
@@ -58,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         
+        // Nhấn nút xóa bộ lọc đưa form về mặc định ban đầu
         if (btnClearFilter) {
             btnClearFilter.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -72,7 +89,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // 3. ĐỔI LOẠI NHÂN VIÊN (LỄ TÂN / VẬN CHUYỂN) — XÁC NHẬN TRƯỚC KHI LƯU
+    // =========================================================
+    // THAY ĐỔI CHỨC VỤ NHÂN VIÊN QUA DROPDOWN (STAFF TYPE PATCH)
+    // =========================================================
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('staff-type-select')) {
             const select = e.target;
@@ -83,12 +102,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (newType === oldValue) return;
 
-            // Khôi phục lựa chọn cũ ngay — chỉ đổi thật sự nếu người dùng xác nhận trong modal.
+            // Khôi phục giá trị cũ ngay lập tức trước khi hỏi
             select.value = oldValue;
 
             const applyChange = () => {
                 select.value = newType;
-                select.disabled = true;
+                select.disabled = true; // Disable chống bấm liên tục
+                
                 fetch(`/admin/staff-accounts/${staffId}/staff-type`, {
                     method: 'PATCH',
                     headers: {
@@ -105,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         select.dataset.current = newType;
                         window.AdminAlert.success(data.message, 'Thành công!');
                     } else {
-                        select.value = oldValue;
+                        select.value = oldValue; // Rollback
                         window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
                     }
                 })
@@ -116,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             };
 
+            // Hiển thị hộp thoại xác nhận phân quyền của tài khoản
             if (window.AdminAlert && window.AdminAlert.confirm) {
                 window.AdminAlert.confirm(
                     `Đổi loại nhân viên thành "${label}"? Quyền truy cập của tài khoản này sẽ thay đổi ngay lập tức.`,
@@ -128,8 +149,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 4. XÓA TÀI KHOẢN NHÂN VIÊN — chỉ xóa được khi chưa có lịch sử hoạt động (backend tự kiểm tra
-    // và trả lỗi rõ ràng nếu không xóa được, hướng dẫn khóa tài khoản thay vì xóa).
+    // =========================================================
+    // XÓA TÀI KHOẢN NHÂN VIÊN BẤT ĐỒNG BỘ (AJAX DELETE)
+    // =========================================================
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.delete-staff-btn');
         if (!btn) return;
@@ -153,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.disabled = false;
                 if (data.success) {
                     window.AdminAlert.success(data.message, 'Đã xóa!');
-                    fetchStaff();
+                    fetchStaff(); // Tải lại bảng
                 } else {
                     window.AdminAlert.error(data.message || 'Không thể xóa tài khoản này.', 'Lỗi!');
                 }
@@ -175,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Xử lý phân trang bằng AJAX
+    // Bắt sự kiện phân trang AJAX
     document.addEventListener('click', function (e) {
         const paginationLink = e.target.closest('#table-container nav a');
         if (paginationLink) {
@@ -184,7 +206,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 2. BẬT/TẮT TRẠNG THÁI NHÂN VIÊN BẰNG TOGGLE (AJAX)
+    // =========================================================
+    // BẬT/TẮT TRẠNG THÁI (KHÓA/MỞ TÀI KHOẢN QUA AJAX)
+    // =========================================================
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('toggle-status')) {
             const checkbox = e.target;
@@ -214,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.success) {
                         window.AdminAlert.success(data.message, 'Thành công!');
 
+                        // Cập nhật lại văn bản nhãn trạng thái hiển thị ngoài bảng
                         const updateEl = (el) => {
                             if (el) {
                                 if (isActive) {
@@ -234,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         updateEl(statusTextEl);
                         updateEl(statusTextMobileEl);
                     } else {
-                        checkbox.checked = !isActive;
+                        checkbox.checked = !isActive; // Rollback
                         window.AdminAlert.error(data.message || 'Có lỗi xảy ra, vui lòng thử lại.', 'Lỗi!');
                     }
                 })
@@ -246,7 +271,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             };
 
+            // Nếu người dùng chọn khóa tài khoản (Active từ 1 -> 0)
             if (isActive === 0) {
+                // Hiển thị Prompt hỏi lý do khóa tài khoản nhân sự
                 if (window.AdminAlert && window.AdminAlert.prompt) {
                     window.AdminAlert.prompt(
                         'Khóa tài khoản?',

@@ -5,35 +5,50 @@ namespace App\Http\Controllers\Backend\Staff\Delivery;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Controller Bảng điều khiển (Dashboard) dành cho Nhân viên giao hàng (Shipper).
+ * Tổng hợp các chỉ số liên quan đến chuyến giao hàng: số đơn chờ lấy, số đơn đang giao, 
+ * tổng số tiền COD đang cầm trong tay và danh sách các đơn được phân công gần nhất.
+ */
 class DashboardController
 {
+    /**
+     * Hiển thị trang Dashboard tổng quan của Shipper.
+     */
     public function index()
     {
-        $staffId = Auth::id();
+        $staffId = Auth::id(); // Lấy ID tài khoản Shipper đang đăng nhập
 
-        $pendingPickupCount = Order::where('delivery_staff_id', $staffId)->where('status', 'confirmed')->count();
-        $shippingCount = Order::where('delivery_staff_id', $staffId)->where('status', 'shipping')->count();
-        $completedCount = Order::where('delivery_staff_id', $staffId)->where('status', 'completed')->count();
-        $failedCount = Order::where('delivery_staff_id', $staffId)->whereNotNull('delivery_failed_at')->count();
+        // 1. Thống kê số lượng đơn hàng do shipper này phụ trách theo từng trạng thái
+        $pendingPickupCount = Order::where('delivery_staff_id', $staffId)->where('status', 'confirmed')->count(); // Đơn đã được gán nhưng chờ shipper đến nhận tại quầy
+        $shippingCount = Order::where('delivery_staff_id', $staffId)->where('status', 'shipping')->count(); // Đơn shipper đang trên đường đi giao
+        $completedCount = Order::where('delivery_staff_id', $staffId)->where('status', 'completed')->count(); // Tổng đơn shipper giao thành công
+        $failedCount = Order::where('delivery_staff_id', $staffId)->whereNotNull('delivery_failed_at')->count(); // Tổng số đơn giao thất bại của shipper này
 
+        // 2. Thống kê tiền mặt thu hộ (COD)
+        // Số tiền COD dự kiến thu từ các đơn hàng đang giao trên đường đi
         $codToCollect = (float) Order::where('delivery_staff_id', $staffId)
             ->where('status', 'shipping')->where('payment_method', 'cod')->sum('final_amount');
 
+        // Tổng số tiền COD shipper thực tế đã thu được từ các đơn giao thành công
         $codCollectedTotal = (float) Order::where('delivery_staff_id', $staffId)
             ->where('status', 'completed')->where('payment_method', 'cod')->sum('final_amount');
 
-        // Trong số đã thu, phần nào lễ tân đã xác nhận nhận lại (đã nộp quầy) và phần nào shipper
-        // còn giữ trong người (chưa nộp) — để nhân viên tự biết cần nộp lại bao nhiêu.
+        // Trong số đã thu, chia làm 2 phần: 
+        // - Số tiền COD shipper chưa nộp lại cho quầy (chưa đối soát - cod_settled_at bằng null)
         $codUnsettledTotal = (float) Order::where('delivery_staff_id', $staffId)
             ->where('status', 'completed')->where('payment_method', 'cod')
             ->whereNull('cod_settled_at')->sum('final_amount');
+            
+        // - Số tiền COD shipper đã nộp lại cho quầy thành công (đã đối soát)
         $codSettledTotal = $codCollectedTotal - $codUnsettledTotal;
 
+        // Lấy danh sách 5 đơn hàng mới nhất đang được phân công/giao của shipper này
         $recentOrders = Order::where('delivery_staff_id', $staffId)
             ->whereIn('status', ['confirmed', 'shipping'])
             ->latest('assigned_at')->limit(5)->get();
 
-        return view('backend.staff.delivery.dashboard', compact(
+        return view('backend.staff.delivery.dashboard', compact( // Đẩy số liệu ra giao diện hiển thị
             'pendingPickupCount',
             'shippingCount',
             'completedCount',
