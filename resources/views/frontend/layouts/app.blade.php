@@ -38,11 +38,8 @@
     @include('frontend.auth.verify-otp')
     @include('frontend.auth.reset-password')
 
-    {{-- Bong bóng nổi Giỏ hàng + Zalo — xếp ngay phía trên bong bóng chatbox bên dưới --}}
+    {{-- Bong bóng nổi Giỏ hàng + Zalo --}}
     @include('frontend.components.floating-bubbles')
-
-    {{-- Chatbox trả lời nhanh (quick-reply, không AI) — hiển thị trên mọi trang frontend --}}
-    @include('frontend.components.quick-chatbox')
 
 
 

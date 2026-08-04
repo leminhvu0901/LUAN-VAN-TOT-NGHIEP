@@ -1,5 +1,5 @@
-{{-- Bong bóng nổi "Giỏ hàng" + "Zalo" — xếp chồng ngay phía trên bong bóng chatbox (quick-chatbox),
-     cùng góc dưới-phải, cùng phong cách hình tròn nổi (xem .quick-chatbox trong users.css). --}}
+{{-- Bong bóng nổi "Giỏ hàng" + "Zalo" — góc dưới-phải màn hình, phong cách hình tròn nổi (xem
+     .floating-bubbles trong users.css). --}}
 @php
     $floatingCartCount = 0;
     if (Auth::check()) {

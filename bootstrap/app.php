@@ -25,7 +25,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'cart/*',
             'staff/*',
             'admin/*',
-            'quick-chat/*',
         ]);
     })
     // 3. Trung tâm xử lý Lỗi/Ngoại lệ (Exceptions) - Xử lý các tình huống hệ thống bị crash hoặc dính lỗi

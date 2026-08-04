@@ -212,11 +212,6 @@ Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController
 // Lấy thông tin giỏ hàng hiện tại phục vụ hiển thị Sidebar [TRẢ VỀ JSON/AJAX CHO JS]
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
 
-// Gửi câu hỏi tự do lên chatbot phản hồi nhanh [TRẢ VỀ JSON/AJAX CHO JS]
-Route::post('/quick-chat/ask', [App\Http\Controllers\Frontend\QuickChatController::class, 'ask'])
-    ->middleware('throttle:20,1')
-    ->name('quick-chat.ask');
-
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
