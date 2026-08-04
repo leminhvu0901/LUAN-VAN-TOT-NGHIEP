@@ -31,7 +31,7 @@
         <div class="hero-banner__inner home-hero__inner" id="hero-slider">
             @if(isset($banners) && $banners->count() > 0)
                 @foreach($banners as $index => $banner)
-                    <picture class="hero-banner__media hero-slide-img {{ $index === 0 ? 'active' : '' }}" 
+                    <picture class="hero-banner__media hero-slide-img {{ $index === 0 ? 'active' : '' }}"
                         data-title="{{ $banner->title }}"
                         data-title-tag="{{ $banner->title_tag }}"
                         data-link="{{ $banner->link_url }}">
@@ -58,12 +58,12 @@
                 @endif
             @else
                 <picture class="hero-banner__media hero-slide-img active"
-                    data-title="Thưởng thức hương vị tuyệt vời" 
+                    data-title="Thưởng thức hương vị tuyệt vời"
                     data-title-tag="🌿 Đồ uống tươi ngon">
                     <img src="{{ asset('images/banners/slider-1.png') }}" alt="Banner 1" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
                 </picture>
                 <picture class="hero-banner__media hero-slide-img"
-                    data-title="Khuyến mãi mùa hè" 
+                    data-title="Khuyến mãi mùa hè"
                     data-title-tag="🌿 Đồ uống tươi ngon">
                     <img src="{{ asset('images/banners/slider-2.png') }}" alt="Banner 2" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-2.png') }}'">
                 </picture>
@@ -121,19 +121,16 @@
             </div>
             <div class="hero-banner__stats home-hero__stats" style="z-index: 10;">
                 <div class="hero-banner__stat home-hero__stat">
-                    <span class="hero-banner__stat-num home-hero__stat-num">50+</span>
+                    <span class="hero-banner__stat-num home-hero__stat-num">{{ $productCount }}+</span>
                     <span class="hero-banner__stat-label home-hero__stat-label">Món đồ uống</span>
                 </div>
                 <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
                 <div class="hero-banner__stat home-hero__stat">
-                    <span class="hero-banner__stat-num home-hero__stat-num">4.9★</span>
+                    <span class="hero-banner__stat-num home-hero__stat-num">{{ number_format($avgRating, 1) }}★</span>
                     <span class="hero-banner__stat-label home-hero__stat-label">Đánh giá</span>
                 </div>
                 <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
-                <div class="hero-banner__stat home-hero__stat">
-                    <span class="hero-banner__stat-num home-hero__stat-num">30'</span>
-                    <span class="hero-banner__stat-label home-hero__stat-label">Giao hàng</span>
-                </div>
+               
             </div>
         </div>
     </section>

@@ -18,6 +18,7 @@ class Order extends Model
         'inventory_released_at' => 'datetime',  // Thời điểm hoàn trả lại kho (nếu đơn bị hủy)
         'cod_settled_at' => 'datetime',         // Thời điểm bàn giao tiền COD giữa shipper và lễ tân
         'refunded_at' => 'datetime',            // Thời điểm hoàn tiền cho khách (hoàn qua Momo)
+        'completed_at' => 'datetime',           // Thời điểm đơn hàng chuyển sang trạng thái hoàn thành
     ];
 
     /**

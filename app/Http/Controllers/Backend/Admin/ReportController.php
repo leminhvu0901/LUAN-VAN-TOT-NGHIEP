@@ -26,7 +26,7 @@ class ReportController
 
         if ($request->ajax()) {
             return response()->json([
-                'html' =>  view('backend.admin.reports.partials.content', $data)->render(),
+                'html' => view('backend.admin.reports.partials.content', $data)->render(),
                 'revenueChartData' => $data['revenueChartData'],
                 'orderStatusChartData' => $data['orderStatusChartData'],
                 'channelRevenueChartData' => $data['channelRevenueChartData'],
@@ -34,7 +34,7 @@ class ReportController
             ]);
         }
 
-        return  view('backend.admin.reports.index', $data);
+        return view('backend.admin.reports.index', $data);
     }
 
     /**
@@ -454,8 +454,8 @@ class ReportController
         while ($tempDate->lte($end)) {
             $dateStr = $tempDate->toDateString();
             $chartLabels[] = $tempDate->format('d/m');
-            $chartRevenue[] = isset($dailyData[$dateStr]) ? (float)$dailyData[$dateStr]->revenue : 0.0;
-            $chartOrders[] = isset($dailyData[$dateStr]) ? (int)$dailyData[$dateStr]->orders_count : 0;
+            $chartRevenue[] = isset($dailyData[$dateStr]) ? (float) $dailyData[$dateStr]->revenue : 0.0;
+            $chartOrders[] = isset($dailyData[$dateStr]) ? (int) $dailyData[$dateStr]->orders_count : 0;
             $tempDate->addDay();
         }
 
@@ -485,7 +485,7 @@ class ReportController
         $totalOrdersInPeriod = $ordersCount ?: 1;
 
         foreach ($statusLabels as $key => $label) {
-            $count = isset($orderStatuses[$key]) ? (int)$orderStatuses[$key]->count : 0;
+            $count = isset($orderStatuses[$key]) ? (int) $orderStatuses[$key]->count : 0;
             $statusCounts[] = $count;
             $statusPercentages[] = round(($count / $totalOrdersInPeriod) * 100, 1);
         }

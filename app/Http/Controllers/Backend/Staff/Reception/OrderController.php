@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\CartPricingService;
+use App\Services\NotificationService;
 use App\Services\OrderService;
 use App\Services\OrderWorkflowService;
 use Carbon\Carbon;
@@ -30,6 +31,7 @@ class OrderController
         private readonly OrderWorkflowService $sv_orderWorkflow,
         private readonly OrderService $sv_orderService,
         private readonly CartPricingService $sv_cartPricing,
+        private readonly NotificationService $sv_notifications,
     ) {
     }
 
@@ -109,6 +111,7 @@ class OrderController
                 'needs_delivery_assignment' => $order->delivery_type === 'delivery'
                     && $order->status === 'confirmed'
                     && !$order->delivery_staff_id,
+                'needs_admin_approval' => (bool) $order->needs_admin_approval,
                 'time' => $created->format('H:i') . "\n" . $created->format('d/m/Y'), // Định dạng thời gian tạo đơn
             ];
         })->all();
@@ -187,6 +190,38 @@ class OrderController
         }
 
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
+    }
+
+    /**
+     * Lễ tân gửi yêu cầu Admin phê duyệt đơn hàng giá trị lớn.
+     * Đặt cờ needs_admin_approval = true và gửi email thông báo cho Admin.
+     */
+    public function requestAdminApproval(Request $request, Order $order)
+    {
+        // Chỉ cho gửi yêu cầu khi đơn đang ở trạng thái pending
+        if ($order->status !== 'pending') {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Chỉ có thể gửi yêu cầu cho đơn đang chờ xác nhận.'], 422);
+            }
+            return back()->withErrors(['approval' => 'Chỉ có thể gửi yêu cầu cho đơn đang chờ xác nhận.']);
+        }
+
+        // Đặt cờ và lưu
+        $order->needs_admin_approval = true;
+        $order->save();
+
+        // Gửi email thông báo cho Admin
+        try {
+            $this->sv_notifications->sendAdminApprovalRequest($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('requestAdminApproval: failed to send email', ['error' => $e->getMessage()]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã gửi yêu cầu phê duyệt cho Admin!']);
+        }
+
+        return back()->with('success', 'Đã gửi yêu cầu phê duyệt cho Admin! Vui lòng chờ Admin xác nhận.');
     }
 
     /**

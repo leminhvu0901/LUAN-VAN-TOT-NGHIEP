@@ -89,23 +89,46 @@
                     <span class="material-symbols-outlined text-gray-400">sync_alt</span>
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
-                        <span class="badge-status {{ $statusBadgeClass }} font-bold text-xs mt-1 inline-block px-2.5 py-1">{{ $statusLabel }}</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="badge-status {{ $statusBadgeClass }} font-bold text-xs inline-block px-2.5 py-1">{{ $statusLabel }}</span>
+                            @if($order->needs_admin_approval)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê duyệt
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    @if($order->status === 'pending' && $cashNotYetCollected)
+                    @if($order->needs_admin_approval)
+                        <div class="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[18px] text-amber-600">mark_email_unread</span>
+                            <span>Đã gửi email yêu cầu Admin phê duyệt. Vui lòng chờ Admin xác nhận.</span>
+                        </div>
+                    @elseif($order->status === 'pending' && $cashNotYetCollected)
                         <p class="text-xs text-amber-600 font-medium flex items-center gap-1.5 max-w-xs">
                             <span class="material-symbols-outlined text-[16px] shrink-0">info</span>
                             Cần xác nhận đã thu tiền mặt (khối "Thanh toán" bên dưới) trước khi xác nhận đơn.
                         </p>
                     @elseif($order->status === 'pending')
-                        <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="confirmed">
-                            <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
-                        </form>
+                        @if((float)$order->final_amount >= 500000)
+                            {{-- Đơn hàng từ 500k trở lên phải gửi Admin phê duyệt trước --}}
+                            <form action="{{ route('staff.reception.orders.request_approval', $order->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="min-h-[40px] px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-sm flex items-center gap-1.5 shadow-sm transition">
+                                    <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                                    Gửi Admin phê duyệt
+                                </button>
+                            </form>
+                        @else
+                            <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="confirmed">
+                                <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
+                            </form>
+                        @endif
                     @endif
 
                     {{-- Đơn tại quầy: khách nhận trực tiếp, không có bước giao hàng — xác nhận xong là hoàn thành luôn. --}}

@@ -13,6 +13,10 @@ let provincesLoading = false;
 let wardsDataByProvince = {};
 let wardsLoading = false;
 
+// Dữ liệu cho 2 combobox có tìm kiếm. Select ẩn vẫn giữ code hành chính chính thức;
+// ô search chỉ đảm nhiệm hiển thị và lọc tên (kể cả khi khách gõ không dấu).
+const areaSearchItems = { province: [], ward: [] };
+
 // Các biến trạng thái chọn vị trí, bản đồ và bộ đếm thời gian
 let locationMethod = 'map';
 let areaUserSelected = false;
@@ -506,6 +510,39 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
+}
+
+// Dựng khối HTML hiển thị chi tiết mã giảm giá vừa áp dụng thành công: số tiền được giảm thực tế,
+// mô tả điều kiện (do Admin nhập), phạm vi áp dụng (nếu giới hạn theo sản phẩm/danh mục) và hạn dùng.
+// Mọi giá trị chèn vào đều qua escapeHtml vì description/scope_label là dữ liệu từ Admin, không nên
+// tin tưởng tuyệt đối khi ghép trực tiếp vào innerHTML.
+function renderCouponSuccessInfo(data, code) {
+    const lines = [];
+    lines.push(
+        '<p class="flex items-center gap-1 text-primary font-bold">' +
+        '<span class="material-symbols-outlined text-sm">check_circle</span>' +
+        'Áp dụng thành công mã ' + escapeHtml(code) + '!' +
+        '</p>'
+    );
+
+    const discountAmount = parseFloat(data.discount_amount);
+    if (!isNaN(discountAmount) && discountAmount > 0) {
+        lines.push('<p class="text-on-surface font-semibold mt-1">Giảm ' + discountAmount.toLocaleString('vi-VN') + 'đ</p>');
+    }
+
+    if (data.description) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.description) + '</p>');
+    }
+
+    if (data.scope_label) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.scope_label) + '</p>');
+    }
+
+    if (data.end_at) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">Hạn dùng: ' + escapeHtml(data.end_at) + '</p>');
+    }
+
+    return lines.join('');
 }
 
 // Hiển thị hoặc ẩn thông báo lỗi của khu vực chọn
@@ -1183,7 +1220,34 @@ document.addEventListener('DOMContentLoaded', function () {
     // Phạm vi áp dụng của mã giảm giá ('order' - Toàn đơn, 'product' - Theo sản phẩm, 'category' - Theo danh mục)
     let couponScope = 'order';
 
+    // === XỬ LÝ CLICK CHIP MÃ GỢI Ý → TỰ ĐỘNG ĐIỀN VÀO INPUT VÀ GỌI VALIDATE ===
+    document.querySelectorAll('.coupon-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const code = chip.dataset.code;
+            if (!code || !couponInput) return;
+
+            // Điền mã vào ô nhập
+            couponInput.value = code;
+
+            // Đánh dấu chip đang active, bỏ active chip cũ
+            document.querySelectorAll('.coupon-chip').forEach(c => {
+                c.classList.remove('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+            });
+            chip.classList.add('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+
+            // Tự động click nút Áp dụng để validate ngay
+            if (applyCouponBtn) applyCouponBtn.click();
+        });
+    });
+
     if (applyCouponBtn && couponInput) {
+        // Khi người dùng gõ tay vào ô mã → bỏ active chip đang được chọn
+        couponInput.addEventListener('input', () => {
+            document.querySelectorAll('.coupon-chip').forEach(c => {
+                c.classList.remove('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+            });
+        });
+
         // Lắng nghe sự kiện click nút "Áp dụng" mã giảm giá
         applyCouponBtn.addEventListener('click', () => {
             // Chuẩn hóa chuỗi mã: xóa khoảng trắng thừa ở hai đầu và chuyển sang chữ IN HOA
@@ -1238,12 +1302,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         maxDiscountAmount = 0;
                     }
 
-                    // Hiển thị thông báo thành công màu xanh lá cây
-                    // Nếu mã có phạm vi áp dụng đặc biệt (như sản phẩm/danh mục cụ thể), hiển thị nhãn phạm vi đó đi kèm
-                    couponMessage.innerText = data.scope_label
-                        ? data.message + ' ' + data.scope_label
-                        : data.message;
-                    couponMessage.className = 'text-xs text-primary font-bold mt-1';
+                    // Hiển thị khối thông tin chi tiết của mã: số tiền được giảm thực tế, mô tả điều
+                    // kiện áp dụng (từ Admin), phạm vi áp dụng (sản phẩm/danh mục) và hạn dùng nếu có.
+                    couponMessage.innerHTML = renderCouponSuccessInfo(data, code);
+                    couponMessage.className = 'text-xs mt-1.5';
                 } else {
                     // Trường hợp 3: Mã giảm giá không hợp lệ (hết hạn, không đủ điều kiện đơn tối thiểu, nhập sai...)
                     discount = 0;

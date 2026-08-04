@@ -77,6 +77,7 @@ class SecureOrderController
                 'status' => $label,
                 'raw_status' => $order->status,
                 'status_color' => $color,
+                'needs_admin_approval' => (bool) $order->needs_admin_approval,
                 'time' => $created->format('H:i') . "\n" . $created->format('d/m/Y'), // Định dạng giờ phút và ngày tháng năm tạo đơn
             ];
         })->all();
@@ -131,6 +132,35 @@ class SecureOrderController
             return response()->json(['success' => true, 'message' => 'Đã cập nhật trạng thái đơn hàng!']); // Trả về JSON cho JS tiếp nhận tại file [public/js/backend/admin/orders/show.js]
         }
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
+    }
+
+    /**
+     * Admin phê duyệt đơn hàng giá trị lớn đang chờ xác nhận.
+     * Xóa cờ needs_admin_approval và chuyển trạng thái sang confirmed.
+     */
+    public function approveOrder(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        if (!$order->needs_admin_approval) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Đơn hàng này không cần phê duyệt.'], 422);
+            }
+            return back()->withErrors(['approval' => 'Đơn hàng này không cần phê duyệt.']);
+        }
+
+        // Xóa cờ chờ duyệt
+        $order->needs_admin_approval = false;
+        $order->save();
+
+        // Chuyển sang confirmed qua workflow service
+        $this->orderWorkflow->transition($order, 'confirmed');
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã phê duyệt đơn hàng!']);
+        }
+
+        return back()->with('success', 'Đã phê duyệt đơn hàng ' . $order->order_code . ' thành công!');
     }
 
     /**

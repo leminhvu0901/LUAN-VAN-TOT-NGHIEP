@@ -89,6 +89,14 @@
             <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Nhân viên</span>
         </a>
 
+        {{-- Menu Thống kê giao hàng --}}
+        <a href="{{ route('admin.delivery_statistics.index') }}" title="Thống kê giao hàng"
+            class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.delivery_statistics.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">
+            <span
+                class="material-symbols-outlined text-[22px] {{ request()->routeIs('admin.delivery_statistics.*') ? 'text-sidebar-active-text' : 'text-gray-400 group-hover/link:text-gray-600' }}">local_shipping</span>
+            <span class="group-[.is-collapsed]/sidebar:hidden whitespace-nowrap">Thống kê giao hàng</span>
+        </a>
+
         {{-- Menu Banner --}}
         <a href="{{ route('admin.banners.index') }}" title="Banner"
             class="flex items-center group-[.is-collapsed]/sidebar:justify-center gap-3 group-[.is-collapsed]/sidebar:gap-0 px-4 group-[.is-collapsed]/sidebar:px-0 py-2.5 {{ request()->routeIs('admin.banners.*') ? 'bg-sidebar-active text-sidebar-active-text' : 'text-gray-600 hover:bg-gray-50' }} rounded-lg transition-colors group/link font-medium">

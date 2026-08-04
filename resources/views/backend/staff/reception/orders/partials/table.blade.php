@@ -74,6 +74,11 @@
                             <span class="badge-status {{ $badgeClass }} font-bold py-1 px-2.5 text-[11px] xl:text-xs inline-block">
                                 {{ $order['status'] }}
                             </span>
+                            @if($order['needs_admin_approval'] ?? false)
+                                <a href="{{ route('staff.reception.orders.show', $order['id']) }}" class="mt-1.5 inline-flex items-center gap-1 text-[10px] xl:text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full hover:bg-amber-200 transition-colors">
+                                    <span class="material-symbols-outlined text-[12px]">hourglass_top</span> Chờ Admin duyệt
+                                </a>
+                            @endif
                             @if($order['needs_delivery_assignment'] ?? false)
                                 <a href="{{ route('staff.reception.orders.show', $order['id']) }}" class="mt-1.5 inline-flex items-center gap-1 text-[10px] xl:text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100 transition-colors">
                                     <span class="material-symbols-outlined text-[12px]">local_shipping</span> Chưa phân công

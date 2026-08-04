@@ -117,16 +117,16 @@
 // ===== Hiệu ứng chạy số tự động (Stat counters) =====
 (function () {
     // Hàm thực hiện tăng số dần đều
-    function animateCounter(el, target, suffix, duration) {
-        var start = 0;
+    // decimals: số chữ số thập phân của giá trị gốc (vd "4.6" -> 1) để không bị Math.round làm tròn mất phần thập phân
+    function animateCounter(el, target, suffix, decimals, duration) {
         var startTime = null;
         function step(timestamp) {
             if (!startTime) startTime = timestamp;
             var progress = Math.min((timestamp - startTime) / duration, 1);
             // Sử dụng công thức Ease Out Cubic để chuyển động chậm dần về sau
             var eased = 1 - Math.pow(1 - progress, 3);
-            var current = Math.round(eased * target);
-            el.textContent = current + suffix;
+            var current = eased * target;
+            el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current)) + suffix;
             if (progress < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
@@ -135,13 +135,14 @@
     // Khởi tạo và kích hoạt đếm số chạy
     function startCounters() {
         document.querySelectorAll('.home-hero__stat-num').forEach(function (el) {
-            var raw = el.textContent.trim(); // Lấy văn bản thô, ví dụ: "50+", "4.9★", "30'"
+            var raw = el.textContent.trim(); // Lấy văn bản thô, ví dụ: "50+", "4.6★", "30'"
             var match = raw.match(/^([\d.]+)(.*)$/);
             if (!match) return;
             var num = parseFloat(match[1]); // Lấy phần số
             var suffix = match[2];          // Lấy phần hậu tố (+ / ★ / ')
-            el.textContent = '0' + suffix;
-            animateCounter(el, num, suffix, 1600); // Thực hiện chạy trong 1.6 giây
+            var decimals = (match[1].split('.')[1] || '').length; // Giữ đúng số chữ số thập phân như văn bản gốc
+            el.textContent = (decimals > 0 ? (0).toFixed(decimals) : '0') + suffix;
+            animateCounter(el, num, suffix, decimals, 1600); // Thực hiện chạy trong 1.6 giây
         });
     }
 

@@ -57,12 +57,38 @@
                 [$statusLabel2, $statusBadgeClass2] = $statusLabels2[$order->status] ?? [$order->status, ''];
             @endphp
 
+            @if($order->needs_admin_approval)
+                <div class="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-amber-600 text-[28px]">verified_user</span>
+                        <div>
+                            <h4 class="font-bold text-amber-900">Yêu cầu phê duyệt đơn hàng (≥ 500.000đ)</h4>
+                            <p class="text-xs text-amber-700 mt-0.5">Đơn hàng này cần Admin phê duyệt trước khi nhân viên lễ tân có thể tiếp tục các bước tiếp theo.</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('admin.orders.approve', $order->id) }}" method="POST" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-lg shadow-sm flex items-center gap-1.5 transition active:scale-95">
+                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                            Phê duyệt đơn hàng
+                        </button>
+                    </form>
+                </div>
+            @endif
+
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <span class="material-symbols-outlined text-gray-400">sync_alt</span>
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
-                        <span class="badge-status {{ $statusBadgeClass2 }} font-bold text-xs mt-1 inline-block px-2.5 py-1">{{ $statusLabel2 }}</span>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="badge-status {{ $statusBadgeClass2 }} font-bold text-xs inline-block px-2.5 py-1">{{ $statusLabel2 }}</span>
+                            @if($order->needs_admin_approval)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê duyệt
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
 

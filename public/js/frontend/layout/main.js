@@ -293,6 +293,17 @@ window.FrontendAlert = {
         });
     });
 
+    // Chặn copy/cắt nội dung trong các ô mật khẩu (đăng ký, đăng nhập, đặt lại mật khẩu...) để tránh lộ
+    // mật khẩu ra clipboard. Dùng event delegation trên document + class .has-password-toggle (đã gắn
+    // sẵn trên mọi ô mật khẩu dùng chung nút hiện/ẩn) nên áp dụng được cho mọi trang không cần sửa thêm.
+    ['copy', 'cut', 'contextmenu'].forEach(function (eventName) {
+        document.addEventListener(eventName, function (e) {
+            if (e.target && e.target.matches && e.target.matches('.has-password-toggle')) {
+                e.preventDefault();
+            }
+        });
+    });
+
 })();
 
 // ==========================================

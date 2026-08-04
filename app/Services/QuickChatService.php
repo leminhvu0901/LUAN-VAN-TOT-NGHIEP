@@ -31,7 +31,7 @@ class QuickChatService
     // Trả lời trực tiếp khi người dùng chọn nút gợi ý
     public function askByIntent(string $intentId): array
     {
-        $intent = $this->findIntent($intentId);
+        $intent = $this->findIntent($intentId);/// Tìm cấu hình ý định (intent) trong tệp config theo ID
         if (!$intent) {
             return [
                 'intent' => null,
@@ -103,7 +103,7 @@ class QuickChatService
             $response['suggestions'] = array_merge($response['suggestions'] ?? [], $extra);
         }
 
-        return $response;
+        return $response; 
     }
 
     // Xử lý các câu trả lời tĩnh không cần truy vấn dữ liệu động
@@ -127,8 +127,8 @@ class QuickChatService
     private function handleProductListing(array $intent): array
     {
         // Thực hiện câu lệnh SQL lấy 4 sản phẩm bán chạy nhất
-        $products = $this->applyOrder($this->baseProductQuery(), null)->limit(4)->get(); 
- 
+        $products = $this->applyOrder($this->baseProductQuery(), null)->limit(4)->get();
+
         return $this->productResponse($products, $intent['answer'], null); // Đóng gói câu trả lời sản phẩm
     }
 

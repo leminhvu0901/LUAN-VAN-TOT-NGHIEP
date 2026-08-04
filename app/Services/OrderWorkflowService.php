@@ -84,6 +84,7 @@ class OrderWorkflowService
                     throw ValidationException::withMessages(['status' => 'Chỉ được hoàn thành đơn đã thanh toán.']);
                 }
                 $this->awardPointsOnce($locked); // Gọi hàm nội bộ tích lũy điểm thưởng thành viên
+                $locked->completed_at = now(); // Ghi nhận thời điểm hoàn thành để thống kê số đơn giao theo ngày/tuần/tháng/năm
             }
 
             $locked->status = $newStatus;

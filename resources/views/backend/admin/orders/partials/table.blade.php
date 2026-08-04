@@ -101,6 +101,11 @@
                             <option value="cancelled" {{ $order['raw_status'] === 'cancelled' ? 'selected' : '' }} {{ !in_array('cancelled', $allowedStatuses) ? 'disabled' : '' }}>Đã hủy</option>
                         </select>
                     </form>
+                    @if($order['needs_admin_approval'] ?? false)
+                        <a href="{{ route('admin.orders.show', $order['id']) }}" class="mt-1.5 inline-flex items-center gap-1 text-[10px] xl:text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full hover:bg-amber-200 transition-colors">
+                            <span class="material-symbols-outlined text-[12px]">verified_user</span> Chờ Admin duyệt
+                        </a>
+                    @endif
                 </td>
                 <td class="px-3 xl:px-4 py-4 whitespace-nowrap text-sm">
                     {!! nl2br(e($order['time'])) !!}

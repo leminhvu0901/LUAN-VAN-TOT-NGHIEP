@@ -296,7 +296,7 @@ class DashboardController
 
         $recentActivities = $activities->sortByDesc('time')->take(8)->values();
 
-        return  view('backend.admin.dashboard.index', compact(
+        return view('backend.admin.dashboard.index', compact(
             'compareStats',
             'actionTasks',
             'chartData',

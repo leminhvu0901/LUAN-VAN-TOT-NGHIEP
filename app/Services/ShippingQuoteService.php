@@ -14,6 +14,7 @@ class ShippingQuoteService
     {
     }
 
+    //tinh tien ship theo khoang cach
     public function quote(UserAddress $address, float $subtotal, ?User $user): array
     {
         $distance = $this->distanceFor($address);

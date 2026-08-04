@@ -103,4 +103,21 @@ class User extends Authenticatable
             "[Points] User #{$this->id} ({$this->name}): +{$earned} điểm -> tổng {$total} điểm | Hạng: {$level}"
         );
     }
+
+    /**
+     * Mối quan hệ: Các đơn hàng đã giao thành công mà nhân viên vận chuyển (staff_type=delivery) này phụ trách.
+     * Dùng để thống kê số đơn giao được theo ngày/tuần/tháng/năm.
+     */
+    public function completedDeliveries()
+    {
+        return $this->hasMany(Order::class, 'delivery_staff_id')->where('status', 'completed');
+    }
+
+    /**
+     * Mối quan hệ: Các đơn hàng mà nhân viên vận chuyển này giao thất bại (đơn bị hủy do giao không thành công).
+     */
+    public function failedDeliveries()
+    {
+        return $this->hasMany(Order::class, 'delivery_staff_id')->whereNotNull('delivery_failed_at');
+    }
 }

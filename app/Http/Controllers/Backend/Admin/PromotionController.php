@@ -272,9 +272,49 @@ class PromotionController
     // được bằng rule string).
     private function validateRequest(Request $request, ?int $promotionId = null): void
     {
+        $this->dropEmptyComboRows($request);
+
         $validator = Validator::make($request->all(), $this->validationRules($promotionId), $this->validationMessages());
         $validator->after(fn($v) => $this->validateComboRules($v, $request));
         $validator->validate();
+    }
+
+    // Form khuyến mãi LUÔN render sẵn 1 dòng combo trống, kể cả khi phạm vi không phải combo — khối
+    // #scope-combo-fields chỉ bị ẩn bằng class CSS 'hidden' nên select vẫn nằm trong form và vẫn được
+    // gửi lên với value ''. Không lọc trước thì rule 'combo_product_ids.*' => integer sẽ bắt lỗi
+    // "must be an integer" và chặn cả những khuyến mãi chẳng liên quan gì tới combo (scope order/
+    // product/category). Bỏ các dòng chưa chọn sản phẩm, giữ combo_quantities khớp đúng theo cặp.
+    // Khi scope=combo mà không còn dòng nào hợp lệ, mảng rỗng sẽ rơi vào required_if và báo đúng
+    // thông báo tiếng Việt "Vui lòng chọn ít nhất 1 sản phẩm cho combo."
+    private function dropEmptyComboRows(Request $request): void
+    {
+        $productIds = $request->input('combo_product_ids');
+        if (!is_array($productIds)) {
+            return;
+        }
+
+        $quantities = $request->input('combo_quantities');
+        $quantities = is_array($quantities) ? $quantities : [];
+
+        // Chỉ bỏ đúng CẶP (sản phẩm + số lượng) của dòng trống. Tuyệt đối không bù null cho ô số
+        // lượng thiếu, vì như vậy 2 mảng sẽ luôn bằng độ dài và validateComboRules() mất khả năng
+        // phát hiện trường hợp sản phẩm/số lượng không khớp nhau.
+        $keptIds = [];
+        foreach ($productIds as $index => $productId) {
+            if ($productId === null || $productId === '') {
+                unset($quantities[$index]);
+                continue;
+            }
+            $keptIds[] = $productId;
+        }
+        $keptQuantities = array_values($quantities);
+
+        // Không còn dòng nào -> trả null chứ KHÔNG phải mảng rỗng: rule 'nullable' bỏ qua null,
+        // nhưng 'min:1' vẫn bắt lỗi mảng rỗng nên mảng rỗng sẽ chặn nhầm các phạm vi khác combo.
+        $request->merge([
+            'combo_product_ids' => $keptIds === [] ? null : $keptIds,
+            'combo_quantities' => $keptIds === [] ? null : $keptQuantities,
+        ]);
     }
 
     // Các field không phải cột trực tiếp của bảng promotions — phải loại khỏi mass-assign.

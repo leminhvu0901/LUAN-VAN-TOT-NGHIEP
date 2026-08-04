@@ -464,6 +464,45 @@
                             <h2 class="font-headline-md text-lg text-on-surface font-bold">Mã giảm giá</h2>
                         </div>
 
+                        @if($availablePromotions->isNotEmpty())
+                        {{-- Danh sách mã có thể áp dụng --}}
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Mã khả dụng</p>
+                            <div class="flex flex-wrap gap-2" id="coupon-chip-list">
+                                @foreach($availablePromotions as $promo)
+                                @php
+                                    // Tạo nhãn mô tả ngắn gọn cho chip
+                                    if ($promo->type === 'percent') {
+                                        $label = 'Giảm ' . (int)$promo->value . '%';
+                                        if ($promo->max_discount_amount) {
+                                            $label .= ' (tối đa ' . number_format($promo->max_discount_amount, 0, ',', '.') . 'đ)';
+                                        }
+                                    } else {
+                                        $label = 'Giảm ' . number_format($promo->value, 0, ',', '.') . 'đ';
+                                    }
+                                    // Điều kiện tối thiểu
+                                    $condition = $promo->min_order_amount
+                                        ? 'Đơn từ ' . number_format($promo->min_order_amount, 0, ',', '.') . 'đ'
+                                        : null;
+                                    // Hạng thành viên
+                                    $memberLabels = ['silver' => 'Bạc', 'gold' => 'Vàng', 'diamond' => 'Kim cương'];
+                                    $memberReq = ($promo->apply_for && $promo->apply_for !== 'all')
+                                        ? ($memberLabels[$promo->apply_for] ?? $promo->apply_for)
+                                        : null;
+                                @endphp
+                                <button type="button"
+                                    class="coupon-chip group flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary text-xs font-semibold text-primary transition-all active:scale-95"
+                                    data-code="{{ $promo->code }}"
+                                    title="{{ $label }}{{ $condition ? ' · ' . $condition : '' }}{{ $memberReq ? ' · Hạng ' . $memberReq : '' }}">
+                                    <span class="material-symbols-outlined text-[14px]">local_offer</span>
+                                    <span>{{ $promo->code }}</span>
+                                    <span class="text-primary/70 font-normal hidden sm:inline">— {{ $label }}</span>
+                                </button>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="flex gap-2">
                             <input type="text" id="coupon_code_input" placeholder="Nhập mã HAPPY..."
                                 class="flex-1 bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary">
@@ -590,37 +629,13 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         window.checkoutConfig = {
-            shippingBaseFee: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('shipping_base_fee', 15000)
-                }
-            },
-            shippingFeePerKm: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('shipping_fee_per_km', 5000)
-                }
-            },
-            shippingMaxDistanceKm: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('shipping_max_distance_km', 15)
-                }
-            },
-            freeShippingMinimum: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('free_shipping_minimum', 150000)
-                }
-            },
+            shippingBaseFee: {{ (float) \App\Models\Setting::getValue('shipping_base_fee', 15000) }},
+            shippingFeePerKm: {{ (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000) }},
+            shippingMaxDistanceKm: {{ (float) \App\Models\Setting::getValue('shipping_max_distance_km', 15) }},
+            freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }},
             geoapifyKey: @json(config('services.geoapify.key')),
-            shopLat: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('store_latitude', 10.73809)
-                }
-            },
-            shopLng: {
-                {
-                    (float)\ App\ Models\ Setting::getValue('store_longitude', 106.67812)
-                }
-            }
+            shopLat: {{ (float) \App\Models\Setting::getValue('store_latitude', 10.73809) }},
+            shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
         };
     </script>
     <script src="{{ asset('js/frontend/orders/checkout.js') }}?v={{ filemtime(public_path('js/frontend/orders/checkout.js')) }}"></script>

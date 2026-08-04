@@ -629,7 +629,36 @@ class CartController
             \App\Models\Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
         }
 
-        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts', 'comboDiscount'));
+        // Lấy danh sách mã khuyến mãi CÓ THỂ ÁP DỤNG cho đơn hàng này:
+        // Bước 1 — lọc nhanh ở DB: active, kênh đúng, scope không phải combo
+        // Bước 2 — gọi checkValidity() để lọc chính xác: hạng thành viên, đơn tối thiểu,
+        //           đã dùng rồi chưa, khung giờ Happy Hour, số lượng tối thiểu...
+        $totalQuantity = $items->sum('quantity');
+        $now = now();
+        $availablePromotions = \App\Models\Promotion::query()
+            ->where('is_active', 1)
+            ->where('requires_staff_verification', 0)
+            ->whereNotIn('scope', ['combo', 'buy_x_get_y'])
+            ->where(function ($q) {
+                $q->where('applies_to', 'all')->orWhere('applies_to', 'delivery')->orWhereNull('applies_to');
+            })
+            ->where(function ($q) {
+                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'code', 'description', 'type', 'value', 'max_discount_amount',
+                   'min_order_amount', 'apply_for', 'is_recurring', 'recurring_start_time', 'recurring_end_time',
+                   'recurring_days', 'end_at', 'is_active', 'used_count', 'usage_limit', 'start_at'])
+            ->filter(function ($promo) use ($user, $subtotal, $totalQuantity) {
+                // Dùng lại logic checkValidity() đã có sẵn trong model để tránh duplicate code
+                $result = $promo->checkValidity($user, $subtotal, 'delivery', $totalQuantity);
+                return $result['valid'] === true;
+            })
+            ->values();
+
+
+
+        return view('frontend.orders.checkout', compact('items', 'subtotal', 'addresses', 'isClosed', 'closedReason', 'freeShipThreshold', 'checkoutToken', 'gifts', 'comboDiscount', 'availablePromotions'));
     }
 
     /**
@@ -738,6 +767,11 @@ class CartController
             'discount_value' => $coupon->value,
             'discount_type' => $coupon->type,
             'max_discount_amount' => $coupon->max_discount_amount,
+            'min_order_amount' => $coupon->min_order_amount,
+            'description' => $coupon->description,
+            // end_at là cột dateTime thô, KHÔNG có cast Carbon trong Model -> phải tự parse chứ
+            // không được gọi ->format() thẳng lên chuỗi.
+            'end_at' => $coupon->end_at ? \Carbon\Carbon::parse($coupon->end_at)->format('d/m/Y H:i') : null,
             'scope' => $coupon->scope,
             // Mô tả phạm vi áp dụng cho sản phẩm hoặc danh mục cụ thể để hiển thị trực quan lên giao diện
             'scope_label' => match ($coupon->scope) {
