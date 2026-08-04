@@ -1,9 +1,8 @@
 /**
  * index.js - Quản lý trang danh sách chương trình khuyến mãi khu vực Admin
- * Các tính năng bao gồm:
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Hiển thị thông báo Toast SweetAlert2 khi có Flash Session thành công hoặc lỗi từ server gửi xuống.
- * - AJAX tải lại bảng dữ liệu danh sách khuyến mãi và cập nhật các con số thống kê ở đầu trang.
- * - Lọc AJAX thời gian thực (Live Search) với debounce 400ms.
  * - Tích chọn hàng loạt checkbox (đồng bộ cả desktop và mobile), hỗ trợ gọi API nhận mảng ID toàn bộ các trang để chọn tất cả.
  * - Xóa khuyến mãi đơn lẻ bằng AJAX kèm hiệu ứng trượt CSS và tự động lùi trang phân trang nếu trang hiện tại bị xóa trống.
  * - Xóa hàng loạt khuyến mãi đã chọn bằng AJAX có hộp thoại cảnh báo SweetAlert2 bo tròn hiện đại.
@@ -244,43 +243,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Tự động tải lại bảng khi thay đổi bộ lọc dropdown
-    filterForm.querySelectorAll("select").forEach((select) => {
-        select.addEventListener("change", () => fetchPromotions());
-    });
-
-    // Debounce tìm kiếm tự động sau khi dừng gõ phím 400ms
-    let timeout = null;
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener("input", function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fetchPromotions(), 400);
-        });
-    }
-
-    // Đặt lại form lọc về trạng thái ban đầu khi click "Xóa lọc"
-    if (btnClearFilter) {
-        btnClearFilter.addEventListener("click", function (e) {
-            e.preventDefault();
-            filterForm.reset();
-            filterForm.querySelectorAll("select").forEach((s) => {
-                if (s.name === "sort") s.value = "newest";
-                else s.value = "all";
-            });
-            if (searchInput) searchInput.value = "";
-            fetchPromotions();
-        });
-    }
-
-    // Bắt sự kiện click link phân trang trong bảng
-    tableContainer.addEventListener("click", function (e) {
-        const pageLink = e.target.closest(".pagination-container a");
-        if (pageLink) {
-            e.preventDefault();
-            fetchPromotions(pageLink.href);
-        }
-    });
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     // === CẤU HÌNH POPUP SWEETALERT2 DÙNG CHUNG ===
     const swalConfig = {

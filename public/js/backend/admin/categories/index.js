@@ -1,8 +1,7 @@
 /**
  * index.js - Xử lý danh sách danh mục sản phẩm ở khu vực Admin
- * Các tính năng bao gồm:
- * - Gọi AJAX lọc dữ liệu theo bộ tìm kiếm (debounce 400ms) và dropdown lọc.
- * - Chuyển tiếp các trang (Phân trang AJAX).
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Xóa đơn lẻ danh mục và tạo hiệu ứng CSS trượt biến mất.
  * - Xóa hàng loạt danh mục đã chọn (Bulk Delete) có hộp thoại xác nhận.
  * - Tự động đồng bộ và giữ trạng thái tích chọn checkbox sau khi tải AJAX.
@@ -97,46 +96,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Lắng nghe sự kiện thay đổi của các bộ lọc Select
-    filterForm.querySelectorAll('select').forEach(select => {
-        select.addEventListener('change', () => fetchCategories());
-    });
-
-    // Debounce tìm kiếm 400ms để tránh quá tải máy chủ
-    let timeout = null;
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fetchCategories(), 400);
-        });
-    }
-
-    // Nhấn nút "Xóa lọc" để đặt lại toàn bộ form lọc về mặc định
-    if (btnClearFilter) {
-        btnClearFilter.addEventListener('click', function (e) {
-            e.preventDefault();
-            filterForm.reset();
-            filterForm.querySelectorAll('select').forEach(s => {
-                if (s.name === 'sort') s.value = 'order_asc';
-                else s.value = 'all';
-            });
-            if (searchInput) searchInput.value = '';
-            fetchCategories();
-        });
-    }
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     // Sử dụng cơ chế ủy quyền sự kiện (Event Delegation) trên bảng dữ liệu
     tableContainer.addEventListener('click', function (e) {
-        // 1. Chuyển trang phân trang
-        const pageLink = e.target.closest('.ajax-pagination a');
-        if (pageLink) {
-            e.preventDefault();
-            fetchCategories(pageLink.href);
-            return;
-        }
-
-        // 2. Click nút xóa một danh mục đơn lẻ
+        // Click nút xóa một danh mục đơn lẻ
         const deleteBtn = e.target.closest('.delete-category-btn');
         if (deleteBtn) {
             e.preventDefault();

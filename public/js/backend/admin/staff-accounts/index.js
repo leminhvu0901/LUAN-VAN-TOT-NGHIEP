@@ -1,8 +1,7 @@
 /**
  * index.js - Quản lý danh sách tài khoản nhân viên khu vực Admin
- * Các tính năng bao gồm:
- * - Lọc danh sách AJAX theo từ khóa tìm kiếm (debounce 400ms) và bộ lọc dropdown.
- * - Phân trang AJAX mượt mà không tải lại trang.
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Thay đổi trực tiếp Chức vụ nhân viên (Lễ tân/Pha chế hoặc Giao hàng) có hộp thoại xác nhận quyền hạn.
  * - Xóa tài khoản nhân viên bằng AJAX (chỉ cho phép xóa khi tài khoản chưa phát sinh dữ liệu lịch sử hoạt động hệ thống).
  * - Bật/Tắt trạng thái hoạt động (Khóa/Mở khóa tài khoản) kèm bộ nhập lý do khóa.
@@ -58,36 +57,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Đăng ký sự kiện đổi dropdown trong bộ lọc
-    if (filterForm) {
-        filterForm.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', () => fetchStaff());
-        });
-
-        // Debounce gõ phím tìm kiếm 400ms
-        let searchTimeout;
-        const searchInput = filterForm.querySelector('input[name="search"]');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => fetchStaff(), 400);
-            });
-        }
-        
-        // Nhấn nút xóa bộ lọc đưa form về mặc định ban đầu
-        if (btnClearFilter) {
-            btnClearFilter.addEventListener('click', function (e) {
-                e.preventDefault();
-                filterForm.reset();
-                filterForm.querySelectorAll('select').forEach(s => {
-                    if (s.name === 'sort') s.value = 'newest';
-                    else s.value = 'all';
-                });
-                if (searchInput) searchInput.value = '';
-                fetchStaff();
-            });
-        }
-    }
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     // =========================================================
     // THAY ĐỔI CHỨC VỤ NHÂN VIÊN QUA DROPDOWN (STAFF TYPE PATCH)
@@ -194,15 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         } else if (confirm(`Xóa vĩnh viễn tài khoản "${staffName}"? Không thể hoàn tác.`)) {
             performDelete();
-        }
-    });
-
-    // Bắt sự kiện phân trang AJAX
-    document.addEventListener('click', function (e) {
-        const paginationLink = e.target.closest('#table-container nav a');
-        if (paginationLink) {
-            e.preventDefault();
-            fetchStaff(paginationLink.href);
         }
     });
 

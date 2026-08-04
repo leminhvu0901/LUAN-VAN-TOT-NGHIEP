@@ -1,12 +1,10 @@
 /**
  * index.js - Xử lý danh sách banner ở trang quản trị (Admin Banners Control)
- * Các chức năng bao gồm:
- * - Tìm kiếm nhanh (Search) kết hợp debounce tránh quá tải server.
- * - Lọc AJAX nâng cao theo trạng thái, vị trí hiển thị và sắp xếp.
- * - Chuyển trang (Phân trang AJAX) không tải lại trang.
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các chức năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Xóa đơn lẻ hoặc xóa hàng loạt banner có hộp thoại xác nhận.
  * - Bật/Tắt trạng thái hoạt động trực tiếp ngoài danh sách bằng AJAX.
- * - Khôi phục và cố định vị trí cuộn cuộn màn hình để tối ưu trải nghiệm người dùng.
+ * - fetchBanners() vẫn còn dùng nội bộ để nạp lại bảng sau khi xóa/toggle (chưa chuyển đổi).
  */
 document.addEventListener('DOMContentLoaded', function () {
     // === PHẦN TỬ DOM ===
@@ -155,50 +153,13 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Lắng nghe sự kiện thay đổi của các bộ lọc dạng Select
-    if (filterForm) {
-        filterForm.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', () => fetchBanners());
-        });
-
-        // Tìm kiếm với cơ chế Debounce 400ms để tối ưu hóa hiệu năng
-        let timeout = null;
-        const searchInput = filterForm.querySelector('input[name="search"]');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fetchBanners(), 400);
-            });
-        }
-    }
-
-    // Xử lý khi nhấn nút "Xóa lọc" để reset form về trạng thái ban đầu
-    if (btnClearFilter) {
-        btnClearFilter.addEventListener('click', function (e) {
-            e.preventDefault();
-            filterForm.reset();
-            filterForm.querySelectorAll('select').forEach(s => {
-                if (s.name === 'sort') s.value = 'order_asc';
-                else s.value = 'all';
-            });
-            const searchInput = filterForm.querySelector('input[name="search"]');
-            if (searchInput) searchInput.value = '';
-            fetchBanners();
-        });
-    }
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     // Ủy quyền sự kiện click trên toàn bộ bảng dữ liệu
     if (tableContainer) {
         tableContainer.addEventListener('click', function (e) {
-            // 1. Nhấn liên kết phân trang AJAX
-            const pageLink = e.target.closest('.ajax-pagination a');
-            if (pageLink) {
-                e.preventDefault();
-                fetchBanners(pageLink.href);
-                return;
-            }
-
-            // 2. Nhấn nút xóa một banner đơn lẻ
+            // 1. Nhấn nút xóa một banner đơn lẻ
             const deleteBtn = e.target.closest('.delete-banner-btn');
             if (deleteBtn) {
                 e.preventDefault();
@@ -217,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // 3. Nhấn nút bật/tắt hiển thị trạng thái hoạt động nhanh của banner
+            // 2. Nhấn nút bật/tắt hiển thị trạng thái hoạt động nhanh của banner
             const toggleBtn = e.target.closest('.toggle-status-btn');
             if (toggleBtn) {
                 e.preventDefault();

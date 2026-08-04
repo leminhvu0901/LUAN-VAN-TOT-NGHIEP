@@ -106,21 +106,6 @@ class PromotionController
             $q->where('end_at', '<', $now)->orWhere('is_active', 0);
         })->count();
 
-        if ($request->ajax()) {
-            $html = view('backend.admin.promotions.partials.table', compact('promotions'))->render();
-            return response()->json([
-                'html' => $html,
-                // JS đang đọc data.total để cập nhật input ẩn phục vụ xoá hàng loạt
-                'total' => $promotions->total(),
-                'count_text' => 'Hiển thị ' . $promotions->count() . ' / ' . $promotions->total() . ' khuyến mãi',
-                'stats' => [
-                    'total' => number_format($totalPromotions),
-                    'active' => number_format($activePromotions),
-                    'expired' => number_format($expiredPromotions),
-                ]
-            ]);
-        }
-
         // Trả dữ liệu danh sách + thống kê sang Blade để render giao diện
         return view('backend.admin.promotions.index', compact(
             'promotions', //ds

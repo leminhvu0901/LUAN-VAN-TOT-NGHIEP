@@ -170,6 +170,9 @@
                         </select>
 
                         <div class="w-full lg:w-auto shrink-0 flex items-center gap-2 lg:ml-auto">
+                            <button type="submit" class="flex-1 lg:flex-none px-5 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors organic-shadow">
+                                Lọc
+                            </button>
                             <a href="{{ route('admin.reviews.index') }}" id="btn-clear-filter"
                                 class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow"
                                 style="display: {{ (request('search') || (request('rating') && request('rating') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">

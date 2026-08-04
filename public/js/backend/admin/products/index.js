@@ -365,37 +365,8 @@ function executeSingleDelete(formElement) {
         });
 }
 
-/**
- * Khởi tạo bộ lắng nghe sự kiện của bộ lọc sản phẩm
- */
-function initProductFilters() {
-    filterForm.querySelectorAll("select").forEach((select) => {
-        select.addEventListener("change", () => fetchProducts());
-    });
-
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener("input", function () {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => fetchProducts(), 400);
-        });
-    }
-
-    if (btnClearFilter) {
-        btnClearFilter.addEventListener("click", function (event) {
-            event.preventDefault();
-            filterForm.reset();
-
-            filterForm.querySelectorAll("select").forEach((select) => {
-                select.value = select.name === "sort" ? "newest" : "all";
-            });
-
-            if (searchInput) searchInput.value = "";
-
-            fetchProducts();
-        });
-    }
-}
+// Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+// (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
 /**
  * Đăng ký tất cả các sự kiện tương tác trên bảng sản phẩm
@@ -409,14 +380,6 @@ function initProductTableEvents() {
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener("click", submitBulkDelete);
     }
-
-    tableContainer.addEventListener("click", function (event) {
-        const pageLink = event.target.closest(".ajax-pagination a, .pagination-container a");
-        if (pageLink) {
-            event.preventDefault();
-            fetchProducts(pageLink.href);
-        }
-    });
 
     tableContainer.addEventListener("change", function (event) {
         if (event.target.classList.contains("js-select-all")) {
@@ -465,7 +428,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!filterForm || !tableContainer || !tableWrapper) return;
 
-    initProductFilters();
     initProductTableEvents();
     syncProductCheckboxes();
 });

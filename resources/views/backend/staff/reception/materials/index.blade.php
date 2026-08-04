@@ -171,11 +171,15 @@
                     </select>
 
                     <div class="w-full lg:w-auto shrink-0 lg:ml-auto flex items-center gap-2">
-                        <button type="button" id="btn-clear-filter" style="display: none;"
+                        <button type="submit" class="flex-1 lg:flex-none px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all shadow-sm">
+                            Lọc
+                        </button>
+                        <a href="{{ route('staff.reception.materials.index') }}" id="btn-clear-filter"
+                            style="display: {{ (request('search') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};"
                             class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-semibold text-sm rounded-xl hover:bg-gray-200 transition-all shadow-sm">
                             <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
                             <span class="whitespace-nowrap">Xóa lọc</span>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </form>

@@ -54,12 +54,6 @@ class StaffAccountController
 
         $staffs = $query->paginate(10)->appends($request->query());
 
-        if ($request->ajax()) {
-            return response()->json([
-                'html' => view('backend.admin.staff-accounts.partials.table', compact('staffs'))->render()
-            ]);
-        }
-
         $totalStaff = User::where('role', 'staff')->count();
         $activeStaff = User::where('role', 'staff')->where('is_active', 1)->count();
         $inactiveStaff = User::where('role', 'staff')->where('is_active', 0)->count();

@@ -67,6 +67,9 @@
                     </div>
 
                     <div class="orders-page-actions w-full lg:w-auto shrink-0 lg:ml-auto flex items-center gap-2">
+                        <button type="submit" class="flex-1 lg:flex-none px-5 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors organic-shadow">
+                            Lọc
+                        </button>
                         <a href="{{ route('staff.reception.orders.index') }}"
                             class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow">
                             <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>

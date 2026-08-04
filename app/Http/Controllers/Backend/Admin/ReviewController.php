@@ -83,18 +83,6 @@ class ReviewController
         $activeReviews = Review::where('is_visible', 1)->count();
         $hiddenReviews = Review::where('is_visible', 0)->count();
 
-        // Nếu là AJAX (ví dụ: lọc không reload toàn trang) trả partial HTML
-        if ($request->ajax()) {
-            return response()->json([
-                'html' =>  view('backend.admin.reviews.partials.table', compact('reviews'))->render(),
-                'stats' => [
-                    'total' => number_format($totalReviews),
-                    'active' => number_format($activeReviews),
-                    'hidden' => number_format($hiddenReviews)
-                ]
-            ]);
-        }
-
         // Trả view chính (full page)
         return  view('backend.admin.reviews.index', compact('reviews', 'totalReviews', 'activeReviews', 'hiddenReviews'));
     }

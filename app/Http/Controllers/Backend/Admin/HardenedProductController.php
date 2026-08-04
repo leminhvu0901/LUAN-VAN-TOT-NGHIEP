@@ -45,13 +45,6 @@ class HardenedProductController
             'activeProducts' => Product::where('is_active', true)->count(),
             'inactiveProducts' => Product::where('is_active', false)->count(),
         ];
-        if ($request->ajax()) {
-            return response()->json([ // Trả về JSON chứa HTML bảng cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
-                'html' =>  view('backend.admin.products.partials.table', ['products' => $products])->render(),
-                'total' => $products->total(),
-                'count_text' => 'Hiển thị ' . $products->count() . ' / ' . $products->total() . ' sản phẩm',
-            ]);
-        }
         return  view('backend.admin.products.index', $data);
     }
 

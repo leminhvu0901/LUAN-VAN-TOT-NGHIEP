@@ -24,16 +24,6 @@ class ReportController
     {
         $data = $this->buildReportData($request);
 
-        if ($request->ajax()) {
-            return response()->json([
-                'html' => view('backend.admin.reports.partials.content', $data)->render(),
-                'revenueChartData' => $data['revenueChartData'],
-                'orderStatusChartData' => $data['orderStatusChartData'],
-                'channelRevenueChartData' => $data['channelRevenueChartData'],
-                'channelOrdersChartData' => $data['channelOrdersChartData'],
-            ]);
-        }
-
         return view('backend.admin.reports.index', $data);
     }
 

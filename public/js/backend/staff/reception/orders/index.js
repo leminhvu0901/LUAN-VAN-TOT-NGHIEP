@@ -1,4 +1,7 @@
-let searchTimeout = null;
+/**
+ * index.js - Quản lý trang danh sách đơn hàng khu vực Lễ tân
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ */
 let form;
 let tableContainer;
 let loader;
@@ -51,7 +54,6 @@ function loadTableData(url = null) {
                     tableContainer.innerHTML = data.table_html;
                 }
                 
-                attachPaginationListeners();
                 document.dispatchEvent(new Event("tableDataLoaded"));
             }
 
@@ -69,16 +71,6 @@ function loadTableData(url = null) {
             loader.classList.add("hidden");
             loader.classList.remove("flex");
         });
-}
-
-function handleLiveSearch() {
-    resetOrderSelection();
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => loadTableData(), 500);
-}
-
-function attachPaginationListeners() {
-    // Không cần nữa vì đã dùng event delegation ở dưới
 }
 
 function updateBulkDeleteButton() {
@@ -239,8 +231,8 @@ function initSearchAndFilters() {
     tableContainer = document.getElementById("table-container");
     loader = document.getElementById("table-loader");
 
-    document.getElementById("search-input").addEventListener("input", handleLiveSearch);
-
+    // Cấu hình Flatpickr cho khoảng ngày bắt đầu và kết thúc đặt hàng (chỉ hiển thị lịch chọn ngày,
+    // không tự động submit — bấm nút "Lọc" để áp dụng, giống các bộ lọc khác)
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".orders-date-picker", {
             dateFormat: "Y-m-d",
@@ -251,27 +243,11 @@ function initSearchAndFilters() {
             locale: "vn",
             monthSelectorType: "static",
             appendTo: document.querySelector('.orders-page') || document.body,
-            onChange: function () {
-                handleLiveSearch();
-            }
         });
-    } else {
-        document.getElementById("date-from-input").addEventListener("change", handleLiveSearch);
-        document.getElementById("date-to-input").addEventListener("change", handleLiveSearch);
     }
 
-    const statusSelect = form.querySelector('select[name="status"]');
-    if (statusSelect) statusSelect.addEventListener("change", handleLiveSearch);
-
-    const sortSelect = form.querySelector('select[name="sort"]');
-    if (sortSelect) sortSelect.addEventListener("change", handleLiveSearch);
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        loadTableData();
-    });
-
-    attachPaginationListeners();
+    // Lọc/tìm kiếm/phân trang: form GET submit và link phân trang nay điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong search-form.
 }
 
 function initTableEvents() {
@@ -285,17 +261,6 @@ function initTableEvents() {
 
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener("click", submitBulkDelete);
-    }
-    
-    // Thêm event delegation cho phân trang (giống hệt trang products)
-    if (tableContainer) {
-        tableContainer.addEventListener("click", function (event) {
-            const pageLink = event.target.closest(".ajax-pagination a, .pagination-container a");
-            if (pageLink) {
-                event.preventDefault();
-                loadTableData(pageLink.href);
-            }
-        });
     }
 
     tableContainer.addEventListener("change", function (e) {

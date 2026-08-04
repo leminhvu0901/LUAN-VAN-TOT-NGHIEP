@@ -67,12 +67,6 @@ class CustomerController
 
         $customers = $query->paginate(10)->appends($request->query()); // Phân trang kết quả (10 khách/trang) và giữ lại các tham số lọc trên URL
 
-        if ($request->ajax()) {
-            return response()->json([
-                'html' =>  view('backend.admin.customers.partials.table', compact('customers'))->render() // Render partial view bảng khách hàng trả về cho AJAX
-            ]);
-        }
-
         // Các thống kê cho thẻ phía trên
         $totalCustomers = User::where('role', 'customer')->count(); // Đếm tổng số lượng khách hàng trong DB
         

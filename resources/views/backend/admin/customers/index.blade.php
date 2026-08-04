@@ -134,6 +134,10 @@
                         </select>
                     </div>
     
+                    <button type="submit" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto">
+                        Lọc
+                    </button>
+
                     <a href="{{ route('admin.customers.index') }}" id="btn-clear-filter"
                         class="px-4 py-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 font-medium text-sm rounded-lg transition-colors text-center w-full sm:w-auto"
                         style="display: {{ (request('search') || (request('membership') && request('membership') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'inline-block' : 'none' }};">

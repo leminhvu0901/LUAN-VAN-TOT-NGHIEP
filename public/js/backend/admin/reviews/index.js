@@ -1,5 +1,6 @@
 /**
- * Xử lý lọc danh sách đánh giá bằng AJAX + Checkbox + Bulk Delete
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Phần còn lại (Checkbox + Bulk Delete, sẽ chuyển tiếp ở giai đoạn sau) vẫn dùng AJAX.
  */
 document.addEventListener('DOMContentLoaded', function () {
     // Khi DOM sẵn sàng: chuẩn bị các biến tham chiếu DOM và trạng thái
@@ -157,41 +158,10 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    filterForm.querySelectorAll('select').forEach(select => {
-        select.addEventListener('change', () => window.fetchReviews());
-    });
-
-    let timeout = null;
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => window.fetchReviews(), 400);
-        });
-    }
-
-    if (btnClearFilter) {
-        btnClearFilter.addEventListener('click', function (e) {
-            e.preventDefault();
-            filterForm.reset();
-            filterForm.querySelectorAll('select').forEach(s => {
-                if (s.name === 'sort') s.value = 'newest';
-                else s.value = 'all';
-            });
-            if (searchInput) searchInput.value = '';
-            window.fetchReviews();
-        });
-    }
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     tableContainer.addEventListener('click', function (e) {
-        // Phân trang
-        const pageLink = e.target.closest('.pagination-container a');
-        if (pageLink) {
-            e.preventDefault();
-            window.fetchReviews(pageLink.href);
-            return;
-        }
-
         // Xóa đánh giá
         const deleteBtn = e.target.closest('.js-delete-review');
         if (deleteBtn) {

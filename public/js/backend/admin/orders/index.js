@@ -1,8 +1,7 @@
 /**
  * index.js - Quản lý trang danh sách đơn hàng khu vực Admin
- * Các tính năng bao gồm:
- * - Tìm kiếm thời gian thực (Live Search) và bộ lọc nâng cao kết hợp Flatpickr chọn khoảng ngày.
- * - AJAX load lại danh sách bảng đơn hàng và cập nhật số liệu thống kê.
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Xóa đơn hàng đơn lẻ bằng AJAX và tự động tính toán quay lại trang trước nếu trang hiện tại hết đơn.
  * - Chọn hàng loạt checkbox (bao gồm cơ chế Select All kết hợp Exclude đặc biệt cho các trang).
  * - Tự động thiết kế thay thế select trạng thái đơn bằng Custom Dropdown đẹp mắt, định vị thông minh chống tràn màn hình.
@@ -10,7 +9,6 @@
  * - Phục hồi lại vị trí cuộn chuột sau khi tải AJAX danh sách mới.
  */
 
-let searchTimeout = null;
 let form;
 let tableContainer;
 let loader;
@@ -72,7 +70,6 @@ function loadTableData(url = null) {
                     tableContainer.innerHTML = data.table_html;
                 }
                 
-                attachPaginationListeners();
                 document.dispatchEvent(new Event("tableDataLoaded")); // Phát tín hiệu đã nạp bảng xong
             }
 
@@ -91,19 +88,6 @@ function loadTableData(url = null) {
             loader.classList.add("hidden");
             loader.classList.remove("flex");
         });
-}
-
-/**
- * Trì hoãn gửi request tìm kiếm (Debounce 500ms) khi người dùng gõ từ khóa
- */
-function handleLiveSearch() {
-    resetOrderSelection();
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => loadTableData(), 500);
-}
-
-function attachPaginationListeners() {
-    // Không dùng nữa vì đã tối ưu chuyển sang Event Delegation ở dưới
 }
 
 /**
@@ -286,9 +270,8 @@ function initSearchAndFilters() {
     tableContainer = document.getElementById("table-container");
     loader = document.getElementById("table-loader");
 
-    document.getElementById("search-input").addEventListener("input", handleLiveSearch);
-
-    // Cấu hình Flatpickr cho khoảng ngày bắt đầu và kết thúc đặt hàng
+    // Cấu hình Flatpickr cho khoảng ngày bắt đầu và kết thúc đặt hàng (chỉ hiển thị lịch chọn ngày,
+    // không tự động submit — bấm nút "Lọc" để áp dụng, giống các bộ lọc khác)
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".orders-date-picker", {
             dateFormat: "Y-m-d",
@@ -299,27 +282,11 @@ function initSearchAndFilters() {
             locale: "vn",
             monthSelectorType: "static",
             appendTo: document.querySelector('.orders-page') || document.body,
-            onChange: function () {
-                handleLiveSearch();
-            }
         });
-    } else {
-        document.getElementById("date-from-input").addEventListener("change", handleLiveSearch);
-        document.getElementById("date-to-input").addEventListener("change", handleLiveSearch);
     }
 
-    const statusSelect = form.querySelector('select[name="status"]');
-    if (statusSelect) statusSelect.addEventListener("change", handleLiveSearch);
-
-    const sortSelect = form.querySelector('select[name="sort"]');
-    if (sortSelect) sortSelect.addEventListener("change", handleLiveSearch);
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        loadTableData();
-    });
-
-    attachPaginationListeners();
+    // Lọc/tìm kiếm/phân trang: form GET submit và link phân trang nay điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong search-form.
 }
 
 /**
@@ -336,17 +303,6 @@ function initTableEvents() {
 
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener("click", submitBulkDelete);
-    }
-    
-    // Phân trang bằng Event Delegation để không bị mất sự kiện sau khi cập nhật AJAX
-    if (tableContainer) {
-        tableContainer.addEventListener("click", function (event) {
-            const pageLink = event.target.closest(".ajax-pagination a, .pagination-container a");
-            if (pageLink) {
-                event.preventDefault();
-                loadTableData(pageLink.href);
-            }
-        });
     }
 
     tableContainer.addEventListener("change", function (e) {

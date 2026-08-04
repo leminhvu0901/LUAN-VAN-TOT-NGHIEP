@@ -1,9 +1,8 @@
 /**
  * index.js - Quản lý trang danh sách vật tư khu vực Admin
- * Các tính năng bao gồm:
- * - Lọc dữ liệu AJAX (fetch) theo ô tìm kiếm (debounce 400ms), trạng thái và sắp xếp.
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Khởi tạo định dạng tiền tệ cho ô nhập Giá vốn ở form Thêm mới vật tư.
- * - Phân trang AJAX và giữ nguyên trạng thái tích chọn checkbox giữa các trang.
  * - Xóa đơn lẻ vật tư bằng AJAX, tự động cuộn lại đúng vị trí cuộn cũ (`pendingScrollY`).
  * - Xóa hàng loạt vật tư đã chọn (Bulk Delete) có hộp thoại xác nhận chi tiết.
  * - Đồng bộ trạng thái Checkbox của bảng (bao gồm hỗ trợ trạng thái bán chọn Indeterminate).
@@ -35,7 +34,6 @@
             selectedIds: new Set(), // Set chứa ID được chọn thủ công
             excludedIds: new Set(), // Set chứa ID bị loại trừ (khi bật globalSelectAll nhưng bỏ tích một vài dòng)
         };
-        let searchTimeout = null;
         let activeRequest = null; // Quản lý AbortController để hủy các request AJAX cũ nếu người dùng thao tác nhanh
 
         // Liên kết định dạng tiền tệ cho trường Giá vốn ở form Thêm mới
@@ -311,49 +309,11 @@
             if (confirmed) executeBulkDelete();
         }
 
-        // Đăng ký sự kiện submit form bộ lọc
-        filterForm.addEventListener("submit", function (event) {
-            event.preventDefault();
-            loadTableData();
-        });
-
-        // Debounce tìm kiếm vật tư tự động sau khi ngừng gõ 400ms
-        searchInput?.addEventListener("input", function () {
-            resetSelection();
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => loadTableData(), 400);
-        });
-
-        statusSelect?.addEventListener("change", () => loadTableData());
-        sortSelect?.addEventListener("change", () => loadTableData());
-
-        // Nhấn nút xóa bộ lọc đưa các ô nhập về giá trị mặc định ban đầu
-        clearFilterButton?.addEventListener("click", function (event) {
-            event.preventDefault();
-            filterForm.reset();
-            if (searchInput) searchInput.value = "";
-            if (statusSelect) {
-                statusSelect.value = "all";
-                statusSelect.dispatchEvent(new Event('change'));
-            }
-            if (sortSelect) {
-                sortSelect.value = "newest";
-                sortSelect.dispatchEvent(new Event('change'));
-            }
-            loadTableData();
-        });
+        // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+        // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
         bulkDeleteButton?.addEventListener("click", submitBulkDelete);
         bulkDeselectBtn?.addEventListener("click", resetSelection);
-
-        // Bắt sự kiện click nút phân trang AJAX
-        tableContainer.addEventListener("click", function (event) {
-            const paginationLink = event.target.closest(".ajax-pagination a");
-            if (!paginationLink) return;
-
-            event.preventDefault();
-            loadTableData(paginationLink.href, { preserveSelection: true }); // Giữ lại tích chọn khi sang trang khác
-        });
 
         // Lắng nghe sự kiện check/uncheck các dòng dữ liệu để cập nhật danh sách chọn
         tableContainer.addEventListener("change", function (event) {

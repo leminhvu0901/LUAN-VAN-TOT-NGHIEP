@@ -1,8 +1,7 @@
 /**
  * index.js - Quản lý danh sách khách hàng khu vực Admin
- * Các tính năng bao gồm:
- * - Lọc danh sách AJAX (fetch) theo ô tìm kiếm (debounce 400ms) và bộ lọc dropdown.
- * - Chuyển trang phân trang không tải lại trang (AJAX pagination).
+ * Lọc/tìm kiếm/phân trang nay là form GET/link thường (tải lại trang), không còn AJAX.
+ * Các tính năng còn lại (sẽ chuyển tiếp ở giai đoạn sau):
  * - Chọn nhiều (Checkbox) và Xóa hàng loạt khách hàng bất đồng bộ.
  * - Bật/Tắt trạng thái hoạt động (Khóa/Mở khóa) có prompt ghi nhận lý do khóa tài khoản.
  * - Xóa đơn lẻ tài khoản khách hàng bằng AJAX.
@@ -62,45 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Đăng ký sự kiện đổi bộ lọc trong form lọc
-    if (filterForm) {
-        filterForm.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', () => fetchCustomers());
-        });
-
-        // Debounce tìm kiếm tự động sau khi dừng gõ 400ms
-        let searchTimeout;
-        const searchInput = filterForm.querySelector('input[name="search"]');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => fetchCustomers(), 400);
-            });
-        }
-        
-        // Nhấn nút Xóa bộ lọc đưa form về mặc định ban đầu
-        if (btnClearFilter) {
-            btnClearFilter.addEventListener('click', function (e) {
-                e.preventDefault();
-                filterForm.reset();
-                filterForm.querySelectorAll('select').forEach(s => {
-                    if (s.name === 'sort') s.value = 'newest';
-                    else s.value = 'all';
-                });
-                if (searchInput) searchInput.value = '';
-                fetchCustomers();
-            });
-        }
-    }
-
-    // Phân trang bằng AJAX
-    document.addEventListener('click', function (e) {
-        const paginationLink = e.target.closest('#table-container nav a');
-        if (paginationLink) {
-            e.preventDefault();
-            fetchCustomers(paginationLink.href);
-        }
-    });
+    // Lọc/tìm kiếm/phân trang: form GET và link "Xóa lọc" nay submit/điều hướng bình thường
+    // (không còn JS chặn submit để gọi AJAX nữa) — xem nút "Lọc" trong filter-form.
 
     // =========================================================
     // XỬ LÝ CHỌN CHECKBOX HÀNG LOẠT (BULK ACTIONS SELECTION)

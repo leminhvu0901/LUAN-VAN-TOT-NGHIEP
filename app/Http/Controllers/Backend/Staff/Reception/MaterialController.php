@@ -88,13 +88,6 @@ class MaterialController
 
         $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price')); // Tính tổng trị giá tồn kho hiện tại
 
-        if ($request->ajax()) {
-            $html = view('backend.staff.reception.materials.partials.table', compact('materials'))->render();
-            return response()->json([ // Trả về JSON cho JS tại file [public/js/backend/staff/reception/materials/index.js]
-                'html' => $html,
-            ]);
-        }
-
         return view('backend.staff.reception.materials.index', compact(
             'materials', 'totalItems', 'lowStockItems', 'outOfStockItems', 'expiringItems', 'expiredItems', 'disposedBatchesCount', 'totalValue', 'disposedValue'
         ));

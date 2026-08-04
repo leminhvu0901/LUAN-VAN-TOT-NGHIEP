@@ -71,16 +71,6 @@ class CategoryController
         $activeCategories = Category::where('is_active', 1)->count();
         $inactiveCategories = Category::where('is_active', 0)->count();
 
-        if ($request->ajax()) {
-            $html =  view('backend.admin.categories.partials.table', compact('categories'))->render();
-            return response()->json([
-                'html' => $html,
-                'total' => $totalCategories,
-                'active' => $activeCategories,
-                'inactive' => $inactiveCategories
-            ]);
-        }
-
         return  view('backend.admin.categories.index', compact(
             'categories',
             'totalCategories',

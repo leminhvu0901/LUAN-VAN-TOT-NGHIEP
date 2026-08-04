@@ -100,18 +100,6 @@ class BannerController
         // Lấy danh sách các vị trí hiện có trong DB để làm bộ lọc
         $positions = Banner::select('position')->distinct()->whereNotNull('position')->pluck('position')->toArray();
 
-        if ($request->ajax()) {
-            $html =  view('backend.admin.banners.partials.table', compact('banners'))->render();
-            return response()->json([
-                'html' => $html,
-                'total' => $totalBanners,
-                'active' => $activeBanners,
-                'inactive' => $inactiveBanners,
-                'upcoming' => $upcomingBanners,
-                'expired' => $expiredBanners,
-            ]);
-        }
-
         return  view('backend.admin.banners.index', compact(
             'banners',
             'totalBanners',

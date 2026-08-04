@@ -158,6 +158,9 @@
                 </select>
 
                 <div class="flex items-center gap-2 w-full xl:w-auto shrink-0">
+                    <button type="submit" class="flex-1 xl:flex-none px-5 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors organic-shadow text-center w-full sm:w-auto">
+                        Lọc
+                    </button>
                     <a href="{{ route('admin.products.index') }}" id="btn-clear-filter"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
                         style="display: {{ (request('search') || (request('category_id') && request('category_id') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">

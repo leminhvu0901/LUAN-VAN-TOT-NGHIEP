@@ -169,6 +169,10 @@
                             <option value="value_desc" {{ request('sort') == 'value_desc' ? 'selected' : '' }}>Giá trị ↓</option>
                         </select>
 
+                        <button type="submit" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors xl:shrink-0 whitespace-nowrap">
+                            Lọc
+                        </button>
+
                         {{-- Nút Xóa lọc — luôn inline trong cùng hàng --}}
                         <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
                             class="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors xl:shrink-0 whitespace-nowrap"

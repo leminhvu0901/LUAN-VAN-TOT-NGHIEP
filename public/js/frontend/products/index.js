@@ -1,6 +1,7 @@
 /**
  * File Javascript điều khiển tương tác trên trang Danh sách sản phẩm
- * Hỗ trợ bộ lọc động bên client (phân loại HOT/NEW, sắp xếp, lọc giá, tìm kiếm)
+ * Sắp xếp (client-side, không AJAX) trên bộ thẻ sản phẩm của trang hiện tại.
+ * Lọc theo danh mục/giá/đánh giá/tìm kiếm và phân trang nay là form GET/link thường (tải lại trang).
  */
 
 /**
@@ -188,103 +189,11 @@ if (sortSelect && grid) {
     });
 })();
 
-/**
- * Phân trang qua AJAX (mục tiêu: tránh tải lại cả trang gây giật/nhấp nháy khi bấm chuyển trang).
- * Chặn click vào .p-pagination__btn, gọi fetch lấy đúng partial lưới sản phẩm + phân trang mới,
- * thay nội dung tại chỗ, cập nhật URL trên thanh địa chỉ (không tải lại trang), rồi chạy lại sort/filter
- * phía client trên bộ thẻ vừa nhận về. Gắn listener trên document (không phải trên #ajax-product-area
- * trực tiếp) vì vùng đó bị thay thế hoàn toàn mỗi lần chuyển trang, gắn trực tiếp sẽ mất listener.
- */
-document.addEventListener('click', function (event) {
-    const link = event.target.closest('.p-pagination__btn');
-    if (!link) return;
-    if (link.classList.contains('p-pagination__btn--disabled')) {
-        event.preventDefault();
-        return;
-    }
-
-    const url = link.getAttribute('href');
-    if (!url) return;
-
-    event.preventDefault();
-    // Truyền context 'pagination' để loadProductsPage biết đây là chuyển trang
-    // (khác với đổi bộ lọc) và cuộn về đầu danh sách sau khi load xong.
-    loadProductsPage(url, true, 'pagination');
-});
-
-function loadProductsPage(url, updateHistory, context) {
-    if (updateHistory === undefined) updateHistory = true;
-    if (context === undefined) context = 'filter';
-
-    const wrapper = document.getElementById('ajax-product-area');
-    if (!wrapper) {
-        window.location.href = url; // Không tìm thấy vùng AJAX (không nên xảy ra) -> điều hướng thật để không kẹt trang
-        return;
-    }
-    const outerParent = wrapper.parentElement;
-
-    wrapper.classList.add('p-product-area-loading');
-
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(function (response) {
-            if (!response.ok) throw new Error('Request failed');
-            return response.text();
-        })
-        .then(function (html) {
-            outerParent.innerHTML = html;
-            // Chỉ đẩy thêm lịch sử khi người dùng CHỦ ĐỘNG bấm số trang mới — khi hàm này được gọi lại
-            // do sự kiện popstate (bấm nút Back/Forward của trình duyệt) thì KHÔNG đẩy thêm, nếu không
-            // sẽ phá vỡ ngăn xếp lịch sử, bấm Back nhiều lần sẽ không thoát được khỏi trang sản phẩm.
-            if (updateHistory) history.pushState({}, '', url);
-
-            // #product-grid vừa bị thay bằng node MỚI (do outerParent.innerHTML ghi đè toàn bộ) -> phải
-            // gán lại tham chiếu, nếu không applySortAndFilter() sẽ thao tác nhầm lên node cũ đã gỡ khỏi DOM.
-            grid = document.getElementById('product-grid');
-            if (sortSelect && grid) applySortAndFilter();
-
-            // Khi chuyển trang phân trang (context === 'pagination'): cuộn viewport về đúng đầu vùng
-            // danh sách sản phẩm để người dùng (đặc biệt trên mobile) thấy ngay sản phẩm đầu tiên của
-            // trang mới thay vì phải tự cuộn lên. Dùng smooth để tránh cảm giác "nảy" đột ngột.
-            // Khi đổi bộ lọc (context === 'filter'): KHÔNG cuộn, giữ nguyên vị trí đang xem.
-            if (context === 'pagination') {
-                const productArea = document.getElementById('ajax-product-area');
-                if (productArea) {
-                    // Lấy vị trí thực của vùng danh sách sản phẩm, trừ thêm 12px padding trên để
-                    // không bị thanh navbar che khuất sản phẩm đầu tiên.
-                    const offsetTop = productArea.getBoundingClientRect().top + window.pageYOffset - 12;
-                    window.scrollTo({ top: offsetTop, behavior: 'smooth' });
-                }
-            }
-        })
-        .catch(function () {
-            // Fetch lỗi (mất mạng, server lỗi...) -> điều hướng thật như link bình thường, không kẹt trang
-            window.location.href = url;
-        });
-}
-
-// Bấm nút Back/Forward của trình duyệt sau khi đã chuyển trang qua AJAX -> tải lại đúng nội dung
-// tương ứng URL hiện tại thay vì chỉ đổi URL trên thanh địa chỉ mà nội dung trang không đổi theo.
-window.addEventListener('popstate', function () {
-    if (document.getElementById('ajax-product-area')) {
-        loadProductsPage(window.location.href, false, 'pagination');
-    }
-});
-
-/**
- * Đổi bộ lọc (danh mục/giá/đánh giá/tìm kiếm) qua AJAX thay vì tải lại cả trang — tái sử dụng đúng
- * loadProductsPage() đã dùng cho phân trang, tránh trùng lặp logic thay DOM/chống lỗi tham chiếu cũ.
- * Đổi bộ lọc luôn quay về trang 1 (không giữ tham số page cũ, khớp hành vi form GET thông thường).
- */
+// Phân trang và bộ lọc (danh mục/giá/đánh giá/tìm kiếm) nay là link/form GET thường (tải lại trang),
+// không còn AJAX. Trên di động, đóng sidebar lọc lại sau khi bấm "Áp dụng" để thấy ngay kết quả.
 const filterForm = document.getElementById('filter-form');
 if (filterForm) {
-    filterForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        const params = new URLSearchParams(new FormData(filterForm));
-        const url = filterForm.action + (params.toString() ? '?' + params.toString() : '');
-        // context = 'filter': không cuộn trang, chỉ thay nội dung tại chỗ
-        loadProductsPage(url, true, 'filter');
-
-        // Trên di động, bộ lọc dạng sidebar trượt ra — đóng lại sau khi áp dụng để thấy ngay kết quả.
+    filterForm.addEventListener('submit', function () {
         const sidebar = document.querySelector('.p-sidebar');
         if (sidebar) sidebar.classList.remove('open');
     });

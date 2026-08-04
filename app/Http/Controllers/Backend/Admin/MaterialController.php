@@ -82,13 +82,6 @@ class MaterialController
 
         $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price'));
 
-        if ($request->ajax()) {
-            $html =  view('backend.admin.materials.partials.table', compact('materials', 'deletableMaterialsCount'))->render();
-            return response()->json([
-                'html' => $html,
-            ]);
-        }
-
         return  view('backend.admin.materials.index', compact(
             'materials', 'deletableMaterialsCount', 'totalItems', 'lowStockItems', 'outOfStockItems', 'expiringItems', 'expiredItems', 'disposedBatchesCount', 'totalValue', 'disposedValue'
         ));

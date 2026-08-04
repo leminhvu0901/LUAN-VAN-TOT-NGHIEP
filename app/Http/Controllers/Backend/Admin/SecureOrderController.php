@@ -87,12 +87,6 @@ class SecureOrderController
             'pending_orders' => Order::where('status', 'pending')->count(),
             'cancelled_orders' => Order::where('status', 'cancelled')->count(),
         ];
-        if ($request->ajax() || $request->has('ajax')) {
-            return response()->json([ // Trả về dữ liệu HTML mới cho AJAX tiếp nhận tại file [public/js/backend/admin/orders/index.js]
-                'table_html' =>  view('backend.admin.orders.partials.table', compact('orders', 'paginator', 'status'))->with('currentStatus', $status)->render(),
-                'stats_html' =>  view('backend.admin.orders.partials.stats', compact('stats'))->render(),
-            ]);
-        }
         return  view('backend.admin.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status); // Trả về trang index chính thức
     }
 

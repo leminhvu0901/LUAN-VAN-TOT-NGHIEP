@@ -230,14 +230,6 @@ class ProductController
             ->limit(6)
             ->pluck('product_id')->toArray();
 
-        // Bấm chuyển trang gửi lên qua fetch (X-Requested-With: XMLHttpRequest) -> chỉ trả về đúng
-        // phần lưới sản phẩm + phân trang, không render lại toàn bộ trang (header/sidebar/footer...),
-        // để JS thay nội dung tại chỗ thay vì tải lại cả trang (đỡ giật/nhấp nháy).
-        if ($request->expectsJson()) {
-            return view('frontend.products.partials.grid', compact('products', 'favoriteProductIds', 'top6HotProductIds'))
-                ->render();
-        }
-
         // Trả dữ liệu sang view danh sách sản phẩm
         return view('frontend.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }

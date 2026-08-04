@@ -122,13 +122,6 @@ class OrderController
             'cancelled_orders' => Order::where('status', 'cancelled')->count(),
         ];
 
-        if ($request->ajax() || $request->has('ajax')) {
-            return response()->json([ // Trả về JSON để JS xử lý cập nhật giao diện tại file [public/js/backend/staff/reception/orders/index.js]
-                'table_html' => view('backend.staff.reception.orders.partials.table', compact('orders', 'paginator', 'status'))->with('currentStatus', $status)->render(),
-                'stats_html' => view('backend.staff.reception.orders.partials.stats', compact('stats'))->render(),
-            ]);
-        }
-
         return view('backend.staff.reception.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status);
     }
 

@@ -3,10 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const presetSelect = document.getElementById('preset-select');
     const dateFromContainer = document.getElementById('date-from-container');
     const dateToContainer = document.getElementById('date-to-container');
-    const reportsLoader = document.getElementById('reports-loader');
-    const contentWrapper = document.getElementById('reports-content-wrapper');
     const exportBtn = document.getElementById('export-btn');
-    const btnClearFilter = document.getElementById('btn-clear-filter');
 
     let revenueChart = null;
     let statusChart = null;
@@ -449,7 +446,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 4. Lắng nghe sự thay đổi của bộ lọc Preset
+    // 4. Bộ lọc Preset: đổi sang khoảng tùy chọn thì hiện thêm 2 ô ngày; các preset khác tự submit
+    // form (điều hướng thật, tải lại trang) để áp dụng ngay — không cần bấm nút "Áp dụng".
     if (presetSelect) {
         presetSelect.addEventListener('change', function () {
             if (this.value === 'custom') {
@@ -458,88 +456,15 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 dateFromContainer.classList.add('hidden');
                 dateToContainer.classList.add('hidden');
-                // Tự động submit khi chọn preset khác custom
-                submitFilterAjax();
+                filterForm.submit();
             }
-        });
-    }
-
-    // 5. Gửi bộ lọc bằng AJAX
-    function submitFilterAjax(e = null) {
-        if (e) e.preventDefault();
-
-        if (reportsLoader) {
-            reportsLoader.classList.remove('hidden');
-            reportsLoader.classList.add('flex');
-        }
-
-        const formData = new FormData(filterForm);
-        const searchParams = new URLSearchParams(formData);
-        const url = new URL(window.reportsConfig.indexUrl);
-        url.search = searchParams.toString();
-
-        // Đẩy URL lên thanh địa chỉ mà không reload trang
-        window.history.pushState({}, '', url);
-
-        fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.html) {
-                    contentWrapper.innerHTML = data.html;
-                }
-                if (data.revenueChartData) {
-                    initRevenueChart(data.revenueChartData);
-                }
-                if (data.orderStatusChartData) {
-                    initStatusChart(data.orderStatusChartData);
-                }
-                if (data.channelRevenueChartData) {
-                    initChannelChart(data.channelRevenueChartData);
-                }
-                if (data.channelOrdersChartData) {
-                    initChannelOrdersChart(data.channelOrdersChartData);
-                }
-                initFlatpickr();
-                initCustomPresetDropdown();
-
-                // Cập nhật trạng thái hiển thị của nút Xóa lọc
-                if (btnClearFilter && presetSelect) {
-                    if (presetSelect.value !== '30_days') {
-                        btnClearFilter.style.display = 'flex';
-                    } else {
-                        btnClearFilter.style.display = 'none';
-                    }
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                if (window.AdminAlert) {
-                    window.AdminAlert.error('Không thể cập nhật báo cáo dữ liệu. Vui lòng thử lại.', 'Lỗi tải dữ liệu');
-                }
-            })
-            .finally(() => {
-                if (reportsLoader) {
-                    reportsLoader.classList.add('hidden');
-                    reportsLoader.classList.remove('flex');
-                }
-            });
-    }
-
-    if (filterForm) {
-        filterForm.addEventListener('submit', function (e) {
-            submitFilterAjax(e);
         });
     }
 
     // 6. Xử lý xuất báo cáo ra file Excel (.xlsx)
     if (exportBtn) {
-        // Lấy bộ lọc từ chính form (giống submitFilterAjax) thay vì đọc URL: bộ lọc được áp dụng
-        // bằng AJAX nên form luôn là nguồn chuẩn, kể cả khi người dùng chưa bấm "Áp dụng".
+        // Lấy bộ lọc từ chính form thay vì đọc URL: form luôn là nguồn chuẩn, kể cả khi người dùng
+        // vừa đổi giá trị nhưng chưa bấm "Áp dụng".
         function buildExportUrl() {
             const url = new URL(window.reportsConfig.exportUrl, window.location.origin);
             if (filterForm) {
