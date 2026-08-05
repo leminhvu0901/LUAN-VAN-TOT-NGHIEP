@@ -261,22 +261,12 @@ class SettingController
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
-            if ($request->ajax() || $request->wantsJson()) {
-                $list = '<ul class="list-disc pl-5 space-y-0.5 text-left">'
-                    . collect($validator->errors()->all())->map(fn ($e) => "<li>{$e}</li>")->implode('')
-                    . '</ul>';
-                return response()->json(['success' => false, 'message' => $list], 422);
-            }
             return back()->withErrors($validator)->withInput()->with('error_section', $section);
         }
 
         // Guard against missing table
         if (!Schema::hasTable('settings')) {
-            $message = 'Bảng cấu hình chưa tồn tại. Vui lòng chạy php artisan migrate để tạo bảng settings trước.';
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => $message], 422);
-            }
-            return back()->with('error', $message)->with('error_section', $section);
+            return back()->with('error', 'Bảng cấu hình chưa tồn tại. Vui lòng chạy php artisan migrate để tạo bảng settings trước.')->with('error_section', $section);
         }
 
         $fields = $allowedKeys[$section] ?? [];
@@ -326,21 +316,6 @@ class SettingController
 
                 Setting::setValue('store_logo', $logoPath, 'store', 'string');
             }
-        }
-
-        if ($request->ajax() || $request->wantsJson()) {
-            $payload = ['success' => true, 'message' => 'Đã lưu cấu hình phân mục thành công!', 'section' => $section];
-            if ($logoPath) $payload['store_logo'] = asset($logoPath);
-
-            if ($section === 'payment') {
-                $momoEnvKey = $request->input('payment_environment') === 'production' ? 'production' : 'sandbox';
-                $momoEnvConfig = config("services.momo.{$momoEnvKey}", []);
-                $vnpayEnvConfig = config("services.vnpay.{$momoEnvKey}", []);
-                $payload['momo_configured'] = !empty($momoEnvConfig['partner_code']) && !empty($momoEnvConfig['access_key']) && !empty($momoEnvConfig['secret_key']);
-                $payload['vnpay_configured'] = !empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret']);
-            }
-
-            return response()->json($payload);
         }
 
         return back()->with('success', 'Đã lưu cấu hình phân mục thành công!')->with('active_section', $section);

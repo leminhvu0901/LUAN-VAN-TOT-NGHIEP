@@ -31,8 +31,8 @@
                     <div class="flex flex-col gap-2 relative">
                         <label for="preset-select" class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mốc thời gian</label>
                         
-                        <!-- Select thật ẩn đi để submit form và giữ nguyên JS selector -->
-                        <select name="preset" id="preset-select" class="hidden">
+                        <select name="preset" id="preset-select"
+                            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 font-medium text-sm shadow-sm hover:border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer h-11 md:h-10">
                             <option value="today" {{ $preset == 'today' ? 'selected' : '' }}>Hôm nay</option>
                             <option value="7_days" {{ $preset == '7_days' ? 'selected' : '' }}>7 ngày gần nhất</option>
                             <option value="30_days" {{ $preset == '30_days' ? 'selected' : '' }}>30 ngày gần nhất</option>
@@ -41,48 +41,6 @@
                             <option value="this_year" {{ $preset == 'this_year' ? 'selected' : '' }}>Năm nay</option>
                             <option value="custom" {{ $preset == 'custom' ? 'selected' : '' }}>Khoảng ngày tùy chọn</option>
                         </select>
-
-                        <!-- Custom Dropdown Wrapper -->
-                        <div class="relative w-full reports-dropdown-wrapper" id="custom-preset-dropdown">
-                            <button type="button" class="w-full flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 font-medium text-sm shadow-sm hover:border-gray-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer h-11 md:h-10 reports-dropdown-btn">
-                                <span class="selected-label">Hôm nay</span>
-                                <span class="material-symbols-outlined text-[20px] text-gray-500 dropdown-arrow transition-transform duration-200">expand_more</span>
-                            </button>
-                            
-                            <!-- Custom Options Menu -->
-                            <div class="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-[240px] overflow-y-auto hidden reports-dropdown-menu">
-                                <div class="py-1">
-                                    <button type="button" data-value="today" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>Hôm nay</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="7_days" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>7 ngày gần nhất</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="30_days" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>30 ngày gần nhất</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="this_month" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>Tháng này</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="last_month" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>Tháng trước</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="this_year" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>Năm nay</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                    <button type="button" data-value="custom" class="dropdown-item w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-slate-50 transition-colors flex items-center justify-between min-h-[42px]">
-                                        <span>Khoảng ngày tùy chọn</span>
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-600 hidden select-check">check</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Date From (Ẩn/Hiện tùy vào preset) -->

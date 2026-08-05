@@ -999,23 +999,6 @@ select {
     font-size: 14px !important;
 }
 
-/* Custom Dropdown styling overrides */
-.reports-page .reports-dropdown-menu {
-    top: 100%;
-}
-.reports-page .reports-dropdown-menu.open-up {
-    top: auto !important;
-    bottom: 100% !important;
-    margin-bottom: 0.25rem !important;
-    margin-top: 0 !important;
-}
-
-.reports-page .dropdown-item {
-    font-size: 14px !important;
-    line-height: 1.25rem !important;
-    min-height: 42px !important;
-}
-
 /* Prevent text overflow for currency and codes */
 .reports-page .reports-stat-val {
     overflow-wrap: anywhere !important;
