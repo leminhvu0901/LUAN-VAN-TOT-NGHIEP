@@ -1166,64 +1166,6 @@ select {
 }
 
 /* =============================================
-   ORDER STATUS PORTAL DROPDOWN STYLES
-   ============================================= */
-.status-options-menu.portal-menu {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-    background-color: #ffffff !important;
-    border: 1px solid #e5e7eb !important;
-}
-
-/* Optional custom classes scoped to staff page */
-.staff-status-options-menu {
-    border-color: #34d399 !important; /* Emerald-400 hint for staff area */
-}
-
-.admin-status-options-menu {
-    border-color: #10b981 !important; /* Emerald-500 hint for admin area */
-}
-
-.status-option-item {
-    padding: 0.75rem 1rem !important;
-    font-size: 0.875rem !important;
-    transition: background-color 0.15s ease, color 0.15s ease !important;
-}
-.status-option-item.active {
-    font-weight: 700 !important;
-}
-/* Yellow / Chờ xác nhận */
-.status-option-item.opt-pending:hover { background-color: #fef9c3 !important; }
-.status-option-item.opt-pending.active { background-color: #fef9c3 !important; color: #a16207 !important; }
-.status-option-item.opt-pending { color: #a16207 !important; }
-
-/* Blue / Đã xác nhận */
-.status-option-item.opt-confirmed:hover { background-color: #dbeafe !important; }
-.status-option-item.opt-confirmed.active { background-color: #dbeafe !important; color: #1d4ed8 !important; }
-.status-option-item.opt-confirmed { color: #1d4ed8 !important; }
-
-/* Orange / Đang giao */
-.status-option-item.opt-shipping:hover { background-color: #ffedd5 !important; }
-.status-option-item.opt-shipping.active { background-color: #ffedd5 !important; color: #c2410c !important; }
-.status-option-item.opt-shipping { color: #c2410c !important; }
-
-/* Green / Hoàn thành */
-.status-option-item.opt-completed:hover { background-color: #d1fae5 !important; }
-.status-option-item.opt-completed.active { background-color: #d1fae5 !important; color: #047857 !important; }
-.status-option-item.opt-completed { color: #047857 !important; }
-
-/* Red / Đã hủy */
-.status-option-item.opt-cancelled:hover { background-color: #fee2e2 !important; }
-.status-option-item.opt-cancelled.active { background-color: #fee2e2 !important; color: #b91c1c !important; }
-.status-option-item.opt-cancelled { color: #b91c1c !important; }
-
-.status-option-item.disabled {
-    opacity: 0.5 !important;
-    cursor: not-allowed !important;
-    pointer-events: none !important;
-}
-
-/* =============================================
    SETTINGS PAGE RESPONSIVE OPTIMIZATIONS
    ============================================= */
 .settings-page {

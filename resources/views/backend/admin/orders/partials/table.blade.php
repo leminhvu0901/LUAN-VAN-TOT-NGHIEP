@@ -93,7 +93,7 @@
                                 $allowedStatuses = array_values(array_diff($allowedStatuses, ['cancelled']));
                         @endphp
                         <select name="status" data-current-status="{{ $order['raw_status'] }}"
-                            class="js-order-status-select order-status-select text-[11px] xl:text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
+                            class="js-order-status-select text-[11px] xl:text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
                             <option value="pending" {{ $order['raw_status'] === 'pending' ? 'selected' : '' }} {{ !in_array('pending', $allowedStatuses) ? 'disabled' : '' }}>Chờ xác nhận</option>
                             <option value="confirmed" {{ $order['raw_status'] === 'confirmed' ? 'selected' : '' }} {{ !in_array('confirmed', $allowedStatuses) ? 'disabled' : '' }}>Đã xác nhận</option>
                             <option value="shipping" {{ $order['raw_status'] === 'shipping' ? 'selected' : '' }} {{ !in_array('shipping', $allowedStatuses) ? 'disabled' : '' }}>Đang giao</option>
@@ -239,7 +239,7 @@
                             $allowedStatuses = array_values(array_diff($allowedStatuses, ['cancelled']));
                     @endphp
                     <select name="status" data-current-status="{{ $order['raw_status'] }}"
-                        class="js-order-status-select order-status-select text-xs w-full border-gray-200 rounded-lg shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} py-2 px-3 cursor-pointer appearance-none text-center">
+                        class="js-order-status-select text-xs w-full border-gray-200 rounded-lg shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} py-2 px-3 cursor-pointer text-center">
                         <option value="pending" {{ $order['raw_status'] === 'pending' ? 'selected' : '' }} {{ !in_array('pending', $allowedStatuses) ? 'disabled' : '' }}>Chờ xác nhận</option>
                         <option value="confirmed" {{ $order['raw_status'] === 'confirmed' ? 'selected' : '' }} {{ !in_array('confirmed', $allowedStatuses) ? 'disabled' : '' }}>Đã xác nhận</option>
                         <option value="shipping" {{ $order['raw_status'] === 'shipping' ? 'selected' : '' }} {{ !in_array('shipping', $allowedStatuses) ? 'disabled' : '' }}>Đang giao</option>
