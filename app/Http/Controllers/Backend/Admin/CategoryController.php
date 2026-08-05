@@ -4,25 +4,9 @@ namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class CategoryController
 {
-    /**
-     * Cột "slug" là NOT NULL + UNIQUE nhưng form không có ô nhập riêng - tự sinh từ "name" ở đây.
-     * $ignoreId dùng khi cập nhật để không tự đụng vào chính bản ghi đang sửa.
-     */
-    private function generateUniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name) ?: 'danh-muc';
-        $slug = $base;
-        $i = 1;
-        while (Category::where('slug', $slug)->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        return $slug;
-    }
-
     /**
      * HIỂN THỊ DANH SÁCH DANH MỤC
      */
@@ -103,7 +87,6 @@ class CategoryController
 
         $data = $request->except(['image_url']);
         $data['is_active'] = $request->has('is_active') ? 1 : 0;
-        $data['slug'] = $this->generateUniqueSlug($data['name']);
 
         if (empty($data['display_order'])) {
             $data['display_order'] = Category::max('display_order') + 1;
