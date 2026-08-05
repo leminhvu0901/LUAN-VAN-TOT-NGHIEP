@@ -1,5 +1,5 @@
-{{-- Danh sách đánh giá kiểu "full" + nút "Xem thêm đánh giá" — dùng chung cho lần tải trang đầu tiên
-     (products/show.blade.php @include) VÀ mỗi lần fetch qua reviews-filter.js (lọc/xem thêm). --}}
+{{-- Danh sách đánh giá kiểu "full" — dùng cho products/show.blade.php. Nút "Xem thêm" là link phân
+     trang GET thật (paginator tự giữ nguyên các tham số lọc rating/has_image nhờ withQueryString()). --}}
 @php $isFiltered = $isFiltered ?? false; @endphp
 <div class="review-items-fragment">
     @forelse($reviews as $review)
@@ -17,6 +17,6 @@
 </div>
 <div class="review-loadmore-fragment pd-review-loadmore-wrap">
     @if($reviews->hasMorePages())
-        <button type="button" class="review-loadmore-btn pd-review-loadmore-btn" data-next-page="{{ $reviews->currentPage() + 1 }}">Xem thêm đánh giá</button>
+        <a href="{{ $reviews->nextPageUrl() }}#reviews-section" class="review-loadmore-btn pd-review-loadmore-btn">Xem thêm đánh giá</a>
     @endif
 </div>

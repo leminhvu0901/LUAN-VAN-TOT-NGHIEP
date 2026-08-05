@@ -266,7 +266,7 @@ $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_p
     @endif
 
     {{-- ===== PHẦN ĐÁNH GIÁ TỪ KHÁCH HÀNG ===== --}}
-    <div class="pd-reviews-section">
+    <div class="pd-reviews-section" id="reviews-section">
         <h2 class="pd-section-title">Đánh giá từ khách hàng</h2>
 
         {{-- Bảng tóm tắt điểm đánh giá sao trung bình & tỉ lệ phần trăm các mức sao --}}
@@ -297,20 +297,19 @@ $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_p
             </div>
         </div>
 
-        {{-- Danh sách các bình luận của khách hàng — bọc trong .reviews-app để reviews-filter.js nhận
-        diện, nút lọc + khung danh sách/nút "Xem thêm" đều dùng chung 1 bộ class với trang "Xem đánh
-        giá" (xem public/js/frontend/products/reviews-filter.js). --}}
-        <div class="reviews-app" data-product-id="{{ $product->id }}" data-view="full">
+        {{-- Danh sách các bình luận của khách hàng — nút lọc giờ là link GET thật (tải lại trang),
+        trạng thái "đang chọn" tính thẳng từ request() hiện tại thay vì JS. --}}
+        <div class="reviews-app">
             <div class="pd-review-filters">
-                <button type="button" class="pd-review-filter-btn review-filter-btn is-active" data-rating="" data-has-image="">Tất cả</button>
+                <a href="{{ route('product.show', $product->slug) }}#reviews-section" class="pd-review-filter-btn review-filter-btn {{ !request('rating') && !request('has_image') ? 'is-active' : '' }}">Tất cả</a>
                 @for($star = 5; $star >= 1; $star--)
-                <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
+                <a href="{{ route('product.show', $product->slug) }}?rating={{ $star }}#reviews-section" class="pd-review-filter-btn review-filter-btn {{ request('rating') == $star ? 'is-active' : '' }}">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</a>
                 @endfor
-                <button type="button" class="pd-review-filter-btn review-filter-btn" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
+                <a href="{{ route('product.show', $product->slug) }}?has_image=1#reviews-section" class="pd-review-filter-btn review-filter-btn {{ request('has_image') ? 'is-active' : '' }}">Có hình ảnh ({{ $hasImageCount }})</a>
             </div>
 
             <div class="pd-review-list">
-                @include('frontend.products.partials.reviews-list-full', ['reviews' => $reviews])
+                @include('frontend.products.partials.reviews-list-full', ['reviews' => $reviews, 'isFiltered' => $isFiltered])
             </div>
         </div>
     </div>
@@ -358,6 +357,5 @@ $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_p
 {{-- Đẩy mã JS của trang chi tiết sản phẩm vào ngăn xếp stack của Layout --}}
 @push('scripts')
 <script src="{{ asset('js/frontend/products/show.js') }}?v={{ filemtime(public_path('js/frontend/products/show.js')) }}"></script>
-<script src="{{ asset('js/frontend/products/reviews-filter.js') }}?v={{ filemtime(public_path('js/frontend/products/reviews-filter.js')) }}"></script>
 @endpush
 @endsection

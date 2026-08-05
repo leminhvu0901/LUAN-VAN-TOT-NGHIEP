@@ -1,5 +1,5 @@
-{{-- Danh sách đánh giá kiểu "compact" + nút "Xem thêm đánh giá" — dùng chung cho lần tải trang đầu
-     tiên (products/review.blade.php @include) VÀ mỗi lần fetch qua reviews-filter.js (lọc/xem thêm). --}}
+{{-- Danh sách đánh giá kiểu "compact" — dùng cho products/review.blade.php. Nút "Xem thêm" là link
+     phân trang GET thật (paginator tự giữ nguyên các tham số lọc rating/has_image nhờ withQueryString()). --}}
 @php $isFiltered = $isFiltered ?? false; @endphp
 <div class="review-items-fragment space-y-6">
     @forelse($reviews as $review)
@@ -16,6 +16,6 @@
 </div>
 <div class="review-loadmore-fragment mt-8 text-center">
     @if($reviews->hasMorePages())
-        <button type="button" class="review-loadmore-btn text-[#00a82d] font-bold text-sm hover:underline" data-next-page="{{ $reviews->currentPage() + 1 }}">Xem thêm đánh giá</button>
+        <a href="{{ $reviews->nextPageUrl() }}#reviews-list" class="review-loadmore-btn text-[#00a82d] font-bold text-sm hover:underline">Xem thêm đánh giá</a>
     @endif
 </div>

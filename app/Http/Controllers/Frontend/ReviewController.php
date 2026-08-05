@@ -16,7 +16,7 @@ class ReviewController
     /**
      * Hiển thị giao diện viết đánh giá hoặc xem/sửa đánh giá cũ của sản phẩm thuộc đơn hàng
      */
-    public function create($orderId, $productId)
+    public function create($orderId, $productId, Request $request)
     {
         // 1. Kiểm tra đăng nhập
         if (!Auth::check()) {
@@ -70,14 +70,26 @@ class ReviewController
             abort(404);
         }
 
-        // 6. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản phẩm bên lề
-        $reviews = \App\Models\Review::query()
+        // 6. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản
+        // phẩm bên lề — áp dụng bộ lọc sao/có ảnh (nút lọc trên trang giờ là link GET thật).
+        $reviewsQuery = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $productId)
             ->where('reviews.is_visible', 1)
-            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar')
-            ->orderBy('reviews.created_at', 'desc')
-            ->paginate(5);
+            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar');
+
+        $reviewRating = $request->query('rating');
+        if (in_array($reviewRating, ['1', '2', '3', '4', '5'], true)) {
+            $reviewsQuery->where('reviews.rating', (int) $reviewRating);
+        }
+        if ($request->boolean('has_image')) {
+            $reviewsQuery->whereNotNull('reviews.image');
+        }
+        $isFiltered = $request->filled('rating') || $request->boolean('has_image');
+
+        $reviews = $reviewsQuery->orderBy('reviews.created_at', 'desc')
+            ->paginate(5)
+            ->withQueryString();
 
         // Phân phối tỷ lệ đánh giá (số lượng 5 sao, 4 sao...)
         $ratingDistribution = \App\Models\Review::query()
@@ -99,7 +111,7 @@ class ReviewController
         $canEditReview = $existingReview && $this->canStillEdit($existingReview);
         $editWindowDays = self::EDIT_WINDOW_DAYS;
 
-        return view('frontend.products.review', compact('order', 'product', 'reviews', 'ratingDistribution', 'hasImageCount', 'existingReview', 'canEditReview', 'editWindowDays'));
+        return view('frontend.products.review', compact('order', 'product', 'reviews', 'ratingDistribution', 'hasImageCount', 'existingReview', 'canEditReview', 'editWindowDays', 'isFiltered'));
     }
 
     /**
@@ -206,12 +218,7 @@ class ReviewController
         session()->flash('success', 'Cảm ơn bạn đã đánh giá sản phẩm!');
         session()->flash('open_order_id', $orderId);
 
-        $redirectUrl = route('orders', ['status' => 'completed']);
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
-        }
-
-        return redirect($redirectUrl);
+        return redirect()->route('orders', ['status' => 'completed']);
     }
 
     /**
@@ -239,20 +246,12 @@ class ReviewController
 
         // Chặn nếu đánh giá này đã được chỉnh sửa rồi (mỗi đánh giá chỉ được sửa 1 lần duy nhất)
         if ($existingReview->edited_at) {
-            $message = 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.';
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $message], 422);
-            }
-            return redirect()->route('orders')->with('error', $message);
+            return redirect()->route('orders')->with('error', 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.');
         }
 
         // Chặn nếu đã quá thời hạn chỉnh sửa 7 ngày
         if (!$this->withinEditWindow($existingReview)) {
-            $message = 'Đã quá ' . self::EDIT_WINDOW_DAYS . ' ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.';
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $message], 422);
-            }
-            return redirect()->route('orders')->with('error', $message);
+            return redirect()->route('orders')->with('error', 'Đã quá ' . self::EDIT_WINDOW_DAYS . ' ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.');
         }
 
         // 3. Thực hiện validate dữ liệu đầu vào cập nhật
@@ -336,22 +335,13 @@ class ReviewController
                     @unlink($path);
                 }
             }
-            $message = 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.';
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $message], 422);
-            }
-            return redirect()->route('orders')->with('error', $message);
+            return redirect()->route('orders')->with('error', 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.');
         }
 
         session()->flash('success', 'Đã cập nhật đánh giá của bạn!');
         session()->flash('open_order_id', $orderId);
 
-        $redirectUrl = route('orders', ['status' => 'completed']);
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
-        }
-
-        return redirect($redirectUrl);
+        return redirect()->route('orders', ['status' => 'completed']);
     }
 
     /**

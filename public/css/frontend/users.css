@@ -9937,7 +9937,7 @@ chuyển ra đây để mobile thu gọn lại được) */
 
 /* Thanh chỉ báo vị trí cuộn ngang cho hàng nút lọc đánh giá (trang "Xem đánh giá") — cùng cơ chế với
    .home-categories-scrollbar ở trang chủ. Vị trí/độ rộng "thumb" tính động theo tỉ lệ cuộn thật qua
-   JS (xem public/js/frontend/products/reviews-filter.js). Trên desktop hàng nút tự xuống dòng thay vì
+   JS (xem public/js/frontend/products/review.js). Trên desktop hàng nút tự xuống dòng thay vì
    cuộn ngang (không cần thanh chỉ báo) — JS tự ẩn thanh này khi không có gì để cuộn. */
 .review-filters-scrollbar {
   height: 4px;

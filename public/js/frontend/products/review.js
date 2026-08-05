@@ -6,8 +6,7 @@
  * - Chuyển đổi qua lại giữa chế độ xem đánh giá và biểu mẫu chỉnh sửa (Edit Mode) bằng JS thuần không tải lại trang.
  * - Xem trước hình ảnh đánh giá (FileReader API), kiểm tra số lượng (tối đa 5 ảnh) và dung lượng file (tối đa 2MB).
  * - Nút xóa nhanh tất cả ảnh vừa chọn.
- * - Gửi dữ liệu đánh giá (bao gồm văn bản, số sao, và tệp ảnh đa phần tử) lên máy chủ bằng Fetch API + FormData.
- * - Xử lý thông báo lỗi chi tiết tại chỗ mà không làm mất dữ liệu người dùng nhập.
+ * Form gửi/sửa đánh giá submit thật (tải lại trang) — lỗi hiện qua $errors render sẵn trong Blade.
  */
 document.addEventListener('DOMContentLoaded', function() {
     // === 1. XỬ LÝ CHẤM ĐIỂM SAO TƯƠNG TÁC (STAR RATING) ===
@@ -130,61 +129,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     window.previewImages = previewImages; // Đưa ra toàn cục
-
-    // === 4. GỬI ĐÁNH GIÁ ĐỒNG BỘ QUA FETCH API (AJAX FORM SUBMIT) ===
-    const reviewForm = document.querySelector('form[action*="/review"]');
-    if (reviewForm) {
-        reviewForm.addEventListener('submit', function (event) {
-            event.preventDefault(); // Chặn hành vi tải lại trang mặc định của Form
-            
-            const btn = reviewForm.querySelector('button[type="submit"]');
-            if (btn) btn.disabled = true; // Disable nút bấm chống gửi trùng lặp
-
-            // Sử dụng FormData đóng gói toàn bộ trường dữ liệu và tệp tin ảnh gửi đi
-            fetch(reviewForm.action, {
-                method: 'POST',
-                headers: { 
-                    Accept: 'application/json', 
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
-                },
-                body: new FormData(reviewForm),
-            })
-            .then(function (response) {
-                // Nhận phản hồi dạng JSON kèm mã trạng thái HTTP status
-                return response.json().then(function (data) { 
-                    return { status: response.status, data: data }; 
-                });
-            })
-            .then(function (result) {
-                // A. Xử lý khi xảy ra lỗi dữ liệu hoặc lỗi Server (Status >= 400)
-                if (result.status >= 400) {
-                    const errors = (result.data && result.data.errors) || {};
-                    const firstError = Object.values(errors)[0];
-                    const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi đánh giá, vui lòng kiểm tra lại.';
-                    
-                    // Hiển thị thông báo lỗi nổi bọt (Toast)
-                    if (window.FrontendAlert) {
-                        window.FrontendAlert.error(message);
-                    } else {
-                        alert(message);
-                    }
-                    if (btn) btn.disabled = false; // Kích hoạt lại nút bấm
-                    return;
-                }
-                
-                // B. Xử lý khi gửi thành công -> Chuyển hướng người dùng về trang do server chỉ định
-                if (result.data && result.data.redirect_url) {
-                    window.location.href = result.data.redirect_url;
-                    return;
-                }
-                if (btn) btn.disabled = false;
-            })
-            .catch(function (err) {
-                console.error('Lỗi gửi đánh giá:', err);
-                const networkError = 'Không thể kết nối máy chủ, vui lòng thử lại sau.';
-                if (window.FrontendAlert) window.FrontendAlert.error(networkError); else alert(networkError);
-                if (btn) btn.disabled = false;
-            });
-        });
-    }
 });
+
+// === 5. THANH CHỈ BÁO VỊ TRÍ CUỘN NGANG CHO HÀNG NÚT LỌC ĐÁNH GIÁ (không phải AJAX, thuần UI) ===
+// Hàng nút lọc ẩn thanh cuộn gốc của trình duyệt (.hide-scrollbar) nên cần 1 chỉ báo riêng cho biết
+// còn nút lọc ở bên phải để vuốt sang — chỉ áp dụng cho trang "Viết/Sửa đánh giá" (review.blade.php).
+(function () {
+    const track = document.getElementById('review-filters-track');
+    const scrollbar = document.getElementById('review-filters-scrollbar');
+    const thumb = document.getElementById('review-filters-scrollbar-thumb');
+    if (!track || !scrollbar || !thumb) return;
+
+    function updateScrollIndicator() {
+        const scrollWidth = track.scrollWidth;
+        const clientWidth = track.clientWidth;
+        const scrollLeft = track.scrollLeft;
+
+        if (scrollWidth <= clientWidth) {
+            scrollbar.style.display = 'none';
+            return;
+        }
+
+        scrollbar.style.display = 'block';
+
+        const thumbWidthRatio = clientWidth / scrollWidth;
+        const thumbWidth = Math.max(20, clientWidth * thumbWidthRatio);
+        thumb.style.width = thumbWidth + 'px';
+
+        const maxScrollLeft = scrollWidth - clientWidth;
+        const maxThumbLeft = clientWidth - thumbWidth;
+        const thumbLeft = (scrollLeft / maxScrollLeft) * maxThumbLeft;
+        thumb.style.transform = `translateX(${thumbLeft}px)`;
+    }
+
+    track.addEventListener('scroll', updateScrollIndicator);
+    window.addEventListener('resize', updateScrollIndicator);
+    updateScrollIndicator();
+})();

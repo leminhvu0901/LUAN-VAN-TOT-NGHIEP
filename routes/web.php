@@ -17,9 +17,6 @@ Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->grou
 
     // Trang chi tiết sản phẩm
     Route::get('/products/{slug}', [App\Http\Controllers\Frontend\ProductController::class, 'show'])->name('product.show');
-
-    // Lấy danh sách đánh giá sản phẩm qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
-    Route::get('/products/{productId}/reviews', [App\Http\Controllers\Frontend\ProductController::class, 'reviews'])->name('products.reviews');
 });
 
 

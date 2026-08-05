@@ -12,7 +12,7 @@ class ProductController
      * Hiển thị trang thông tin chi tiết của một sản phẩm.
 
      */
-    public function show($slug)
+    public function show($slug, Request $request)
     {
         // lay het thong tin tu san pham ban chọn
         $product = \App\Models\Product::query()
@@ -54,14 +54,26 @@ class ProductController
             ->select('toppings.*')
             ->get();
 
-        // 4. Lấy trang đầu tiên các lượt đánh giá mới nhất kèm thông tin người dùng
-        $reviews = \App\Models\Review::query()
+        // 4. Lấy danh sách đánh giá mới nhất kèm thông tin người dùng — áp dụng bộ lọc sao/có ảnh
+        // (nút lọc trên trang giờ là link GET thật, xem resources/views/frontend/products/show.blade.php).
+        $reviewsQuery = \App\Models\Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
             ->where('reviews.is_visible', 1)
-            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar')
-            ->orderBy('reviews.created_at', 'desc')
-            ->paginate(self::REVIEWS_PER_PAGE);
+            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar');
+
+        $reviewRating = $request->query('rating');
+        if (in_array($reviewRating, ['1', '2', '3', '4', '5'], true)) {
+            $reviewsQuery->where('reviews.rating', (int) $reviewRating);
+        }
+        if ($request->boolean('has_image')) {
+            $reviewsQuery->whereNotNull('reviews.image');
+        }
+        $isFiltered = $request->filled('rating') || $request->boolean('has_image');
+
+        $reviews = $reviewsQuery->orderBy('reviews.created_at', 'desc')
+            ->paginate(self::REVIEWS_PER_PAGE)
+            ->withQueryString();
 
         // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu lượt đánh giá 1 sao, 2 sao, ..., 5 sao)
         $ratingDistribution = \App\Models\Review::query()
@@ -134,7 +146,8 @@ class ProductController
             'relatedProducts',
             'isFavorite',
             'isHot',
-            'isNew'
+            'isNew',
+            'isFiltered'
         ));
     }
 
@@ -236,45 +249,4 @@ class ProductController
 
     // Số đánh giá tải mỗi lần (trang đầu + mỗi lần bấm "Xem thêm đánh giá").
     private const REVIEWS_PER_PAGE = 5;
-
-    /**
-     * Lọc + phân trang đánh giá của 1 sản phẩm qua AJAX — dùng chung cho cả trang chi tiết sản phẩm
-     */
-    public function reviews($productId, Request $request)
-    {
-        $product = \App\Models\Product::query()->find($productId);
-        if (!$product) {
-            abort(404);
-        }
-
-        $query = \App\Models\Review::query()
-            ->join('users', 'reviews.user_id', '=', 'users.id')
-            ->where('reviews.product_id', $productId)
-            ->where('reviews.is_visible', 1)
-            ->select('reviews.*', 'users.name as user_name', 'users.avatar as user_avatar');
-
-        $rating = $request->query('rating');
-        if (in_array($rating, ['1', '2', '3', '4', '5'], true)) {
-            $query->where('reviews.rating', (int) $rating);
-        }
-
-        if ($request->boolean('has_image')) {
-            $query->whereNotNull('reviews.image');
-        }
-
-        $reviews = $query->orderBy('reviews.created_at', 'desc')
-            ->paginate(self::REVIEWS_PER_PAGE)
-            ->withQueryString();
-
-        // Đang có bộ lọc đang áp dụng hay không -> quyết định thông báo "trống" đúng ngữ cảnh (không
-        // có đánh giá nào phù hợp bộ lọc, khác với chưa có đánh giá nào cho sản phẩm này).
-        $isFiltered = $request->filled('rating') || $request->boolean('has_image');
-
-        $view = $request->query('view') === 'full'
-            ? 'frontend.products.partials.reviews-list-full'
-            : 'frontend.products.partials.reviews-list-compact';
-
-        // Trả về HTML giao diện danh sách đánh giá cho hàm fetchReviews() trong file [public/js/frontend/products/reviews-filter.js]
-        return view($view, compact('reviews', 'isFiltered'));
-    }
 }

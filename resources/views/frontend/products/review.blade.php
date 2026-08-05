@@ -41,7 +41,7 @@
                 @if($existingReview)
                 {{-- Đã đánh giá rồi -> mặc định chỉ xem lại nội dung đã gửi; nếu còn trong hạn 7
                     ngày (canEditReview) thì có thêm nút "Chỉnh sửa đánh giá" chuyển sang form sửa. --}}
-                <div id="review-view-mode">
+                <div id="review-view-mode" class="{{ $errors->hasAny(['rating', 'comment', 'images', 'images.*']) ? 'hidden' : '' }}">
                     {{-- Gộp tiêu đề + số sao lên cùng 1 hàng (trước đây 2 hàng riêng) để tiết kiệm
                         chiều cao trên điện thoại. --}}
                     <div class="flex items-center justify-between gap-2 mb-2">
@@ -108,7 +108,10 @@
                 </div>
 
                 @if($canEditReview)
-                <div id="review-edit-mode" class="hidden">
+                {{-- Mặc định ẩn (chỉ hiện khi bấm "Chỉnh sửa" qua JS) — nhưng nếu vừa submit form sửa
+                bị lỗi validate (rating/comment/images), trang tải lại vẫn phải MỞ SẴN khối này ra thì
+                mới thấy được thông báo lỗi bên trong, không thì lỗi coi như "biến mất". --}}
+                <div id="review-edit-mode" class="{{ $errors->hasAny(['rating', 'comment', 'images', 'images.*']) ? '' : 'hidden' }}">
                     <h2 class="font-bold text-gray-900 text-base mb-4">Chỉnh sửa đánh giá</h2>
 
                     <form action="{{ route('review.update', ['orderId' => $order->id, 'productId' => $product->id]) }}" method="POST" enctype="multipart/form-data">
@@ -220,18 +223,22 @@
         <div class="flex-1 bg-white rounded-2xl border border-outline-variant/60 p-4 md:p-6 shadow-sm">
             <h2 class="font-headline-md text-lg md:text-2xl font-bold text-gray-900 mb-3 md:mb-6">Đánh giá từ khách hàng</h2>
 
-            {{-- Bọc trong .reviews-app để reviews-filter.js nhận diện — nút lọc + khung danh sách/nút
-            "Xem thêm" dùng chung 1 bộ class với trang chi tiết sản phẩm (xem
-            public/js/frontend/products/reviews-filter.js). --}}
-            <div class="reviews-app" data-product-id="{{ $product->id }}" data-view="compact">
+            {{-- Nút lọc giờ là link GET thật (tải lại trang) — class "đang chọn" (nền xanh) tính thẳng
+            từ request() hiện tại thay vì JS toggle .is-active như trước. --}}
+            @php
+                $activeFilterClass = 'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-[#00a82d] text-white text-xs md:text-sm font-bold rounded-full border border-[#00a82d]';
+                $inactiveFilterClass = 'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200';
+                $reviewFilterBaseUrl = route('review.create', ['orderId' => $order->id, 'productId' => $product->id]);
+            @endphp
+            <div class="reviews-app">
                 {{-- Filters: cuộn ngang 1 hàng thay vì xuống dòng thành 3 hàng (7 nút lọc chiếm gần
                 hết màn hình điện thoại) — cùng cách thanh lọc trạng thái ở trang Đơn hàng đang làm. --}}
                 <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1 md:flex-wrap md:overflow-visible" id="review-filters-track">
-                    <button type="button" class="review-filter-btn is-active flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-[#00a82d] text-white text-xs md:text-sm font-bold rounded-full border border-[#00a82d]" data-rating="" data-has-image="">Tất cả</button>
+                    <a href="{{ $reviewFilterBaseUrl }}#reviews-list" class="{{ !request('rating') && !request('has_image') ? $activeFilterClass : $inactiveFilterClass }}">Tất cả</a>
                     @for($star = 5; $star >= 1; $star--)
-                    <button type="button" class="review-filter-btn flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="{{ $star }}" data-has-image="">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</button>
+                    <a href="{{ $reviewFilterBaseUrl }}?rating={{ $star }}#reviews-list" class="{{ request('rating') == $star ? $activeFilterClass : $inactiveFilterClass }}">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</a>
                     @endfor
-                    <button type="button" class="review-filter-btn flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200" data-rating="" data-has-image="1">Có hình ảnh ({{ $hasImageCount }})</button>
+                    <a href="{{ $reviewFilterBaseUrl }}?has_image=1#reviews-list" class="{{ request('has_image') ? $activeFilterClass : $inactiveFilterClass }}">Có hình ảnh ({{ $hasImageCount }})</a>
                 </div>
                 {{-- Thanh chỉ báo vị trí cuộn ngang — hàng nút lọc ở trên ẩn thanh cuộn gốc của trình
                 duyệt (.hide-scrollbar) nên không còn gợi ý nào cho biết còn nút lọc ở bên phải để vuốt
@@ -241,7 +248,9 @@
                 </div>
 
                 <!-- Reviews List -->
-                @include('frontend.products.partials.reviews-list-compact', ['reviews' => $reviews])
+                <div id="reviews-list">
+                    @include('frontend.products.partials.reviews-list-compact', ['reviews' => $reviews, 'isFiltered' => $isFiltered])
+                </div>
             </div>
         </div>
 
@@ -250,7 +259,6 @@
 
 @push('scripts')
 <script src="{{ asset('js/frontend/products/review.js') }}?v={{ filemtime(public_path('js/frontend/products/review.js')) }}"></script>
-<script src="{{ asset('js/frontend/products/reviews-filter.js') }}?v={{ filemtime(public_path('js/frontend/products/reviews-filter.js')) }}"></script>
 @endpush
 
 @include('frontend.components.bottom-nav')
