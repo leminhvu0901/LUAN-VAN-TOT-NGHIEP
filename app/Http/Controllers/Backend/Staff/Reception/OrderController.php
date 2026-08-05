@@ -253,7 +253,14 @@ class OrderController
         $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
         $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
 
-        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled', 'vnpayEnabled'));
+        // Khi trang này được tải lại sau redirect-back do lỗi validate lúc tạo đơn (vd. điểm vượt số
+        // dư), old('customer_id') vẫn còn nhưng tên/SĐT/số điểm khách hàng không nằm trong old() -
+        // truy lại từ DB để view tự hiện lại đúng khách đã chọn, tránh lễ tân phải tìm lại từ đầu.
+        $selectedCustomer = old('customer_id')
+            ? User::where('role', 'customer')->find(old('customer_id'))
+            : null;
+
+        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled', 'vnpayEnabled', 'selectedCustomer'));
     }
 
     /**

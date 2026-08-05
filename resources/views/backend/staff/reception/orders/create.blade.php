@@ -9,7 +9,15 @@
             <p class="text-gray-500 text-sm mt-1">Dùng cho khách tại quầy, mang đi, hoặc đặt giao hàng qua điện thoại.</p>
         </div>
 
-        <div id="pos-alert-area"></div>
+        <div id="pos-alert-area">
+            @if(session('error'))
+                <div class="mb-4 p-3 rounded-xl text-sm font-medium bg-red-50 text-red-700 border border-red-200">{{ session('error') }}</div>
+            @elseif($errors->any())
+                <div class="mb-4 p-3 rounded-xl text-sm font-medium bg-red-50 text-red-700 border border-red-200">{{ $errors->first() }}</div>
+            @elseif(session('success'))
+                <div class="mb-4 p-3 rounded-xl text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{{ session('success') }}</div>
+            @endif
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Cột sản phẩm --}}
@@ -120,45 +128,57 @@
                 <form id="pos-order-form" action="{{ route('staff.reception.orders.store') }}" method="POST" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
                     @csrf
 
+                    @php
+                        // Đơn tại quầy submit qua form thật giờ đây có thể redirect-back kèm lỗi validate
+                        // (vd. điểm vượt số dư) - dùng old() để khôi phục đúng lựa chọn trước đó của lễ
+                        // tân thay vì reset về mặc định, tránh mất thông tin khách hàng đang thao tác dở.
+                        $posOrderType = old('pickup_mode', 'dine_in');
+                        $posPaymentMethod = old('payment_method', 'cash');
+                        $posActiveOrderType = 'border-primary bg-primary/5 text-primary';
+                        $posInactiveOrderType = 'border-gray-200 text-gray-600';
+                        $posActivePayment = 'border-emerald-500 bg-emerald-50 text-emerald-700';
+                        $posInactivePayment = 'border-gray-200 text-gray-600';
+                    @endphp
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Loại đơn</label>
                         <div class="grid grid-cols-2 gap-2">
-                            <label class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 border-primary bg-primary/5 text-primary rounded-xl text-xs font-bold cursor-pointer">
-                                <input type="radio" name="order_type" value="dine_in" checked class="sr-only">
+                            <label class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 rounded-xl text-xs font-bold cursor-pointer {{ $posOrderType === 'dine_in' ? $posActiveOrderType : $posInactiveOrderType }}">
+                                <input type="radio" name="order_type" value="dine_in" {{ $posOrderType === 'dine_in' ? 'checked' : '' }} class="sr-only">
                                 <span class="material-symbols-outlined text-[18px]">restaurant</span> Tại quầy
                             </label>
-                            <label class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 border-gray-200 text-gray-600 rounded-xl text-xs font-bold cursor-pointer">
-                                <input type="radio" name="order_type" value="takeaway" class="sr-only">
+                            <label class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 rounded-xl text-xs font-bold cursor-pointer {{ $posOrderType === 'takeaway' ? $posActiveOrderType : $posInactiveOrderType }}">
+                                <input type="radio" name="order_type" value="takeaway" {{ $posOrderType === 'takeaway' ? 'checked' : '' }} class="sr-only">
                                 <span class="material-symbols-outlined text-[18px]">takeout_dining</span> Mang đi
                             </label>
                         </div>
                         {{-- Gửi thật lên server — JS đồng bộ theo lựa chọn order_type ở trên --}}
-                        <input type="hidden" name="pickup_mode" id="pos-pickup-mode" value="dine_in">
+                        <input type="hidden" name="pickup_mode" id="pos-pickup-mode" value="{{ $posOrderType }}">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Khách hàng</label>
-                        <input type="hidden" name="customer_id" id="pos-customer-id" value="">
+                        <input type="hidden" name="customer_id" id="pos-customer-id" value="{{ old('customer_id', '') }}">
 
-                        <div id="pos-customer-selected" class="hidden bg-emerald-50 border border-emerald-200 rounded-lg mb-2 p-3 space-y-2">
+                        <div id="pos-customer-selected" class="{{ $selectedCustomer ? '' : 'hidden' }} bg-emerald-50 border border-emerald-200 rounded-lg mb-2 p-3 space-y-2">
                             <div class="flex items-center justify-between gap-2">
                                 <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-emerald-800 truncate" id="pos-customer-selected-name"></p>
-                                    <p class="text-xs text-emerald-600" id="pos-customer-selected-phone"></p>
+                                    <p class="text-sm font-semibold text-emerald-800 truncate" id="pos-customer-selected-name">{{ $selectedCustomer->name ?? '' }}</p>
+                                    <p class="text-xs text-emerald-600" id="pos-customer-selected-phone">{{ $selectedCustomer->phone ?? 'Chưa có SĐT' }}</p>
                                 </div>
                                 <button type="button" id="pos-customer-clear" class="text-emerald-600 hover:text-emerald-800 shrink-0">
                                     <span class="material-symbols-outlined text-[18px]">close</span>
                                 </button>
                             </div>
                             <div class="flex items-center gap-2 pt-2 border-t border-emerald-100">
-                                <label class="text-xs text-emerald-700 font-medium shrink-0">Dùng điểm (đang có <span id="pos-customer-points-balance">0</span> điểm):</label>
-                                <input type="number" name="points_to_redeem" id="pos-points-to-redeem" min="0" step="1" value="0"
+                                <label class="text-xs text-emerald-700 font-medium shrink-0">Dùng điểm (đang có <span id="pos-customer-points-balance">{{ $selectedCustomer->points ?? 0 }}</span> điểm):</label>
+                                <input type="number" name="points_to_redeem" id="pos-points-to-redeem" min="0" step="1" value="{{ old('points_to_redeem', 0) }}" max="{{ $selectedCustomer->points ?? 0 }}"
                                     class="w-24 px-2 py-1 border border-emerald-200 rounded-lg text-sm">
                             </div>
                             <p id="pos-points-feedback" class="text-xs"></p>
                         </div>
 
-                        <div id="pos-customer-search-wrap" class="relative">
+                        <div id="pos-customer-search-wrap" class="relative {{ $selectedCustomer ? 'hidden' : '' }}">
                             <input type="text" id="pos-customer-search" autocomplete="off" placeholder="Tìm SĐT/tên khách (bỏ trống = khách vãng lai)"
                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
                             <div id="pos-customer-results" class="hidden absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
@@ -168,7 +188,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Mã khuyến mãi (tùy chọn)</label>
                         <div class="flex gap-2">
-                            <input type="text" name="coupon_code" id="pos-coupon-code" placeholder="Nhập mã..."
+                            <input type="text" name="coupon_code" id="pos-coupon-code" placeholder="Nhập mã..." value="{{ old('coupon_code', '') }}"
                                 class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm uppercase">
                             <button type="button" id="pos-coupon-apply" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg text-sm shrink-0">Áp dụng</button>
                         </div>
@@ -178,19 +198,19 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Phương thức thanh toán <span class="text-red-500">*</span></label>
                         <div class="grid grid-cols-2 gap-2" id="pos-payment-method-grid">
-                            <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 border-emerald-500 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold cursor-pointer">
-                                <input type="radio" name="payment_method" value="cash" checked class="sr-only">
+                            <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 rounded-xl text-sm font-bold cursor-pointer {{ $posPaymentMethod === 'cash' ? $posActivePayment : $posInactivePayment }}">
+                                <input type="radio" name="payment_method" value="cash" {{ $posPaymentMethod === 'cash' ? 'checked' : '' }} class="sr-only">
                                 <span class="material-symbols-outlined text-[18px]">payments</span> Tiền mặt
                             </label>
                             @if($momoEnabled)
-                                <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-bold cursor-pointer">
-                                    <input type="radio" name="payment_method" value="momo" class="sr-only">
+                                <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 rounded-xl text-sm font-bold cursor-pointer {{ $posPaymentMethod === 'momo' ? $posActivePayment : $posInactivePayment }}">
+                                    <input type="radio" name="payment_method" value="momo" {{ $posPaymentMethod === 'momo' ? 'checked' : '' }} class="sr-only">
                                     <span class="material-symbols-outlined text-[18px]">account_balance</span> MoMo
                                 </label>
                             @endif
                             @if($vnpayEnabled)
-                                <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-bold cursor-pointer">
-                                    <input type="radio" name="payment_method" value="vnpay" class="sr-only">
+                                <label class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 rounded-xl text-sm font-bold cursor-pointer {{ $posPaymentMethod === 'vnpay' ? $posActivePayment : $posInactivePayment }}">
+                                    <input type="radio" name="payment_method" value="vnpay" {{ $posPaymentMethod === 'vnpay' ? 'checked' : '' }} class="sr-only">
                                     <span class="material-symbols-outlined text-[18px]">credit_card</span> VNPay
                                 </label>
                             @endif
@@ -199,7 +219,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú (tùy chọn)</label>
-                        <textarea name="note" rows="2" placeholder="Ví dụ: ít đá, không đường..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></textarea>
+                        <textarea name="note" rows="2" placeholder="Ví dụ: ít đá, không đường..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">{{ old('note', '') }}</textarea>
                     </div>
 
                     <button type="submit" id="pos-submit-btn" class="w-full min-h-[46px] bg-emerald-600 text-white font-bold rounded-xl">Tạo đơn</button>

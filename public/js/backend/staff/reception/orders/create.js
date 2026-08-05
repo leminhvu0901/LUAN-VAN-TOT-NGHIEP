@@ -616,48 +616,17 @@
         radio.addEventListener('change', applyOrderType);
     });
 
-    // ───────────────────────── Tạo đơn (submit qua fetch, không tải lại trang) ─────────────────────────
-    // Trước đây form POST kiểu cổ điển: khi tạo đơn lỗi (vd. điểm vượt số dư, cửa hàng đóng cửa...)
-    // trình duyệt redirect-back và tải lại toàn trang — khách hàng vừa chọn/số điểm vừa nhập biến
-    // mất trắng vì các input đó không dùng old() để khôi phục, tạo cảm giác "mất thông tin khách
-    // hàng" dù thực chất chỉ là lỗi validate bình thường. Submit qua fetch giữ nguyên toàn bộ trạng
-    // thái trên trang khi có lỗi (chỉ hiện thông báo qua showAlert(), giống hệt cách /cart/add xử lý
-    // lỗi), và điều hướng thật (window.location.href) chỉ khi tạo đơn thành công.
+    // ───────────────────────── Tạo đơn (form submit thật, tải lại trang) ─────────────────────────
+    // Form submit thật tới staff.reception.orders.store; lỗi validate (vd. điểm vượt số dư) sẽ
+    // redirect-back kèm $errors - banner báo lỗi render sẵn ở đầu trang (Blade) và các trường
+    // customer_id/points_to_redeem/coupon_code/payment_method/pickup_mode/note đều tự khôi phục lại
+    // qua old() (xem create.blade.php) nên không mất thông tin khách hàng đang thao tác dở. Giỏ hàng
+    // không bị ảnh hưởng vì lưu ở session server, tách biệt hoàn toàn khỏi form này.
     const orderForm = document.getElementById('pos-order-form');
     const submitBtn = document.getElementById('pos-submit-btn');
-    if (orderForm) {
-        orderForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            if (submitBtn) submitBtn.disabled = true;
-
-            fetch(orderForm.action, {
-                method: 'POST',
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken },
-                body: new FormData(orderForm),
-            })
-                .then(function (response) {
-                    return response.json().then(function (data) { return { status: response.status, data: data }; });
-                })
-                .then(function (result) {
-                    if (result.status >= 400) {
-                        const errors = result.data && result.data.errors ? result.data.errors : {};
-                        const firstError = Object.values(errors)[0];
-                        showAlert((firstError && firstError[0]) || result.data.message || 'Không thể tạo đơn, vui lòng kiểm tra lại.', 'error');
-                        if (submitBtn) submitBtn.disabled = false;
-                        return;
-                    }
-
-                    if (result.data && result.data.redirect_url) {
-                        window.location.href = result.data.redirect_url;
-                        return;
-                    }
-
-                    if (submitBtn) submitBtn.disabled = false;
-                })
-                .catch(function () {
-                    showAlert('Không thể kết nối máy chủ, vui lòng thử lại.', 'error');
-                    if (submitBtn) submitBtn.disabled = false;
-                });
+    if (orderForm && submitBtn) {
+        orderForm.addEventListener('submit', function () {
+            submitBtn.disabled = true;
         });
     }
 
