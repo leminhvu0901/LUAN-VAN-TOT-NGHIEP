@@ -23,11 +23,15 @@ class HomeController extends Controller
         // Làm tròn LÊN đến 1 chữ số thập phân (vd: 4.61 -> 4.7) để điểm hiển thị luôn có phần thập phân
         $avgRating = ceil((float) (Review::where('is_visible', 1)->avg('rating') ?? 5) * 10) / 10;
 
-        $avgDeliveryMinutes = (int) round((float) (Order::where('delivery_type', 'delivery')
+        // Tính trung bình bằng Carbon (thay vì TIMESTAMPDIFF chỉ MySQL mới có) để chạy được cả trên
+        // SQLite (môi trường test) lẫn MySQL (thật) mà không cần rẽ nhánh theo driver.
+        $completedDeliveries = Order::where('delivery_type', 'delivery')
             ->where('status', 'completed')
             ->whereNotNull('completed_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, completed_at)) as avg_minutes')
-            ->value('avg_minutes') ?? 30));
+            ->get(['created_at', 'completed_at']);
+        $avgDeliveryMinutes = $completedDeliveries->isEmpty()
+            ? 30
+            : (int) round($completedDeliveries->avg(fn ($order) => $order->created_at->diffInMinutes($order->completed_at)));
 
         // Lấy các banner đang active và còn trong thời gian hiển thị
         $banners = Banner::where('is_active', 1)

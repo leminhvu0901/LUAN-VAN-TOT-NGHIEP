@@ -40,11 +40,10 @@ class BackendAjaxTest extends TestCase
         $shipper = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
         $order = $this->makeOrder(['status' => 'confirmed', 'delivery_staff_id' => $shipper->id]);
 
-        $response = $this->actingAs($shipper)->patchJson("/staff/delivery/orders/{$order->id}/ship");
+        $response = $this->actingAs($shipper)->patch("/staff/delivery/orders/{$order->id}/ship");
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $this->assertNotNull($response->json('redirect_url'));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame('shipping', $order->fresh()->status);
     }
 
@@ -76,10 +75,10 @@ class BackendAjaxTest extends TestCase
         $order = $this->makeOrder(['status' => 'pending']);
 
         $response = $this->actingAs($receptionist)
-            ->patchJson("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
+            ->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame('confirmed', $order->fresh()->status);
     }
 
@@ -102,10 +101,10 @@ class BackendAjaxTest extends TestCase
         $order = $this->makeOrder(['status' => 'confirmed']);
 
         $response = $this->actingAs($receptionist)
-            ->postJson("/staff/reception/orders/{$order->id}/assign-delivery", ['delivery_staff_id' => $shipper->id]);
+            ->post("/staff/reception/orders/{$order->id}/assign-delivery", ['delivery_staff_id' => $shipper->id]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame($shipper->id, $order->fresh()->delivery_staff_id);
     }
 
@@ -115,10 +114,10 @@ class BackendAjaxTest extends TestCase
         $order = $this->makeOrder(['payment_method' => 'cash', 'payment_status' => 'unpaid', 'final_amount' => 50000]);
 
         $response = $this->actingAs($receptionist)
-            ->postJson("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => 20000]);
+            ->post("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => 20000]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors('amount_tendered');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('amount_tendered');
         $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
@@ -128,10 +127,10 @@ class BackendAjaxTest extends TestCase
         $order = $this->makeOrder(['payment_method' => 'cash', 'payment_status' => 'unpaid', 'final_amount' => 50000]);
 
         $response = $this->actingAs($receptionist)
-            ->postJson("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => 100000]);
+            ->post("/staff/reception/orders/{$order->id}/confirm-cash", ['amount_tendered' => 100000]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame('paid', $order->fresh()->payment_status);
     }
 
@@ -145,10 +144,10 @@ class BackendAjaxTest extends TestCase
             'status' => 'completed', 'payment_method' => 'cod', 'delivery_staff_id' => $shipper->id,
         ]);
 
-        $response = $this->actingAs($receptionist)->postJson("/staff/reception/cod-settlement/orders/{$order->id}/settle");
+        $response = $this->actingAs($receptionist)->post("/staff/reception/cod-settlement/orders/{$order->id}/settle");
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertNotNull($order->fresh()->cod_settled_at);
     }
 
@@ -157,11 +156,10 @@ class BackendAjaxTest extends TestCase
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
         $shipper = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
 
-        $response = $this->actingAs($receptionist)->postJson("/staff/reception/cod-settlement/staff/{$shipper->id}/settle-all");
+        $response = $this->actingAs($receptionist)->post("/staff/reception/cod-settlement/staff/{$shipper->id}/settle-all");
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $response->assertJsonPath('message', "{$shipper->name} không có đơn COD nào cần đối soát.");
+        $response->assertRedirect();
+        $response->assertSessionHas('info', "{$shipper->name} không có đơn COD nào cần đối soát.");
     }
 
 }

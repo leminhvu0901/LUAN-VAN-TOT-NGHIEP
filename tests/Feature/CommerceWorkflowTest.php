@@ -25,7 +25,7 @@ class CommerceWorkflowTest extends TestCase
     public function test_user_cannot_remove_another_users_cart_item(): void
     {
         [$owner, $attacker] = [User::factory()->create(), User::factory()->create()];
-        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'created_at' => now(), 'updated_at' => now()]);
         $product = Product::create(['name' => 'Coffee', 'slug' => 'coffee', 'sku' => 'CF-1', 'base_price' => 25000, 'category_id' => $categoryId, 'is_active' => true]);
         $cart = Cart::create(['user_id' => $owner->id]);
         $item = CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 25000]);
@@ -40,7 +40,7 @@ class CommerceWorkflowTest extends TestCase
     public function test_coupon_with_min_quantity_counts_cart_items(): void
     {
         $user = User::factory()->create();
-        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'created_at' => now(), 'updated_at' => now()]);
         $product = Product::create(['name' => 'Tea', 'slug' => 'tea', 'sku' => 'TEA-9', 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 3, 'unit_price' => 30000]);
@@ -65,7 +65,7 @@ class CommerceWorkflowTest extends TestCase
     public function test_coupon_with_min_quantity_rejected_when_cart_has_too_few_items(): void
     {
         $user = User::factory()->create();
-        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'slug' => 'drink', 'created_at' => now(), 'updated_at' => now()]);
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Drink', 'created_at' => now(), 'updated_at' => now()]);
         $product = Product::create(['name' => 'Tea', 'slug' => 'tea2', 'sku' => 'TEA-8', 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
         $cart = Cart::create(['user_id' => $user->id]);
         CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
@@ -100,16 +100,6 @@ class CommerceWorkflowTest extends TestCase
 
         $this->assertSame(100, (int) $user->fresh()->points);
         $this->assertSame(100, (int) $order->fresh()->loyalty_points_awarded);
-    }
-
-    public function test_unsigned_momo_return_cannot_mark_order_as_paid(): void
-    {
-        $user = User::factory()->create();
-        $order = Order::create($this->orderData($user, ['payment_method' => 'momo']));
-
-        $this->actingAs($user)->get('/checkout/momo/return?orderId=' . $order->order_code . '&resultCode=0')
-            ->assertRedirect(route('orders'));
-        $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
     public function test_unsigned_vnpay_return_cannot_mark_order_as_paid(): void

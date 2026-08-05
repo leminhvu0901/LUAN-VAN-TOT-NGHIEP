@@ -31,12 +31,13 @@ class ProfileUpdateTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'customer', 'name' => 'Ten Cu', 'phone' => null]);
 
-        $response = $this->actingAs($user)->postJson('/profile', [
+        $response = $this->actingAs($user)->post('/profile', [
             'name' => 'Ten Moi',
             'phone' => '0912345678',
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $fresh = $user->fresh();
         $this->assertEquals('Ten Moi', $fresh->name);
         $this->assertEquals('0912345678', $fresh->phone);
@@ -56,18 +57,19 @@ class ProfileUpdateTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'customer', 'avatar' => null]);
 
-        $response = $this->actingAs($user)->postJson('/profile', [
+        $response = $this->actingAs($user)->post('/profile', [
             'name' => $user->name,
             'cropped_avatar' => self::TINY_PNG_BASE64,
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $fresh = $user->fresh();
         $this->assertNotNull($fresh->avatar);
         // avatar_path() ghép tên file trần với public/images/avatars/.
         $this->assertStringNotContainsString('/', $fresh->avatar);
         $this->assertFileExists(avatar_path($fresh->avatar));
-        $this->assertStringContainsString($fresh->avatar, $response->json('user.avatar_url'));
+        $this->assertStringContainsString($fresh->avatar, avatar_url($fresh->avatar));
 
         @unlink(avatar_path($fresh->avatar));
     }
@@ -106,9 +108,10 @@ class ProfileUpdateTest extends TestCase
         $user = User::factory()->create(['role' => 'customer', 'name' => 'Ten Cu']);
         $exactly30 = str_repeat('a', 30);
 
-        $response = $this->actingAs($user)->postJson('/profile', ['name' => $exactly30]);
+        $response = $this->actingAs($user)->post('/profile', ['name' => $exactly30]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertEquals($exactly30, $user->fresh()->name);
     }
 
@@ -130,60 +133,30 @@ class ProfileUpdateTest extends TestCase
         }
     }
 
-    // ───────────────────────── Kiểm tra "ngầm" SĐT qua AJAX (profile.check_phone) ─────────────────────────
+    // ───────────────────────── Trùng SĐT khi lưu (thay cho check-phone AJAX đã bỏ) ─────────────────────────
+    // profile.check_phone (kiểm tra ngầm khi đang gõ) đã bị xóa hoàn toàn khi bỏ AJAX (Giai đoạn 7) -
+    // giờ chỉ còn validate 'unique' chạy lúc submit thật, lỗi hiện sau khi tải lại trang như mọi form
+    // Laravel truyền thống khác. Test dưới đây thay thế cho các test check-phone cũ đã xóa.
 
-    public function test_check_phone_returns_valid_for_empty_value(): void
-    {
-        $user = User::factory()->create(['role' => 'customer']);
-
-        $response = $this->actingAs($user)->getJson('/profile/check-phone?phone=');
-
-        $response->assertOk()->assertJson(['valid' => true]);
-    }
-
-    public function test_check_phone_returns_invalid_for_bad_format(): void
-    {
-        $user = User::factory()->create(['role' => 'customer']);
-
-        $response = $this->actingAs($user)->getJson('/profile/check-phone?phone=0388359vsdasd');
-
-        $response->assertOk()->assertJson(['valid' => false]);
-        $this->assertEquals('Số điện thoại không đúng định dạng.', $response->json('message'));
-    }
-
-    public function test_check_phone_returns_invalid_when_taken_by_another_account(): void
+    public function test_profile_update_rejects_phone_already_taken_by_another_account(): void
     {
         User::factory()->create(['role' => 'customer', 'phone' => '0912345678']);
         $me = User::factory()->create(['role' => 'customer', 'phone' => null]);
 
-        $response = $this->actingAs($me)->getJson('/profile/check-phone?phone=0912345678');
+        $response = $this->actingAs($me)->post('/profile', ['name' => $me->name, 'phone' => '0912345678']);
 
-        $response->assertOk()->assertJson(['valid' => false]);
-        $this->assertEquals('Số điện thoại này đã được đăng ký bởi tài khoản khác.', $response->json('message'));
+        $response->assertSessionHasErrors('phone');
+        $this->assertNull($me->fresh()->phone);
     }
 
-    public function test_check_phone_returns_valid_for_own_unchanged_phone(): void
+    public function test_profile_update_accepts_own_unchanged_phone(): void
     {
         $user = User::factory()->create(['role' => 'customer', 'phone' => '0912345678']);
 
-        $response = $this->actingAs($user)->getJson('/profile/check-phone?phone=0912345678');
+        $response = $this->actingAs($user)->post('/profile', ['name' => $user->name, 'phone' => '0912345678']);
 
-        $response->assertOk()->assertJson(['valid' => true]);
-    }
-
-    public function test_check_phone_returns_valid_for_available_number(): void
-    {
-        $user = User::factory()->create(['role' => 'customer', 'phone' => null]);
-
-        $response = $this->actingAs($user)->getJson('/profile/check-phone?phone=0912345678');
-
-        $response->assertOk()->assertJson(['valid' => true]);
-    }
-
-    public function test_check_phone_requires_login(): void
-    {
-        $response = $this->getJson('/profile/check-phone?phone=0912345678');
-
-        $response->assertStatus(401);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertEquals('0912345678', $user->fresh()->phone);
     }
 }

@@ -18,11 +18,20 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Kiểm tra các endpoint frontend vừa chuyển từ form POST cổ điển sang submit qua fetch (AJAX).
- * Dùng postJson()/getJson() (chỉ gửi header Accept: application/json) thay vì tự set thêm
- * X-Requested-With — vì đó chính xác là những gì fetch() thật trong các file JS gửi lên, khác với
- * jQuery $.ajax() cũ. Test bằng X-Requested-With sẽ che giấu mất lỗi $request->ajax() không nhận ra
- * request từ fetch() (đã gặp thật khi viết bộ test này — xem commit sửa ajax() -> expectsJson()).
+ * File test này ban đầu (tên "FrontendAjaxTest") viết cho giai đoạn các endpoint frontend còn submit
+ * qua fetch() (AJAX) - dùng postJson()/getJson() để giả lập request thật của JS lúc đó. Dự án sau đó
+ * đã làm ngược lại: bỏ AJAX, quay về form POST/GET + redirect + full-page-reload truyền thống ở hầu
+ * hết các endpoint (chỉ còn giữ AJAX có chủ đích ở một số nơi: giỏ hàng/yêu thích, bản đồ + phí ship +
+ * coupon + tỉnh/phường lúc checkout, một số thao tác lặp lại nhanh ở màn POS lễ tân, và các form
+ * đăng nhập/đăng ký/OTP vẫn CÓ THỂ nhận JSON dù JS không còn gọi tới - giữ lại y nguyên phần hành vi
+ * expectsJson() cũ chỉ để không phá vỡ các test bên dưới, không phải vì còn JS nào dùng).
+ *
+ * Vì vậy các test bên dưới chia làm 2 nhóm:
+ *  - Nhóm còn dùng postJson()/getJson(): endpoint đó VẪN hỗ trợ trả JSON thật (đăng nhập/đăng ký/OTP/
+ *    quên-đặt lại mật khẩu, checkout, và validate lỗi tự động của Laravel cho mọi request có Accept:
+ *    application/json bất kể controller có code riêng cho JSON hay không).
+ *  - Nhóm đã đổi sang post()/put()/get() thường: endpoint đó KHÔNG còn nhánh JSON nào nữa, chỉ còn
+ *    redirect + session flash - test phải giả lập đúng như trình duyệt thật gửi form.
  */
 class FrontendAjaxTest extends TestCase
 {
@@ -31,7 +40,7 @@ class FrontendAjaxTest extends TestCase
     private function makeProduct(array $overrides = []): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Drink', 'slug' => 'drink-' . Str::random(6), 'created_at' => now(), 'updated_at' => now(),
+            'name' => 'Drink', 'created_at' => now(), 'updated_at' => now(),
         ]);
 
         return Product::create(array_merge([
@@ -92,20 +101,6 @@ class FrontendAjaxTest extends TestCase
         $this->assertDatabaseHas('orders', ['user_id' => $user->id, 'payment_method' => 'cod']);
     }
 
-    public function test_momo_checkout_ajax_returns_json_error_for_empty_cart(): void
-    {
-        $this->travelTo(Carbon::parse('14:00:00'));
-        $user = User::factory()->create();
-        $address = $this->makeAddress($user);
-
-        $response = $this->actingAs($user)->postJson('/checkout/momo', [
-            'address_id' => $address->id, 'payment_method' => 'momo', 'distance_km' => 2.5,
-        ]);
-
-        $response->assertStatus(422);
-        $response->assertJsonPath('message', 'Giỏ hàng của bạn đang trống.');
-    }
-
     public function test_vnpay_checkout_ajax_returns_json_error_for_empty_cart(): void
     {
         config([
@@ -126,31 +121,30 @@ class FrontendAjaxTest extends TestCase
 
     // ───────────────────────── Products filter/pagination ─────────────────────────
 
-    public function test_products_ajax_request_returns_partial_not_full_page(): void
+    public function test_products_page_renders_full_page_with_filtered_results(): void
     {
         $this->makeProduct(['name' => 'Cà phê đen']);
 
-        $response = $this->getJson('/products');
+        $response = $this->get('/products');
 
         $response->assertOk();
-        $response->assertSee('ajax-product-area', false);
-        $response->assertDontSee('<html', false);
+        $response->assertSee('<html', false);
+        $response->assertSee('Cà phê đen');
     }
 
     // ───────────────────────── Profile ─────────────────────────
 
-    public function test_profile_update_ajax_returns_updated_user_json(): void
+    public function test_profile_update_redirects_back_with_success_and_saves_changes(): void
     {
         $user = User::create([
             'name' => 'Old Name', 'email' => 'ajax-profile@test.com', 'password' => bcrypt('password'),
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/profile', ['name' => 'New Name', 'phone' => '0912345678']);
+        $response = $this->actingAs($user)->post('/profile', ['name' => 'New Name', 'phone' => '0912345678']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $response->assertJsonPath('user.name', 'New Name');
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame('New Name', $user->fresh()->name);
     }
 
@@ -202,7 +196,7 @@ class FrontendAjaxTest extends TestCase
 
     // ───────────────────────── Orders cancel ─────────────────────────
 
-    public function test_cancel_order_ajax_success_updates_status(): void
+    public function test_cancel_order_redirects_back_with_success_and_updates_status(): void
     {
         $user = User::factory()->create();
         $order = Order::create([
@@ -213,16 +207,16 @@ class FrontendAjaxTest extends TestCase
             'status' => 'pending', 'delivery_type' => 'delivery',
         ]);
 
-        $response = $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/cancel", [
             'cancel_reason' => 'Đổi ý không muốn mua nữa',
         ]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertSame('cancelled', $order->fresh()->status);
     }
 
-    public function test_cancel_order_ajax_returns_422_when_not_pending(): void
+    public function test_cancel_order_redirects_back_with_error_when_not_pending(): void
     {
         $user = User::factory()->create();
         $order = Order::create([
@@ -233,11 +227,13 @@ class FrontendAjaxTest extends TestCase
             'status' => 'completed', 'delivery_type' => 'delivery',
         ]);
 
-        $response = $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/cancel", [
             'cancel_reason' => 'Đổi ý không muốn mua nữa',
         ]);
 
-        $response->assertStatus(422);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertSame('completed', $order->fresh()->status);
     }
 
     private function makePaidOnlineOrder(User $user, string $paymentMethod = 'vnpay'): Order
@@ -271,38 +267,18 @@ class FrontendAjaxTest extends TestCase
         $user = User::factory()->create();
         $order = $this->makePaidOnlineOrder($user, 'vnpay');
 
-        $response = $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/cancel", [
             'cancel_reason' => 'Đổi ý không muốn mua nữa',
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
 
         $order = $order->fresh();
         $this->assertSame('cancelled', $order->status);
         $this->assertSame('refunded', $order->payment_status);
         $this->assertSame('VNP-REFUND-TX-1', $order->refund_transaction_id);
         $this->assertNotNull($order->refunded_at);
-    }
-
-    public function test_customer_can_self_cancel_paid_momo_order_and_money_is_refunded_automatically(): void
-    {
-        \Illuminate\Support\Facades\Http::fake([
-            '*/v2/gateway/api/refund' => \Illuminate\Support\Facades\Http::response(
-                ['resultCode' => 0, 'transId' => 'MOMO-REFUND-TX-1'], 200
-            ),
-        ]);
-
-        $user = User::factory()->create();
-        $order = $this->makePaidOnlineOrder($user, 'momo');
-
-        $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
-            'cancel_reason' => 'Đổi ý không muốn mua nữa',
-        ])->assertOk()->assertJson(['success' => true]);
-
-        $order = $order->fresh();
-        $this->assertSame('cancelled', $order->status);
-        $this->assertSame('refunded', $order->payment_status);
-        $this->assertSame('MOMO-REFUND-TX-1', $order->refund_transaction_id);
     }
 
     /**
@@ -324,9 +300,11 @@ class FrontendAjaxTest extends TestCase
         $user = User::factory()->create();
         $order = $this->makePaidOnlineOrder($user, 'vnpay');
 
-        $this->actingAs($user)->postJson("/orders/{$order->id}/cancel", [
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/cancel", [
             'cancel_reason' => 'Đổi ý không muốn mua nữa',
-        ])->assertStatus(422);
+        ]);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
 
         $order = $order->fresh();
         $this->assertSame('pending', $order->status);
@@ -432,7 +410,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertJsonValidationErrors('rating');
     }
 
-    public function test_review_ajax_success_returns_redirect_url(): void
+    public function test_review_store_redirects_to_orders_with_success(): void
     {
         $user = User::factory()->create();
         $product = $this->makeProduct();
@@ -446,11 +424,10 @@ class FrontendAjaxTest extends TestCase
         OrderItem::create(['order_id' => $order->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30000]);
 
         $response = $this->actingAs($user)
-            ->postJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Ngon lắm']);
+            ->post("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Ngon lắm']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $this->assertNotNull($response->json('redirect_url'));
+        $response->assertRedirect(route('orders', ['status' => 'completed']));
+        $response->assertSessionHas('success');
         $this->assertDatabaseHas('reviews', ['order_id' => $order->id, 'product_id' => $product->id, 'rating' => 5]);
     }
 
@@ -563,7 +540,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertSee('không thể chỉnh sửa nữa');
     }
 
-    public function test_review_update_ajax_success_within_edit_window(): void
+    public function test_review_update_redirects_with_success_within_edit_window(): void
     {
         $user = User::factory()->create();
         $product = $this->makeProduct();
@@ -581,11 +558,10 @@ class FrontendAjaxTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Giờ thấy ngon hơn']);
+            ->put("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Giờ thấy ngon hơn']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $this->assertNotNull($response->json('redirect_url'));
+        $response->assertRedirect(route('orders', ['status' => 'completed']));
+        $response->assertSessionHas('success');
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => 'Giờ thấy ngon hơn']);
         $this->assertNotNull($review->fresh()->edited_at);
     }
@@ -593,7 +569,7 @@ class FrontendAjaxTest extends TestCase
     /**
      * Chỉ được sửa ĐÚNG 1 LẦN cho mỗi đánh giá — sửa lần 2 (dù vẫn còn trong hạn 7 ngày) phải bị chặn.
      */
-    public function test_review_update_ajax_blocked_on_second_edit_attempt(): void
+    public function test_review_update_redirects_with_error_on_second_edit_attempt(): void
     {
         $user = User::factory()->create();
         $product = $this->makeProduct();
@@ -612,14 +588,15 @@ class FrontendAjaxTest extends TestCase
 
         // Lần sửa thứ nhất -> thành công.
         $this->actingAs($user)
-            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ'])
-            ->assertOk();
+            ->put("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ'])
+            ->assertRedirect(route('orders', ['status' => 'completed']));
 
         // Lần sửa thứ hai -> bị chặn, nội dung KHÔNG đổi thêm nữa.
         $response = $this->actingAs($user)
-            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 1, 'comment' => 'Đổi ý lần 2']);
+            ->put("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 1, 'comment' => 'Đổi ý lần 2']);
 
-        $response->assertStatus(422);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ']);
     }
 
@@ -652,7 +629,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertDontSee('không thể chỉnh sửa nữa'); // không nhầm sang lý do "hết hạn 7 ngày"
     }
 
-    public function test_review_update_ajax_blocked_after_edit_window_expires(): void
+    public function test_review_update_redirects_with_error_after_edit_window_expires(): void
     {
         $user = User::factory()->create();
         $product = $this->makeProduct();
@@ -671,9 +648,10 @@ class FrontendAjaxTest extends TestCase
         DB::table('reviews')->where('id', $review->id)->update(['created_at' => now()->subDays(8)]);
 
         $response = $this->actingAs($user)
-            ->putJson("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Sửa trễ']);
+            ->put("/orders/{$order->id}/products/{$product->id}/review", ['rating' => 5, 'comment' => 'Sửa trễ']);
 
-        $response->assertStatus(422);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 3, 'comment' => 'Bình thường']);
     }
 

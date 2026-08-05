@@ -24,7 +24,7 @@ class PromotionScopeTest extends TestCase
 
     private function makeCategory(string $name = 'Trà sữa'): Category
     {
-        return Category::create(['name' => $name, 'slug' => 'cat-' . uniqid(), 'is_active' => true]);
+        return Category::create(['name' => $name, 'is_active' => true]);
     }
 
     private function makeProduct(array $overrides = []): Product

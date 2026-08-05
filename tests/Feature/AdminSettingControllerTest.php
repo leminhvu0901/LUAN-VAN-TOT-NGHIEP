@@ -101,17 +101,16 @@ class AdminSettingControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($admin)->putJson('/admin/settings', [
+        $response = $this->actingAs($admin)->put('/admin/settings', [
             'section' => 'payment',
             'cod_enabled' => '0',
-            'momo_enabled' => '1',
             'vnpay_enabled' => '1',
             'payment_environment' => 'sandbox',
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertFalse(Setting::getValue('cod_enabled'));
-        $this->assertTrue(Setting::getValue('momo_enabled'));
         $this->assertTrue(Setting::getValue('vnpay_enabled'));
     }
 

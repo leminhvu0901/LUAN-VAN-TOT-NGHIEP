@@ -23,7 +23,7 @@ class AdminCustomerControllerTest extends TestCase
     private function makeCategory(): int
     {
         return DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
     }
@@ -108,19 +108,21 @@ class AdminCustomerControllerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $customer = User::factory()->create(['role' => 'customer', 'is_active' => 1]);
 
-        $lockResponse = $this->actingAs($admin)->postJson("/admin/customers/{$customer->id}/toggle-status", [
+        $lockResponse = $this->actingAs($admin)->post("/admin/customers/{$customer->id}/toggle-status", [
             'is_active' => 0,
             'lock_reason' => 'Vi phạm điều khoản sử dụng',
         ]);
-        $lockResponse->assertOk()->assertJson(['success' => true]);
+        $lockResponse->assertRedirect(route('admin.customers.index'));
+        $lockResponse->assertSessionHas('success');
         $customer->refresh();
         $this->assertSame(0, (int) $customer->is_active);
         $this->assertSame('Vi phạm điều khoản sử dụng', $customer->lock_reason);
 
-        $unlockResponse = $this->actingAs($admin)->postJson("/admin/customers/{$customer->id}/toggle-status", [
+        $unlockResponse = $this->actingAs($admin)->post("/admin/customers/{$customer->id}/toggle-status", [
             'is_active' => 1,
         ]);
-        $unlockResponse->assertOk()->assertJson(['success' => true]);
+        $unlockResponse->assertRedirect(route('admin.customers.index'));
+        $unlockResponse->assertSessionHas('success');
         $customer->refresh();
         $this->assertSame(1, (int) $customer->is_active);
         $this->assertNull($customer->lock_reason);
@@ -132,7 +134,7 @@ class AdminCustomerControllerTest extends TestCase
         $customer = User::factory()->create(['role' => 'customer']);
         $categoryId = $this->makeCategory();
         $product = Product::create([
-            'name' => 'Trà sữa trân châu', 'slug' => 'tra-sua-' . uniqid(), 'sku' => 'SKU-' . strtoupper(uniqid()),
+            'name' => 'Trà sữa trân châu', 'slug' => 'tra-sua-tran-chau-' . uniqid(), 'sku' => 'SKU-' . strtoupper(uniqid()),
             'base_price' => 35000, 'category_id' => $categoryId, 'is_active' => true,
         ]);
         $review = Review::create([
@@ -167,11 +169,10 @@ class AdminCustomerControllerTest extends TestCase
             'status' => 'completed', 'delivery_type' => 'pickup',
         ]);
 
-        $response = $this->actingAs($admin)
-            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->delete("/admin/customers/{$customer->id}");
+        $response = $this->actingAs($admin)->delete("/admin/customers/{$customer->id}");
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('users', ['id' => $customer->id]);
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'user_id' => null]);
     }
@@ -189,11 +190,12 @@ class AdminCustomerControllerTest extends TestCase
             'status' => 'completed', 'delivery_type' => 'pickup',
         ]);
 
-        $response = $this->actingAs($admin)->postJson('/admin/customers/bulk-delete', [
+        $response = $this->actingAs($admin)->post('/admin/customers/bulk-delete', [
             'ids' => [$freeCustomer->id, $customerWithOrder->id],
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect(route('admin.customers.index'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('users', ['id' => $freeCustomer->id]);
         $this->assertDatabaseMissing('users', ['id' => $customerWithOrder->id]);
     }

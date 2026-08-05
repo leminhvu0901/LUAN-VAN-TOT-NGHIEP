@@ -30,7 +30,7 @@ class AdminCategoryControllerTest extends TestCase
     public function test_creating_category_rejects_duplicate_name(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        Category::create(['name' => 'Cà phê', 'slug' => 'ca-phe', 'is_active' => true]);
+        Category::create(['name' => 'Cà phê', 'is_active' => true]);
 
         $response = $this->actingAs($admin)->post('/admin/categories', [
             'name' => 'Cà phê',
@@ -43,7 +43,7 @@ class AdminCategoryControllerTest extends TestCase
     public function test_admin_can_update_category(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $category = Category::create(['name' => 'Trà trái cây', 'slug' => 'tra-trai-cay', 'is_active' => true]);
+        $category = Category::create(['name' => 'Trà trái cây', 'is_active' => true]);
 
         $response = $this->actingAs($admin)->put("/admin/categories/{$category->id}", [
             'name' => 'Trà trái cây mới',
@@ -62,46 +62,49 @@ class AdminCategoryControllerTest extends TestCase
     public function test_deleting_category_with_products_is_rejected(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $category = Category::create(['name' => 'Trà sữa', 'slug' => 'tra-sua', 'is_active' => true]);
+        $category = Category::create(['name' => 'Trà sữa', 'is_active' => true]);
         Product::create([
             'name' => 'Trà sữa trân châu', 'slug' => 'tra-sua-tran-chau-' . uniqid(),
             'sku' => 'SKU-' . strtoupper(uniqid()), 'base_price' => 35000,
             'category_id' => $category->id, 'is_active' => true,
         ]);
 
-        $response = $this->actingAs($admin)->deleteJson("/admin/categories/{$category->id}");
+        $response = $this->actingAs($admin)->delete("/admin/categories/{$category->id}");
 
-        $response->assertOk()->assertJson(['success' => false]);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('categories', ['id' => $category->id]);
     }
 
     public function test_deleting_empty_category_succeeds(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $category = Category::create(['name' => 'Danh mục rỗng', 'slug' => 'danh-muc-rong', 'is_active' => true]);
+        $category = Category::create(['name' => 'Danh mục rỗng', 'is_active' => true]);
 
-        $response = $this->actingAs($admin)->deleteJson("/admin/categories/{$category->id}");
+        $response = $this->actingAs($admin)->delete("/admin/categories/{$category->id}");
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('categories', ['id' => $category->id]);
     }
 
     public function test_bulk_delete_skips_categories_that_still_have_products(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $emptyCategory = Category::create(['name' => 'Danh mục A', 'slug' => 'danh-muc-a', 'is_active' => true]);
-        $categoryWithProduct = Category::create(['name' => 'Danh mục B', 'slug' => 'danh-muc-b', 'is_active' => true]);
+        $emptyCategory = Category::create(['name' => 'Danh mục A', 'is_active' => true]);
+        $categoryWithProduct = Category::create(['name' => 'Danh mục B', 'is_active' => true]);
         Product::create([
             'name' => 'Trà sữa trân châu', 'slug' => 'tra-sua-tran-chau-' . uniqid(),
             'sku' => 'SKU-' . strtoupper(uniqid()), 'base_price' => 35000,
             'category_id' => $categoryWithProduct->id, 'is_active' => true,
         ]);
 
-        $response = $this->actingAs($admin)->postJson('/admin/categories/bulk-delete', [
+        $response = $this->actingAs($admin)->post('/admin/categories/bulk-delete', [
             'category_ids' => [$emptyCategory->id, $categoryWithProduct->id],
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('categories', ['id' => $emptyCategory->id]);
         $this->assertDatabaseHas('categories', ['id' => $categoryWithProduct->id]);
     }

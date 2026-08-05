@@ -86,9 +86,10 @@ class AdminBannerControllerTest extends TestCase
         $path = upload_path($banner->image_url);
         $this->assertFileExists($path);
 
-        $response = $this->actingAs($admin)->deleteJson("/admin/banners/{$banner->id}");
+        $response = $this->actingAs($admin)->delete("/admin/banners/{$banner->id}");
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect(route('admin.banners.index'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('banners', ['id' => $banner->id]);
         $this->assertFileDoesNotExist($path);
     }
@@ -98,9 +99,10 @@ class AdminBannerControllerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $banner = Banner::create(['title' => 'B1', 'image' => '', 'image_url' => 'banners/x.jpg', 'is_active' => true]);
 
-        $response = $this->actingAs($admin)->postJson("/admin/banners/{$banner->id}/toggle-status");
+        $response = $this->actingAs($admin)->post("/admin/banners/{$banner->id}/toggle-status");
 
-        $response->assertOk()->assertJson(['success' => true, 'new_status' => 0]);
+        $response->assertRedirect(route('admin.banners.index'));
+        $response->assertSessionHas('success');
         $this->assertSame(0, $banner->fresh()->is_active);
     }
 
@@ -111,11 +113,12 @@ class AdminBannerControllerTest extends TestCase
         $b2 = Banner::create(['title' => 'B2', 'image' => '', 'image_url' => 'banners/b.jpg', 'is_active' => true]);
         $keep = Banner::create(['title' => 'B3', 'image' => '', 'image_url' => 'banners/c.jpg', 'is_active' => true]);
 
-        $response = $this->actingAs($admin)->postJson('/admin/banners/bulk-delete', [
+        $response = $this->actingAs($admin)->post('/admin/banners/bulk-delete', [
             'banner_ids' => [$b1->id, $b2->id],
         ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect(route('admin.banners.index'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('banners', ['id' => $b1->id]);
         $this->assertDatabaseMissing('banners', ['id' => $b2->id]);
         $this->assertDatabaseHas('banners', ['id' => $keep->id]);

@@ -23,7 +23,7 @@ class AdminProductImageManagementTest extends TestCase
     private function makeCategory(): int
     {
         return DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
     }
@@ -119,9 +119,10 @@ class AdminProductImageManagementTest extends TestCase
         $path = upload_path($galleryImage->image_path);
         $this->assertFileExists($path);
 
-        $response = $this->actingAs($admin)->deleteJson("/admin/products/gallery/{$galleryImage->id}");
+        $response = $this->actingAs($admin)->delete("/admin/products/gallery/{$galleryImage->id}");
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('product_images', ['id' => $galleryImage->id]);
         $this->assertFileDoesNotExist($path);
     }

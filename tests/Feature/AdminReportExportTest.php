@@ -24,7 +24,7 @@ class AdminReportExportTest extends TestCase
     private function makeCompletedOrderWithProduct(float $amount, string $deliveryType = 'pickup'): Order
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $product = Product::create([

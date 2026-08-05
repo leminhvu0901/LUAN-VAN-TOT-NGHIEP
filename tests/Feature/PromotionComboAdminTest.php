@@ -16,7 +16,7 @@ class PromotionComboAdminTest extends TestCase
     private function makeCategory(): int
     {
         return DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
     }

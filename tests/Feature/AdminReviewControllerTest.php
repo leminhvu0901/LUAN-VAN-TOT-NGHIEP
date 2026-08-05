@@ -22,7 +22,7 @@ class AdminReviewControllerTest extends TestCase
     private function makeProduct(): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
@@ -84,11 +84,10 @@ class AdminReviewControllerTest extends TestCase
             'comment' => 'Tốt', 'is_visible' => true,
         ]);
 
-        $response = $this->actingAs($admin)
-            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->post("/admin/reviews/{$review->id}/toggle-visibility");
+        $response = $this->actingAs($admin)->post("/admin/reviews/{$review->id}/toggle-visibility");
 
-        $response->assertOk()->assertJson(['success' => true, 'new_status' => false]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertFalse((bool) $review->fresh()->is_visible);
     }
 
@@ -103,11 +102,10 @@ class AdminReviewControllerTest extends TestCase
             $this->assertFileExists($p);
         }
 
-        $response = $this->actingAs($admin)
-            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->delete("/admin/reviews/{$review->id}");
+        $response = $this->actingAs($admin)->delete("/admin/reviews/{$review->id}");
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
         foreach ($paths as $p) {
             $this->assertFileDoesNotExist($p);
@@ -123,9 +121,10 @@ class AdminReviewControllerTest extends TestCase
         $images = json_decode($review->image, true);
         [$keep, $remove] = $images;
 
-        $response = $this->actingAs($admin)->deleteJson("/admin/reviews/{$review->id}/image", ['image' => $remove]);
+        $response = $this->actingAs($admin)->delete("/admin/reviews/{$review->id}/image", ['image' => $remove]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertFileDoesNotExist(upload_path($remove));
         $this->assertFileExists(upload_path($keep));
         $remainingImages = json_decode($review->fresh()->image, true);
@@ -142,13 +141,12 @@ class AdminReviewControllerTest extends TestCase
         $path1 = upload_path(json_decode($review1->image, true)[0]);
         $path2 = upload_path(json_decode($review2->image, true)[0]);
 
-        $response = $this->actingAs($admin)
-            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->post('/admin/reviews/bulk-delete', [
-                'review_ids' => [$review1->id, $review2->id],
-            ]);
+        $response = $this->actingAs($admin)->post('/admin/reviews/bulk-delete', [
+            'review_ids' => [$review1->id, $review2->id],
+        ]);
 
-        $response->assertOk()->assertJson(['success' => true]);
+        $response->assertRedirect(route('admin.reviews.index'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('reviews', ['id' => $review1->id]);
         $this->assertDatabaseMissing('reviews', ['id' => $review2->id]);
         $this->assertFileDoesNotExist($path1);
