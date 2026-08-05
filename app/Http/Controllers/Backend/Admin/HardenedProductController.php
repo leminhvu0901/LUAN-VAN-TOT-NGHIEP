@@ -163,54 +163,28 @@ class HardenedProductController
      * Hàm xử lý xóa một sản phẩm cụ thể khỏi hệ thống.
      * Cơ chế an toàn: Nếu sản phẩm đã phát sinh đơn hàng trong lịch sử giao dịch (order_items), 
      * thay vì xóa cứng sẽ chuyển trạng thái sang "Ngừng kinh doanh" (is_active = 0) để bảo toàn dữ liệu báo cáo.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là AJAX: Trả về JSON thành công/thất bại cho JS tiếp nhận tại file [public/js/backend/admin/products/index.js].
-     * - Nếu là request thường: Điều hướng back kèm thông báo.
      */
     public function destroy(Product $product, Request $request)
     {
         if (DB::table('order_items')->where('product_id', $product->id)->exists()) {
             $product->update(['is_active' => false]); // Đổi trạng thái sang ngừng kinh doanh nếu sản phẩm đã phát sinh đơn hàng
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']); // Trả về thông báo lỗi cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
-            }
             return back()->withErrors(['delete' => 'Sản phẩm đã phát sinh đơn hàng nên được chuyển sang ngừng kinh doanh, không xóa lịch sử.']);
         }
         $files = $this->deleteProduct($product); // Xóa thông tin sản phẩm và quan hệ liên quan khỏi CSDL, trả về danh sách ảnh
         $this->deleteFiles($files); // Xóa thực tế các file ảnh của sản phẩm trên ổ đĩa máy chủ
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Xóa sản phẩm thành công!']); // Trả về JSON báo thành công cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
-        }
         return back()->with('success', 'Xóa sản phẩm thành công!');
     }
 
     /**
-     * Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện.
-     * Áp dụng nguyên lý an toàn: Các sản phẩm đã có đơn hàng được chuyển về Ngừng kinh doanh. 
+     * Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện (chỉ các dòng đang chọn trong trang hiện tại).
+     * Áp dụng nguyên lý an toàn: Các sản phẩm đã có đơn hàng được chuyển về Ngừng kinh doanh.
      * Các sản phẩm còn lại được thực hiện xóa cứng khỏi DB và xóa tệp ảnh khỏi ổ đĩa.
-     * 
-     * Phản hồi trả về:
-     * - Trả về kết quả JSON thông báo chi tiết cho JS tại file [public/js/backend/admin/products/index.js].
      */
     public function bulkDelete(Request $request)
     {
-        $query = Product::query();
-        if ($request->input('delete_all_pages') === '1') {
-            if ($request->filled('search')) {
-                $search = trim($request->input('search'));
-                $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
-            }
-            if ($request->filled('category_id') && $request->input('category_id') !== 'all') $query->where('category_id', $request->input('category_id'));
-            if ($request->filled('status') && $request->input('status') !== 'all') $query->where('is_active', $request->input('status') === 'active');
-            $excluded = $request->validate(['excluded_product_ids' => ['sometimes', 'array'], 'excluded_product_ids.*' => ['integer']])['excluded_product_ids'] ?? [];
-            if ($excluded) $query->whereNotIn('id', $excluded);
-        } else {
-            $ids = $request->validate(['product_ids' => ['required', 'array'], 'product_ids.*' => ['integer', 'exists:products,id']])['product_ids'];
-            $query->whereIn('id', $ids);
-        }
+        $ids = $request->validate(['product_ids' => ['required', 'array'], 'product_ids.*' => ['integer', 'exists:products,id']])['product_ids'];
 
-        $products = $query->with('images')->get();
+        $products = Product::whereIn('id', $ids)->with('images')->get();
         $blockedIds = DB::table('order_items')->whereIn('product_id', $products->pluck('id'))->distinct()->pluck('product_id');
         Product::whereIn('id', $blockedIds)->update(['is_active' => false]);
         $files = [];
@@ -224,26 +198,20 @@ class HardenedProductController
         $this->deleteFiles($files); // Xóa sạch các file ảnh tương ứng của nhóm sản phẩm bị xóa khỏi máy chủ
         $message = "Đã xóa {$deleted} sản phẩm.";
         if ($blockedIds->isNotEmpty()) $message .= " {$blockedIds->count()} sản phẩm có lịch sử đơn hàng đã được ngừng kinh doanh.";
-        if ($request->ajax()) {
-            return response()->json(['success' => true, 'message' => $message]); // Trả về JSON báo thành công cho JS nhận diện tại file [public/js/backend/admin/products/index.js]
-        }
         return back()->with('success', $message);
     }
 
     /**
-     * API xóa một ảnh phụ trong bộ sưu tập ảnh (Gallery) của sản phẩm.
-     * 
-     * Phản hồi trả về:
-     * - Trả về kết quả JSON báo thành công cho JS tại form sửa sản phẩm [public/js/backend/admin/products/edit.js]
-     *   để JS gỡ ảnh này khỏi giao diện mà không cần tải lại trang.
+     * Xóa một ảnh phụ trong bộ sưu tập ảnh (Gallery) của sản phẩm — dùng ở trang sửa sản phẩm.
      */
     public function deleteGalleryImage($id)
     {
         $image = ProductImage::findOrFail($id); // Tìm ảnh phụ theo ID hoặc ném lỗi 404
         $path = $image->image_path;
+        $productId = $image->product_id;
         $image->delete(); // Xóa bản ghi ảnh phụ khỏi Database
         $this->deleteFiles([$path]); // Xóa file ảnh phụ trên ổ đĩa máy chủ
-        return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']); // Trả về JSON cho JS cập nhật UI gỡ thumbnail ảnh phụ
+        return redirect()->route('admin.products.edit', $productId)->with('success', 'Đã xóa ảnh.');
     }
 
     private function validateProduct(Request $request, ?Product $product = null): array

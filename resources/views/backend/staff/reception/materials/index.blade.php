@@ -198,7 +198,6 @@
 
     @push('scripts')
         <script src="{{ asset('js/backend/staff/reception/materials/common.js') }}"></script>
-        <script src="{{ asset('js/backend/staff/reception/materials/index.js') }}"></script>
     @endpush
 
 @endsection

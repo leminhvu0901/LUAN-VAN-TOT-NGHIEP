@@ -212,7 +212,7 @@ class StaffAccountController
     {
         $staff = User::where('role', 'staff')->find($id);
         if (!$staff) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy tài khoản nhân viên.'], 404);
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên.');
         }
 
         // Không cho xóa nếu nhân viên đã có lịch sử hoạt động thật (tạo đơn tại quầy/được phân công
@@ -227,30 +227,23 @@ class StaffAccountController
             ->exists();
 
         if ($hasHistory) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể xóa: nhân viên này đã có lịch sử hoạt động (đơn hàng/phân công/đối soát). Vui lòng khóa tài khoản thay vì xóa.',
-            ], 422);
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không thể xóa: nhân viên này đã có lịch sử hoạt động (đơn hàng/phân công/đối soát). Vui lòng khóa tài khoản thay vì xóa.');
         }
 
         $staff->delete();
 
-        return response()->json(['success' => true, 'message' => 'Đã xóa tài khoản nhân viên.']);
+        return redirect()->route('admin.staff_accounts.index')->with('success', 'Đã xóa tài khoản nhân viên.');
     }
 
     /**
      * Cập nhật quyền hạn/phân loại vai trò của nhân viên (Lễ tân / Shipper).
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho khối lắng nghe thay đổi staff-type-select 
-     *   trong file JS: [public/js/backend/admin/staff-accounts/index.js] để hiển thị thông báo thành công hoặc khôi phục giá trị cũ nếu lỗi.
      */
     public function updateType(Request $request, $id)
     {
         // Chỉ tác động tài khoản role=staff — không đụng customer/admin dù ID có trùng.
         $staff = User::where('role', 'staff')->find($id);
         if (!$staff) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy tài khoản nhân viên.'], 404);
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên.');
         }
 
         $validated = $request->validate([
@@ -264,43 +257,25 @@ class StaffAccountController
         $staff->staff_type = $validated['staff_type'];
         $staff->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật loại nhân viên thành công!',
-            'staff_type' => $staff->staff_type,
-        ]);
+        return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật loại nhân viên thành công!');
     }
 
     /**
      * Khóa hoặc kích hoạt tài khoản nhân viên.
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho khối lắng nghe toggle-status 
-     *   trong file JS: [public/js/backend/admin/staff-accounts/index.js] để cập nhật giao diện hiển thị trạng thái và thông báo kết quả.
      */
     public function toggleStatus(Request $request, $id)
     {
-        try {
-            $staff = User::where('role', 'staff')->findOrFail($id);
-            $staff->is_active = $request->input('is_active');
-            
-            if ($staff->is_active == 0) {
-                $staff->lock_reason = $request->input('lock_reason');
-            } else {
-                $staff->lock_reason = null;
-            }
-            
-            $staff->save();
+        $staff = User::where('role', 'staff')->findOrFail($id);
+        $staff->is_active = $request->input('is_active');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Cập nhật trạng thái tài khoản thành công!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
-            ], 500);
+        if ($staff->is_active == 0) {
+            $staff->lock_reason = $request->input('lock_reason');
+        } else {
+            $staff->lock_reason = null;
         }
+
+        $staff->save();
+
+        return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật trạng thái tài khoản thành công!');
     }
 }

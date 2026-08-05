@@ -122,13 +122,14 @@
                             <td class="py-3 px-4 text-center">
                                 <div class="flex justify-center items-center gap-1.5">
                                     <!-- Bật/Tắt Trạng Thái -->
-                                    <button type="button" data-url="{{ route('admin.banners.toggle_status', $banner->id) }}"
-                                        class="toggle-status-btn p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                                        title="Bật/Tắt hiển thị">
-                                        <span class="material-symbols-outlined text-[16px] xl:text-[18px]">
-                                            {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
-                                        </span>
-                                    </button>
+                                    <form method="POST" action="{{ route('admin.banners.toggle_status', $banner->id) }}">
+                                        @csrf
+                                        <button type="submit" class="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors" title="Bật/Tắt hiển thị">
+                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">
+                                                {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
+                                            </span>
+                                        </button>
+                                    </form>
 
                                     <!-- Chỉnh sửa -->
                                     <a href="{{ route('admin.banners.edit', $banner->id) }}"
@@ -138,12 +139,14 @@
                                     </a>
 
                                     <!-- Xóa -->
-                                    <button type="button" data-url="{{ route('admin.banners.destroy', $banner->id) }}"
-                                        data-id="{{ $banner->id }}"
-                                        class="delete-banner-btn p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                                        title="Xóa">
-                                        <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
-                                    </button>
+                                    <form method="POST" action="{{ route('admin.banners.destroy', $banner->id) }}"
+                                        onsubmit="return confirm('Xóa banner này? Hành động này không thể hoàn tác.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa">
+                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -268,13 +271,16 @@
                          nhập địa chỉ ở trang thanh toán. whitespace-nowrap chặn hẳn việc bẻ giữa từ. --}}
                     <div class="flex items-stretch gap-2 pt-2 border-t border-gray-100 mt-1">
                         <!-- Bật/Tắt nhanh -->
-                        <button type="button" data-url="{{ route('admin.banners.toggle_status', $banner->id) }}"
-                            class="toggle-status-btn flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-emerald-100">
-                            <span class="material-symbols-outlined text-[18px] shrink-0">
-                                {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
-                            </span>
-                            <span class="whitespace-nowrap">Trạng thái</span>
-                        </button>
+                        <form method="POST" action="{{ route('admin.banners.toggle_status', $banner->id) }}" class="flex-1 min-w-0">
+                            @csrf
+                            <button type="submit"
+                                class="w-full min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-emerald-100">
+                                <span class="material-symbols-outlined text-[18px] shrink-0">
+                                    {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
+                                </span>
+                                <span class="whitespace-nowrap">Trạng thái</span>
+                            </button>
+                        </form>
 
                         <!-- Sửa -->
                         <a href="{{ route('admin.banners.edit', $banner->id) }}"
@@ -284,12 +290,16 @@
                         </a>
 
                         <!-- Xóa -->
-                        <button type="button" data-url="{{ route('admin.banners.destroy', $banner->id) }}"
-                            data-id="{{ $banner->id }}"
-                            class="delete-banner-btn flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-red-100">
-                            <span class="material-symbols-outlined text-[18px] shrink-0">delete</span>
-                            <span class="whitespace-nowrap">Xóa</span>
-                        </button>
+                        <form method="POST" action="{{ route('admin.banners.destroy', $banner->id) }}" class="flex-1 min-w-0"
+                            onsubmit="return confirm('Xóa banner này? Hành động này không thể hoàn tác.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="w-full min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-red-100">
+                                <span class="material-symbols-outlined text-[18px] shrink-0">delete</span>
+                                <span class="whitespace-nowrap">Xóa</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             @endforeach

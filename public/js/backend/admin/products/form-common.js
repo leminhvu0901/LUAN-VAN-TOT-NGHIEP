@@ -168,41 +168,36 @@
     }
 
     /**
-     * Khởi tạo tính năng xóa ảnh phụ trong thư viện ảnh bằng AJAX
+     * Khởi tạo tính năng xóa ảnh phụ trong thư viện ảnh.
+     * Nút này nằm bên trong form sửa sản phẩm chính nên không thể lồng thêm <form> — JS chỉ dựng
+     * tạm 1 form ẩn độc lập rồi submit thật (không phải AJAX/fetch), quay lại trang sửa sau khi xóa.
      */
     function initGalleryDelete() {
-        document.addEventListener('click', async function (event) {
+        document.addEventListener('click', function (event) {
             const button = event.target.closest('.js-delete-gallery-image');
             if (!button) return;
 
-            // Hiển thị hộp thoại xác nhận xóa ảnh
-            const confirmed = window.Swal
-                ? (await Swal.fire({ 
-                    icon: 'warning', 
-                    title: 'Xóa ảnh này?', 
-                    showCancelButton: true, 
-                    confirmButtonText: 'Xóa', 
-                    cancelButtonText: 'Hủy' 
-                  })).isConfirmed
-                : window.confirm('Xóa ảnh này?');
+            if (!window.confirm('Xóa ảnh này? Không thể hoàn tác.')) return;
 
-            if (!confirmed) return;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/products/gallery/' + button.dataset.galleryImageId;
+            form.style.display = 'none';
 
-            // Thực thi gửi request DELETE bất đồng bộ (AJAX) để xóa ảnh phụ
-            const response = await fetch('/admin/products/gallery/' + button.dataset.galleryImageId, {
-                method: 'DELETE', 
-                headers: { 
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', 
-                    Accept: 'application/json' 
-                },
-            });
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            form.appendChild(csrfInput);
 
-            // Nếu thành công thì xóa thẻ chứa ảnh khỏi giao diện người dùng
-            if (response.ok) {
-                document.getElementById('gallery-item-' + button.dataset.galleryImageId)?.remove();
-            } else {
-                showError('Không thể xóa ảnh.');
-            }
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            form.appendChild(methodInput);
+
+            document.body.appendChild(form);
+            form.submit();
         });
     }
 

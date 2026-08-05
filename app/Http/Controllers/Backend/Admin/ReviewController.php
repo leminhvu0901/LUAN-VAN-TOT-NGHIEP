@@ -68,13 +68,6 @@ class ReviewController
                 break;
         }
 
-        // Nếu yêu cầu chỉ lấy ID để phục vụ "Chọn tất cả" toàn bộ DB
-        if ($request->input('fetch_all_ids') == 1) {
-            return response()->json([
-                'ids' => (clone $query)->pluck('id')->toArray()
-            ]);
-        }
-
         // Phân trang kết quả và giữ các param query string để điều hướng
         $reviews = $query->paginate(10)->appends($request->all());
 
@@ -99,19 +92,6 @@ class ReviewController
         $review = Review::findOrFail($id);
         $review->is_visible = !$review->is_visible;
         $review->save();
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Trạng thái đánh giá đã được cập nhật!',
-                'new_status' => $review->is_visible,
-                'stats' => [
-                    'total' => number_format(Review::count()),
-                    'active' => number_format(Review::where('is_visible', 1)->count()),
-                    'hidden' => number_format(Review::where('is_visible', 0)->count())
-                ]
-            ]);
-        }
 
         return redirect()->back()->with('success', 'Trạng thái đánh giá đã được cập nhật!');
     }
@@ -247,7 +227,7 @@ class ReviewController
         $imageToDelete = $request->input('image');
 
         if (!$imageToDelete || !$review->image) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy ảnh.'], 404);
+            return redirect()->route('admin.reviews.edit', $review->id)->with('error', 'Không tìm thấy ảnh.');
         }
 
         $images = json_decode($review->image, true);
@@ -267,10 +247,10 @@ class ReviewController
             $review->image = empty($images) ? null : json_encode($images);
             $review->save();
 
-            return response()->json(['success' => true, 'message' => 'Đã xóa ảnh.']);
+            return redirect()->route('admin.reviews.edit', $review->id)->with('success', 'Đã xóa ảnh.');
         }
 
-        return response()->json(['success' => false, 'message' => 'Ảnh không thuộc đánh giá này.'], 404);
+        return redirect()->route('admin.reviews.edit', $review->id)->with('error', 'Ảnh không thuộc đánh giá này.');
     }
 
     /**
@@ -299,34 +279,17 @@ class ReviewController
         $this->deleteReviewImageFiles($review);
         $review->delete();
 
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Xóa đánh giá thành công!'
-            ]);
-        }
-
         return redirect()->back()->with('success', 'Xóa đánh giá thành công!');
     }
 
     /**
-     * Xóa hàng loạt đánh giá theo mảng id truyền lên từ giao diện.
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho hàm doBulkDelete() trong file JS: [public/js/backend/admin/reviews/index.js]
-     *   để hiển thị hộp thoại Swal thông báo kết quả thành công/thất bại và reload danh sách.
+     * Xóa hàng loạt đánh giá theo mảng id truyền lên từ giao diện (chỉ các dòng đang chọn trong trang hiện tại).
      */
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('review_ids', []);
 
         if (empty($ids)) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vui lòng chọn ít nhất một đánh giá.'
-                ]);
-            }
             return redirect()->route('admin.reviews.index')
                 ->with('error', 'Vui lòng chọn ít nhất một đánh giá.');
         }
@@ -337,13 +300,6 @@ class ReviewController
         }
         $count = $reviewsToDelete->count();
         Review::whereIn('id', $ids)->delete();
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => "Đã xóa {$count} đánh giá thành công!"
-            ]);
-        }
 
         return redirect()->route('admin.reviews.index')
             ->with('success', "Đã xóa {$count} đánh giá thành công!");

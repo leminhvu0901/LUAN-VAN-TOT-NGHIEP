@@ -237,63 +237,20 @@ class BannerController
 
         $banner->delete();
 
-        return response()->json(['success' => true, 'message' => 'Đã xóa banner thành công!']);
+        return redirect()->route('admin.banners.index')->with('success', 'Đã xóa banner thành công!');
     }
 
     /**
-     * XÓA NHIỀU BANNER
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
-     *   trong file JS: [public/js/backend/admin/banners/index.js] để hiển thị thông báo kết quả.
+     * XÓA NHIỀU BANNER (chỉ các dòng đang chọn trong trang hiện tại)
      */
     public function bulkDelete(Request $request)
     {
-        if ($request->input('delete_all_pages') == '1') {
-            $query = Banner::query();
-            $now = now();
+        $request->validate([
+            'banner_ids' => 'required|array',
+            'banner_ids.*' => 'exists:banners,id'
+        ]);
 
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhere('title_tag', 'like', "%{$search}%")
-                        ->orWhere('link_url', 'like', "%{$search}%");
-                });
-            }
-
-            if ($request->filled('status') && $request->status !== 'all') {
-                $status = $request->status;
-                if ($status === 'active') {
-                    $query->where('is_active', 1)
-                        ->where(function ($q) use ($now) {
-                            $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
-                        })
-                        ->where(function ($q) use ($now) {
-                            $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
-                        });
-                } elseif ($status === 'inactive') {
-                    $query->where('is_active', 0);
-                } elseif ($status === 'upcoming') {
-                    $query->where('is_active', 1)->whereNotNull('start_at')->where('start_at', '>', $now);
-                } elseif ($status === 'expired') {
-                    $query->where('is_active', 1)->whereNotNull('end_at')->where('end_at', '<', $now);
-                }
-            }
-
-            if ($request->filled('position') && $request->position !== 'all') {
-                $query->where('position', $request->position);
-            }
-
-            $banners = $query->get();
-        } else {
-            $request->validate([
-                'banner_ids' => 'required|array',
-                'banner_ids.*' => 'exists:banners,id'
-            ]);
-
-            $banners = Banner::whereIn('id', $request->banner_ids)->get();
-        }
+        $banners = Banner::whereIn('id', $request->banner_ids)->get();
 
         $deletedCount = 0;
         foreach ($banners as $banner) {
@@ -307,17 +264,11 @@ class BannerController
             $deletedCount++;
         }
 
-        $msg = "Đã xóa {$deletedCount} banner thành công.";
-
-        return response()->json(['success' => true, 'message' => $msg]);
+        return redirect()->route('admin.banners.index')->with('success', "Đã xóa {$deletedCount} banner thành công.");
     }
 
     /**
-     * BẬT/TẮT TRẠNG THÁI NHANH BẰNG AJAX
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho hàm toggleBannerStatusAjax() trong file JS: [public/js/backend/admin/banners/index.js]
-     *   để cập nhật lại badge màu hiển thị trạng thái và làm mới số liệu thống kê.
+     * BẬT/TẮT TRẠNG THÁI NHANH
      */
     public function toggleStatus(Request $request, $id)
     {
@@ -325,38 +276,7 @@ class BannerController
         $banner->is_active = $banner->is_active ? 0 : 1;
         $banner->save();
 
-        $now = now();
-        $totalBanners = Banner::count();
-        $activeBanners = Banner::where('is_active', 1)
-            ->where(function ($q) use ($now) {
-                $q->whereNull('start_at')->orWhere('start_at', '<=', $now);
-            })
-            ->where(function ($q) use ($now) {
-                $q->whereNull('end_at')->orWhere('end_at', '>=', $now);
-            })
-            ->count();
-        $inactiveBanners = Banner::where('is_active', 0)->count();
-        $upcomingBanners = Banner::where('is_active', 1)
-            ->whereNotNull('start_at')
-            ->where('start_at', '>', $now)
-            ->count();
-        $expiredBanners = Banner::where('is_active', 1)
-            ->whereNotNull('end_at')
-            ->where('end_at', '<', $now)
-            ->count();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật trạng thái banner thành công!',
-            'new_status' => $banner->is_active,
-            'stats' => [
-                'total' => $totalBanners,
-                'active' => $activeBanners,
-                'inactive' => $inactiveBanners,
-                'upcoming' => $upcomingBanners,
-                'expired' => $expiredBanners,
-            ]
-        ]);
+        return redirect()->route('admin.banners.index')->with('success', 'Cập nhật trạng thái banner thành công!');
     }
 
     /**

@@ -101,7 +101,8 @@
                             <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
                         </button>
                     @else
-                        <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0" data-ajax="true">
+                        <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0"
+                            onsubmit="return confirm('Xóa vật tư này? Hành động này không thể hoàn tác.');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-1">
@@ -242,7 +243,8 @@
                                     <span class="material-symbols-outlined text-[18px]">delete</span>
                                 </button>
                             @else
-                                <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0" data-ajax="true">
+                                <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0"
+                            onsubmit="return confirm('Xóa vật tư này? Hành động này không thể hoàn tác.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">

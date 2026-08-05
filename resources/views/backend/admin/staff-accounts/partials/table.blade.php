@@ -33,11 +33,15 @@
                 <!-- Loại nhân viên -->
                 <div>
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Loại nhân viên</label>
-                    <select class="staff-type-select w-full px-3 py-2 border rounded-lg text-sm font-semibold outline-none cursor-pointer transition-colors {{ $staff->staff_type === 'delivery' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }}"
-                        data-id="{{ $staff->id }}" data-current="{{ $staff->staff_type }}">
-                        <option value="receptionist" {{ $staff->staff_type === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
-                        <option value="delivery" {{ $staff->staff_type === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
-                    </select>
+                    <form method="POST" action="{{ route('admin.staff_accounts.update_type', $staff->id) }}">
+                        @csrf
+                        @method('PATCH')
+                        <select name="staff_type" class="staff-type-select w-full px-3 py-2 border rounded-lg text-sm font-semibold outline-none cursor-pointer transition-colors {{ $staff->staff_type === 'delivery' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }}"
+                            data-current="{{ $staff->staff_type }}">
+                            <option value="receptionist" {{ $staff->staff_type === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
+                            <option value="delivery" {{ $staff->staff_type === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
+                        </select>
+                    </form>
                 </div>
 
                 <hr class="border-gray-100 border-dashed my-1">
@@ -45,11 +49,16 @@
                 <!-- Actions -->
                 <div class="flex items-center justify-between">
                     <div class="flex flex-col gap-1">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $staff->id }}" {{ $staff->is_active ? 'checked' : '' }}>
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                        </label>
-                        <span class="text-[10px] font-semibold {{ $staff->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-mobile-{{ $staff->id }}" {!! !$staff->is_active && $staff->lock_reason ? 'title="Lý do: ' . e($staff->lock_reason) . '"' : '' !!}>
+                        <form method="POST" action="{{ route('admin.staff_accounts.toggle_status', $staff->id) }}">
+                            @csrf
+                            <input type="hidden" name="is_active" value="{{ $staff->is_active }}">
+                            <input type="hidden" name="lock_reason" value="">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer toggle-status" {{ $staff->is_active ? 'checked' : '' }}>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                            </label>
+                        </form>
+                        <span class="text-[10px] font-semibold {{ $staff->is_active ? 'text-emerald-600' : 'text-rose-500' }}" {!! !$staff->is_active && $staff->lock_reason ? 'title="Lý do: ' . e($staff->lock_reason) . '"' : '' !!}>
                             {{ $staff->is_active ? 'Hoạt động' : 'Bị khóa' }}
                         </span>
                     </div>
@@ -58,10 +67,14 @@
                             class="text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors" title="Sửa">
                             <span class="material-symbols-outlined text-[18px]">edit</span>
                         </a>
-                        <button type="button" class="delete-staff-btn text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 p-2 rounded-lg transition-colors"
-                            data-id="{{ $staff->id }}" data-name="{{ $staff->name }}" title="Xóa">
-                            <span class="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
+                        <form method="POST" action="{{ route('admin.staff_accounts.destroy', $staff->id) }}"
+                            onsubmit="return confirm('Xóa vĩnh viễn tài khoản nhân viên này? Hành động này không thể hoàn tác.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 p-2 rounded-lg transition-colors" title="Xóa">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -119,11 +132,15 @@
 
                         <!-- Loại nhân viên -->
                         <td class="px-6 py-4">
-                            <select class="staff-type-select w-full px-3 py-1.5 border rounded-lg text-xs font-semibold outline-none cursor-pointer transition-colors {{ $staff->staff_type === 'delivery' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }}"
-                                data-id="{{ $staff->id }}" data-current="{{ $staff->staff_type }}">
-                                <option value="receptionist" {{ $staff->staff_type === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
-                                <option value="delivery" {{ $staff->staff_type === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
-                            </select>
+                            <form method="POST" action="{{ route('admin.staff_accounts.update_type', $staff->id) }}">
+                                @csrf
+                                @method('PATCH')
+                                <select name="staff_type" class="staff-type-select w-full px-3 py-1.5 border rounded-lg text-xs font-semibold outline-none cursor-pointer transition-colors {{ $staff->staff_type === 'delivery' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }}"
+                                    data-current="{{ $staff->staff_type }}">
+                                    <option value="receptionist" {{ $staff->staff_type === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
+                                    <option value="delivery" {{ $staff->staff_type === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
+                                </select>
+                            </form>
                         </td>
 
                         <!-- Ngày tạo -->
@@ -134,11 +151,16 @@
                         <!-- Trạng thái -->
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="flex flex-col items-center gap-1">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $staff->id }}" {{ $staff->is_active ? 'checked' : '' }}>
-                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                                </label>
-                                <span class="text-[10px] font-bold {{ $staff->is_active ? 'text-emerald-600' : 'text-rose-500' }} transition-colors" id="status-text-{{ $staff->id }}" {!! !$staff->is_active && $staff->lock_reason ? 'title="Lý do: ' . e($staff->lock_reason) . '"' : '' !!}>
+                                <form method="POST" action="{{ route('admin.staff_accounts.toggle_status', $staff->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="is_active" value="{{ $staff->is_active }}">
+                                    <input type="hidden" name="lock_reason" value="">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" class="sr-only peer toggle-status" {{ $staff->is_active ? 'checked' : '' }}>
+                                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                                    </label>
+                                </form>
+                                <span class="text-[10px] font-bold {{ $staff->is_active ? 'text-emerald-600' : 'text-rose-500' }} transition-colors" {!! !$staff->is_active && $staff->lock_reason ? 'title="Lý do: ' . e($staff->lock_reason) . '"' : '' !!}>
                                     {{ $staff->is_active ? 'Hoạt động' : 'Bị khóa' }}
                                 </span>
                             </div>
@@ -151,10 +173,14 @@
                                     class="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 p-1.5 rounded-lg transition-colors shadow-sm" title="Sửa">
                                     <span class="material-symbols-outlined text-[18px]">edit</span>
                                 </a>
-                                <button type="button" class="delete-staff-btn text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 p-1.5 rounded-lg transition-colors shadow-sm"
-                                    data-id="{{ $staff->id }}" data-name="{{ $staff->name }}" title="Xóa">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
+                                <form method="POST" action="{{ route('admin.staff_accounts.destroy', $staff->id) }}"
+                                    onsubmit="return confirm('Xóa vĩnh viễn tài khoản nhân viên này? Hành động này không thể hoàn tác.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 p-1.5 rounded-lg transition-colors shadow-sm" title="Xóa">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

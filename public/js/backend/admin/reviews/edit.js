@@ -104,104 +104,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Xóa ảnh cũ
+    // Xóa ảnh cũ — nút này nằm bên trong form sửa đánh giá chính nên không thể lồng thêm <form>.
+    // JS chỉ dựng tạm 1 form ẩn độc lập rồi submit thật (không phải AJAX/fetch), quay lại trang sửa sau khi xóa.
     const existingImagesContainer = document.getElementById('existing-images-container');
     if (existingImagesContainer) {
-        existingImagesContainer.addEventListener('click', function(e) {
+        existingImagesContainer.addEventListener('click', function (e) {
             const btn = e.target.closest('.js-delete-review-image');
             if (!btn) return;
 
+            if (!confirm('Ảnh này sẽ bị xóa vĩnh viễn. Tiếp tục?')) return;
+
             const imageName = btn.dataset.image;
             const reviewId = btn.dataset.id;
-            const index = btn.dataset.index;
             const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
 
-            const executeDelete = () => {
-                // Thay nút bằng icon loading
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] font-bold animate-spin">refresh</span>';
-                btn.disabled = true;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/reviews/' + reviewId + '/image';
+            form.style.display = 'none';
 
-                fetch(`/admin/reviews/${reviewId}/image`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ image: imageName })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Xóa phần tử ảnh khỏi giao diện
-                        const imgElem = document.getElementById('review-image-' + index);
-                        if(imgElem) imgElem.remove();
-                        
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                toast: true,
-                                position: 'bottom-end',
-                                icon: 'success',
-                                title: 'Đã xóa ảnh thành công!',
-                                showConfirmButton: false,
-                                timer: 3000
-                            });
-                        }
-                    } else {
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire('Lỗi', 'Xóa ảnh thất bại: ' + (data.message || 'Lỗi không xác định'), 'error');
-                        } else {
-                            alert('Xóa ảnh thất bại: ' + (data.message || 'Lỗi không xác định'));
-                        }
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire('Lỗi', 'Có lỗi xảy ra khi gọi server.', 'error');
-                    } else {
-                        alert('Có lỗi xảy ra khi gọi server.');
-                    }
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                });
-            };
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = csrfToken;
+            form.appendChild(tokenInput);
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Xác nhận xóa ảnh?',
-                    text: "Ảnh này sẽ bị xóa vĩnh viễn.",
-                    icon: 'warning',
-                    width: '360px',
-                    padding: '1.25rem',
-                    showCancelButton: true,
-                    confirmButtonText: 'Xóa ngay',
-                    cancelButtonText: 'Hủy',
-                    reverseButtons: true,
-                    customClass: {
-                        popup: 'rounded-[20px] shadow-2xl border border-gray-100',
-                        title: 'text-lg font-bold text-gray-800',
-                        htmlContainer: 'text-sm text-gray-500 mt-1',
-                        confirmButton: 'px-5 py-2 rounded-xl text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all shadow-sm hover:shadow-md ml-2',
-                        cancelButton: 'px-5 py-2 rounded-xl text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all mr-2',
-                        icon: 'transform scale-[0.6] -mt-2 -mb-2',
-                        actions: 'mt-4 w-full flex justify-center'
-                    },
-                    buttonsStyling: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeDelete();
-                    }
-                });
-            } else {
-                if (confirm('Bạn có chắc chắn muốn xóa ảnh này ngay lập tức không?')) {
-                    executeDelete();
-                }
-            }
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            form.appendChild(methodInput);
+
+            const imageInput = document.createElement('input');
+            imageInput.type = 'hidden';
+            imageInput.name = 'image';
+            imageInput.value = imageName;
+            form.appendChild(imageInput);
+
+            document.body.appendChild(form);
+            form.submit();
         });
     }
 

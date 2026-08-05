@@ -40,13 +40,19 @@
                             class="px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Sửa">
                             <span class="material-symbols-outlined text-[16px]">edit</span> Sửa
                         </a>
-                        <button type="button"
-                            data-url="{{ route('admin.categories.destroy', $category->id) }}" data-id="{{ $category->id }}"
-                            class="px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 {{ $category->products_count > 0 ? 'text-gray-400 bg-gray-50 cursor-not-allowed' : 'text-red-600 bg-red-50 hover:bg-red-100 delete-category-btn' }}" 
-                            title="{{ $category->products_count > 0 ? 'Không thể xóa danh mục đang có sản phẩm' : 'Xóa' }}"
-                            {{ $category->products_count > 0 ? 'disabled' : '' }}>
-                            <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
-                        </button>
+                        @if ($category->products_count > 0)
+                            <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 text-gray-400 bg-gray-50 cursor-not-allowed" title="Không thể xóa danh mục đang có sản phẩm" disabled>
+                                <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                            </button>
+                        @else
+                            <form method="POST" action="{{ route('admin.categories.destroy', $category->id) }}" onsubmit="return confirm('Xóa danh mục này? Hành động này không thể hoàn tác.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 text-red-600 bg-red-50 hover:bg-red-100" title="Xóa">
+                                    <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -103,13 +109,19 @@
                                     class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Sửa">
                                     <span class="material-symbols-outlined text-[16px] xl:text-[18px]">edit</span>
                                 </a>
-                                <button type="button"
-                                    data-url="{{ route('admin.categories.destroy', $category->id) }}" data-id="{{ $category->id }}"
-                                    class="p-1.5 rounded-lg transition-colors {{ $category->products_count > 0 ? 'text-gray-400 bg-gray-50 cursor-not-allowed' : 'text-red-600 bg-red-50 hover:bg-red-100 delete-category-btn' }}" 
-                                    title="{{ $category->products_count > 0 ? 'Không thể xóa danh mục đang có sản phẩm' : 'Xóa' }}"
-                                    {{ $category->products_count > 0 ? 'disabled' : '' }}>
-                                    <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
-                                </button>
+                                @if ($category->products_count > 0)
+                                    <button type="button" class="p-1.5 rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed" title="Không thể xóa danh mục đang có sản phẩm" disabled>
+                                        <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                    </button>
+                                @else
+                                    <form method="POST" action="{{ route('admin.categories.destroy', $category->id) }}" onsubmit="return confirm('Xóa danh mục này? Hành động này không thể hoàn tác.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 rounded-lg transition-colors text-red-600 bg-red-50 hover:bg-red-100" title="Xóa">
+                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

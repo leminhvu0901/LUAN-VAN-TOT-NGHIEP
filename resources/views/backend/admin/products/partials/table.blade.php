@@ -63,7 +63,7 @@
                                         class="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors group/btn" title="Sửa">
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </a>
-                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form inline-block m-0 p-0" data-ajax="true">
+                                    <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form inline-block m-0 p-0">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">
@@ -143,7 +143,7 @@
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                                 Sửa
                             </a>
-                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form flex-1 flex" data-ajax="true">
+                            <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form flex-1 flex">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-lg font-medium text-sm hover:bg-red-100 transition-colors">

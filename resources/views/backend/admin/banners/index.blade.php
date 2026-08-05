@@ -13,7 +13,7 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                <button type="button" id="bulk-deselect-btn" onclick="deselectAllBanners();"
+                <button type="button" id="bulk-deselect-btn"
                     class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200"
                     title="Bỏ chọn tất cả">
                     <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
@@ -223,12 +223,5 @@
 @endsection
 
 @push('scripts')
-    <script>
-        // Định nghĩa endpoint cho JS dùng
-        window.bannersRoutes = {
-            index: "{{ route('admin.banners.index') }}",
-                bulkDelete: "{{ route('admin.banners.bulk_delete') }}"
-        };
-    </script>
     <script src="{{ asset('js/backend/admin/banners/index.js') }}"></script>
 @endpush

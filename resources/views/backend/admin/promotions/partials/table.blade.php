@@ -164,12 +164,16 @@
                         <span class="material-symbols-outlined text-[16px]">edit</span>
                         Sửa
                     </a>
-                    <button type="button"
-                        data-id="{{ $promo->id }}" data-code="{{ $promo->code }}"
-                        class="js-delete-promotion px-3.5 py-2 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                        Xóa
-                    </button>
+                    <form method="POST" action="{{ route('admin.promotions.destroy', $promo->id) }}"
+                        onsubmit="return confirm('Xóa mã khuyến mãi này? Hành động này không thể hoàn tác.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                            class="px-3.5 py-2 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            Xóa
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -342,11 +346,14 @@
                                 class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100" title="Sửa">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </a>
-                            <button type="button"
-                                data-id="{{ $promo->id }}" data-code="{{ $promo->code }}"
-                                class="js-delete-promotion p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100" title="Xóa">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
+                            <form method="POST" action="{{ route('admin.promotions.destroy', $promo->id) }}"
+                                onsubmit="return confirm('Xóa mã khuyến mãi này? Hành động này không thể hoàn tác.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100" title="Xóa">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

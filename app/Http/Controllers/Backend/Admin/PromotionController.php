@@ -83,13 +83,6 @@ class PromotionController
                 break;
         }
 
-        // Lấy tất cả IDs trước khi thực hiện paginate nếu được yêu cầu
-        if ($request->ajax() && $request->input('fetch_all_ids') == '1') {
-            return response()->json([
-                'ids' => $query->pluck('id')->toArray()
-            ]);
-        }
-
         $promotions = $query->paginate(10)->withQueryString();
 
         // Thống kê tổng quan cho 3 thẻ số liệu ở đầu trang
@@ -518,68 +511,16 @@ class PromotionController
             $promotion->delete();
         });
 
-        return response()->json(['success' => true, 'message' => 'Đã xóa khuyến mãi thành công!']);
+        return redirect()->route('admin.promotions.index')->with('success', 'Đã xóa khuyến mãi thành công!');
     }
 
     /**
-     * XÓA NHIỀU KHUYẾN MÃI
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
-     *   trong file JS: [public/js/backend/admin/promotions/index.js] để hiển thị hộp thoại Swal báo cáo kết quả.
+     * XÓA NHIỀU KHUYẾN MÃI (chỉ các dòng đang chọn trong trang hiện tại)
      */
     public function bulkDelete(Request $request)
     {
-        // Chế độ xoá toàn bộ kết quả đang lọc
-        if ($request->input('delete_all_pages') == '1') {
-            $query = Promotion::query();
-
-            // Giữ đồng nhất với bộ lọc đang hiển thị trên bảng
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('code', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%");
-                });
-            }
-
-            if ($request->filled('type') && $request->type !== 'all') {
-                $query->where('type', $request->type);
-            }
-
-            if ($request->filled('applies_to') && $request->applies_to !== 'all') {
-                $query->where('applies_to', $request->applies_to);
-            }
-
-            $promotions = $query->get();
-            $deletedCount = $promotions->count();
-            DB::transaction(function () use ($promotions) {
-                // Xoá từng bản ghi để dễ mở rộng logic sau này nếu cần hook riêng
-                foreach ($promotions as $promo) {
-                    $promo->delete();
-                }
-            });
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => "Đã xóa {$deletedCount} khuyến mãi thành công!"
-                ]);
-            }
-
-            return redirect()->route('admin.promotions.index')
-                ->with('success', "Đã xóa {$deletedCount} khuyến mãi thành công!");
-        }
-
-        // Chế độ xoá các ID người dùng tick chọn
         $ids = $request->input('promotion_ids', []);
         if (empty($ids)) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Vui lòng chọn ít nhất một khuyến mãi.'
-                ], 400);
-            }
             return redirect()->route('admin.promotions.index')
                 ->with('error', 'Vui lòng chọn ít nhất một khuyến mãi.');
         }
@@ -589,13 +530,6 @@ class PromotionController
         DB::transaction(function () use ($ids) {
             Promotion::whereIn('id', $ids)->delete();
         });
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => "Đã xóa {$count} khuyến mãi thành công!"
-            ]);
-        }
 
         return redirect()->route('admin.promotions.index')
             ->with('success', "Đã xóa {$count} khuyến mãi thành công!");

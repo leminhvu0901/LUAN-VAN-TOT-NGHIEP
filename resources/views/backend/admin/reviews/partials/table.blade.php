@@ -85,17 +85,20 @@
             <!-- Actions -->
             <div class="flex items-center justify-between pt-1">
                 <div id="status-mobile-{{ $review->id }}">
-                    @if($review->is_visible)
-                        <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[11px] border border-emerald-100 hover:bg-emerald-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                            <span class="material-symbols-outlined text-[14px] icon-fill">visibility</span>
-                            Đang hiển thị
-                        </button>
-                    @else
-                        <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-[11px] border border-rose-100 hover:bg-rose-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                            <span class="material-symbols-outlined text-[14px] icon-fill">visibility_off</span>
-                            Đang ẩn
-                        </button>
-                    @endif
+                    <form method="POST" action="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
+                        @csrf
+                        @if($review->is_visible)
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[11px] border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                                <span class="material-symbols-outlined text-[14px] icon-fill">visibility</span>
+                                Đang hiển thị
+                            </button>
+                        @else
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-[11px] border border-rose-100 hover:bg-rose-100 transition-colors">
+                                <span class="material-symbols-outlined text-[14px] icon-fill">visibility_off</span>
+                                Đang ẩn
+                            </button>
+                        @endif
+                    </form>
                 </div>
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.reviews.edit', $review->id) }}"
@@ -103,12 +106,15 @@
                         <span class="material-symbols-outlined text-[16px]">edit</span>
                         Sửa
                     </a>
-                    <button type="button"
-                        data-id="{{ $review->id }}"
-                        class="js-delete-review px-3 py-2 sm:px-4 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined text-[16px]">delete</span>
-                        Xóa
-                    </button>
+                    <form method="POST" action="{{ route('admin.reviews.destroy', $review->id) }}"
+                        onsubmit="return confirm('Xóa đánh giá này? Hành động này không thể hoàn tác.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-3 py-2 sm:px-4 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            Xóa
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -204,17 +210,20 @@
                     </td>
                     <td class="px-6 py-4">
                         <div id="status-{{ $review->id }}">
-                            @if($review->is_visible)
-                                <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                                    <span class="material-symbols-outlined text-[16px] icon-fill">visibility</span>
-                                    Hiển thị
-                                </button>
-                            @else
-                                <button type="button" class="js-toggle-visibility inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-xs border border-rose-100 hover:bg-rose-100 transition-colors" data-id="{{ $review->id }}" data-url="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
-                                    <span class="material-symbols-outlined text-[16px] icon-fill">visibility_off</span>
-                                    Bị ẩn
-                                </button>
-                            @endif
+                            <form method="POST" action="{{ route('admin.reviews.toggle_visibility', $review->id) }}">
+                                @csrf
+                                @if($review->is_visible)
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                                        <span class="material-symbols-outlined text-[16px] icon-fill">visibility</span>
+                                        Hiển thị
+                                    </button>
+                                @else
+                                    <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-xs border border-rose-100 hover:bg-rose-100 transition-colors">
+                                        <span class="material-symbols-outlined text-[16px] icon-fill">visibility_off</span>
+                                        Bị ẩn
+                                    </button>
+                                @endif
+                            </form>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center whitespace-nowrap">
@@ -223,11 +232,14 @@
                                 class="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Sửa đánh giá">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
                             </a>
-                            <button type="button"
-                                data-id="{{ $review->id }}"
-                                class="js-delete-review p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa đánh giá">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
+                            <form method="POST" action="{{ route('admin.reviews.destroy', $review->id) }}"
+                                onsubmit="return confirm('Xóa đánh giá này? Hành động này không thể hoàn tác.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa đánh giá">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

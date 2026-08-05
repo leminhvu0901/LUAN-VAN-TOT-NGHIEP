@@ -61,10 +61,6 @@ class CustomerController
             $query->latest();
         }
 
-        if ($request->get('fetch_all_ids')) {
-            return response()->json(['ids' => (clone $query)->pluck('id')]); // Trích xuất tất cả ID khách hàng phục vụ chức năng chọn nhanh hàng loạt
-        }
-
         $customers = $query->paginate(10)->appends($request->query()); // Phân trang kết quả (10 khách/trang) và giữ lại các tham số lọc trên URL
 
         // Các thống kê cho thẻ phía trên
@@ -181,96 +177,65 @@ class CustomerController
 
     /**
      * Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động của tài khoản khách hàng.
-     * Trả về kết quả dưới dạng phản hồi JSON cho AJAX. Nếu Khóa (is_active = 0) 
-     * thì bắt buộc lưu thêm lý do khóa tài khoản để minh bạch thông tin.
+     * Nếu Khóa (is_active = 0) thì bắt buộc lưu thêm lý do khóa tài khoản để minh bạch thông tin.
      */
     public function toggleStatus(Request $request, $id)
     {
-        try {
-            $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
-            $customer->is_active = $request->input('is_active');
-            
-            // Cập nhật lý do khóa tài khoản
-            if ($customer->is_active == 0) {
-                $customer->lock_reason = $request->input('lock_reason');
-            } else {
-                $customer->lock_reason = null; // Reset lý do khi mở khóa
-            }
-            
-            $customer->save(); // Lưu thay đổi vào CSDL
+        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
+        $customer->is_active = $request->input('is_active');
 
-            return response()->json([ // Trả về phản hồi JSON báo thành công cho giao diện gọi AJAX
-                'success' => true,
-                'message' => 'Cập nhật trạng thái thành công!'
-            ]);
-        } catch (\Exception $e) {
-            // Trả về JSON lỗi 500, được tiếp nhận ở khối .then(data =>) hoặc .catch() 
-            // của hàm performToggle() trong file JS: [public/js/backend/admin/customers/index.js]
-            // để hiển thị hộp thoại cảnh báo lỗi window.AdminAlert.error(...) cho Admin.
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
-            ], 500);
+        // Cập nhật lý do khóa tài khoản
+        if ($customer->is_active == 0) {
+            $customer->lock_reason = $request->input('lock_reason');
+        } else {
+            $customer->lock_reason = null; // Reset lý do khi mở khóa
         }
+
+        $customer->save(); // Lưu thay đổi vào CSDL
+
+        return redirect()->route('admin.customers.index')->with('success', 'Cập nhật trạng thái thành công!');
     }
 
     /**
      * Hàm xử lý xóa hàng loạt khách hàng đã chọn thông qua checkbox ở giao diện.
-     * Sử dụng cơ chế kiểm soát an toàn: Nếu khách hàng đã có lịch sử đặt hàng/đánh giá 
+     * Sử dụng cơ chế kiểm soát an toàn: Nếu khách hàng đã có lịch sử đặt hàng/đánh giá
      * (báo lỗi khóa ngoại từ DB), hệ thống sẽ tự động chuyển họ sang trạng thái KHÓA tài khoản để bảo toàn dữ liệu.
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho khối lắng nghe sự kiện click nút js-bulk-delete 
-     *   trong file JS: [public/js/backend/admin/customers/index.js] để hiển thị thông báo thành công hoặc lỗi qua AdminAlert.
      */
     public function bulkDelete(Request $request)
     {
-        $ids = $request->input('ids');
+        $ids = $request->input('ids', []);
         if (!is_array($ids) || count($ids) === 0) {
-            return response()->json(['success' => false, 'message' => 'Không có khách hàng nào được chọn!']);
+            return redirect()->route('admin.customers.index')->with('error', 'Không có khách hàng nào được chọn!');
         }
 
-        try {
-            // Xóa cứng (Hard Delete)
-            $deletedCount = 0;
-            $failedCount = 0;
-            
-            $customers = User::whereIn('id', $ids)->where('role', 'customer')->get();
-            
-            foreach ($customers as $customer) {
-                try {
-                    $customer->delete();
-                    $deletedCount++;
-                } catch (\Illuminate\Database\QueryException $e) {
-                    // Lỗi rảng buộc khóa ngoại (ví dụ có đơn hàng)
-                    if ($e->getCode() == "23000") {
-                        // Khóa tài khoản thay vì xóa
-                        $customer->is_active = 0;
-                        $customer->save();
-                        $failedCount++;
-                    } else {
-                        throw $e;
-                    }
+        // Xóa cứng (Hard Delete)
+        $deletedCount = 0;
+        $failedCount = 0;
+
+        $customers = User::whereIn('id', $ids)->where('role', 'customer')->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $customer->delete();
+                $deletedCount++;
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Lỗi rảng buộc khóa ngoại (ví dụ có đơn hàng)
+                if ($e->getCode() == "23000") {
+                    // Khóa tài khoản thay vì xóa
+                    $customer->is_active = 0;
+                    $customer->save();
+                    $failedCount++;
+                } else {
+                    throw $e;
                 }
             }
-
-            if ($failedCount > 0) {
-                return response()->json([
-                    'success' => true, 
-                    'message' => "Đã xóa {$deletedCount} KH. Có {$failedCount} KH có lịch sử (đơn hàng/đánh giá) nên được chuyển sang KHÓA."
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đã xóa thành công các khách hàng đã chọn!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
-            ], 500);
         }
+
+        if ($failedCount > 0) {
+            return redirect()->route('admin.customers.index')->with('success', "Đã xóa {$deletedCount} KH. Có {$failedCount} KH có lịch sử (đơn hàng/đánh giá) nên được chuyển sang KHÓA.");
+        }
+
+        return redirect()->route('admin.customers.index')->with('success', 'Đã xóa thành công các khách hàng đã chọn!');
     }
     
     /**
@@ -356,30 +321,17 @@ class CustomerController
      */
     public function destroy($id)
     {
+        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần xóa
         try {
-            $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần xóa
-            try {
-                $customer->delete(); // Thực hiện xóa cứng (Hard Delete) bản ghi khách hàng khỏi Database
-                if (request()->ajax()) {
-                    return response()->json(['success' => true, 'message' => 'Xóa khách hàng thành công!']);
-                }
-                return redirect()->back()->with('success', 'Xóa khách hàng thành công!');
-            } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại (Foreign Key Constraint) khi khách hàng có đơn hàng/đánh giá
-                    $customer->is_active = 0;
-                    $customer->save(); // Khóa tài khoản khách hàng để tránh làm hỏng dữ liệu báo cáo đơn hàng
-                    if (request()->ajax()) {
-                        return response()->json(['success' => true, 'message' => 'Khách hàng có lịch sử giao dịch nên tài khoản chỉ bị khóa!']);
-                    }
-                    return redirect()->back()->with('warning', 'Khách hàng có lịch sử giao dịch nên tài khoản chỉ bị khóa!');
-                }
-                throw $e;
+            $customer->delete(); // Thực hiện xóa cứng (Hard Delete) bản ghi khách hàng khỏi Database
+            return redirect()->back()->with('success', 'Xóa khách hàng thành công!');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại (Foreign Key Constraint) khi khách hàng có đơn hàng/đánh giá
+                $customer->is_active = 0;
+                $customer->save(); // Khóa tài khoản khách hàng để tránh làm hỏng dữ liệu báo cáo đơn hàng
+                return redirect()->back()->with('warning', 'Khách hàng có lịch sử giao dịch nên tài khoản chỉ bị khóa!');
             }
-        } catch (\Exception $e) {
-            if (request()->ajax()) {
-                return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()], 500);
-            }
-            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+            throw $e;
         }
     }
 }

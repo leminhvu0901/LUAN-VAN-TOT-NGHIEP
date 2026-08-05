@@ -157,92 +157,41 @@ class CategoryController
     {
         // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
         if ($category->products()->count() > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể xóa danh mục đang có sản phẩm!'
-            ]);
+            return redirect()->back()->with('error', 'Không thể xóa danh mục đang có sản phẩm!');
         }
 
         $category->delete();
-        return response()->json(['success' => true, 'message' => 'Đã xóa danh mục thành công!']);
+        return redirect()->back()->with('success', 'Đã xóa danh mục thành công!');
     }
 
     /**
-     * XÓA NHIỀU DANH MỤC
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
-     *   trong file JS: [public/js/backend/admin/categories/index.js] để hiển thị thông báo kết quả.
+     * XÓA NHIỀU DANH MỤC (chỉ các dòng đang chọn trong trang hiện tại)
      */
     public function bulkDelete(Request $request)
     {
-        if ($request->input('delete_all_pages') == '1') {
-            $query = Category::query();
+        $request->validate([
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id'
+        ]);
 
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where('name', 'like', "%{$search}%");
+        $categories = Category::whereIn('id', $request->category_ids)->get();
+        $deletedCount = 0;
+        $failedCount = 0;
+
+        foreach ($categories as $category) {
+            if ($category->products()->count() > 0) {
+                $failedCount++;
+            } else {
+                $category->delete();
+                $deletedCount++;
             }
-
-            if ($request->filled('status') && $request->status !== 'all') {
-                if ($request->status === 'active') {
-                    $query->where('is_active', 1);
-                } elseif ($request->status === 'inactive') {
-                    $query->where('is_active', 0);
-                }
-            }
-
-            // Chỉ xóa các danh mục KHÔNG CÓ sản phẩm
-            $categories = $query->get();
-            $deletedCount = 0;
-            $failedCount = 0;
-
-            foreach ($categories as $category) {
-                if ($category->products()->count() > 0) {
-                    $failedCount++;
-                } else {
-                    $category->delete();
-                    $deletedCount++;
-                }
-            }
-
-            $msg = "Đã xóa {$deletedCount} danh mục.";
-            if ($failedCount > 0) {
-                $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
-            }
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => $msg]);
-            }
-            return redirect()->back()->with('success', $msg);
-        } else {
-            $request->validate([
-                'category_ids' => 'required|array',
-                'category_ids.*' => 'exists:categories,id'
-            ]);
-
-            $categories = Category::whereIn('id', $request->category_ids)->get();
-            $deletedCount = 0;
-            $failedCount = 0;
-
-            foreach ($categories as $category) {
-                if ($category->products()->count() > 0) {
-                    $failedCount++;
-                } else {
-                    $category->delete();
-                    $deletedCount++;
-                }
-            }
-
-            $msg = "Đã xóa {$deletedCount} danh mục được chọn.";
-            if ($failedCount > 0) {
-                $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
-            }
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => true, 'message' => $msg]);
-            }
-            return redirect()->back()->with('success', $msg);
         }
+
+        $msg = "Đã xóa {$deletedCount} danh mục được chọn.";
+        if ($failedCount > 0) {
+            $msg .= " Có {$failedCount} danh mục không thể xóa vì đang chứa sản phẩm.";
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 }

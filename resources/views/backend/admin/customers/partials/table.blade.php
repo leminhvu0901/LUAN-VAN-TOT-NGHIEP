@@ -83,11 +83,16 @@
                 <!-- Actions -->
                 <div class="flex items-center justify-between">
                     <div class="flex flex-col gap-1">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $customer->id }}" {{ $customer->is_active ? 'checked' : '' }}>
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                        </label>
-                        <span class="text-[10px] font-semibold {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-mobile-{{ $customer->id }}">
+                        <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
+                            @csrf
+                            <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
+                            <input type="hidden" name="lock_reason" value="">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                            </label>
+                        </form>
+                        <span class="text-[10px] font-semibold {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}">
                             {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
                         </span>
                     </div>
@@ -202,11 +207,16 @@
 
                         <!-- Trạng thái -->
                         <td class="px-6 py-4 text-center">
-                            <label class="relative inline-flex items-center cursor-pointer" title="Nhấp để đổi trạng thái">
-                                <input type="checkbox" class="sr-only peer toggle-status" data-id="{{ $customer->id }}" {{ $customer->is_active ? 'checked' : '' }}>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                            </label>
-                            <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" id="status-text-{{ $customer->id }}" {!! !$customer->is_active && $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
+                            <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
+                                @csrf
+                                <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
+                                <input type="hidden" name="lock_reason" value="">
+                                <label class="relative inline-flex items-center cursor-pointer" title="Nhấp để đổi trạng thái">
+                                    <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                                </label>
+                            </form>
+                            <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" {!! !$customer->is_active && $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
                                 {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
                             </p>
                         </td>

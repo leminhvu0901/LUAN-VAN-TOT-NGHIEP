@@ -131,53 +131,23 @@ class MaterialController
     {
         $blockReason = $this->getMaterialDeleteBlockReason($material);
         if ($blockReason !== null) {
-            if ($request && $request->ajax()) {
-                return response()->json(['success' => false, 'message' => $blockReason]);
-            }
             return redirect()->back()->withErrors(['delete' => $blockReason]);
         }
 
         $material->delete();
-        if ($request && $request->ajax()) {
-            return response()->json(['success' => true, 'message' => 'Vật tư đã được xóa!']);
-        }
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
     }
 
-    // Xóa nhiều vật tư
-    // 
-    // Phản hồi trả về:
-    // - Trả dữ liệu JSON thành công/thất bại về cho hàm executeBulkDelete() 
-    //   trong file JS: [public/js/backend/admin/materials/index.js] để hiển thị thông báo kết quả và cập nhật bảng.
+    // Xóa nhiều vật tư (chỉ các dòng đang chọn trong trang hiện tại)
     public function bulkDelete(Request $request)
     {
-        if ($request->input('delete_all_pages') == '1') {
-            $validated = $request->validate([
-                'excluded_material_ids' => ['sometimes', 'array'],
-                'excluded_material_ids.*' => ['integer'],
-            ]);
+        $request->validate([
+            'material_ids' => 'required|array',
+            'material_ids.*' => 'exists:materials,id'
+        ]);
 
-            // Xóa tất cả các trang theo bộ lọc hiện tại
-            $query = Material::query();
-
-            $this->applyMaterialFilters($query, $request);
-
-            $excludedMaterialIds = $validated['excluded_material_ids'] ?? [];
-            if ($excludedMaterialIds !== []) {
-                $query->whereNotIn('id', $excludedMaterialIds);
-            }
-
-            return $this->deleteMaterialCollection($query->get(), $request);
-        } else {
-            // Chỉ xóa các vật tư được chọn
-            $request->validate([
-                'material_ids' => 'required|array',
-                'material_ids.*' => 'exists:materials,id'
-            ]);
-
-            $materials = Material::whereIn('id', $request->material_ids)->get();
-            return $this->deleteMaterialCollection($materials, $request);
-        }
+        $materials = Material::whereIn('id', $request->material_ids)->get();
+        return $this->deleteMaterialCollection($materials, $request);
     }
 
     // --- Imports ---
@@ -601,19 +571,9 @@ class MaterialController
 
         if ($blockedCount > 0) {
             $msg = "Có {$blockedCount} vật tư không thể xóa vì vẫn còn lô hàng trong kho.";
-            if ($request && $request->ajax()) {
-                if ($deletedCount > 0) {
-                    return response()->json(['success' => true, 'message' => "Đã xóa {$deletedCount} vật tư. " . $msg]);
-                }
-                return response()->json(['success' => false, 'message' => $msg]);
-            }
             $response->withErrors([
                 'delete' => $msg,
             ]);
-        } else {
-            if ($request && $request->ajax()) {
-                return response()->json(['success' => true, 'message' => "Đã xóa {$deletedCount} vật tư."]);
-            }
         }
 
         return $response;
