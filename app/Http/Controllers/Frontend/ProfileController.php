@@ -145,7 +145,7 @@ class ProfileController
         $userId = \Illuminate\Support\Facades\Auth::id();
 
         if (!$productId) {
-            return back()->with('error', 'Thiếu thông tin sản phẩm.');
+            return response()->json(['success' => false, 'message' => 'Product ID is missing']);
         }
 
         // Kiểm tra xem user đã thả tim sản phẩm này chưa
@@ -154,23 +154,52 @@ class ProfileController
             ->where('product_id', $productId)
             ->first();
 
+        $status = '';
         if ($exists) {
             // Nếu đã thả tim rồi -> Bấm lần nữa là Xóa khỏi danh sách
             \App\Models\Favorite::query()
                 ->where('user_id', $userId)
                 ->where('product_id', $productId)
                 ->delete();
-            return back()->with('success', 'Đã xóa khỏi danh sách yêu thích.');
+            $status = 'removed';
+        } else {
+            // Nếu chưa có -> Thêm vào danh sách yêu thích
+            \App\Models\Favorite::query()->insert([
+                'user_id' => $userId,
+                'product_id' => $productId,
+                'created_at' => now(),
+            ]);
+            $status = 'added';
         }
 
-        // Nếu chưa có -> Thêm vào danh sách yêu thích
-        \App\Models\Favorite::query()->insert([
-            'user_id' => $userId,
-            'product_id' => $productId,
-            'created_at' => now(),
-        ]);
+        // Lấy lại danh sách yêu thích MỚI NHẤT của user (có join bảng products và reviews để lấy Số Sao)
+        $favorites = \App\Models\Favorite::query()
+            ->join('products', 'favorites.product_id', '=', 'products.id')
+            ->leftJoin(
+                \Illuminate\Support\Facades\DB::raw(
+                    '(SELECT product_id, ROUND(AVG(rating), 1) as avg_rating, COUNT(id) as review_count
+                      FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'
+                ),
+                'products.id',
+                '=',
+                'r.product_id'
+            )
+            ->where('favorites.user_id', $userId)
+            ->select(
+                'products.*',
+                'favorites.id as favorite_id',
+                \Illuminate\Support\Facades\DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'), // Nếu không có đánh giá thì 0 sao
+                \Illuminate\Support\Facades\DB::raw('COALESCE(r.review_count, 0) as review_count')
+            )
+            ->get();
 
-        return back()->with('success', 'Đã thêm vào danh sách yêu thích!');
+        // Trả kết quả về cho Javascript để vẽ lên Ngăn kéo Yêu thích
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'items' => $favorites,
+            'count' => count($favorites)
+        ]); // main.js - toggleFavorite() / main.js - removeFromWishlist()
     }
 
     /**

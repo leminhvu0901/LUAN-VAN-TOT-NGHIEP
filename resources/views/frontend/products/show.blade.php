@@ -35,17 +35,14 @@ $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_p
                 @endif
 
                 {{-- Nút yêu thích sản phẩm (Wishlist). Nếu đã được yêu thích ($isFavorite = true), class 'is-active' sẽ tô màu đỏ cho trái tim --}}
-                <form action="{{ route('favorite.toggle') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="product_id" value="{{ $product->id }}">
-                    <button type="submit" class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}"
-                        id="pd-wishlist-btn"
-                        aria-label="Yêu thích">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                    </button>
-                </form>
+                <button class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}"
+                    id="pd-wishlist-btn"
+                    onclick="toggleFavorite(this, {{ $product->id }})"
+                    aria-label="Yêu thích">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </button>
 
                 {{-- Ảnh lớn hiển thị sản phẩm chính. Có sự kiện onerror tải ảnh placeholder nếu ảnh chính bị lỗi --}}
                 <img id="pd-main-img"
