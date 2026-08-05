@@ -212,4 +212,3 @@
         {{ $paginator->links('pagination::tailwind') }}
     </div>
 @endif
-<input type="hidden" id="total-orders-count" value="{{ $paginator->total() }}">

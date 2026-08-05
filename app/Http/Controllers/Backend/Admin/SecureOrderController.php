@@ -17,11 +17,6 @@ class SecureOrderController
     /**
      * Hàm lấy danh sách và hiển thị tất cả đơn hàng lên trang quản trị (Trang Index).
      * Hỗ trợ các bộ lọc nâng cao (trạng thái, ngày bắt đầu, ngày kết thúc, từ khóa tìm kiếm) và phân trang.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là request AJAX: Trả về JSON chứa HTML của bảng danh sách mới và thẻ thống kê mới 
-     *   để nhận diện và cập nhật lại giao diện trong JS tại file [public/js/backend/admin/orders/index.js].
-     * - Nếu là request thường: Trả về view HTML đầy đủ.
      */
     public function index(Request $request)
     {
@@ -109,10 +104,6 @@ class SecureOrderController
     /**
      * Hàm cập nhật trạng thái xử lý của đơn hàng (Confirmed, Shipping, Completed, Cancelled).
      * Gọi qua OrderWorkflowService để kiểm tra tính hợp lệ trạng thái và thực hiện trừ/hoàn kho tự động.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là cuộc gọi AJAX: Trả về JSON thành công để JS xử lý thông báo tại file [public/js/backend/admin/orders/show.js].
-     * - Nếu là request thường: Chuyển hướng quay lại (back) kèm thông báo.
      */
     public function updateStatus(Request $request, $id)
     {
@@ -122,9 +113,6 @@ class SecureOrderController
         ]);
         $this->orderWorkflow->transition(Order::findOrFail($id), $validated['status'], $validated['cancel_reason'] ?? null); // Gọi OrderWorkflowService để thực thi nghiệp vụ chuyển đổi trạng thái đơn hàng và ghi nhận lý do nếu hủy đơn
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã cập nhật trạng thái đơn hàng!']); // Trả về JSON cho JS tiếp nhận tại file [public/js/backend/admin/orders/show.js]
-        }
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
@@ -137,9 +125,6 @@ class SecureOrderController
         $order = Order::findOrFail($id);
 
         if (!$order->needs_admin_approval) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Đơn hàng này không cần phê duyệt.'], 422);
-            }
             return back()->withErrors(['approval' => 'Đơn hàng này không cần phê duyệt.']);
         }
 
@@ -150,63 +135,30 @@ class SecureOrderController
         // Chuyển sang confirmed qua workflow service
         $this->orderWorkflow->transition($order, 'confirmed');
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã phê duyệt đơn hàng!']);
-        }
-
         return back()->with('success', 'Đã phê duyệt đơn hàng ' . $order->order_code . ' thành công!');
     }
 
     /**
      * Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là cuộc gọi AJAX: Trả về JSON thành công để JS thực hiện xóa dòng trên bảng tại file [public/js/backend/admin/orders/index.js] mà không cần reload trang.
-     * - Nếu là request thường: Chuyển hướng back kèm thông báo.
      */
     public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id); // Tìm đơn hàng theo ID hoặc ném lỗi 404
         $order->delete(); // Thực thi xóa đơn hàng khỏi CSDL
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([ // Trả về JSON cho JS tiếp nhận tại file [public/js/backend/admin/orders/index.js]
-                'success' => true,
-                'message' => 'Đã xóa đơn hàng thành công!'
-            ]);
-        }
-
         return back()->with('success', 'Đã xóa đơn hàng thành công!');
     }
 
     /**
-     * Hàm xử lý xóa hàng loạt đơn hàng được chọn.
-     * Hỗ trợ xóa theo danh sách ID cụ thể hoặc xóa toàn bộ các đơn hàng thỏa mãn điều kiện lọc của bộ tìm kiếm.
+     * Hàm xử lý xóa hàng loạt các đơn hàng đang được tích chọn trong trang hiện tại.
      */
     public function bulkDelete(Request $request)
     {
-        $query = Order::query();
-        if ($request->input('delete_all_pages') === '1') {
-            if (in_array($request->input('status'), ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
-                $query->where('status', $request->input('status')); // Lọc trạng thái đơn cần xóa hàng loạt
-            }
-            if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
-            if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
-            if ($request->filled('search')) {
-                $search = trim($request->input('search'));
-                $query->where(fn($q) => $q->where('order_code', 'like', "%{$search}%")
-                    ->orWhere('customer_name', 'like', "%{$search}%")->orWhere('customer_phone', 'like', "%{$search}%")); // Lọc từ khóa cần xóa hàng loạt
-            }
-            $excluded = $request->validate(['excluded_order_ids' => ['sometimes', 'array'], 'excluded_order_ids.*' => ['integer']])['excluded_order_ids'] ?? [];
-            if ($excluded) $query->whereNotIn('id', $excluded); // Loại trừ những đơn hàng admin bỏ chọn thủ công
-        } else {
-            $ids = $request->validate(['order_ids' => ['required', 'array'], 'order_ids.*' => ['integer', 'exists:orders,id']])['order_ids'];
-            $query->whereIn('id', $ids); // Lọc theo danh sách ID đơn được tích chọn
-        }
+        $ids = $request->validate(['order_ids' => ['required', 'array'], 'order_ids.*' => ['integer', 'exists:orders,id']])['order_ids'];
 
-        $count = $query->count(); // Đếm tổng số đơn hàng chuẩn bị xóa trong Database
-        $query->delete(); // Thực thi câu lệnh SQL DELETE xóa hàng loạt các đơn hàng được chọn khỏi Database
-        if ($count === 0) return back()->withErrors(['delete' => 'Không có đơn hàng nào được chọn.']); // Báo lỗi nếu không có đơn nào khớp
+        $count = Order::whereIn('id', $ids)->count(); // Đếm tổng số đơn hàng chuẩn bị xóa trong Database
+        Order::whereIn('id', $ids)->delete(); // Thực thi câu lệnh SQL DELETE xóa hàng loạt các đơn hàng được chọn khỏi Database
+
         return back()->with('success', "Đã xóa {$count} đơn hàng thành công."); // Chuyển hướng quay lại và thông báo kết quả cho người dùng
     }
 

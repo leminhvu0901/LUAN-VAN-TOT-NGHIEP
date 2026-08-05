@@ -185,7 +185,7 @@ class VnpayController
     public function refundOrder(Request $request, \App\Models\Order $order)
     {
         if (!$this->configValid) {
-            return response()->json(['success' => false, 'message' => 'Chưa cấu hình VNPay cho môi trường chính thức. Vui lòng liên hệ quản trị viên.'], 422);
+            return $this->refundError($request, 'Chưa cấu hình VNPay cho môi trường chính thức. Vui lòng liên hệ quản trị viên.');
         }
 
         $validated = $request->validate([
@@ -196,29 +196,44 @@ class VnpayController
         ]);
 
         if ($order->payment_method !== 'vnpay' || $order->payment_status !== 'paid') {
-            return response()->json(['success' => false, 'message' => 'Đơn hàng này không cần hoàn tiền VNPay.'], 422);
+            return $this->refundError($request, 'Đơn hàng này không cần hoàn tiền VNPay.');
         }
         if (!in_array($order->status, ['pending', 'confirmed'], true)) {
-            return response()->json(['success' => false, 'message' => 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.'], 422);
+            return $this->refundError($request, 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.');
         }
         if (!$order->payment_transaction_id) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy mã giao dịch gốc để hoàn tiền.'], 422);
+            return $this->refundError($request, 'Không tìm thấy mã giao dịch gốc để hoàn tiền.');
         }
 
         $result = $this->requestRefund($order);
 
         if (!$result['success']) {
             Log::error('VNPay refund failed', ['orderId' => $order->order_code, 'message' => $result['message']]);
-            return response()->json(['success' => false, 'message' => 'Hoàn tiền VNPay thất bại: ' . $result['message']], 422);
+            return $this->refundError($request, 'Hoàn tiền VNPay thất bại: ' . $result['message']);
         }
 
         try {
             $this->orderWorkflow->refundAndCancel($order, $result['transId'], $validated['cancel_reason']);
         } catch (ValidationException $e) {
-            return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => collect($e->errors())->flatten()->first()], 422);
+            return $this->refundError($request, collect($e->errors())->flatten()->first(), $e->errors());
         }
 
-        return response()->json(['success' => true, 'message' => 'Đã hoàn tiền và hủy đơn hàng thành công!']);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Đã hoàn tiền và hủy đơn hàng thành công!']);
+        }
+        return back()->with('success', 'Đã hoàn tiền và hủy đơn hàng thành công!');
+    }
+
+    /**
+     * Trả lỗi hoàn tiền JSON (nếu gọi qua AJAX) hoặc redirect back kèm thông báo — dùng chung cho
+     * cả 2 route gọi vào đây (admin.orders.refund / staff.reception.orders.refund).
+     */
+    private function refundError(Request $request, string $message, array $errors = [])
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'errors' => $errors, 'message' => $message], 422);
+        }
+        return back()->withErrors(['refund' => $message]);
     }
 
     /**

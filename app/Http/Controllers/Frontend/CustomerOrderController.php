@@ -195,7 +195,7 @@ class CustomerOrderController
 
         // Chỉ cho phép hủy khi đơn hàng đang ở trạng thái Chờ xác nhận (pending)
         if ($order->status !== 'pending') {
-            return $this->cancelError($request, 'Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
+            return $this->cancelError('Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
         }
 
         // Lấy lý do hủy đơn từ người dùng nhập vào
@@ -213,19 +213,12 @@ class CustomerOrderController
         try {
             // Chuyển trạng thái đơn sang 'cancelled' qua workflow
             $workflow->transition($order, 'cancelled', $reason);
-            
-            // Trả phản hồi JSON cho AJAX hoặc redirect thông thường
-            if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => "Đơn hàng #{$order->order_code} đã được hủy thành công!"]);
-            }
+
             return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy thành công!");
         } catch (ValidationException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'errors' => $e->errors()], 422);
-            }
             return redirect()->back()->withErrors($e->errors());
         } catch (\Exception $e) {
-            return $this->cancelError($request, 'Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
+            return $this->cancelError('Có lỗi xảy ra khi hủy đơn hàng: ' . $e->getMessage());
         }
     }
 
@@ -239,7 +232,7 @@ class CustomerOrderController
             \Illuminate\Support\Facades\Log::error('Customer self-cancel refund skipped: missing payment_transaction_id', [
                 'orderId' => $order->order_code,
             ]);
-            return $this->cancelError($request, 'Không tìm thấy mã giao dịch gốc để hoàn tiền. Vui lòng liên hệ cửa hàng để được hỗ trợ.');
+            return $this->cancelError('Không tìm thấy mã giao dịch gốc để hoàn tiền. Vui lòng liên hệ cửa hàng để được hỗ trợ.');
         }
 
         $gatewayLabel = $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo';
@@ -255,34 +248,24 @@ class CustomerOrderController
                 'orderId' => $order->order_code,
                 'message' => $result['message'],
             ]);
-            return $this->cancelError($request, "Hoàn tiền {$gatewayLabel} thất bại: {$result['message']}. Đơn hàng chưa bị hủy, vui lòng thử lại hoặc liên hệ cửa hàng.");
+            return $this->cancelError("Hoàn tiền {$gatewayLabel} thất bại: {$result['message']}. Đơn hàng chưa bị hủy, vui lòng thử lại hoặc liên hệ cửa hàng.");
         }
 
         try {
             // Khi cổng thanh toán xác nhận hoàn tiền thành công -> cập nhật trạng thái đơn hàng sang refunded và cancelled, giải phóng tồn kho
             app(\App\Services\OrderWorkflowService::class)->refundAndCancel($order, $result['transId'], $reason);
         } catch (ValidationException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'errors' => $e->errors()], 422);
-            }
             return redirect()->back()->withErrors($e->errors());
         }
 
-        $message = "Đơn hàng #{$order->order_code} đã được hủy và hoàn tiền {$gatewayLabel} thành công!";
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]);
-        }
-        return redirect()->back()->with('success', $message);
+        return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy và hoàn tiền {$gatewayLabel} thành công!");
     }
 
     /**
-     * Trả về thông báo lỗi hủy đơn phù hợp với định dạng yêu cầu (JSON AJAX hoặc Redirect thường)
+     * Trả về thông báo lỗi hủy đơn dạng redirect back kèm flash message.
      */
-    private function cancelError(Request $request, string $message)
+    private function cancelError(string $message)
     {
-        if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'message' => $message], 422);
-        }
         return redirect()->back()->with('error', $message);
     }
 

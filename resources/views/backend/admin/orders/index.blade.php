@@ -97,14 +97,7 @@
         <div
             class="bg-white rounded-2xl organic-shadow border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-230px)] min-h-[500px] w-full">
             <div id="table-container" class="flex-1 flex flex-col min-h-0 relative w-full">
-                {{-- Biểu tượng Loading hiển thị lên khi đang gửi request AJAX --}}
-                <div id="table-loader" class="absolute inset-0 bg-white/50 z-20 hidden items-center justify-center transition-all duration-300">
-                    {{-- Đã bỏ biểu tượng xoay vòng theo yêu cầu --}}
-                </div>
-
-                <div id="orders-table-wrapper" class="flex-1 flex flex-col min-h-0 relative w-full">
-                    @include('backend.admin.orders.partials.table')
-                </div>
+                @include('backend.admin.orders.partials.table')
             </div>
         </div>
 

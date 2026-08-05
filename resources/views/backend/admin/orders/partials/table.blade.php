@@ -117,11 +117,16 @@
                             title="Xem chi tiết">
                             <span class="material-symbols-outlined text-[16px] xl:text-[18px]">visibility</span>
                         </a>
-                        <button type="button" data-url="{{ route('admin.orders.destroy', $order['id']) }}" data-id="{{ $order['id'] }}"
-                            class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors delete-order-btn"
-                            title="Xóa đơn hàng">
-                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
-                        </button>
+                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST"
+                            onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"
+                                title="Xóa đơn hàng">
+                                <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                            </button>
+                        </form>
                     </div>
                 </td>
             </tr>
@@ -249,10 +254,15 @@
                     class="flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-2 rounded-lg font-semibold text-sm transition-colors">
                     <span class="material-symbols-outlined text-[16px]">visibility</span> Xem
                 </a>
-                <button type="button" data-url="{{ route('admin.orders.destroy', $order['id']) }}" data-id="{{ $order['id'] }}"
-                    class="delete-order-btn flex-1 flex items-center justify-center gap-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded-lg font-semibold text-sm transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
-                </button>
+                <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="flex-1"
+                    onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded-lg font-semibold text-sm transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                    </button>
+                </form>
             </div>
         </div>
     @empty
@@ -270,4 +280,3 @@
         {{ $paginator->links('pagination::tailwind') }}
     </div>
 @endif
-<input type="hidden" id="total-orders-count" value="{{ $paginator->total() }}">

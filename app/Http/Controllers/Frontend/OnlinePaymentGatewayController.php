@@ -14,18 +14,17 @@ class OnlinePaymentGatewayController
 {
     /**
      * Điều hướng và xử lý hoàn tiền đơn hàng thanh toán online.
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON từ MomoController/VnpayController về cho JS xử lý thông báo 
-     *   tại trang chi tiết đơn hàng của Admin [public/js/backend/admin/orders/show.js] 
-     *   hoặc Lễ tân [public/js/backend/staff/reception/orders/show.js].
+     * Form "Hoàn tiền & Hủy đơn" ở trang chi tiết đơn của Admin/Lễ tân submit thẳng vào đây (POST thường,
+     * tải lại trang sau khi xử lý xong) — không còn AJAX.
      */
     public function refund(Request $request, Order $order)
     {
         return match ($order->payment_method) { // Dùng cấu trúc match rẽ nhánh theo phương thức thanh toán
             'momo' => app(MomoController::class)->refundOrder($request, $order), // Gọi hàm hoàn tiền của MomoController xử lý yêu cầu qua API MoMo
             'vnpay' => app(VnpayController::class)->refundOrder($request, $order), // Gọi hàm hoàn tiền của VnpayController xử lý yêu cầu qua API VNPay
-            default => response()->json(['success' => false, 'message' => 'Đơn hàng này không cần hoàn tiền.'], 422), // Trả lỗi 422 nếu đơn hàng không dùng cổng online
+            default => $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Đơn hàng này không cần hoàn tiền.'], 422)
+                : back()->withErrors(['refund' => 'Đơn hàng này không cần hoàn tiền.']),
         };
     }
  

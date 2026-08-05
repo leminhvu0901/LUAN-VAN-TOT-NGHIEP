@@ -38,7 +38,7 @@ class OrderController
     /**
      * Hiển thị danh sách đơn hàng cho Lễ tân.
      * Hỗ trợ lọc theo trạng thái, khoảng thời gian, sắp xếp ngày tạo, tìm kiếm đa năng theo mã đơn/tên/SĐT khách,
-     * phân trang tùy chỉnh và phản hồi dạng AJAX (cập nhật bảng & thống kê không cần tải lại trang).
+     * và phân trang tùy chỉnh.
      * Tự động dọn dẹp các đơn thanh toán MoMo bị quá hạn (stale pending) mỗi lần tải danh sách.
      */
     public function index(Request $request)
@@ -178,10 +178,6 @@ class OrderController
 
         $this->sv_orderWorkflow->transition($order, $validated['status'], $validated['cancel_reason'] ?? null); // Gọi workflow service thực thi cập nhật trạng thái đơn hàng
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã cập nhật trạng thái đơn hàng!']); // Trả về JSON cho JS tại file [public/js/backend/staff/reception/orders/show.js]
-        }
-
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
@@ -193,9 +189,6 @@ class OrderController
     {
         // Chỉ cho gửi yêu cầu khi đơn đang ở trạng thái pending
         if ($order->status !== 'pending') {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Chỉ có thể gửi yêu cầu cho đơn đang chờ xác nhận.'], 422);
-            }
             return back()->withErrors(['approval' => 'Chỉ có thể gửi yêu cầu cho đơn đang chờ xác nhận.']);
         }
 
@@ -208,10 +201,6 @@ class OrderController
             $this->sv_notifications->sendAdminApprovalRequest($order);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('requestAdminApproval: failed to send email', ['error' => $e->getMessage()]);
-        }
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã gửi yêu cầu phê duyệt cho Admin!']);
         }
 
         return back()->with('success', 'Đã gửi yêu cầu phê duyệt cho Admin! Vui lòng chờ Admin xác nhận.');
@@ -233,10 +222,6 @@ class OrderController
             (int) $validated['delivery_staff_id'],
             \Illuminate\Support\Facades\Auth::id()
         );
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã phân công nhân viên giao hàng!']);
-        }
 
         return back()->with('success', 'Đã phân công nhân viên giao hàng!');
     }
@@ -473,9 +458,6 @@ class OrderController
     public function confirmCashPayment(Request $request, Order $order)
     {
         if ($order->payment_method !== 'cash' || $order->payment_status === 'paid') {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Đơn này không cần xác nhận thanh toán tiền mặt.'], 422);
-            }
             return redirect()->route('staff.reception.orders.show', $order->id)
                 ->with('error', 'Đơn này không cần xác nhận thanh toán tiền mặt.');
         }
@@ -488,18 +470,11 @@ class OrderController
         ]);
 
         if ((float) $validated['amount_tendered'] < (float) $order->final_amount) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'errors' => ['amount_tendered' => ['Số tiền khách đưa không đủ để thanh toán đơn hàng.']]], 422);
-            }
             return back()->withErrors(['amount_tendered' => 'Số tiền khách đưa không đủ để thanh toán đơn hàng.']);
         }
 
         $order->forceFill(['amount_tendered' => $validated['amount_tendered']])->save();
         $this->sv_orderWorkflow->markPaid($order, 'CASH-' . $order->order_code, (float) $order->final_amount);
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đã xác nhận thu tiền mặt thành công!']);
-        }
 
         return redirect()->route('staff.reception.orders.show', $order->id)
             ->with('success', 'Đã xác nhận thu tiền mặt thành công!');

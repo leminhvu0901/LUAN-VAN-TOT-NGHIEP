@@ -71,21 +71,21 @@ class OrderController
     /**
      * Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng sang Đang giao hàng (shipping).
      */
-    public function ship(Request $request, Order $order)
+    public function ship(Order $order)
     {
         $this->authorizeOwnership($order);
         $this->sv_orderWorkflow->transition($order, 'shipping'); // Chuyển trạng thái đơn hàng sang 'shipping'
-        return $this->success($request, 'shipping', 'Đã nhận đơn và chuyển sang đang giao!');
+        return $this->success('shipping', 'Đã nhận đơn và chuyển sang đang giao!');
     }
 
     /**
      * Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao sang Hoàn thành (completed).
      */
-    public function complete(Request $request, Order $order)
+    public function complete(Order $order)
     {
         $this->authorizeOwnership($order);
         $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái đơn hàng sang 'completed' (hoàn thành)
-        return $this->success($request, 'history', 'Đã xác nhận giao hàng thành công!');
+        return $this->success('history', 'Đã xác nhận giao hàng thành công!');
     }
 
     /**
@@ -115,7 +115,7 @@ class OrderController
             if (!$order->payment_transaction_id) { // Kiểm tra mã giao dịch gốc để hoàn tiền
                 Log::error("{$gatewayLabel} refund skipped: missing payment_transaction_id", ['orderId' => $order->order_code]);
                 $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']); // Ghi nhận thất bại thông thường
-                return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại. Không tìm thấy mã giao dịch gốc để hoàn tiền — vui lòng báo lễ tân xử lý hoàn tiền thủ công.');
+                return $this->success('history', 'Đã ghi nhận giao hàng thất bại. Không tìm thấy mã giao dịch gốc để hoàn tiền — vui lòng báo lễ tân xử lý hoàn tiền thủ công.');
             }
 
             // Gọi API hoàn tiền từ MomoController hoặc VnpayController tương ứng
@@ -125,35 +125,26 @@ class OrderController
 
             if ($refundResult['success']) {
                 $this->sv_orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']); // Ghi nhận thất bại kèm cập nhật hoàn tiền
-                return $this->success($request, 'history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
+                return $this->success('history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
             }
 
             // Hoàn tiền thất bại: Vẫn hủy đơn để giải phóng chuyến giao hàng của shipper nhưng báo lễ tân hoàn thủ công
             Log::error("{$gatewayLabel} refund failed on delivery-failed (damaged)", ['orderId' => $order->order_code, 'message' => $refundResult['message']]);
             $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
-            return $this->success($request, 'history', "Đã ghi nhận giao hàng thất bại. Hoàn tiền {$gatewayLabel} thất bại — vui lòng báo lễ tân xử lý hoàn tiền thủ công.");
+            return $this->success('history', "Đã ghi nhận giao hàng thất bại. Hoàn tiền {$gatewayLabel} thất bại — vui lòng báo lễ tân xử lý hoàn tiền thủ công.");
         }
 
         $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']); // Ghi nhận thất bại thông thường
 
-        return $this->success($request, 'history', 'Đã ghi nhận giao hàng thất bại.');
+        return $this->success('history', 'Đã ghi nhận giao hàng thất bại.');
     }
 
     /**
-     * Hàm helper trả về phản hồi điều hướng đồng bộ/bất đồng bộ.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là request AJAX: Trả về JSON chứa redirect_url cho JS xử lý chuyển hướng tại các file 
-     *   JS Frontend như [public/js/backend/staff/delivery/orders/index.js] hoặc [public/js/backend/staff/delivery/orders/show.js].
-     * - Nếu là request thường: Chuyển hướng redirect Laravel thông thường.
+     * Hàm helper trả về redirect kèm thông báo về đúng tab danh sách sau khi xử lý đơn xong.
      */
-    private function success(Request $request, string $tab, string $message)
+    private function success(string $tab, string $message)
     {
-        $redirectUrl = route('staff.delivery.orders.index', ['tab' => $tab]);
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'redirect_url' => $redirectUrl]); // Trả về JSON cho JS điều hướng bằng window.location.href
-        }
-        return redirect($redirectUrl)->with('success', $message);
+        return redirect()->route('staff.delivery.orders.index', ['tab' => $tab])->with('success', $message);
     }
 
     /**

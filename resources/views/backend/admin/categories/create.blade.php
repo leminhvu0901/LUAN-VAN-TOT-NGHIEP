@@ -76,7 +76,3 @@
 </div>
 @endsection
 
-@push('scripts')
-<script src="{{ asset('js/backend/admin/categories/common.js') }}"></script>
-<script src="{{ asset('js/backend/admin/categories/create.js') }}"></script>
-@endpush

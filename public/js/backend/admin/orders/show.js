@@ -1,11 +1,8 @@
 /**
  * show.js - Xử lý các thao tác tương tác trong trang chi tiết đơn hàng (Order Details Page)
- * Các tính năng bao gồm:
- * - Thay thế ảnh phụ lỗi bằng ảnh mặc định khi tải ảnh thất bại (`applyFallbackImage`).
- * - Nhấn nút "In hóa đơn" kích hoạt hộp thoại in mặc định của trình duyệt (`window.print()`).
- * - Thao tác Hủy đơn thường: Đưa ra hộp thoại nhắc nhở lý do hủy tối thiểu 5 ký tự.
- * - Thao tác Hoàn tiền & Hủy đơn (dành cho thanh toán online ví dụ MoMo): Gọi API tích hợp ví MoMo hoàn tiền tự động trực tiếp cho khách hàng trước khi hủy hóa đơn.
- * - Submit các form chuyển trạng thái đơn hàng thông qua AJAX fetch mà không gây reload tải lại trang liên tục.
+ * Các form đổi trạng thái/hủy/hoàn tiền đều là form POST thường (tải lại trang sau khi submit), không còn AJAX.
+ * JS ở đây chỉ còn: ảnh dự phòng khi lỗi tải ảnh, nút in hóa đơn, và hộp thoại prompt() xin lý do hủy đơn
+ * trước khi submit form hủy/hoàn tiền.
  */
 
 /**
@@ -17,6 +14,26 @@ function applyFallbackImage(image) {
 
     image.dataset.fallbackApplied = "true";
     image.src = image.dataset.fallbackSrc;
+}
+
+/**
+ * Xin lý do hủy đơn qua hộp thoại prompt() của trình duyệt, điền vào ô ẩn rồi submit form thật
+ * @param {HTMLButtonElement} btn - Nút bấm kích hoạt (cancel-order-btn hoặc refund-cancel-order-btn)
+ * @param {HTMLFormElement} form - Form cần submit sau khi có lý do hợp lệ
+ * @param {HTMLInputElement} reasonInput - Ô input ẩn chứa lý do hủy
+ * @param {string} message - Nội dung câu hỏi hiển thị trong hộp thoại prompt()
+ */
+function askCancelReasonAndSubmit(btn, form, reasonInput, message) {
+    const reason = prompt(message);
+    if (reason === null) return; // Người dùng bấm Hủy hộp thoại
+
+    if (reason.trim().length < 5) {
+        alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
+        return;
+    }
+
+    reasonInput.value = reason.trim();
+    form.submit();
 }
 
 /**
@@ -47,33 +64,12 @@ function initOrderShowPage() {
     const cancelBtn = document.getElementById('cancel-order-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function () {
-            const form = document.getElementById('cancel-order-form');
-            const reasonInput = document.getElementById('cancel_reason_input');
-
-            if (window.AdminAlert && window.AdminAlert.prompt) {
-                window.AdminAlert.prompt(
-                    'Hủy đơn hàng?',
-                    'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):',
-                    'Nhập lý do hủy đơn...',
-                    function (reason, isConfirmed) {
-                        if (isConfirmed && reason && reason.trim().length >= 5) {
-                            reasonInput.value = reason.trim();
-                            submitOrderActionForm(form);
-                        }
-                    },
-                    'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự)!',
-                    'Xác nhận',
-                    5
-                );
-            } else {
-                const reason = prompt('Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):');
-                if (reason && reason.trim().length >= 5) {
-                    reasonInput.value = reason.trim();
-                    submitOrderActionForm(form);
-                } else if (reason !== null) {
-                    showOrderActionMessage('Lý do hủy đơn phải có ít nhất 5 ký tự.', 'error');
-                }
-            }
+            askCancelReasonAndSubmit(
+                cancelBtn,
+                document.getElementById('cancel-order-form'),
+                document.getElementById('cancel_reason_input'),
+                'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+            );
         });
     }
 
@@ -81,97 +77,14 @@ function initOrderShowPage() {
     const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
     if (refundCancelBtn) {
         refundCancelBtn.addEventListener('click', function () {
-            const form = document.getElementById('refund-cancel-order-form');
-            const reasonInput = document.getElementById('refund_cancel_reason_input');
-
-            if (window.AdminAlert && window.AdminAlert.prompt) {
-                window.AdminAlert.prompt(
-                    'Hoàn tiền & hủy đơn hàng?',
-                    'Hệ thống sẽ gọi hoàn tiền ví MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
-                    'Nhập lý do hủy đơn...',
-                    function (reason, isConfirmed) {
-                        if (isConfirmed && reason && reason.trim().length >= 5) {
-                            reasonInput.value = reason.trim();
-                            submitOrderActionForm(form);
-                        }
-                    },
-                    'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự)!',
-                    'Xác nhận',
-                    5
-                );
-            } else {
-                const reason = prompt('Hệ thống sẽ gọi hoàn tiền ví MoMo cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):');
-                if (reason && reason.trim().length >= 5) {
-                    reasonInput.value = reason.trim();
-                    submitOrderActionForm(form);
-                } else if (reason !== null) {
-                    showOrderActionMessage('Lý do hủy đơn phải có ít nhất 5 ký tự.', 'error');
-                }
-            }
+            askCancelReasonAndSubmit(
+                refundCancelBtn,
+                document.getElementById('refund-cancel-order-form'),
+                document.getElementById('refund_cancel_reason_input'),
+                'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+            );
         });
     }
-
-    // 5. Ngăn chặn submit tải lại trang cho các nút cập nhật trạng thái đơn (Xác nhận đơn, Giao hàng...)
-    document.querySelectorAll('form[action*="/status"]').forEach(function (form) {
-        if (form.id === 'cancel-order-form' || form.id === 'refund-cancel-order-form') return;
-        form.addEventListener('submit', function (event) {
-            event.preventDefault();
-            submitOrderActionForm(form);
-        });
-    });
-}
-
-/**
- * Đọc CSRF Token lưu trữ trong thẻ meta đầu trang
- */
-function getShowPageCsrfToken() {
-    const meta = document.querySelector('meta[name="csrf-token"]');
-    return meta ? meta.getAttribute('content') : '';
-}
-
-/**
- * Hiển thị thông báo Toast thành công hoặc thất bại cho trang chi tiết đơn
- */
-function showOrderActionMessage(message, type) {
-    if (window.AdminAlert && type === 'error' && window.AdminAlert.error) {
-        window.AdminAlert.error(message);
-    } else if (window.AdminAlert && type !== 'error' && window.AdminAlert.success) {
-        window.AdminAlert.success(message);
-    } else {
-        alert(message);
-    }
-}
-
-/**
- * Thực thi gửi submit form thay đổi trạng thái đơn hàng bất đồng bộ (fetch)
- */
-function submitOrderActionForm(form) {
-    const btn = form.querySelector('button[type="submit"]');
-    if (btn) btn.disabled = true; // Disable nút bấm chống click đúp gửi trùng request
-
-    fetch(form.action, {
-        method: 'POST',
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': getShowPageCsrfToken() },
-        body: new FormData(form),
-    })
-        .then(function (response) {
-            return response.json().then(function (data) { return { status: response.status, data: data }; });
-        })
-        .then(function (result) {
-            if (result.status >= 400) {
-                const errors = (result.data && result.data.errors) || {};
-                const firstError = Object.values(errors)[0];
-                showOrderActionMessage((firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể xử lý, vui lòng thử lại.', 'error');
-                if (btn) btn.disabled = false;
-                return;
-            }
-            // Thành công: Reload tải lại trang để hiển thị chính xác trạng thái mới và các nút điều hướng tiếp theo
-            window.location.reload();
-        })
-        .catch(function () {
-            showOrderActionMessage('Không thể kết nối máy chủ, vui lòng thử lại.', 'error');
-            if (btn) btn.disabled = false;
-        });
 }
 
 // Khởi tạo kích hoạt trang chi tiết đơn

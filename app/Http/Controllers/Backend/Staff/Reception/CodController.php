@@ -55,28 +55,17 @@ class CodController
 
     /**
      * Xác nhận đối soát cho một đơn hàng COD riêng lẻ.
-     * 
-     * Phản hồi trả về:
-     * - Trả về dữ liệu JSON báo thành công cho JS tại file [public/js/backend/staff/reception/cod-settlement/index.js]
-     *   để JS cập nhật và làm ẩn dòng đơn hàng vừa đối soát thành công.
      */
     public function settleOne(Request $request, Order $order)
     {
         $this->sv_orderWorkflow->settleCod($order, Auth::id()); // Gọi workflow service đánh dấu đơn hàng đã nộp tiền (lưu ID người nhận là lễ tân hiện tại)
         $message = "Đã xác nhận nhận tiền COD cho đơn {$order->order_code}.";
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]); // Trả phản hồi JSON cho AJAX
-        }
         return back()->with('success', $message);
     }
 
     /**
      * Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn treo của một Shipper cụ thể.
-     * 
-     * Phản hồi trả về:
-     * - Trả về dữ liệu JSON báo thành công cho JS tại file [public/js/backend/staff/reception/cod-settlement/index.js]
-     *   để JS cập nhật lại bảng công nợ của tài xế đó mà không cần reload trang.
      */
     public function settleAll(Request $request, User $deliveryStaff)
     {
@@ -87,17 +76,9 @@ class CodController
         $count = $this->sv_orderWorkflow->settleAllCodForDeliveryStaff($deliveryStaff->id, Auth::id());
 
         if ($count === 0) {
-            $message = "{$deliveryStaff->name} không có đơn COD nào cần đối soát.";
-            if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => $message]);
-            }
-            return back()->with('info', $message);
+            return back()->with('info', "{$deliveryStaff->name} không có đơn COD nào cần đối soát.");
         }
 
-        $message = "Đã xác nhận nộp quầy {$count} đơn COD từ {$deliveryStaff->name}.";
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $message]); // Trả phản hồi JSON cho AJAX
-        }
-        return back()->with('success', $message);
+        return back()->with('success', "Đã xác nhận nộp quầy {$count} đơn COD từ {$deliveryStaff->name}.");
     }
 }

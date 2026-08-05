@@ -329,5 +329,4 @@
 
 @push('scripts')
 <script src="{{ asset('js/backend/admin/promotions/form-common.js') }}"></script>
-<script src="{{ asset('js/backend/admin/promotions/create.js') }}"></script>
 @endpush

@@ -81,18 +81,13 @@
 
                 if (!currentForm) return;
 
-                // Gán lý do nhập từ textarea + loại lý do đã chọn vào các ô input ẩn trong form gốc và
-                // tiến hành submit qua fetch (xem order-actions.js) — không dùng currentForm.submit()
-                // cổ điển nữa để tránh tải lại cả trang giữa chừng thao tác của shipper.
+                // Gán lý do nhập từ textarea + loại lý do đã chọn vào các ô input ẩn trong form gốc rồi
+                // submit thật (tải lại trang, quay về đúng tab tương ứng do server redirect).
                 const selectedType = document.querySelector('input[name="fail-reason-type"]:checked');
                 currentForm.querySelector('input[name="reason"]').value = reason;
                 currentForm.querySelector('input[name="failure_type"]').value = selectedType ? selectedType.value : 'other';
                 closeModal();
-                if (typeof window.submitDeliveryActionForm === 'function') {
-                    window.submitDeliveryActionForm(currentForm);
-                } else {
-                    currentForm.submit();
-                }
+                currentForm.submit();
             });
         }
     });
