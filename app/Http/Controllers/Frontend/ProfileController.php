@@ -89,50 +89,8 @@ class ProfileController
             ->where('id', \Illuminate\Support\Facades\Auth::id())
             ->update($updateData);
 
-        // Form submit qua fetch (xem profile.js) -> trả về đúng thông tin vừa lưu để JS cập nhật ngay
-        // tên/avatar trên trang (cả sidebar lẫn navbar) mà không cần tải lại cả trang.
-        if ($request->expectsJson()) {
-            $user = \App\Models\User::find(\Illuminate\Support\Facades\Auth::id());
-            return response()->json([
-                'success' => true,
-                'message' => 'Cập nhật thông tin thành công!',
-                'user' => [
-                    'name' => $user->name,
-                    'phone' => $user->phone,
-                    'address' => $user->address,
-                    'avatar_url' => avatar_url($user->avatar)
-                        ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=006e01&color=fff',
-                ],
-            ]);
-        }
-
         // Mặc định email không thay đổi qua form này vì liên quan đến login
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
-    }
-
-    /**
-     * Kiểm tra định dạng + trùng lặp SĐT ngay khi khách đang gõ ở trang Hồ sơ,
-     */
-    public function checkPhone(Request $request)
-    {
-        $phone = trim((string) $request->query('phone', ''));
-
-        if ($phone === '') {
-            return response()->json(['valid' => true]); // profile.js - checkPhoneLive()
-        }
-
-        $validator = \Illuminate\Support\Facades\Validator::make(['phone' => $phone], [
-            'phone' => ['string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . \Illuminate\Support\Facades\Auth::id()],
-        ], [
-            'phone.regex' => 'Số điện thoại không đúng định dạng.',
-            'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['valid' => false, 'message' => $validator->errors()->first('phone')]); // profile.js - checkPhoneLive()
-        }
-
-        return response()->json(['valid' => true]); // profile.js - checkPhoneLive()
     }
 
     /**
@@ -496,7 +454,9 @@ class ProfileController
             return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']); // profile.js - submitProfileForm()
         }
 
-        return redirect()->back()->with('success', 'Đổi mật khẩu thành công!');
+        // Cờ riêng để Blade biết mở lại đúng tab "Đổi mật khẩu" sau khi tải lại trang — URL hash
+        // (#password) không được trình duyệt gửi lên server nên không thể dựa vào đó.
+        return redirect()->back()->with('success', 'Đổi mật khẩu thành công!')->with('active_tab', 'password');
     }
 
     /**

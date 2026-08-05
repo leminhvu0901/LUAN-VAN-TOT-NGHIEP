@@ -94,9 +94,6 @@ Route::middleware(['auth'])->group(function () {
     // Cập nhật thông tin tài khoản cá nhân
     Route::post('/profile', [App\Http\Controllers\Frontend\ProfileController::class, 'update'])->name('profile.update');
 
-    // Kiểm tra trùng lặp số điện thoại qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
-    Route::get('/profile/check-phone', [App\Http\Controllers\Frontend\ProfileController::class, 'checkPhone'])->name('profile.check_phone');
-
     // Đổi mật khẩu tài khoản người dùng
     Route::post('/profile/change-password', [App\Http\Controllers\Frontend\ProfileController::class, 'changePassword'])->name('profile.change-password');
 

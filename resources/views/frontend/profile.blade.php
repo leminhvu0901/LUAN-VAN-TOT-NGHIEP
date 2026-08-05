@@ -536,8 +536,9 @@ $userAvatarUrl = Auth::user()->avatar
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 {{-- Nạp script điều khiển tab và biểu mẫu cho trang Profile --}}
 <script src="{{ asset('js/frontend/profile.js') }}?v={{ time() }}"></script>
-@if($errors->has('current_password') || $errors->has('new_password'))
-{{-- Nếu có lỗi nhập mật khẩu khi submit, tự động chuyển hướng người dùng hiển thị tab Đổi mật khẩu --}}
+@if($errors->has('current_password') || $errors->has('new_password') || session('active_tab') === 'password')
+{{-- Tự mở lại tab Đổi mật khẩu sau khi tải lại trang: hoặc do lỗi nhập mật khẩu, hoặc vừa đổi mật
+khẩu thành công (URL hash #password không được gửi lên server nên không tự giữ được). --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         showTab('password');
