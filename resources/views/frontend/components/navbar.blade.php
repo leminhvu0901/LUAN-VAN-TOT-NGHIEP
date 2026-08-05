@@ -321,13 +321,16 @@ Mở/đóng được điều khiển bởi navbar.js
                     <span class="wl-item__price">{{ number_format($item->base_price, 0, ',', '.') }}đ</span>
                 </div>
                 <div class="wl-item__actions">
-                    {{-- Nút xóa: gọi JS removeFromWishlist(id) --}}
-                    <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn"
-                        onclick="removeFromWishlist({{ $item->id }})">
-                        <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    {{-- Nút xóa khỏi yêu thích: form thật, tải lại trang sau khi bấm --}}
+                    <form action="{{ route('favorite.toggle') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="product_id" value="{{ $item->id }}">
+                        <button type="submit" title="Xóa khỏi yêu thích" class="wl-item__remove-btn">
+                            <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </form>
                     {{-- Nút thêm vào giỏ: gọi JS addToCart(id) --}}
                     <button title="Thêm vào giỏ" class="wl-item__cart-btn" onclick="addToCart({{ $item->id }})">
                         <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">

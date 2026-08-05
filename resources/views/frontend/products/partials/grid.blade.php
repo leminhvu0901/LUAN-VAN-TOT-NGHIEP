@@ -45,15 +45,17 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
                     <span class="out-of-stock-overlay">Hết Hàng</span>
                     @endif
 
-                    {{-- Nút thả tim yêu thích sản phẩm --}}
-                    <button class="home-prod-card__wishlist p-product-card-wishlist {{ in_array($product->id, $favoriteProductIds) ? 'is-active' : '' }}"
-                        data-id="{{ $product->id }}"
-                        onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})"
-                        aria-label="Yêu thích">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                    </button>
+                    {{-- Nút thả tim yêu thích sản phẩm: form thật, tải lại trang sau khi bấm --}}
+                    <form action="{{ route('favorite.toggle') }}" method="POST" onclick="event.stopPropagation()">
+                        @csrf
+                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+                        <button type="submit" class="home-prod-card__wishlist p-product-card-wishlist {{ in_array($product->id, $favoriteProductIds) ? 'is-active' : '' }}"
+                            aria-label="Yêu thích">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                        </button>
+                    </form>
 
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
