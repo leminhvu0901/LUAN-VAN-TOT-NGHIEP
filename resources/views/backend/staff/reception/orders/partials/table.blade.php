@@ -38,7 +38,7 @@
                                 <div class="inline-flex items-center px-2.5 py-1 rounded text-[11px] xl:text-xs font-medium bg-gray-100 text-gray-600 uppercase border border-gray-200 shadow-sm shrink-0">
                                     {{ $order['payment_method'] }}
                                 </div>
-                                @if(in_array($order['payment_method'], ['MOMO', 'VNPAY'], true))
+                                @if(in_array($order['payment_method'], ['VNPAY'], true))
                                     <div class="shrink-0">
                                         @if($order['payment_status'] === 'paid')
                                             <span class="badge-status badge-pay-paid scale-90 origin-left"><span class="material-symbols-outlined text-[14px]">check_circle</span> Đã thanh toán</span>
@@ -141,7 +141,7 @@
                         <div class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 uppercase border border-gray-200 shrink-0">
                             {{ $order['payment_method'] }}
                         </div>
-                        @if(in_array($order['payment_method'], ['MOMO', 'VNPAY'], true))
+                        @if(in_array($order['payment_method'], ['VNPAY'], true))
                             <div class="shrink-0">
                                 @if($order['payment_status'] === 'paid')
                                     <span class="badge-status badge-pay-paid scale-90 origin-right"><span class="material-symbols-outlined text-[12px]">check_circle</span> Đã TT</span>

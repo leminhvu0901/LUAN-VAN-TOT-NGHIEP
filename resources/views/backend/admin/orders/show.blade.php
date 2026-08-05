@@ -43,9 +43,9 @@
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đó).
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
-                // Đơn MoMo/VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
+                // Đơn VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
                 $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && in_array($order->payment_method, ['momo', 'vnpay'], true)
+                    && $order->payment_method === 'vnpay'
                     && $order->payment_status === 'paid';
                 $statusLabels2 = [
                     'pending' => ['Chờ xác nhận', 'badge-pending'],
@@ -303,11 +303,11 @@
                     </h3>
                     <div class="flex items-center justify-between">
                         <div>
-                            {{-- Phương thức thanh toán (COD hoặc MOMO) --}}
+                            {{-- Phương thức thanh toán (COD hoặc VNPAY) --}}
                             <div class="font-bold text-gray-900 uppercase">{{ $order->payment_method ?? 'COD' }}</div>
 
-                            {{-- Kiểm tra nếu thanh toán online (Momo/VNPay) thì in ra trạng thái Đã thanh toán / Chờ thanh toán --}}
-                            @if(in_array($order->payment_method, ['momo', 'vnpay'], true))
+                            {{-- Kiểm tra nếu thanh toán online (VNPay) thì in ra trạng thái Đã thanh toán / Chờ thanh toán --}}
+                            @if($order->payment_method === 'vnpay')
                                 @if(($order->payment_status ?? '') === 'paid')
                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                         <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
@@ -330,7 +330,7 @@
                         </div>
                         {{-- Đổi Icon tương ứng với ví điện tử hoặc tiền mặt --}}
                         <span class="material-symbols-outlined text-4xl text-gray-200">
-                            {{ in_array($order->payment_method ?? '', ['momo', 'vnpay'], true) ? 'account_balance_wallet' : 'money' }}
+                            {{ ($order->payment_method ?? '') === 'vnpay' ? 'account_balance_wallet' : 'money' }}
                         </span>
                     </div>
                 </div>
@@ -339,7 +339,71 @@
     </div>
 
     @push('scripts')
-        <script src="{{ asset('js/backend/admin/orders/show.js') }}"></script>
-    @endpush
+        <script>
+        function applyFallbackImage(image) {
+            if (image.dataset.fallbackApplied === "true") return;
+            image.dataset.fallbackApplied = "true";
+            image.src = image.dataset.fallbackSrc;
+        }
 
+        function askCancelReasonAndSubmit(btn, form, reasonInput, message) {
+            const reason = prompt(message);
+            if (reason === null) return;
+
+            if (reason.trim().length < 5) {
+                alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
+                return;
+            }
+
+            reasonInput.value = reason.trim();
+            form.submit();
+        }
+
+        function initOrderShowPage() {
+            const printButton = document.getElementById("order-print-btn");
+            if (printButton) {
+                printButton.addEventListener("click", function () {
+                    window.print();
+                });
+            }
+
+            document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
+                image.addEventListener("error", function () {
+                    applyFallbackImage(this);
+                });
+
+                if (image.complete && image.naturalWidth === 0) {
+                    applyFallbackImage(image);
+                }
+            });
+
+            const cancelBtn = document.getElementById('cancel-order-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () {
+                    askCancelReasonAndSubmit(
+                        cancelBtn,
+                        document.getElementById('cancel-order-form'),
+                        document.getElementById('cancel_reason_input'),
+                        'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                    );
+                });
+            }
+
+            const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
+            if (refundCancelBtn) {
+                refundCancelBtn.addEventListener('click', function () {
+                    askCancelReasonAndSubmit(
+                        refundCancelBtn,
+                        document.getElementById('refund-cancel-order-form'),
+                        document.getElementById('refund_cancel_reason_input'),
+                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                    );
+                });
+            }
+        }
+
+        initOrderShowPage();
+        </script>
+    @endpush
 @endsection
+

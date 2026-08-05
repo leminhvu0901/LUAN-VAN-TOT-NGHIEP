@@ -172,11 +172,6 @@ Route::middleware(['auth'])->group(function () {
     // Kiểm tra tính hợp lệ của mã giảm giá khi áp dụng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/checkout/validate-coupon', [App\Http\Controllers\Frontend\CartController::class, 'validateCoupon']);
 
-    // Tạo yêu cầu thanh toán qua cổng điện tử MoMo
-    Route::post('/checkout/momo', [App\Http\Controllers\Frontend\MomoController::class, 'createPayment'])->name('momo.pay');
-
-    // Nhận thông tin phản hồi từ cổng MoMo sau khi thanh toán
-    Route::get('/checkout/momo/return', [App\Http\Controllers\Frontend\MomoController::class, 'handleReturn'])->name('momo.return');
 
     // Tạo yêu cầu thanh toán qua cổng điện tử VNPay
     Route::post('/checkout/vnpay', [App\Http\Controllers\Frontend\VnpayController::class, 'createPayment'])->name('vnpay.pay');
@@ -191,8 +186,6 @@ Route::middleware(['auth'])->group(function () {
 // ║ 4. THANH TOÁN ONLINE - KÊNH IPN SERVER-TO-SERVER (PAYMENT IPN ROUTING)║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
-// Kênh nhận dữ liệu trạng thái IPN tự động từ MoMo (Server-to-Server)
-Route::post('/checkout/momo/ipn', [App\Http\Controllers\Frontend\MomoController::class, 'handleIpn'])->name('momo.ipn');
 
 // Kênh nhận dữ liệu trạng thái IPN tự động từ VNPay (Server-to-Server)
 Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController::class, 'handleIpn'])->name('vnpay.ipn');

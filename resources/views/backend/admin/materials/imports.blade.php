@@ -665,6 +665,521 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/backend/admin/materials/common.js') }}"></script>
-<script src="{{ asset('js/backend/admin/materials/imports.js') }}"></script>
+<script>
+(function () {
+    "use strict";
+
+    function openModal(id) {
+        document.getElementById(id)?.classList.remove("hidden");
+    }
+
+    function closeModal(id) {
+        document.getElementById(id)?.classList.add("hidden");
+    }
+
+    function getFieldErrorElement(input) {
+        if (!input?.id) return null;
+        return document.querySelector(`[data-error-for="${input.id}"]`);
+    }
+
+    function setFieldError(input, message = "", blockSubmission = true) {
+        if (!input) return;
+
+        const hasError = message !== "";
+        const errorElement = getFieldErrorElement(input);
+
+        input.setCustomValidity(blockSubmission ? message : "");
+        input.setAttribute("aria-invalid", hasError ? "true" : "false");
+        
+        input.classList.toggle("border-red-500", hasError);
+        input.classList.toggle("focus:border-red-500", hasError);
+        input.classList.toggle("focus:ring-red-500", hasError);
+        input.style.borderColor = hasError ? "#ef4444" : "";
+
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.toggle("hidden", !hasError);
+        }
+    }
+
+    function getProposedValue(input, insertedText) {
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
+    }
+
+    function guardInsertedContent(input, getValidationMessage) {
+        input.addEventListener("beforeinput", function (event) {
+            if (
+                event.isComposing ||
+                typeof event.inputType !== "string" ||
+                !event.inputType.startsWith("insert") ||
+                typeof event.data !== "string"
+            ) {
+                return;
+            }
+
+            const message = getValidationMessage(getProposedValue(this, event.data));
+            if (!message) return;
+
+            event.preventDefault();
+            setFieldError(this, message, false);
+        });
+
+        input.addEventListener("paste", function (event) {
+            const pastedText = event.clipboardData?.getData("text");
+            if (typeof pastedText !== "string") return;
+
+            const message = getValidationMessage(getProposedValue(this, pastedText));
+            if (!message) return;
+
+            event.preventDefault();
+            setFieldError(this, message, false);
+        });
+    }
+
+    function getTextValidationMessage(input, value) {
+        const valueLength = Array.from(value).length;
+        const maxLength = Number(input.dataset.maxLength);
+        const fieldLabel = input.dataset.fieldLabel || "Nội dung";
+
+        if (input.matches("[data-material-unit]") && value !== "") {
+            const allowedExistingValue = input.dataset.allowedExistingValue;
+            const isUnchangedExistingValue =
+                allowedExistingValue !== undefined && value === allowedExistingValue;
+
+            if (!isUnchangedExistingValue && /\p{N}/u.test(value)) {
+                return "Đơn vị không được nhập số.";
+            }
+
+            if (
+                !isUnchangedExistingValue &&
+                !/^[\p{L}\p{M}\s.\/-]+$/u.test(value)
+            ) {
+                return "Đơn vị không được nhập ký tự đặc biệt.";
+            }
+        }
+
+        if (Number.isFinite(maxLength) && valueLength > maxLength) {
+            return `${fieldLabel} không được nhập quá ${maxLength} ký tự.`;
+        }
+
+        return "";
+    }
+
+    function getSanitizedTextValue(input, value) {
+        let sanitizedValue = value;
+        const allowedExistingValue = input.dataset.allowedExistingValue;
+
+        if (
+            input.matches("[data-material-unit]") &&
+            (allowedExistingValue === undefined || value !== allowedExistingValue)
+        ) {
+            sanitizedValue = sanitizedValue
+                .replace(/\p{N}/gu, "")
+                .replace(/[^\p{L}\p{M}\s.\/-]/gu, "");
+        }
+
+        const maxLength = Number(input.dataset.maxLength);
+        if (Number.isFinite(maxLength)) {
+            sanitizedValue = Array.from(sanitizedValue).slice(0, maxLength).join("");
+        }
+
+        return sanitizedValue;
+    }
+
+    function validateTextInput(input) {
+        if (!input) return true;
+
+        const message = getTextValidationMessage(input, input.value);
+        setFieldError(input, message);
+
+        if (!message) input.dataset.lastValidValue = input.value;
+
+        return message === "";
+    }
+
+    function bindTextValidation(root = document) {
+        root.querySelectorAll("[data-max-length], [data-material-unit]").forEach((input) => {
+            if (input.dataset.textValidationBound === "true") return;
+
+            input.dataset.textValidationBound = "true";
+            guardInsertedContent(input, (value) => getTextValidationMessage(input, value));
+
+            function handleTextInput(event) {
+                if (event?.isComposing) return;
+
+                const message = getTextValidationMessage(input, input.value);
+                if (message) {
+                    input.value = input.dataset.lastValidValue ?? "";
+                    setFieldError(input, message, false);
+                    return;
+                }
+
+                input.dataset.lastValidValue = input.value;
+                setFieldError(input);
+            }
+
+            input.addEventListener("input", handleTextInput);
+            input.addEventListener("compositionend", handleTextInput);
+
+            const initialMessage = getTextValidationMessage(input, input.value);
+            if (initialMessage) {
+                input.value = getSanitizedTextValue(input, input.value);
+                input.dataset.lastValidValue = input.value;
+                setFieldError(input, initialMessage, false);
+            } else {
+                input.dataset.lastValidValue = input.value;
+            }
+        });
+    }
+
+    function syncCurrencyValue(formattedInput, rawInput, value) {
+        const numericValue = Number(value) || 0;
+        rawInput.value = numericValue;
+        formattedInput.value = new Intl.NumberFormat("vi-VN").format(numericValue);
+        formattedInput.dataset.lastValidDigits = String(numericValue);
+        setFieldError(formattedInput);
+    }
+
+    function getCurrencyValidation(input, value) {
+        if (/[^\d.,\s]/u.test(value)) {
+            return {
+                digits: value.replace(/\D/g, ""),
+                message: input.dataset.numberMessage || "Chỉ được nhập số.",
+            };
+        }
+
+        const digits = value.replace(/\D/g, "");
+        const maxValue = Number(input.dataset.maxValue);
+        const exceedsMaximum =
+            Number.isFinite(maxValue) && digits !== "" && Number(digits) > maxValue;
+
+        return {
+            digits,
+            message: exceedsMaximum
+                ? input.dataset.maxMessage || "Giá trị vượt quá giới hạn cho phép."
+                : "",
+        };
+    }
+
+    function bindCurrencyInput(formattedInput, rawInput) {
+        if (!formattedInput || !rawInput || formattedInput.dataset.currencyBound === "true") return;
+
+        function setCurrencyValue(digits) {
+            rawInput.value = digits;
+            formattedInput.value =
+                digits === "" ? "" : new Intl.NumberFormat("vi-VN").format(digits);
+            formattedInput.dataset.lastValidDigits = digits;
+        }
+
+        function handleCurrencyInput(event) {
+            if (event?.isComposing) return;
+
+            const validation = getCurrencyValidation(formattedInput, formattedInput.value);
+            if (validation.message) {
+                setCurrencyValue(formattedInput.dataset.lastValidDigits ?? "");
+                setFieldError(formattedInput, validation.message, false);
+                return;
+            }
+
+            setCurrencyValue(validation.digits);
+            setFieldError(formattedInput);
+        }
+
+        formattedInput.dataset.currencyBound = "true";
+        guardInsertedContent(
+            formattedInput,
+            (value) => getCurrencyValidation(formattedInput, value).message,
+        );
+        formattedInput.addEventListener("input", handleCurrencyInput);
+        formattedInput.addEventListener("compositionend", handleCurrencyInput);
+
+        const initialValidation = getCurrencyValidation(formattedInput, formattedInput.value);
+        if (initialValidation.message) {
+            setCurrencyValue("");
+            setFieldError(formattedInput, initialValidation.message, false);
+        } else {
+            setCurrencyValue(initialValidation.digits);
+        }
+    }
+
+    function confirmAction(title, text) {
+        return new Promise(function (resolve) {
+            window.AdminAlert.confirm(text, function () { resolve(true); }, title);
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        bindTextValidation();
+
+        document.addEventListener("click", function (event) {
+            const openButton = event.target.closest("[data-open-modal]");
+            if (openButton) {
+                openModal(openButton.dataset.openModal);
+                return;
+            }
+
+            const closeButton = event.target.closest("[data-close-modal]");
+            if (closeButton) {
+                closeModal(closeButton.dataset.closeModal);
+            }
+        });
+    });
+
+    window.MaterialsCommon = {
+        bindCurrencyInput,
+        bindTextValidation,
+        closeModal,
+        confirmAction,
+        openModal,
+        setFieldError,
+        syncCurrencyValue,
+        validateTextInput,
+    };
+})();
+
+document.addEventListener("DOMContentLoaded", function () {
+    const page = document.getElementById("materials-imports-page");
+    if (!page) return;
+
+    const createImportQuantity = document.getElementById("create-import-quantity");
+    const formattedTotalPrice = document.getElementById("formatted_total_price");
+    const rawTotalPrice = document.getElementById("total_price");
+    const createImportForm = document.getElementById("form-create-import");
+    const editFormattedPrice = document.getElementById("edit-formatted-price");
+    const editRawPrice = document.getElementById("edit-price");
+
+    MaterialsCommon.bindCurrencyInput(formattedTotalPrice, rawTotalPrice);
+    MaterialsCommon.bindCurrencyInput(editFormattedPrice, editRawPrice);
+
+    if (typeof flatpickr !== 'undefined') {
+        const createExpirationInput = document.getElementById("create-expiration-date");
+        if (createExpirationInput) {
+            flatpickr(createExpirationInput, {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d/m/Y",
+                locale: "vn",
+                disableMobile: true,
+                monthSelectorType: "static",
+                minDate: createExpirationInput.dataset.minDate || ""
+            });
+        }
+
+        const editExpirationInput = document.getElementById("edit-import-expiration-date");
+        if (editExpirationInput) {
+            flatpickr(editExpirationInput, {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "d/m/Y",
+                locale: "vn",
+                disableMobile: true,
+                monthSelectorType: "static"
+            });
+        }
+    }
+
+    if (createImportQuantity && formattedTotalPrice && rawTotalPrice) {
+        const unitPrice = Number(createImportQuantity.dataset.unitPrice) || 0;
+
+        createImportQuantity.addEventListener("input", function () {
+            const quantity = Number(this.value) || 0;
+            
+            if (quantity >= 1000) {
+                MaterialsCommon.setFieldError(this, "Số lượng nhập phải bé hơn 1000.", false);
+            } else {
+                MaterialsCommon.setFieldError(this, "", false);
+            }
+
+            const total = Math.round(quantity * unitPrice);
+
+            if (total > 0) {
+                MaterialsCommon.syncCurrencyValue(formattedTotalPrice, rawTotalPrice, total);
+            } else {
+                rawTotalPrice.value = "";
+                formattedTotalPrice.value = "";
+                formattedTotalPrice.dataset.lastValidDigits = "";
+                MaterialsCommon.setFieldError(formattedTotalPrice);
+            }
+        });
+    }
+
+    const editImportQuantity = document.getElementById("edit-import-quantity");
+    if (editImportQuantity) {
+        editImportQuantity.addEventListener("input", function () {
+            const quantity = Number(this.value) || 0;
+            if (quantity >= 1000) {
+                MaterialsCommon.setFieldError(this, "Số lượng nhập phải bé hơn 1000.", false);
+            } else {
+                MaterialsCommon.setFieldError(this, "", false);
+            }
+        });
+    }
+
+    createImportForm?.addEventListener("submit", function (event) {
+        const totalPrice = Number(rawTotalPrice?.value);
+        if (Number.isFinite(totalPrice) && totalPrice > 0 && totalPrice <= 9999999999.99) return;
+
+        event.preventDefault();
+        MaterialsCommon.setFieldError(
+            formattedTotalPrice,
+            totalPrice > 9999999999.99
+                ? "Tổng tiền thanh toán vượt quá giới hạn cho phép."
+                : "Tổng tiền thanh toán phải lớn hơn 0.",
+        );
+        formattedTotalPrice?.focus();
+    });
+
+    page.addEventListener("click", function (event) {
+        const editMaterialButton = event.target.closest(".js-edit-material");
+        if (editMaterialButton) {
+            const hasImports = editMaterialButton.dataset.hasImports === "true";
+            const nameInput = document.getElementById("edit-name");
+            const unitInput = document.getElementById("edit-unit");
+            const form = document.getElementById("form-edit");
+            const formAction = document.getElementById("material-edit-form-action");
+
+            if (nameInput) {
+                nameInput.value = editMaterialButton.dataset.name || "";
+                MaterialsCommon.validateTextInput(nameInput);
+            }
+            
+            if (unitInput) {
+                unitInput.value = editMaterialButton.dataset.unit || "";
+                unitInput.dataset.allowedExistingValue = editMaterialButton.dataset.unit || "";
+                
+                unitInput.readOnly = hasImports;
+                unitInput.classList.toggle("bg-gray-100", hasImports);
+                unitInput.title = hasImports
+                    ? "Không thể đổi đơn vị khi vật tư đã có phiếu nhập."
+                    : "";
+                MaterialsCommon.validateTextInput(unitInput);
+            }
+            
+            if (editFormattedPrice && editRawPrice) {
+                MaterialsCommon.syncCurrencyValue(
+                    editFormattedPrice,
+                    editRawPrice,
+                    editMaterialButton.dataset.price,
+                );
+                
+                editFormattedPrice.readOnly = hasImports;
+                editFormattedPrice.classList.toggle("bg-gray-100", hasImports);
+                editFormattedPrice.title = hasImports
+                    ? "Giá vốn được tính tự động từ các phiếu nhập."
+                    : "";
+            }
+            
+            if (form) form.action = editMaterialButton.dataset.action;
+            if (formAction) formAction.value = editMaterialButton.dataset.action;
+            MaterialsCommon.openModal("modal-edit");
+            return;
+        }
+
+        const editImportButton = event.target.closest(".js-edit-import");
+        if (editImportButton) {
+            const quantityInput = document.getElementById("edit-import-quantity");
+            const priceInput = document.getElementById("edit-import-total-price");
+            const expirationInput = document.getElementById("edit-import-expiration-date");
+            const noteInput = document.getElementById("edit-import-note");
+            const idText = document.getElementById("edit-import-id-text");
+            const form = document.getElementById("form-edit-import");
+            const formAction = document.getElementById("import-edit-form-action");
+            const minQuantity = document.getElementById("import-edit-min-quantity");
+            const minExpiration = document.getElementById("import-edit-min-expiration");
+
+            if (idText) idText.textContent = `LOT-${editImportButton.dataset.id}`;
+            if (quantityInput) {
+                quantityInput.value = editImportButton.dataset.quantity;
+                quantityInput.min = Math.max(
+                    1,
+                    Math.ceil(Number(editImportButton.dataset.consumed) || 0),
+                );
+            }
+            if (priceInput) priceInput.value = editImportButton.dataset.totalPrice;
+            if (expirationInput) {
+                if (expirationInput._flatpickr) {
+                    expirationInput._flatpickr.setDate(editImportButton.dataset.expirationDate || "");
+                    expirationInput._flatpickr.set('minDate', editImportButton.dataset.minExpirationDate || "");
+                } else {
+                    expirationInput.value = editImportButton.dataset.expirationDate || "";
+                    expirationInput.min = editImportButton.dataset.minExpirationDate || "";
+                }
+            }
+            if (noteInput) {
+                noteInput.value = editImportButton.dataset.note || "";
+                MaterialsCommon.validateTextInput(noteInput);
+            }
+            if (form) form.action = editImportButton.dataset.action;
+            if (formAction) formAction.value = editImportButton.dataset.action;
+            if (minQuantity) minQuantity.value = editImportButton.dataset.consumed || "0";
+            if (minExpiration) {
+                minExpiration.value = editImportButton.dataset.minExpirationDate || "";
+            }
+            MaterialsCommon.openModal("modal-edit-import");
+            return;
+        }
+
+        const disposeButton = event.target.closest(".js-dispose-batch");
+        if (disposeButton) {
+            const quantityInput = document.getElementById("dispose-batch-quantity");
+            const unitText = document.getElementById("dispose-batch-unit");
+            const maxText = document.getElementById("dispose-batch-max");
+            const idText = document.getElementById("dispose-batch-id");
+            const form = document.getElementById("form-dispose-batch");
+            const formAction = document.getElementById("dispose-form-action");
+            const maxQuantity = document.getElementById("dispose-max-quantity");
+
+            if (quantityInput) {
+                quantityInput.value = "";
+                quantityInput.max = disposeButton.dataset.max;
+            }
+            if (unitText) unitText.textContent = disposeButton.dataset.unit;
+            if (maxText) maxText.textContent = disposeButton.dataset.max;
+            if (idText) idText.textContent = `LOT-${String(disposeButton.dataset.id).padStart(4, "0")}`;
+            if (form) form.action = disposeButton.dataset.action;
+            if (formAction) formAction.value = disposeButton.dataset.action;
+            if (maxQuantity) maxQuantity.value = disposeButton.dataset.max;
+            MaterialsCommon.openModal("modal-dispose-batch");
+        }
+
+        const consumeButton = event.target.closest(".js-consume-batch");
+        if (consumeButton) {
+            const quantityInput = document.getElementById("consume-batch-quantity");
+            const unitText = document.getElementById("consume-batch-unit");
+            const maxText = document.getElementById("consume-batch-max");
+            const idText = document.getElementById("consume-batch-id");
+            const form = document.getElementById("form-consume-batch");
+            const formAction = document.getElementById("consume-form-action");
+            const maxQuantity = document.getElementById("consume-max-quantity");
+
+            if (quantityInput) {
+                quantityInput.value = "";
+                quantityInput.max = consumeButton.dataset.max;
+            }
+            if (unitText) unitText.textContent = consumeButton.dataset.unit;
+            if (maxText) maxText.textContent = consumeButton.dataset.max;
+            if (idText) idText.textContent = `LOT-${String(consumeButton.dataset.id).padStart(4, "0")}`;
+            if (form) form.action = consumeButton.dataset.action;
+            if (formAction) formAction.value = consumeButton.dataset.action;
+            if (maxQuantity) maxQuantity.value = consumeButton.dataset.max;
+            MaterialsCommon.openModal("modal-consume-batch");
+        }
+    });
+
+    page.addEventListener("submit", async function (event) {
+        const deleteForm = event.target.closest(".js-material-delete-form");
+        if (!deleteForm) return;
+
+        event.preventDefault();
+        const confirmed = await MaterialsCommon.confirmAction(
+            "Xác nhận xóa vật tư?",
+            "Vật tư này sẽ bị xóa vĩnh viễn khỏi hệ thống.",
+        );
+        if (confirmed) deleteForm.submit();
+    });
+});
+</script>
 @endpush
+

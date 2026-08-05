@@ -92,7 +92,7 @@
                         @else
                             <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full inline-flex items-center gap-1">
                                 <span class="material-symbols-outlined text-[14px]">check_circle</span>
-                                Đã thanh toán {{ match($order->payment_method) { 'momo' => 'MoMo', 'vnpay' => 'VNPay', default => 'trực tuyến' } }}
+                                Đã thanh toán {{ match($order->payment_method) { 'vnpay' => 'VNPay', default => 'trực tuyến' } }}
                             </span>
                         @endif
                         @foreach($feeParts as $fee)

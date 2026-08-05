@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\Review;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +31,7 @@ class ReviewController
         $userId = Auth::id();
 
         // 2. Xác minh đơn hàng có thuộc về user này và ở trạng thái hoàn thành (completed) hay không
-        $order = \App\Models\Order::query()
+        $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
             ->where('status', 'completed')
@@ -37,7 +42,7 @@ class ReviewController
         }
 
         // 3. Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
-        $orderItem = \App\Models\OrderItem::query()
+        $orderItem = OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->first();
@@ -47,14 +52,14 @@ class ReviewController
         }
 
         // 4. Tìm kiếm đánh giá hiện có của sản phẩm trong đơn hàng này (nếu đã từng đánh giá trước đó)
-        $existingReview = \App\Models\Review::query()
+        $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
             ->first();
 
         // 5. Lấy thông tin sản phẩm và trung bình điểm số, số lượt đánh giá
-        $product = \App\Models\Product::query()
+        $product = Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -72,7 +77,7 @@ class ReviewController
 
         // 6. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản
         // phẩm bên lề — áp dụng bộ lọc sao/có ảnh (nút lọc trên trang giờ là link GET thật).
-        $reviewsQuery = \App\Models\Review::query()
+        $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $productId)
             ->where('reviews.is_visible', 1)
@@ -92,7 +97,7 @@ class ReviewController
             ->withQueryString();
 
         // Phân phối tỷ lệ đánh giá (số lượng 5 sao, 4 sao...)
-        $ratingDistribution = \App\Models\Review::query()
+        $ratingDistribution = Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
             ->selectRaw('rating, COUNT(*) as count')
@@ -101,7 +106,7 @@ class ReviewController
             ->toArray();
 
         // Số đánh giá có ảnh
-        $hasImageCount = \App\Models\Review::query()
+        $hasImageCount = Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
             ->whereNotNull('image')
@@ -145,13 +150,13 @@ class ReviewController
         ]);
 
         // 3. Xác minh đơn hàng và món nước một lần nữa
-        $order = \App\Models\Order::query()
+        $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
             ->where('status', 'completed')
             ->first();
 
-        $orderItem = \App\Models\OrderItem::query()
+        $orderItem = OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->first();
@@ -161,7 +166,7 @@ class ReviewController
         }
 
         // 4. Kiểm tra chắc chắn xem sản phẩm này đã được người dùng đánh giá chưa
-        $existingReview = \App\Models\Review::query()
+        $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
@@ -196,7 +201,7 @@ class ReviewController
         // 6. Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
         // Sử dụng khối try/catch bắt lỗi khóa ngoại/duplicate UNIQUE đề phòng trường hợp gửi request song song (race condition).
         try {
-            \App\Models\Review::query()->insert([
+            Review::query()->insert([
                 'user_id' => $userId,
                 'product_id' => $productId,
                 'order_id' => $orderId,
@@ -207,7 +212,7 @@ class ReviewController
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // Mã lỗi 23000: Vi phạm ràng buộc duy nhất (Unique Constraint) - nghĩa là đã đánh giá rồi
             if ((int) $e->getCode() === 23000) {
                 return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
@@ -234,7 +239,7 @@ class ReviewController
         $userId = Auth::id();
 
         // 2. Kiểm tra nhanh (không lock) để chặn sớm các yêu cầu sửa đổi không hợp lệ
-        $existingReview = \App\Models\Review::query()
+        $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
@@ -291,7 +296,7 @@ class ReviewController
 
         // 5. Mở Transaction và thực hiện khóa dòng dữ liệu (lockForUpdate) để tránh ghi đè/spam đồng thời
         $result = DB::transaction(function () use ($orderId, $productId, $userId, $request, $newImageNames) {
-            $locked = \App\Models\Review::query()
+            $locked = Review::query()
                 ->where('order_id', $orderId)
                 ->where('product_id', $productId)
                 ->where('user_id', $userId)
@@ -347,7 +352,7 @@ class ReviewController
     /**
      * Kiểm tra xem đánh giá có còn nằm trong thời hạn cho phép chỉnh sửa hay không (trong vòng 7 ngày)
      */
-    private function withinEditWindow(\App\Models\Review $review): bool
+    private function withinEditWindow(Review $review): bool
     {
         return now()->lte($review->created_at->copy()->addDays(self::EDIT_WINDOW_DAYS));
     }
@@ -355,7 +360,7 @@ class ReviewController
     /**
      * Xác minh xem người dùng có thể thực hiện chỉnh sửa đánh giá này hay không
      */
-    private function canStillEdit(\App\Models\Review $review): bool
+    private function canStillEdit(Review $review): bool
     {
         return !$review->edited_at && $this->withinEditWindow($review);
     }

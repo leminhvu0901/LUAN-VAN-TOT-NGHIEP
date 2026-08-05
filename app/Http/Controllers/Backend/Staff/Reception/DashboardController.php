@@ -9,8 +9,6 @@ use App\Models\MaterialImport;
 
 /**
  * Controller Bảng điều khiển (Dashboard) dành cho Lễ tân.
- * Tổng hợp các số liệu kinh doanh trong ngày, trạng thái đơn hàng, 
- * tình hình tồn kho nguyên liệu và danh sách đơn hàng mới nhất để lễ tân theo dõi nhanh.
  */
 class DashboardController
 {
@@ -32,14 +30,14 @@ class DashboardController
 
         // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ tính tiền đã thực thu (payment_status=paid, paid_at hôm nay)
         // Tiền mặt gộp cả 'cash' (thu tại quầy) và 'cod' (thu khi giao, cũng là tiền mặt)
-        // Chuyển khoản gộp cả 'momo' và 'vnpay' (cùng là thanh toán điện tử, gộp chung 1 nhóm trên biểu đồ)
+        // Chuyển khoản chỉ có 'vnpay' (thanh toán điện tử qua cổng VNPay)
         $todayRange = [today(), today()->endOfDay()]; // Khai báo khoảng thời gian từ 00:00:00 đến 23:59:59 ngày hôm nay
 
         $cashRevenueToday = (float) Order::whereIn('payment_method', ['cash', 'cod']) // Lấy các đơn trả bằng tiền mặt/tiền COD
             ->where('payment_status', 'paid')
             ->whereBetween('paid_at', $todayRange)
             ->sum('final_amount');
-        $transferRevenueToday = (float) Order::whereIn('payment_method', ['momo', 'vnpay']) // Lấy các đơn chuyển khoản ví điện tử
+        $transferRevenueToday = (float) Order::where('payment_method', 'vnpay') // Lấy các đơn chuyển khoản VNPay
             ->where('payment_status', 'paid')
             ->whereBetween('paid_at', $todayRange)
             ->sum('final_amount');

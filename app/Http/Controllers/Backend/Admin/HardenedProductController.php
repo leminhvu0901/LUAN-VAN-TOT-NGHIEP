@@ -16,22 +16,19 @@ class HardenedProductController
 {
     /**
      * Hàm lấy danh sách và hiển thị tất cả sản phẩm phục vụ trang quản trị.
-     * Hỗ trợ tìm kiếm, lọc theo danh mục, trạng thái hoạt động, sắp xếp và phân trang.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là request AJAX: Trả về JSON chứa HTML của bảng mới để cập nhật giao diện 
-     *   trong JS tại file [public/js/backend/admin/products/index.js].
-     * - Nếu là request thường: Trả về trang giao diện HTML đầy đủ.
+     * Hỗ trợ tìm kiếm, lọc theo danh mục, trạng thái hoạt động, sắp xếp và phân trang
      */
     public function index(Request $request)
     {
         $query = Product::query()->with('category');
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
+            $query->where(fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
         }
-        if ($request->filled('category_id') && $request->input('category_id') !== 'all') $query->where('category_id', $request->input('category_id'));
-        if ($request->filled('status') && $request->input('status') !== 'all') $query->where('is_active', $request->input('status') === 'active');
+        if ($request->filled('category_id') && $request->input('category_id') !== 'all')
+            $query->where('category_id', $request->input('category_id'));
+        if ($request->filled('status') && $request->input('status') !== 'all')
+            $query->where('is_active', $request->input('status') === 'active');
         match ($request->input('sort')) {
             'price_asc' => $query->orderBy('base_price'),
             'price_desc' => $query->orderByDesc('base_price'),
@@ -40,12 +37,13 @@ class HardenedProductController
         $products = $query->paginate(10)->withQueryString();
         $categories = Category::where('is_active', true)->orderBy('display_order')->get();
         $data = [
-            'products' => $products, 'categories' => $categories,
+            'products' => $products,
+            'categories' => $categories,
             'totalProducts' => Product::count(),
             'activeProducts' => Product::where('is_active', true)->count(),
             'inactiveProducts' => Product::where('is_active', false)->count(),
         ];
-        return  view('backend.admin.products.index', $data);
+        return view('backend.admin.products.index', $data);
     }
 
     /**
@@ -53,7 +51,7 @@ class HardenedProductController
      */
     public function create(Request $request)
     {
-        return  view('backend.admin.products.create', [
+        return view('backend.admin.products.create', [
             'categories' => Category::where('is_active', true)->orderBy('display_order')->get(),
             'toppings' => Topping::orderBy('name')->get(),
             'backUrl' => $this->resolveBackUrl($request),
@@ -67,7 +65,7 @@ class HardenedProductController
     public function edit(Product $product, Request $request)
     {
         $product->load(['sizes', 'toppings', 'images']);
-        return  view('backend.admin.products.edit', [
+        return view('backend.admin.products.edit', [
             'product' => $product,
             'categories' => Category::where('is_active', true)->orderBy('display_order')->get(),
             'toppings' => Topping::orderBy('name')->get(),
@@ -89,7 +87,8 @@ class HardenedProductController
             $data['slug'] = Str::slug($data['name']) . '-' . Str::lower(Str::random(8));
             $data['sku'] = $data['sku'] ?: $this->generateSku();
             $data['is_active'] = $request->boolean('is_active');
-            if ($request->hasFile('image')) $data['image'] = $this->storeImage($request->file('image'), 'products', $uploaded);
+            if ($request->hasFile('image'))
+                $data['image'] = $this->storeImage($request->file('image'), 'products', $uploaded);
 
             DB::transaction(function () use (&$product, $data, $validated, $request, &$uploaded) {
                 $product = Product::create($data);
@@ -117,7 +116,8 @@ class HardenedProductController
             $data = $this->productData($validated);
             $data['sku'] = $product->sku ?: ($data['sku'] ?: $this->generateSku());
             $data['is_active'] = $request->boolean('is_active');
-            if ($request->hasFile('image')) $data['image'] = $this->storeImage($request->file('image'), 'products', $uploaded);
+            if ($request->hasFile('image'))
+                $data['image'] = $this->storeImage($request->file('image'), 'products', $uploaded);
 
             DB::transaction(function () use ($product, $data, $validated, $request, &$uploaded) {
                 $product->update($data);
@@ -134,11 +134,7 @@ class HardenedProductController
         return redirect($this->safeReturnUrl($request))->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
-    // Trang danh sách lọc/phân trang bằng AJAX + history.pushState (xem products/index.js), nên URL
-    // thật sự đang xem (kèm search/category_id/status/sort/page) chỉ tồn tại trên thanh địa chỉ
-    // trình duyệt, không phải trong route Laravel — lấy qua Referer lúc vào trang Thêm/Sửa rồi gửi
-    // xuôi qua field ẩn 'back_url' để khi lưu xong quay lại ĐÚNG view đã lọc, tránh mất lọc + tránh
-    // cảm giác "nảy" giao diện do bất ngờ quay về trang mặc định không lọc.
+    // tự động xác định và lấy URL của trang mà người dùng 
     private function resolveBackUrl(Request $request): string
     {
         $referer = $request->headers->get('referer');
@@ -148,8 +144,7 @@ class HardenedProductController
         return route('admin.products.index');
     }
 
-    // Hàm kiểm tra và lấy URL quay lại an toàn (Được dùng để chuyển hướng sau khi Lưu/Cập nhật thành công).
-    // Giúp ngăn chặn lỗ hổng bảo mật Open Redirect (Kẻ xấu lợi dụng tham số URL để chuyển hướng người dùng sang trang web độc hại bên ngoài).
+    // Hàm kiểm tra và lấy URL quay lại an toàn
     private function safeReturnUrl(Request $request): string
     {
         $backUrl = $request->input('back_url'); // Đọc đường dẫn quay lại được truyền lên từ trường input ẩn của form
@@ -161,8 +156,6 @@ class HardenedProductController
 
     /**
      * Hàm xử lý xóa một sản phẩm cụ thể khỏi hệ thống.
-     * Cơ chế an toàn: Nếu sản phẩm đã phát sinh đơn hàng trong lịch sử giao dịch (order_items), 
-     * thay vì xóa cứng sẽ chuyển trạng thái sang "Ngừng kinh doanh" (is_active = 0) để bảo toàn dữ liệu báo cáo.
      */
     public function destroy(Product $product, Request $request)
     {
@@ -177,8 +170,6 @@ class HardenedProductController
 
     /**
      * Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện (chỉ các dòng đang chọn trong trang hiện tại).
-     * Áp dụng nguyên lý an toàn: Các sản phẩm đã có đơn hàng được chuyển về Ngừng kinh doanh.
-     * Các sản phẩm còn lại được thực hiện xóa cứng khỏi DB và xóa tệp ảnh khỏi ổ đĩa.
      */
     public function bulkDelete(Request $request)
     {
@@ -197,7 +188,8 @@ class HardenedProductController
         });
         $this->deleteFiles($files); // Xóa sạch các file ảnh tương ứng của nhóm sản phẩm bị xóa khỏi máy chủ
         $message = "Đã xóa {$deleted} sản phẩm.";
-        if ($blockedIds->isNotEmpty()) $message .= " {$blockedIds->count()} sản phẩm có lịch sử đơn hàng đã được ngừng kinh doanh.";
+        if ($blockedIds->isNotEmpty())
+            $message .= " {$blockedIds->count()} sản phẩm có lịch sử đơn hàng đã được ngừng kinh doanh.";
         return back()->with('success', $message);
     }
 
@@ -273,16 +265,21 @@ class HardenedProductController
         $seen = [];
         foreach (($validated['size_names'] ?? []) as $index => $name) {
             $name = trim((string) $name);
-            if ($name === '' || in_array(mb_strtolower($name), $seen, true)) continue;
+            if ($name === '' || in_array(mb_strtolower($name), $seen, true))
+                continue;
             $seen[] = mb_strtolower($name);
-            ProductSize::create(['product_id' => $product->id, 'size_name' => $name,
-                'price_adjustment' => (float) ($validated['size_price_adjustments'][$index] ?? 0)]);
+            ProductSize::create([
+                'product_id' => $product->id,
+                'size_name' => $name,
+                'price_adjustment' => (float) ($validated['size_price_adjustments'][$index] ?? 0)
+            ]);
         }
     }
 
     private function generateSku(): string
     {
-        do $sku = 'SP-' . strtoupper(Str::random(8)); while (Product::where('sku', $sku)->exists());
+        do
+            $sku = 'SP-' . strtoupper(Str::random(8)); while (Product::where('sku', $sku)->exists());
         return $sku;
     }
 
@@ -304,7 +301,8 @@ class HardenedProductController
     private function deleteProduct(Product $product): array
     {
         $files = $product->images->pluck('image_path')->all();
-        if ($product->image && !str_contains($product->image, 'placeholder')) $files[] = $product->image;
+        if ($product->image && !str_contains($product->image, 'placeholder'))
+            $files[] = $product->image;
         DB::table('favorites')->where('product_id', $product->id)->delete();
         DB::table('reviews')->where('product_id', $product->id)->delete();
         DB::table('cart_items')->where('product_id', $product->id)->delete();
@@ -316,7 +314,8 @@ class HardenedProductController
     {
         foreach (array_unique($paths) as $path) {
             $full = upload_path($path);
-            if ($full && is_file($full)) @unlink($full);
+            if ($full && is_file($full))
+                @unlink($full);
         }
     }
 }

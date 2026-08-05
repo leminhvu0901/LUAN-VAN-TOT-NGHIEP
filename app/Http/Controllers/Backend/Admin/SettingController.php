@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SettingController
 {
@@ -58,7 +59,6 @@ class SettingController
             'weather_storm_percent' => '15',
 
             'cod_enabled' => '1',
-            'momo_enabled' => '0',
             'vnpay_enabled' => '0',
             'payment_environment' => 'sandbox',
 
@@ -87,12 +87,9 @@ class SettingController
             $settings['loyalty_point_value'] = '1';
         }
 
-        // Check configured payment credentials for the currently selected environment (mask keys status)
-        $momoEnvKey = ($settings['payment_environment'] ?? 'sandbox') === 'production' ? 'production' : 'sandbox';
-        $momoEnvConfig = config("services.momo.{$momoEnvKey}", []);
-        $vnpayEnvConfig = config("services.vnpay.{$momoEnvKey}", []);
+        // Check configured payment credentials for the sandbox testing environment (mask keys status)
+        $vnpayEnvConfig = config("services.vnpay.sandbox", []);
         $paymentStatus = [
-            'momo' => (!empty($momoEnvConfig['partner_code']) && !empty($momoEnvConfig['access_key']) && !empty($momoEnvConfig['secret_key'])),
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
         ];
 
@@ -143,7 +140,7 @@ class SettingController
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
             'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
             'shipping' => ['shipping_base_fee', 'shipping_fee_per_km', 'shipping_max_distance_km', 'free_shipping_minimum', 'weather_surcharge_enabled', 'weather_override', 'weather_light_rain_percent', 'weather_heavy_rain_percent', 'weather_storm_percent'],
-            'payment' => ['cod_enabled', 'momo_enabled', 'vnpay_enabled', 'payment_environment'],
+            'payment' => ['cod_enabled', 'vnpay_enabled', 'payment_environment'],
             'loyalty' => ['loyalty_enabled', 'loyalty_money_per_point', 'loyalty_point_value', 'loyalty_max_redeem_percent', 'loyalty_min_points_to_redeem'],
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
         ];
@@ -176,7 +173,6 @@ class SettingController
             'weather_storm_percent' => 'integer',
 
             'cod_enabled' => 'boolean',
-            'momo_enabled' => 'boolean',
             'vnpay_enabled' => 'boolean',
             'payment_environment' => 'string',
 
@@ -232,9 +228,8 @@ class SettingController
             case 'payment':
                 $rules = [
                     'cod_enabled' => 'required|in:0,1',
-                    'momo_enabled' => 'required|in:0,1',
                     'vnpay_enabled' => 'required|in:0,1',
-                    'payment_environment' => 'required|in:sandbox,production',
+                    'payment_environment' => 'required|in:sandbox',
                 ];
                 break;
             case 'loyalty':
@@ -300,7 +295,7 @@ class SettingController
                 $extension = $file->getClientOriginalExtension();
                 // Dùng UUID thay vì time() (chỉ chính xác tới giây) - 2 lần upload trong cùng 1 giây
                 // trùng tên file sẽ khiến bước xoá logo cũ bên dưới xoá NHẦM chính file vừa ghi.
-                $fileName = 'logo_' . (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
+                $fileName = 'logo_' . (string) Str::uuid() . '.' . $extension;
 
                 // Giá trị lưu DB là đường dẫn tuyệt đối nên asset($shopLogo) ở các view dùng lại
                 // được y nguyên, không cần qua upload_url().

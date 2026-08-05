@@ -90,19 +90,65 @@
     </div>
 </div>
 
-{{-- Nạp script điều khiển ẩn hiện và chuyển đổi popup quên mật khẩu --}}
-<script src="{{ asset('js/frontend/auth/forgot-password.js') }}?v={{ filemtime(public_path('js/frontend/auth/forgot-password.js')) }}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        {{-- Nếu Session có cờ báo hiển thị trực tiếp popup quên mật khẩu (sau khi redirect) --}}
-        @if(session('show_forgot'))
-            const forgotModal = document.getElementById('forgot-modal');
-            if (forgotModal) {
-                {{-- Hiển thị Modal ngay lập tức --}}
-                forgotModal.style.display = 'block';
-                {{-- Khóa thanh cuộn màn hình trang chủ phía dưới --}}
-                document.body.style.overflow = 'hidden';
-            }
-        @endif
-    });
+// Xử lý sự kiện đóng/chuyển đổi modal Quên mật khẩu
+document.addEventListener('click', function(e) {
+    const forgotModal = document.getElementById('forgot-modal');
+    if (!forgotModal) return;
+
+    // Nút đóng (X)
+    const closeForgotBtn = e.target.closest('#close-forgot');
+    if (closeForgotBtn) {
+        e.preventDefault();
+        forgotModal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+    }
+
+    // Click ra ngoài overlay
+    const overlayForgot = e.target.closest('#forgot-overlay');
+    if (overlayForgot) {
+        forgotModal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+    }
+
+    // Chuyển sang Modal Đăng nhập
+    const switchToLoginFromForgotBtn = e.target.closest('#switch-to-login-from-forgot');
+    if (switchToLoginFromForgotBtn) {
+        e.preventDefault();
+        forgotModal.style.display = 'none';
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        return;
+    }
+
+    // Chuyển sang Modal Đăng ký
+    const switchToRegisterFromForgotBtn = e.target.closest('#switch-to-register-from-forgot');
+    if (switchToRegisterFromForgotBtn) {
+        e.preventDefault();
+        forgotModal.style.display = 'none';
+        const registerModal = document.getElementById('register-modal');
+        if (registerModal) {
+            registerModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        return;
+    }
+});
+
+// Tự động mở Modal nếu server gửi flash session show_forgot
+document.addEventListener('DOMContentLoaded', function() {
+    @if(session('show_forgot'))
+        const forgotModal = document.getElementById('forgot-modal');
+        if (forgotModal) {
+            forgotModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    @endif
+});
 </script>
+

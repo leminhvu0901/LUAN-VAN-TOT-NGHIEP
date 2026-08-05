@@ -117,6 +117,45 @@
     </div>
 
     @push('scripts')
-        <script src="{{ asset('js/backend/admin/staff-accounts/index.js') }}?v={{ time() }}"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList.contains('staff-type-select')) {
+                    const select = e.target;
+                    const oldValue = select.dataset.current;
+                    const newValue = select.value;
+                    if (newValue === oldValue) return;
+
+                    const label = newValue === 'receptionist' ? 'Nhân viên pha chế' : 'Nhân viên giao hàng';
+                    if (confirm(`Đổi loại nhân viên thành "${label}"? Quyền truy cập của tài khoản này sẽ thay đổi ngay lập tức.`)) {
+                        select.closest('form').submit();
+                    } else {
+                        select.value = oldValue;
+                    }
+                }
+            });
+
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList.contains('toggle-status')) {
+                    const checkbox = e.target;
+                    const form = checkbox.closest('form');
+                    const willBeActive = checkbox.checked;
+
+                    if (!willBeActive) {
+                        const reason = prompt('Vui lòng nhập lý do khóa tài khoản nhân viên này:');
+                        if (reason === null || reason.trim() === '') {
+                            checkbox.checked = true;
+                            return;
+                        }
+                        form.querySelector('input[name="lock_reason"]').value = reason.trim();
+                    }
+
+                    form.querySelector('input[name="is_active"]').value = willBeActive ? '1' : '0';
+                    form.submit();
+                }
+            });
+        });
+        </script>
     @endpush
+
 @endsection

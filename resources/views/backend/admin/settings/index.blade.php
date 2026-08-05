@@ -471,22 +471,13 @@
                         <input type="hidden" name="section" value="payment">
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Chế độ môi trường -->
+                            <!-- Chế độ môi trường (Chỉ áp dụng Thử nghiệm Sandbox) -->
                             <div class="flex flex-col gap-2">
-                                <label for="payment_environment" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Môi trường thanh toán</label>
-                                {{-- 2 nút LUÔN xếp cố định 2 dòng (tên chính + tên tiếng Anh nhỏ hơn) thay vì 1 dòng
-                                     text tự do: "Chính thức (Production)" dài hơn "Thử nghiệm (Sandbox)" nên ở màn
-                                     hẹp nó tự xuống dòng còn nút kia thì không, làm 2 nút cao thấp lệch nhau. --}}
-                                <div class="relative bg-gray-100 p-1 rounded-xl flex w-full max-w-md">
-                                    <input type="hidden" name="payment_environment" id="payment_environment" value="{{ old('payment_environment', $settings['payment_environment'] ?? 'sandbox') }}">
-                                    <button type="button" data-val="sandbox" class="env-toggle-btn flex-1 flex flex-col items-center justify-center text-center py-2 px-1 rounded-lg transition-all focus:outline-none leading-tight">
-                                        <span class="text-xs font-bold whitespace-nowrap">Thử nghiệm</span>
-                                        <span class="text-[10px] font-medium opacity-70 whitespace-nowrap">(Sandbox)</span>
-                                    </button>
-                                    <button type="button" data-val="production" class="env-toggle-btn flex-1 flex flex-col items-center justify-center text-center py-2 px-1 rounded-lg transition-all focus:outline-none leading-tight">
-                                        <span class="text-xs font-bold whitespace-nowrap">Chính thức</span>
-                                        <span class="text-[10px] font-medium opacity-70 whitespace-nowrap">(Production)</span>
-                                    </button>
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Môi trường thanh toán</label>
+                                <input type="hidden" name="payment_environment" id="payment_environment" value="sandbox">
+                                <div class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold w-fit">
+                                    <span class="material-symbols-outlined text-[18px]">science</span>
+                                    Thử nghiệm (Sandbox)
                                 </div>
                             </div>
                         </div>
@@ -515,31 +506,6 @@
                                 </div>
                             </div>
 
-                            <!-- Card MoMo -->
-                            <div class="settings-page__payment-card bg-gray-50 p-4 rounded-xl border border-gray-200/60 flex flex-col justify-between gap-3">
-                                <div class="space-y-1">
-                                    <div class="flex items-center justify-between flex-wrap gap-1">
-                                        <span class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-                                            <span class="w-5 h-5 rounded bg-pink-500 flex items-center justify-center text-[10px] text-white font-bold shrink-0">M</span>
-                                            Ví MoMo
-                                        </span>
-                                        @if ($paymentStatus['momo'])
-                                            <span id="momo-config-badge" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">ĐÃ CẤU HÌNH</span>
-                                        @else
-                                            <span id="momo-config-badge" class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold">CHƯA CẤU HÌNH</span>
-                                        @endif
-                                    </div>
-                                    <p class="text-xs text-gray-500 leading-normal">Cổng thanh toán ví điện tử MoMo. Bảo mật các khóa trực tiếp bằng tệp cấu hình hệ thống.</p>
-                                </div>
-                                <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-200/50">
-                                    <span class="text-xs font-semibold text-gray-500">Kích hoạt</span>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="hidden" name="momo_enabled" value="0">
-                                        <input type="checkbox" name="momo_enabled" id="momo_enabled" value="1" class="sr-only peer" {{ ($settings['momo_enabled'] ?? '0') == '1' ? 'checked' : '' }}>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                    </label>
-                                </div>
-                            </div>
 
                             <!-- Card VNPay -->
                             <div class="settings-page__payment-card bg-gray-50 p-4 rounded-xl border border-gray-200/60 flex flex-col justify-between gap-3">
@@ -751,5 +717,211 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/backend/admin/settings/index.js') }}?v={{ time() }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    const mobileBtn = document.getElementById('mobile-tab-selector-btn');
+    const mobileMenu = document.getElementById('mobile-tab-dropdown-menu');
+
+    function switchTab(targetId) {
+        localStorage.setItem('active_settings_tab', targetId);
+        if (history.pushState) {
+            history.pushState(null, null, `#${targetId}`);
+        } else {
+            window.location.hash = targetId;
+        }
+
+        tabButtons.forEach(btn => {
+            const btnTarget = btn.getAttribute('data-target');
+            if (btnTarget === targetId) {
+                btn.classList.add('bg-emerald-50', 'text-emerald-600', 'active-tab', 'border-emerald-200');
+                btn.classList.remove('text-gray-500', 'hover:bg-gray-50');
+            } else {
+                btn.classList.remove('bg-emerald-50', 'text-emerald-600', 'active-tab', 'border-emerald-200');
+                btn.classList.add('text-gray-500', 'hover:bg-gray-50');
+            }
+        });
+
+        const activeBtn = document.querySelector(`.tab-btn[data-target="${targetId}"]`);
+        const mobileLabel = document.getElementById('mobile-tab-active-label');
+        if (activeBtn && mobileLabel) {
+            mobileLabel.innerHTML = activeBtn.innerHTML;
+        }
+
+        tabPanes.forEach(pane => {
+            const paneId = pane.getAttribute('id');
+            if (paneId === `section-${targetId}`) {
+                pane.classList.remove('hidden');
+            } else {
+                pane.classList.add('hidden');
+            }
+        });
+
+        if (activeBtn && activeBtn.scrollIntoView) {
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const targetId = this.getAttribute('data-target');
+            switchTab(targetId);
+        });
+    });
+
+    if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function () {
+            mobileMenu.classList.add('hidden');
+        });
+
+        mobileMenu.querySelectorAll('.mobile-tab-option').forEach(opt => {
+            opt.addEventListener('click', function () {
+                const target = this.getAttribute('data-value');
+                switchTab(target);
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    }
+
+    const settingsPage = document.querySelector('.settings-page');
+    let initialSection = settingsPage ? settingsPage.dataset.activeSection : null;
+
+    if (!initialSection && window.location.hash) {
+        const hashVal = window.location.hash.substring(1);
+        const validSections = ['store', 'orders', 'shipping', 'payment', 'loyalty', 'notifications'];
+        if (validSections.includes(hashVal)) {
+            initialSection = hashVal;
+        }
+    }
+
+    if (!initialSection) {
+        const storedTab = localStorage.getItem('active_settings_tab');
+        const validSections = ['store', 'orders', 'shipping', 'payment', 'loyalty', 'notifications'];
+        if (storedTab && validSections.includes(storedTab)) {
+            initialSection = storedTab;
+        }
+    }
+
+    switchTab(initialSection || 'store');
+
+    const bindToggleDependency = (toggle, inputs) => {
+        if (!toggle) return;
+        const apply = () => {
+            const isEnabled = toggle.checked;
+            inputs.forEach(input => {
+                if (!input) return;
+                input.readOnly = !isEnabled;
+                const parent = input.closest('.flex-col');
+                if (parent) {
+                    parent.style.opacity = isEnabled ? '1' : '0.5';
+                    parent.style.pointerEvents = isEnabled ? 'auto' : 'none';
+                }
+            });
+        };
+        toggle.addEventListener('change', apply);
+        apply();
+    };
+
+    bindToggleDependency(
+        document.getElementById('auto_cancel_unpaid_enabled'),
+        [document.getElementById('auto_cancel_unpaid_minutes')]
+    );
+
+    bindToggleDependency(
+        document.getElementById('weather_surcharge_enabled'),
+        [
+            document.getElementById('weather_light_rain_percent'),
+            document.getElementById('weather_heavy_rain_percent'),
+            document.getElementById('weather_storm_percent'),
+            document.getElementById('weather_override')
+        ]
+    );
+
+    const timePickers = document.querySelectorAll('.settings-time-picker');
+    const openTimeInput = document.getElementById('store_open_time');
+    const closeTimeInput = document.getElementById('store_close_time');
+    const hoursPreview = document.getElementById('hours-preview-text');
+
+    const updateHoursPreview = () => {
+        if (!hoursPreview) return;
+        const openVal = openTimeInput ? openTimeInput.value.trim() : '';
+        const closeVal = closeTimeInput ? closeTimeInput.value.trim() : '';
+        
+        if (openVal && closeVal) {
+            hoursPreview.textContent = `Cửa hàng hoạt động từ ${openVal} đến ${closeVal}`;
+            hoursPreview.classList.remove('text-red-500');
+            hoursPreview.classList.add('text-gray-400');
+        } else {
+            hoursPreview.textContent = `Vui lòng chọn đầy đủ giờ mở cửa và đóng cửa.`;
+            hoursPreview.classList.add('text-red-500');
+            hoursPreview.classList.remove('text-gray-400');
+        }
+    };
+
+    if (timePickers.length && typeof flatpickr !== 'undefined') {
+        timePickers.forEach(picker => {
+            const currentVal = picker.value ? picker.value.trim() : '';
+            flatpickr(picker, {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: 'H:i',
+                time_24hr: true,
+                minuteIncrement: 5,
+                allowInput: true,
+                disableMobile: true,
+                defaultDate: currentVal || null,
+                onChange: function() {
+                    updateHoursPreview();
+                }
+            });
+        });
+    }
+
+    updateHoursPreview();
+
+    const loyaltyMoneyInput = document.getElementById('loyalty_money_per_point');
+    const loyaltyIllustration = document.getElementById('loyalty-illustration-text');
+    if (loyaltyMoneyInput && loyaltyIllustration) {
+        const updateLoyaltyIllustration = () => {
+            const value = parseFloat(loyaltyMoneyInput.value) || 0;
+            const formatted = new Intl.NumberFormat('vi-VN').format(value);
+            loyaltyIllustration.textContent = `Ví dụ: Chi tiêu ${formatted} VNĐ nhận được 1 điểm.`;
+        };
+        loyaltyMoneyInput.addEventListener('input', updateLoyaltyIllustration);
+        updateLoyaltyIllustration();
+    }
+
+    const logoInput = document.getElementById('store_logo');
+    const logoPreview = document.getElementById('logo-preview-img');
+    if (logoInput && logoPreview) {
+        logoInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                const maxSize = 2 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    if (window.AdminAlert) {
+                        window.AdminAlert.error('Kích thước logo không được vượt quá 2MB!', 'Tệp quá lớn');
+                    } else {
+                        alert('Kích thước logo không được vượt quá 2MB!');
+                    }
+                    this.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    logoPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
 @endpush
+

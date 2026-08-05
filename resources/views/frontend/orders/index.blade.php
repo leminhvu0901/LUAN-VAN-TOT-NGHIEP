@@ -161,11 +161,11 @@
                                 @if($order->status === 'pending')
                                     @php
                                         $paidOnline = $order->payment_status === 'paid'
-                                            && in_array($order->payment_method, ['momo', 'vnpay'], true);
+                                            && $order->payment_method === 'vnpay';
                                     @endphp
                                     <button type="button" id="cancel-btn-{{ $order->id }}"
                                         data-paid-online="{{ $paidOnline ? '1' : '0' }}"
-                                        data-gateway-label="{{ $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo' }}"
+                                        data-gateway-label="VNPay"
                                         onclick="confirmCancelOrder('{{ $order->id }}', '{{ $order->order_code ?? 'HPY-' . $order->id }}')"
                                         class="px-4 py-1.5 md:px-6 md:py-2.5 bg-red-50 border border-red-300 text-red-600 font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-red-100 transition-all active:scale-95 whitespace-nowrap">
                                         {{ $paidOnline ? 'Hủy & hoàn tiền' : 'Hủy đơn' }}
@@ -207,7 +207,7 @@
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wide">Hình thức thanh toán</span>
                                     <span class="text-xs font-bold text-on-surface">
-                                        {{ match($order->payment_method) { 'momo' => 'Ví MoMo', 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD (khi nhận hàng)' } }}
+                                        {{ match($order->payment_method) { 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD (khi nhận hàng)' } }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between items-center mb-3 pb-3 border-b border-outline-variant">
@@ -385,7 +385,71 @@
 @endsection
 {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
 @push('scripts')
-    <script src="{{ asset('js/frontend/orders/orders.js') }}"></script>
-    {{-- Toast cho session('success') giờ hiện dùng chung ở layouts/app.blade.php cho MỌI trang, không
-    cần lặp lại riêng ở đây nữa (tránh hiện trùng 2 lần). --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('click', function(event) {
+            const toggle = event.target.closest('[data-toggle-order]');
+            if (toggle) window.toggleOrderDetails(toggle.dataset.toggleOrder);
+        });
+        const mainContainer = document.querySelector('[data-open-order-id]');
+        if (mainContainer) {
+            const orderId = mainContainer.getAttribute('data-open-order-id');
+            if (orderId) {
+                setTimeout(() => {
+                    if (typeof toggleOrderDetails === 'function') {
+                        toggleOrderDetails(orderId);
+                    }
+                    const el = document.getElementById('order-details-' + orderId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            }
+        }
+    });
+
+    window.toggleOrderDetails = function(orderId) {
+        const detailsEl = document.getElementById('order-details-' + orderId);
+        if (detailsEl) {
+            detailsEl.classList.toggle('hidden');
+        }
+    };
+
+    window.confirmCancelOrder = function(orderId, orderCode) {
+        const btn = document.getElementById('cancel-btn-' + orderId);
+        const paidOnline = btn && btn.dataset.paidOnline === '1';
+        const gatewayLabel = (btn && btn.dataset.gatewayLabel) || 'VNPay';
+
+        window.FrontendAlert.prompt({
+            title: paidOnline
+                ? 'Hủy đơn ' + orderCode + ' và hoàn tiền?'
+                : 'Hủy đơn hàng ' + orderCode + '?',
+            text: paidOnline
+                ? 'Số tiền đã thanh toán sẽ được hoàn tự động qua ' + gatewayLabel + ' (có thể mất vài phút đến vài ngày làm việc tùy ngân hàng). Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                : 'Vui lòng nhập lý do hủy đơn hàng (tối thiểu 5 ký tự):',
+            placeholder: 'Lý do hủy đơn hàng',
+            defaultValue: 'Khách hàng tự hủy đơn hàng',
+            minLength: 5,
+            confirmText: paidOnline ? 'Hủy & hoàn tiền' : 'Hủy đơn',
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            submitCancelOrder(orderId, result.value.trim());
+        });
+    };
+
+    function submitCancelOrder(orderId, cleanReason) {
+        const form = document.getElementById('cancel-order-form');
+        const input = document.getElementById('cancel-reason-input');
+
+        if (!form || !input) {
+            if (window.FrontendAlert) window.FrontendAlert.error('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.'); else alert('Không tìm thấy form hủy đơn hàng. Vui lòng tải lại trang.');
+            return;
+        }
+
+        form.action = '/orders/' + orderId + '/cancel';
+        input.value = cleanReason;
+        form.submit();
+    }
+    </script>
 @endpush
+

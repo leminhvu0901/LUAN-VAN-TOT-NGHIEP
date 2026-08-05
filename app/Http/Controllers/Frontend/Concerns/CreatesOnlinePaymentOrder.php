@@ -15,13 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Dùng chung cho MỌI cổng thanh toán online (MoMo, VNPay, ...): kiểm tra đăng nhập/giờ mở
- * cửa/giỏ hàng, tính subtotal + phí ship + phí thời tiết + giảm giá (coupon/hạng thành viên), tạo
- * Order + OrderItem trong 1 DB transaction. Tách ra khỏi MomoController để tránh có 2 bản sao logic
- * tính giá phải sửa đồng thời mỗi khi đổi công thức freeship/giảm giá.
- *
- * Class dùng trait này bắt buộc phải có sẵn `HandlesCheckoutResponse` (checkoutError/checkoutRedirect)
- * và property `configValid` (bool) từ constructor riêng của từng cổng thanh toán.
+ * Dùng chung cho MỌI cổng thanh toán online
  */
 trait CreatesOnlinePaymentOrder
 {

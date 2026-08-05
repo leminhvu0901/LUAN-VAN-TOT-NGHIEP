@@ -5,14 +5,20 @@ namespace App\Http\Controllers\Frontend;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\CartItemTopping;
+use App\Models\Favorite;
 use App\Models\Product;
 use App\Models\ProductSize;
+use App\Models\Promotion;
+use App\Models\Setting;
 use App\Models\Topping;
 use App\Models\UserAddress;
 use App\Services\CartPricingService;
+use App\Services\GeoapifyService;
 use App\Services\PromotionService;
 use App\Services\ShippingQuoteService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
@@ -51,7 +57,7 @@ class CartController
     {
         $identifier = $this->getCartIdentifier();
 
-        $cart = \App\Models\Cart::query();
+        $cart = Cart::query();
         if (isset($identifier['user_id'])) {
             $cart->where('user_id', $identifier['user_id']);
         } else {
@@ -61,11 +67,11 @@ class CartController
 
         // Tạo giỏ hàng mới nếu chưa từng có
         if (!$cart) {
-            $cartId = \App\Models\Cart::query()->insertGetId(array_merge($identifier, [
+            $cartId = Cart::query()->insertGetId(array_merge($identifier, [
                 'created_at' => now(),
                 'updated_at' => now()
             ]));
-            return \App\Models\Cart::query()->where('id', $cartId)->first();
+            return Cart::query()->where('id', $cartId)->first();
         }
 
         return $cart;
@@ -101,7 +107,7 @@ class CartController
         }
 
         // Lấy danh sách các món nước trong giỏ hàng và kết nối với bảng sản phẩm để lấy thông tin Tên, Ảnh
-        $items = \App\Models\CartItem::query()
+        $items = CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.cart_id', $cart->id)
             ->select('cart_items.*', 'products.name', 'products.image')
@@ -111,7 +117,7 @@ class CartController
         $itemIds = $items->pluck('id');
 
         // Lấy toàn bộ topping đi kèm của các món nước trong giỏ hàng bằng một câu truy vấn duy nhất (Eager Loading thủ công)
-        $itemToppings = \App\Models\CartItemTopping::query()
+        $itemToppings = CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
             ->select('cart_item_toppings.cart_item_id', 'toppings.name')
@@ -171,7 +177,7 @@ class CartController
         // Xác định Size: Nếu khách không chọn, tự động lấy Size có giá phụ thu thấp nhất
         $sizeName = $validated['size_name'] ?? null;
         if (empty($sizeName)) {
-            $defaultSize = \App\Models\ProductSize::query()
+            $defaultSize = ProductSize::query()
                 ->where('product_id', $productId)
                 ->orderBy('price_adjustment', 'asc')
                 ->first();
@@ -195,7 +201,7 @@ class CartController
         // Loại bỏ các ID topping trùng lặp trong mảng yêu cầu
         $toppingIds = array_values(array_unique($validated['toppings'] ?? []));
 
-        $product = \App\Models\Product::query()->where('id', $productId)->first();
+        $product = Product::query()->where('id', $productId)->first();
         if (!$product) {
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
@@ -208,7 +214,7 @@ class CartController
         // Tính đơn giá bắt đầu bằng giá cơ bản của sản phẩm
         $unitPrice = $product->base_price;
         if ($sizeName) {
-            $sizeRecord = \App\Models\ProductSize::query()
+            $sizeRecord = ProductSize::query()
                 ->where('product_id', $productId)
                 ->where('size_name', $sizeName)
                 ->first();
@@ -222,7 +228,7 @@ class CartController
         // Tính toán phụ thu từ danh sách các Topping được chọn thêm
         $tops = [];
         if (!empty($toppingIds)) {
-            $tops = \App\Models\Topping::query()
+            $tops = Topping::query()
                 ->join('product_toppings', 'product_toppings.topping_id', '=', 'toppings.id')
                 ->where('product_toppings.product_id', $productId)
                 ->where('toppings.is_available', 1)
@@ -246,7 +252,7 @@ class CartController
         // =========================================================================
 
         // Bước 1: Tìm tất cả các món nước trong giỏ có chung Product, Size, Đường và Đá
-        $potentialItems = \App\Models\CartItem::query()
+        $potentialItems = CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
             ->where('size_name', $sizeName)
@@ -260,7 +266,7 @@ class CartController
 
         // Bước 2: Duyệt qua các món nước tìm được, so sánh danh sách Topping đi kèm của chúng
         foreach ($potentialItems as $pi) {
-            $piToppings = \App\Models\CartItemTopping::query()
+            $piToppings = CartItemTopping::query()
                 ->where('cart_item_id', $pi->id)
                 ->pluck('topping_id')
                 ->toArray();
@@ -276,7 +282,7 @@ class CartController
 
         // Bước 3: Nếu tìm thấy ly nước trùng cấu hình -> Cập nhật cộng dồn số lượng (tối đa 99 ly)
         if ($existingItem) {
-            \App\Models\CartItem::query()
+            CartItem::query()
                 ->where('id', $existingItem->id)
                 ->update([
                     'quantity' => min(99, $existingItem->quantity + $quantity),
@@ -284,7 +290,7 @@ class CartController
                 ]);
         } else {
             // Nếu không trùng khớp -> Tạo mới một dòng sản phẩm trong giỏ hàng
-            $newItemId = \App\Models\CartItem::query()->insertGetId([
+            $newItemId = CartItem::query()->insertGetId([
                 'cart_id' => $cart->id,
                 'product_id' => $productId,
                 'size_name' => $sizeName,
@@ -306,7 +312,7 @@ class CartController
                         'price' => $t->price
                     ];
                 }
-                \App\Models\CartItemTopping::query()->insert($inserts);
+                CartItemTopping::query()->insert($inserts);
             }
         }
 
@@ -323,7 +329,7 @@ class CartController
         $cart = $this->findCart();
 
         if ($cart) {
-            \App\Models\CartItem::query()
+            CartItem::query()
                 ->where('id', $validated['item_id'])
                 ->where('cart_id', $cart->id)
                 ->delete();
@@ -344,7 +350,7 @@ class CartController
         $cart = $this->findCart();
 
         if ($cart) {
-            \App\Models\CartItem::query()
+            CartItem::query()
                 ->where('id', $validated['item_id'])
                 ->where('cart_id', $cart->id)
                 ->update([
@@ -368,7 +374,7 @@ class CartController
         $cart = $this->findCart();
 
         if ($cart) {
-            \App\Models\CartItem::query()
+            CartItem::query()
                 ->where('cart_id', $cart->id)
                 ->whereIn('id', $validated['item_ids'])
                 ->delete();
@@ -385,7 +391,7 @@ class CartController
         $cart = $this->findCart();
 
         if ($cart) {
-            \App\Models\CartItem::query()->where('cart_id', $cart->id)->delete();
+            CartItem::query()->where('cart_id', $cart->id)->delete();
         }
 
         return $this->getCartData();
@@ -402,7 +408,7 @@ class CartController
         }
 
         // Lấy danh sách sản phẩm yêu thích còn kinh doanh
-        $favorites = \App\Models\Favorite::query()
+        $favorites = Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->where('favorites.user_id', Auth::id())
             ->where('products.is_active', 1)
@@ -417,7 +423,7 @@ class CartController
 
         foreach ($favorites as $product) {
             // Xác định size mặc định rẻ nhất
-            $defaultSize = \App\Models\ProductSize::query()
+            $defaultSize = ProductSize::query()
                 ->where('product_id', $product->id)
                 ->orderBy('price_adjustment', 'asc')
                 ->first();
@@ -428,7 +434,7 @@ class CartController
             $iceLevel = 'normal';
 
             // Kiểm tra xem sản phẩm mặc định này đã có trong giỏ chưa
-            $existingItem = \App\Models\CartItem::query()
+            $existingItem = CartItem::query()
                 ->where('cart_id', $cart->id)
                 ->where('product_id', $product->id)
                 ->where('size_name', $sizeName)
@@ -439,7 +445,7 @@ class CartController
             // Chỉ gộp số lượng nếu ly nước trong giỏ đó không chứa topping (vì ly yêu thích thêm nhanh không có topping)
             $hasNoToppings = true;
             if ($existingItem) {
-                $hasToppings = \App\Models\CartItemTopping::query()->where('cart_item_id', $existingItem->id)->exists();
+                $hasToppings = CartItemTopping::query()->where('cart_item_id', $existingItem->id)->exists();
                 if ($hasToppings) {
                     $hasNoToppings = false;
                     $existingItem = null; // Tạo mới dòng nếu ly cũ trong giỏ có topping
@@ -447,14 +453,14 @@ class CartController
             }
 
             if ($existingItem) {
-                \App\Models\CartItem::query()
+                CartItem::query()
                     ->where('id', $existingItem->id)
                     ->update([
                         'quantity' => $existingItem->quantity + 1,
                         'updated_at' => now()
                     ]);
             } else {
-                \App\Models\CartItem::query()->insert([
+                CartItem::query()->insert([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
                     'size_name' => $sizeName,
@@ -527,13 +533,13 @@ class CartController
         $userId = Auth::id();
 
         // Lấy danh sách địa chỉ của khách hàng (ưu tiên địa chỉ mặc định lên đầu)
-        $addresses = \App\Models\UserAddress::query()
+        $addresses = UserAddress::query()
             ->where('user_id', $userId)
             ->orderBy('is_default', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $cart = \App\Models\Cart::query()
+        $cart = Cart::query()
             ->where('user_id', $userId)
             ->first();
 
@@ -580,7 +586,7 @@ class CartController
         $comboDiscount = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
 
         // Xác định ngưỡng miễn phí vận chuyển theo hạng thành viên (Diamond được miễn phí hoàn toàn)
-        $freeShipThreshold = (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000);
+        $freeShipThreshold = (float) Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
         if ($user) {
             switch ($user->membership_level) {
@@ -597,7 +603,7 @@ class CartController
         }
 
         // 1. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản trị của Admin
-        $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
+        $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         $isClosed = !$receiveEnabled;
         $closedReason = null;
 
@@ -605,8 +611,8 @@ class CartController
             $closedReason = 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!';
         } else {
             // 2. Kiểm tra giờ hoạt động của cửa hàng (Hỗ trợ cấu hình chạy qua đêm)
-            $open = \App\Models\Setting::getValue('store_open_time', '08:00');
-            $close = \App\Models\Setting::getValue('store_close_time', '22:00');
+            $open = Setting::getValue('store_open_time', '08:00');
+            $close = Setting::getValue('store_close_time', '22:00');
             $nowStr = now()->format('H:i');
 
             $isOpen = false;
@@ -625,8 +631,8 @@ class CartController
         $checkoutToken = (string) Str::uuid();
         session(['checkout_token' => $checkoutToken]);
 
-        if (\App\Models\Setting::getValue('loyalty_point_value') != 1) {
-            \App\Models\Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
+        if (Setting::getValue('loyalty_point_value') != 1) {
+            Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
         }
 
         // Lấy danh sách mã khuyến mãi CÓ THỂ ÁP DỤNG cho đơn hàng này:
@@ -635,7 +641,7 @@ class CartController
         //           đã dùng rồi chưa, khung giờ Happy Hour, số lượng tối thiểu...
         $totalQuantity = $items->sum('quantity');
         $now = now();
-        $availablePromotions = \App\Models\Promotion::query()
+        $availablePromotions = Promotion::query()
             ->where('is_active', 1)
             ->where('requires_staff_verification', 0)
             ->whereNotIn('scope', ['combo', 'buy_x_get_y'])
@@ -666,12 +672,12 @@ class CartController
      * Nếu địa chỉ của người dùng chưa có toạ độ (vĩ độ, kinh độ), hệ thống sẽ geocode ngầm 
      * địa chỉ dạng chữ qua Geoapify Geocoding API để xác định tọa độ và lưu trữ lại sử dụng lâu dài.
      */
-    public function calculateDistance(Request $request, \App\Services\GeoapifyService $geoapify)
+    public function calculateDistance(Request $request, GeoapifyService $geoapify)
     {
         $addressId = $request->query('address_id');
         $userId = Auth::id();
 
-        $address = \App\Models\UserAddress::query()
+        $address = UserAddress::query()
             ->where('id', $addressId)
             ->where('user_id', $userId)
             ->first();
@@ -687,7 +693,7 @@ class CartController
             if ($geocoded) {
                 $address->latitude = $geocoded['lat'];
                 $address->longitude = $geocoded['lng'];
-                \App\Models\UserAddress::query()->where('id', $addressId)->update([
+                UserAddress::query()->where('id', $addressId)->update([
                     'latitude' => $geocoded['lat'],
                     'longitude' => $geocoded['lng'],
                     'updated_at' => now(),
@@ -709,7 +715,7 @@ class CartController
     /**
      * Lấy danh sách sản phẩm đã được tính giá cụ thể của người dùng để chuẩn bị validate Coupon giảm giá
      */
-    private function pricedSelectedItems(): \Illuminate\Support\Collection
+    private function pricedSelectedItems(): Collection
     {
         $cart = $this->findCart();
         if (!$cart) {
@@ -771,7 +777,7 @@ class CartController
             'description' => $coupon->description,
             // end_at là cột dateTime thô, KHÔNG có cast Carbon trong Model -> phải tự parse chứ
             // không được gọi ->format() thẳng lên chuỗi.
-            'end_at' => $coupon->end_at ? \Carbon\Carbon::parse($coupon->end_at)->format('d/m/Y H:i') : null,
+            'end_at' => $coupon->end_at ? Carbon::parse($coupon->end_at)->format('d/m/Y H:i') : null,
             'scope' => $coupon->scope,
             // Mô tả phạm vi áp dụng cho sản phẩm hoặc danh mục cụ thể để hiển thị trực quan lên giao diện
             'scope_label' => match ($coupon->scope) {
@@ -788,7 +794,7 @@ class CartController
      */
     public function calculateWeatherFee(Request $request)
     {
-        $address = \App\Models\UserAddress::query()
+        $address = UserAddress::query()
             ->where('id', $request->query('address_id'))
             ->where('user_id', Auth::id())
             ->first();
@@ -805,12 +811,12 @@ class CartController
             'silver' => 120000.0,
             'gold' => 90000.0,
             'diamond' => 0.0,
-            default => (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000),
+            default => (float) Setting::getValue('free_shipping_minimum', 150000),
         };
 
         // Tính phí vận chuyển cơ bản dựa theo khoảng cách km
-        $baseFee = (float) \App\Models\Setting::getValue('shipping_base_fee', 15000);
-        $feePerKm = (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000);
+        $baseFee = (float) Setting::getValue('shipping_base_fee', 15000);
+        $feePerKm = (float) Setting::getValue('shipping_fee_per_km', 5000);
         $shippingFee = $distanceKm <= 2 ? $baseFee : $baseFee + ($distanceKm - 2) * $feePerKm;
         $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee); // Miễn ship nếu đạt ngưỡng
 

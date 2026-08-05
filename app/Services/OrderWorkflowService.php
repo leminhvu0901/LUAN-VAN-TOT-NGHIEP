@@ -297,9 +297,9 @@ class OrderWorkflowService
     // Tự động hủy các đơn hàng online bị treo quá lâu không thanh toán
     public function cancelStalePendingPayments(int $minutes = 15): int
     {
-        // Lấy danh sách các đơn Momo/Vnpay quá hạn chưa thanh toán
+        // Lấy danh sách các đơn VNPay quá hạn chưa thanh toán
         $staleOrders = Order::query()
-            ->whereIn('payment_method', ['momo', 'vnpay'])
+            ->where('payment_method', 'vnpay')
             ->where('payment_status', 'unpaid')
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subMinutes($minutes))

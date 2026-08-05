@@ -33,5 +33,24 @@
 </div>
 
 @push('scripts')
-    <script src="{{ asset('js/frontend/layout/floating-bubbles.js') }}?v={{ filemtime(public_path('js/frontend/layout/floating-bubbles.js')) }}"></script>
+<script>
+// Điều khiển nút giỏ hàng nổi mở Cart Drawer và tránh đè bottom-nav mobile
+(function () {
+    const root = document.getElementById('floating-bubbles');
+    if (!root) return;
+
+    if (document.querySelector('.l-bottom-nav')) {
+        root.classList.add('floating-bubbles--has-bottom-nav');
+    }
+
+    const cartBtn = document.getElementById('floating-cart-btn');
+    if (cartBtn) {
+        cartBtn.addEventListener('click', function () {
+            const realCartBtn = document.getElementById('cart-btn');
+            if (realCartBtn) realCartBtn.click();
+        });
+    }
+})();
+</script>
 @endpush
+

@@ -8,8 +8,11 @@
     {{-- Helper function to safely resolve banner URL --}}
     @php
         if (!function_exists('getBannerUrl')) {
-            function getBannerUrl($path) {
-                if (empty($path)) return '';
+            function getBannerUrl($path)
+            {
+                if (empty($path)) {
+                    return '';
+                }
                 if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
                     return $path;
                 }
@@ -29,43 +32,43 @@
 
     <section class="hero-banner home-hero">
         <div class="hero-banner__inner home-hero__inner" id="hero-slider">
-            @if(isset($banners) && $banners->count() > 0)
-                @foreach($banners as $index => $banner)
+            @if (isset($banners) && $banners->count() > 0)
+                @foreach ($banners as $index => $banner)
                     <picture class="hero-banner__media hero-slide-img {{ $index === 0 ? 'active' : '' }}"
-                        data-title="{{ $banner->title }}"
-                        data-title-tag="{{ $banner->title_tag }}"
+                        data-title="{{ $banner->title }}" data-title-tag="{{ $banner->title_tag }}"
                         data-link="{{ $banner->link_url }}">
-                        @if(!empty($banner->mobile_image_url))
+                        @if (!empty($banner->mobile_image_url))
                             <source media="(max-width: 640px)" srcset="{{ getBannerUrl($banner->mobile_image_url) }}">
                         @endif
-                        <img src="{{ getBannerUrl($banner->image_url) }}"
-                            alt="{{ $banner->title ?? 'Banner' }}"
+                        <img src="{{ getBannerUrl($banner->image_url) }}" alt="{{ $banner->title ?? 'Banner' }}"
                             onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
                     </picture>
                 @endforeach
-                @if(isset($banners) && $banners->count() > 0)
+                @if (isset($banners) && $banners->count() > 0)
                     @php
                         $firstBanner = $banners->first();
                         $firstBannerUrl = getBannerUrl($firstBanner->image_url);
-                        $firstBannerMobileUrl = $firstBanner->mobile_image_url ? getBannerUrl($firstBanner->mobile_image_url) : $firstBannerUrl;
+                        $firstBannerMobileUrl = $firstBanner->mobile_image_url
+                            ? getBannerUrl($firstBanner->mobile_image_url)
+                            : $firstBannerUrl;
                     @endphp
                     <picture class="hero-banner__tracker home-hero__tracker">
-                        @if(!empty($firstBanner->mobile_image_url))
+                        @if (!empty($firstBanner->mobile_image_url))
                             <source media="(max-width: 640px)" srcset="{{ $firstBannerMobileUrl }}">
                         @endif
                         <img src="{{ $firstBannerUrl }}" alt="">
                     </picture>
                 @endif
             @else
-                <picture class="hero-banner__media hero-slide-img active"
-                    data-title="Thưởng thức hương vị tuyệt vời"
+                <picture class="hero-banner__media hero-slide-img active" data-title="Thưởng thức hương vị tuyệt vời"
                     data-title-tag="🌿 Đồ uống tươi ngon">
-                    <img src="{{ asset('images/banners/slider-1.png') }}" alt="Banner 1" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
+                    <img src="{{ asset('images/banners/slider-1.png') }}" alt="Banner 1"
+                        onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-1.png') }}'">
                 </picture>
-                <picture class="hero-banner__media hero-slide-img"
-                    data-title="Khuyến mãi mùa hè"
+                <picture class="hero-banner__media hero-slide-img" data-title="Khuyến mãi mùa hè"
                     data-title-tag="🌿 Đồ uống tươi ngon">
-                    <img src="{{ asset('images/banners/slider-2.png') }}" alt="Banner 2" onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-2.png') }}'">
+                    <img src="{{ asset('images/banners/slider-2.png') }}" alt="Banner 2"
+                        onerror="this.onerror=null; this.src='{{ asset('images/banners/slider-2.png') }}'">
                 </picture>
                 <picture class="hero-banner__tracker home-hero__tracker">
                     <img src="{{ asset('images/banners/slider-1.png') }}" alt="">
@@ -73,10 +76,11 @@
             @endif
 
             {{-- Navigation Dots --}}
-            @if(isset($banners) && $banners->count() > 1)
+            @if (isset($banners) && $banners->count() > 1)
                 <div class="hero-banner__dots">
-                    @foreach($banners as $index => $banner)
-                        <button class="hero-banner__dot {{ $index === 0 ? 'active' : '' }}" data-slide-index="{{ $index }}" aria-label="Slide {{ $index + 1 }}"></button>
+                    @foreach ($banners as $index => $banner)
+                        <button class="hero-banner__dot {{ $index === 0 ? 'active' : '' }}"
+                            data-slide-index="{{ $index }}" aria-label="Slide {{ $index + 1 }}"></button>
                     @endforeach
                 </div>
             @elseif(!isset($banners) || $banners->count() === 0)
@@ -95,7 +99,8 @@
                         $heroTitle = $firstBanner ? $firstBanner->title : 'Thưởng thức hương vị tuyệt vời';
                         $heroLink = $firstBanner ? $firstBanner->link_url : '/products';
                     @endphp
-                    <div class="hero-banner__top home-hero__top" id="hero-tag-container" style="{{ empty($heroTitleTag) ? 'display: none;' : '' }}">
+                    <div class="hero-banner__top home-hero__top" id="hero-tag-container"
+                        style="{{ empty($heroTitleTag) ? 'display: none;' : '' }}">
                         <span class="hero-banner__badge home-hero__tag" id="hero-title-tag">{{ $heroTitleTag }}</span>
                     </div>
 
@@ -107,14 +112,17 @@
 
                     <div class="hero-banner__bottom home-hero__bottom">
                         <div class="hero-banner__actions home-hero__actions">
-                            <a href="{{ $heroLink ?: '/products' }}" class="hero-banner__btn hero-banner__btn--primary home-hero__btn home-hero__btn--primary">
+                            <a href="{{ $heroLink ?: '/products' }}"
+                                class="hero-banner__btn hero-banner__btn--primary home-hero__btn home-hero__btn--primary">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2.5">
                                     <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
                                 </svg>
                                 Đặt ngay
                             </a>
-                            <a href="/products" class="hero-banner__btn hero-banner__btn--ghost home-hero__btn home-hero__btn--ghost">Xem menu</a>
+                            <a href="/products"
+                                class="hero-banner__btn hero-banner__btn--ghost home-hero__btn home-hero__btn--ghost">Xem
+                                menu</a>
                         </div>
                     </div>
                 </div>
@@ -129,8 +137,11 @@
                     <span class="hero-banner__stat-num home-hero__stat-num">{{ number_format($avgRating, 1) }}★</span>
                     <span class="hero-banner__stat-label home-hero__stat-label">Đánh giá</span>
                 </div>
+                <div>
+                    {{-- them o day  --}}
+                </div>
                 <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
-               
+
             </div>
         </div>
     </section>
@@ -149,13 +160,42 @@
             @php
                 // Map icons and colors for specific category IDs (1: Cà phê, 2: Trà sữa, 3: Sữa chua, 4: Trà trái cây, 5: Đồ uống khác)
                 $catStyles = [
-                    1 => ['bg' => '#dcfce7', 'color' => '#15803d', 'icon' => '<path d="M6 4h10v7a5 5 0 0 1-5 5h0a5 5 0 0 1-5-5V4z"></path><path d="M16 7h1.5a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H16"></path><line x1="6" y1="9" x2="16" y2="9"></line><line x1="5" y1="19" x2="19" y2="19"></line>'],
-                    2 => ['bg' => '#ede9fe', 'color' => '#6d28d9', 'icon' => '<rect x="4" y="6" width="13" height="11" rx="2" ry="2"></rect><path d="M9 10l4.5 4.5"></path><path d="M13.5 10v4.5H9"></path><circle cx="19" cy="18" r="2.5" fill="currentColor" stroke="none"></circle>'],
-                    4 => ['bg' => '#ffedd5', 'color' => '#c2410c', 'icon' => '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path><path d="M9 12a3 3 0 0 0 3 3"></path>'],
-                    3 => ['bg' => '#fce7f3', 'color' => '#be185d', 'icon' => '<path d="M18 6l-9 6v-5l9-6v5z"></path><path d="M9 12v5l9 6v-5z"></path><path d="M18 18v-5"></path>'], // Sữa chua using cake icon for now
-                    5 => ['bg' => '#dbeafe', 'color' => '#1d4ed8', 'icon' => '<path d="M8 2h8l1 8H7L8 2z"></path><path d="M7 10l1 10h8l1-10"></path><line x1="12" y1="6" x2="12" y2="10"></line>'], // Đồ uống khác using blender icon
+                    1 => [
+                        'bg' => '#dcfce7',
+                        'color' => '#15803d',
+                        'icon' =>
+                            '<path d="M6 4h10v7a5 5 0 0 1-5 5h0a5 5 0 0 1-5-5V4z"></path><path d="M16 7h1.5a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H16"></path><line x1="6" y1="9" x2="16" y2="9"></line><line x1="5" y1="19" x2="19" y2="19"></line>',
+                    ],
+                    2 => [
+                        'bg' => '#ede9fe',
+                        'color' => '#6d28d9',
+                        'icon' =>
+                            '<rect x="4" y="6" width="13" height="11" rx="2" ry="2"></rect><path d="M9 10l4.5 4.5"></path><path d="M13.5 10v4.5H9"></path><circle cx="19" cy="18" r="2.5" fill="currentColor" stroke="none"></circle>',
+                    ],
+                    4 => [
+                        'bg' => '#ffedd5',
+                        'color' => '#c2410c',
+                        'icon' =>
+                            '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path><path d="M9 12a3 3 0 0 0 3 3"></path>',
+                    ],
+                    3 => [
+                        'bg' => '#fce7f3',
+                        'color' => '#be185d',
+                        'icon' =>
+                            '<path d="M18 6l-9 6v-5l9-6v5z"></path><path d="M9 12v5l9 6v-5z"></path><path d="M18 18v-5"></path>',
+                    ], // Sữa chua using cake icon for now
+                    5 => [
+                        'bg' => '#dbeafe',
+                        'color' => '#1d4ed8',
+                        'icon' =>
+                            '<path d="M8 2h8l1 8H7L8 2z"></path><path d="M7 10l1 10h8l1-10"></path><line x1="12" y1="6" x2="12" y2="10"></line>',
+                    ], // Đồ uống khác using blender icon
                 ];
-                $defaultStyle = ['bg' => '#f3f4f6', 'color' => '#4b5563', 'icon' => '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path>'];
+                $defaultStyle = [
+                    'bg' => '#f3f4f6',
+                    'color' => '#4b5563',
+                    'icon' => '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path>',
+                ];
             @endphp
 
             @foreach ($categories as $cat)
@@ -163,9 +203,11 @@
                     $style = $catStyles[$cat->id] ?? $defaultStyle;
                 @endphp
                 <a href="/products?category[]={{ $cat->id }}" class="home-cat-card">
-                    <div class="home-cat-card__icon" style="--cat-bg: {{ $style['bg'] }}; --cat-color: {{ $style['color'] }};">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="home-cat-card__icon"
+                        style="--cat-bg: {{ $style['bg'] }}; --cat-color: {{ $style['color'] }};">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
                             {!! $style['icon'] !!}
                         </svg>
                     </div>
@@ -191,7 +233,8 @@
                 <h2 class="home-section__title">Sản phẩm phổ biến</h2>
             </div>
             <div class="home-popular__filters" id="home-pill-filters">
-                <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất cả</button>
+                <button class="home-popular__filter-btn home-popular__filter-btn--active" data-filter="all">Tất
+                    cả</button>
                 <button class="home-popular__filter-btn" data-filter="hot">Bán chạy</button>
                 <button class="home-popular__filter-btn" data-filter="new">Mới nhất</button>
                 <button class="home-popular__filter-btn" data-filter="sale">Giảm giá</button>
@@ -206,10 +249,26 @@
                         \Illuminate\Support\Facades\DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'),
                         \Illuminate\Support\Facades\DB::raw('COALESCE(r.review_count, 0) as review_count'),
                         \Illuminate\Support\Facades\DB::raw('COALESCE(o.total_sold, 0) as total_sold'),
-                        \Illuminate\Support\Facades\DB::raw('(COALESCE(o.total_sold, 0) * 0.6 + COALESCE(r.avg_rating, 0) * 10 * 0.4) as score')
+                        \Illuminate\Support\Facades\DB::raw(
+                            '(COALESCE(o.total_sold, 0) * 0.6 + COALESCE(r.avg_rating, 0) * 10 * 0.4) as score',
+                        ),
                     )
-                    ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
-                    ->leftJoin(\Illuminate\Support\Facades\DB::raw('(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o'), 'products.id', '=', 'o.product_id')
+                    ->leftJoin(
+                        \Illuminate\Support\Facades\DB::raw(
+                            '(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r',
+                        ),
+                        'products.id',
+                        '=',
+                        'r.product_id',
+                    )
+                    ->leftJoin(
+                        \Illuminate\Support\Facades\DB::raw(
+                            '(SELECT product_id, SUM(quantity) as total_sold FROM order_items GROUP BY product_id) as o',
+                        ),
+                        'products.id',
+                        '=',
+                        'o.product_id',
+                    )
                     ->join('categories', 'products.category_id', '=', 'categories.id')
                     ->where('categories.is_active', 1)
                     ->orderByDesc('products.is_active')
@@ -220,7 +279,8 @@
                 if (Auth::check()) {
                     $userFavorites = \App\Models\Favorite::query()
                         ->where('user_id', Auth::id())
-                        ->pluck('product_id')->toArray();
+                        ->pluck('product_id')
+                        ->toArray();
                 }
 
                 $top6HotProductIds = \App\Models\OrderItem::query()
@@ -228,47 +288,53 @@
                     ->groupBy('product_id')
                     ->orderByDesc('total_sold')
                     ->limit(6)
-                    ->pluck('product_id')->toArray();
+                    ->pluck('product_id')
+                    ->toArray();
             @endphp
 
-            @foreach($popularProducts as $product)
+            @foreach ($popularProducts as $product)
                 @php
                     $isHot = in_array($product->id, $top6HotProductIds); // Nằm trong top 6 bán chạy
-                    $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15); // Tạo trong vòng 15 ngày
+                    $isNew = \Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15; // Tạo trong vòng 15 ngày
                     $isOos = !$product->is_active; // Hết hàng khi is_active = 0
                     $discountInfo = $product->discount_info;
                 @endphp
-                <div class="home-prod-card {{ $isOos ? 'home-prod-card--out-of-stock' : '' }}" data-sold="{{ $product->total_sold }}"
-                    data-date="{{ strtotime($product->created_at) }}" data-original-order="{{ $loop->iteration }}"
-                    data-score="{{ round($product->score, 2) }}" data-is-hot="{{ $isHot ? '1' : '0' }}"
-                    data-is-new="{{ $isNew ? '1' : '0' }}" data-is-sale="{{ $discountInfo ? '1' : '0' }}">
+                <div class="home-prod-card {{ $isOos ? 'home-prod-card--out-of-stock' : '' }}"
+                    data-sold="{{ $product->total_sold }}" data-date="{{ strtotime($product->created_at) }}"
+                    data-original-order="{{ $loop->iteration }}" data-score="{{ round($product->score, 2) }}"
+                    data-is-hot="{{ $isHot ? '1' : '0' }}" data-is-new="{{ $isNew ? '1' : '0' }}"
+                    data-is-sale="{{ $discountInfo ? '1' : '0' }}">
                     <div class="home-prod-card__img-wrap"
-                        @if(!$isOos) onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;" @else style="cursor:default;" @endif>
-                        @if($discountInfo && !$isOos)
-                            <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️ {{ $discountInfo['label'] }}</span>
+                        @if (!$isOos) onclick="window.location.href='{{ route('product.show', $product->slug) }}'" style="cursor:pointer;" @else style="cursor:default;" @endif>
+                        @if ($discountInfo && !$isOos)
+                            <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️
+                                {{ $discountInfo['label'] }}</span>
                         @elseif($isHot && !$isOos)
                             <span class="home-prod-card__badge home-prod-card__badge--hot">🔥 Bán chạy</span>
                         @elseif($isNew && !$isOos)
                             <span class="home-prod-card__badge home-prod-card__badge--new">✨ Mới</span>
                         @endif
-                        @if($isOos)
+                        @if ($isOos)
                             <span class="out-of-stock-overlay">Hết Hàng</span>
                         @endif
 
-                        <img src="{{ $product->image_url }}" class="home-prod-card__img"
-                            alt="{{ $product->name }}" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
+                        <img src="{{ $product->image_url }}" class="home-prod-card__img" alt="{{ $product->name }}"
+                            onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
 
-                        <button class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}"
+                        <button
+                            class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}"
                             aria-label="Yêu thích" data-id="{{ $product->id }}"
                             onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
                                 <path
                                     d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                             </svg>
                         </button>
                     </div>
                     <div class="home-prod-card__body">
-                        <a href="{{ route('product.show', $product->slug) }}" style="text-decoration: none; color: inherit;">
+                        <a href="{{ route('product.show', $product->slug) }}"
+                            style="text-decoration: none; color: inherit;">
                             <h3 class="home-prod-card__name">{{ $product->name }}</h3>
                         </a>
                         <div class="p-product-stats"
@@ -281,21 +347,27 @@
                             <span>{{ number_format($product->avg_rating, 1) }} </span>
                             <span style="color: #cbd5e1;">|</span>
                             <span>Đã bán
-                                @if($product->total_sold >= 1000){{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}@endif</span>
+                                @if ($product->total_sold >= 1000)
+                                    {{ number_format($product->total_sold / 1000, 1) }}k+@else{{ $product->total_sold }}
+                                @endif
+                            </span>
                         </div>
                         <div class="home-prod-card__footer">
                             <div>
-                                @if($discountInfo)
-                                    <span class="home-prod-card__price-old">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
-                                    <span class="home-prod-card__price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
+                                @if ($discountInfo)
+                                    <span
+                                        class="home-prod-card__price-old">{{ number_format($discountInfo['old_price'], 0, ',', '.') }}đ</span>
+                                    <span
+                                        class="home-prod-card__price">{{ number_format($discountInfo['sale_price'], 0, ',', '.') }}đ</span>
                                 @else
-                                    <span class="home-prod-card__price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
+                                    <span
+                                        class="home-prod-card__price">{{ number_format($product->base_price, 0, ',', '.') }}đ</span>
                                 @endif
                             </div>
                             <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng"
-                                @if(!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
+                                @if (!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
@@ -309,7 +381,8 @@
         <div class="home-popular__view-all">
             <a href="/products" class="home-popular__view-all-btn">
                 Xem tất cả sản phẩm
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5">
                     <path d="m9 18 6-6-6-6" />
                 </svg>
             </a>
@@ -330,7 +403,8 @@
         <div class="home-features__grid">
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--green">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <circle cx="12" cy="12" r="10" />
                         <polyline points="12 6 12 12 16 14" />
                     </svg>
@@ -341,7 +415,8 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--yellow">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <polyline points="20 12 20 22 4 22 4 12" />
                         <rect x="2" y="7" width="20" height="5" />
                         <path d="M12 22V7" />
@@ -355,7 +430,8 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--blue">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
                         <line x1="3" y1="6" x2="21" y2="6" />
                         <path d="M16 10a4 4 0 0 1-8 0" />
@@ -367,7 +443,8 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--red">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <polyline points="23 4 23 10 17 10" />
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                     </svg>
@@ -382,6 +459,263 @@
     @include('frontend.components.bottom-nav')
 
     @push('scripts')
-        <script src="{{ asset('js/frontend/home.js') }}?v={{ filemtime(public_path('js/frontend/home.js')) }}"></script>
+        <script>
+            (function() {
+                var pillButtons = document.querySelectorAll('#home-pill-filters .home-popular__filter-btn');
+                var grid = document.querySelector('.home-products-grid');
+                var currentFilter = 'all';
+
+                function applyHomeFilter() {
+                    if (!grid) return;
+
+                    var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
+                    var visibleCount = 0;
+
+                    cards.sort(function(a, b) {
+                        if (currentFilter === 'hot') {
+                            return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute(
+                                'data-sold') || 0);
+                        } else if (currentFilter === 'new') {
+                            return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute(
+                                'data-date') || 0);
+                        } else if (currentFilter === 'sale') {
+                            return parseInt(b.getAttribute('data-is-sale') || 0) - parseInt(a.getAttribute(
+                                'data-is-sale') || 0);
+                        } else {
+                            return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute(
+                                'data-score') || 0);
+                        }
+                    });
+
+                    var shown = 0;
+                    cards.forEach(function(card) {
+                        grid.appendChild(card);
+
+                        var isMatch = true;
+                        if (currentFilter === 'hot') {
+                            isMatch = card.getAttribute('data-is-hot') === '1';
+                        } else if (currentFilter === 'new') {
+                            isMatch = card.getAttribute('data-is-new') === '1';
+                        } else if (currentFilter === 'sale') {
+                            isMatch = card.getAttribute('data-is-sale') === '1';
+                        }
+
+                        if (isMatch && shown < 7) {
+                            card.style.display = '';
+                            shown++;
+                            visibleCount++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+
+                        var hotBadge = card.querySelector('.home-prod-card__badge--hot');
+                        var newBadge = card.querySelector('.home-prod-card__badge--new');
+                        var saleBadge = card.querySelector('.home-prod-card__badge--sale');
+                        if (currentFilter === 'new') {
+                            if (hotBadge) hotBadge.style.display = 'none';
+                            if (saleBadge) saleBadge.style.display = 'none';
+                            if (newBadge) newBadge.style.display = '';
+                        } else if (currentFilter === 'sale') {
+                            if (hotBadge) hotBadge.style.display = 'none';
+                            if (newBadge) newBadge.style.display = 'none';
+                            if (saleBadge) saleBadge.style.display = '';
+                        } else if (currentFilter === 'hot') {
+                            if (saleBadge) saleBadge.style.display = 'none';
+                            if (newBadge) newBadge.style.display = 'none';
+                            if (hotBadge) hotBadge.style.display = '';
+                        } else {
+                            if (saleBadge) saleBadge.style.display = '';
+                            if (hotBadge) hotBadge.style.display = saleBadge ? 'none' : '';
+                            if (newBadge) newBadge.style.display = (saleBadge || hotBadge) ? 'none' : '';
+                        }
+                    });
+
+                    var emptyMsg = document.getElementById('home-empty-msg');
+                    if (visibleCount === 0) {
+                        if (!emptyMsg) {
+                            emptyMsg = document.createElement('div');
+                            emptyMsg.id = 'home-empty-msg';
+                            emptyMsg.style.cssText =
+                                'grid-column: 1 / -1; text-align: center; padding: 3rem; color: #6b7280;';
+                            emptyMsg.textContent = 'Không có sản phẩm nào phù hợp.';
+                            grid.appendChild(emptyMsg);
+                        } else {
+                            emptyMsg.style.display = '';
+                            grid.appendChild(emptyMsg);
+                        }
+                    } else if (emptyMsg) {
+                        emptyMsg.style.display = 'none';
+                    }
+                }
+
+                pillButtons.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        pillButtons.forEach(function(b) {
+                            b.classList.remove('home-popular__filter-btn--active');
+                        });
+                        this.classList.add('home-popular__filter-btn--active');
+                        currentFilter = this.getAttribute('data-filter');
+                        applyHomeFilter();
+                    });
+                });
+
+                applyHomeFilter();
+            })();
+
+            (function() {
+                function animateCounter(el, target, suffix, decimals, duration) {
+                    var startTime = null;
+
+                    function step(timestamp) {
+                        if (!startTime) startTime = timestamp;
+                        var progress = Math.min((timestamp - startTime) / duration, 1);
+                        var eased = 1 - Math.pow(1 - progress, 3);
+                        var current = eased * target;
+                        el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current)) + suffix;
+                        if (progress < 1) requestAnimationFrame(step);
+                    }
+                    requestAnimationFrame(step);
+                }
+
+                function startCounters() {
+                    document.querySelectorAll('.home-hero__stat-num').forEach(function(el) {
+                        var raw = el.textContent.trim();
+                        var match = raw.match(/^([\d.]+)(.*)$/);
+                        if (!match) return;
+                        var num = parseFloat(match[1]);
+                        var suffix = match[2];
+                        var decimals = (match[1].split('.')[1] || '').length;
+                        el.textContent = (decimals > 0 ? (0).toFixed(decimals) : '0') + suffix;
+                        animateCounter(el, num, suffix, decimals, 1600);
+                    });
+                }
+
+                setTimeout(startCounters, 800);
+            })();
+
+            const navbar = document.querySelector('.happy-navbar');
+            if (navbar) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 20) {
+                        navbar.classList.add('navbar--scrolled');
+                    } else {
+                        navbar.classList.remove('navbar--scrolled');
+                    }
+                }, {
+                    passive: true
+                });
+            }
+
+            (function() {
+                var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
+                var heroTitle = document.getElementById('hero-title');
+                var dots = document.querySelectorAll('#hero-slider .hero-banner__dot');
+                if (sliderImgs.length === 0) return;
+                var currentIdx = 0;
+                var slideInterval = null;
+
+                function showSlide(nextIdx) {
+                    if (nextIdx === currentIdx) return;
+                    var prevIdx = currentIdx;
+
+                    sliderImgs[prevIdx].classList.remove('active');
+                    sliderImgs[prevIdx].classList.add('prev-slide');
+
+                    currentIdx = nextIdx;
+
+                    sliderImgs[currentIdx].classList.remove('prev-slide');
+                    sliderImgs[currentIdx].classList.add('active');
+
+                    dots.forEach(function(dot, idx) {
+                        if (idx === currentIdx) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+
+                    setTimeout(function() {
+                        sliderImgs[prevIdx].classList.remove('prev-slide');
+                    }, 800);
+
+                    if (heroTitle) {
+                        heroTitle.innerText = sliderImgs[currentIdx].dataset.title || '';
+                    }
+
+                    var heroTitleTag = document.getElementById('hero-title-tag');
+                    var heroTagContainer = document.getElementById('hero-tag-container');
+                    var titleTagText = sliderImgs[currentIdx].dataset.titleTag;
+                    if (heroTitleTag && heroTagContainer) {
+                        if (titleTagText && titleTagText.trim() !== '') {
+                            heroTitleTag.innerText = titleTagText;
+                            heroTagContainer.style.display = '';
+                        } else {
+                            heroTitleTag.innerText = '';
+                            heroTagContainer.style.display = 'none';
+                        }
+                    }
+
+                    var primaryBtn = document.querySelector('.home-hero__btn--primary');
+                    if (primaryBtn) {
+                        var slideLink = sliderImgs[currentIdx].dataset.link;
+                        primaryBtn.href = (slideLink && slideLink.trim() !== '') ? slideLink : '/products';
+                    }
+                }
+
+                function startAutoSlide() {
+                    stopAutoSlide();
+                    slideInterval = setInterval(function() {
+                        var next = (currentIdx + 1) % sliderImgs.length;
+                        showSlide(next);
+                    }, 4000);
+                }
+
+                function stopAutoSlide() {
+                    if (slideInterval) {
+                        clearInterval(slideInterval);
+                    }
+                }
+
+                dots.forEach(function(dot) {
+                    dot.addEventListener('click', function() {
+                        var targetIdx = parseInt(this.getAttribute('data-slide-index'));
+                        showSlide(targetIdx);
+                        startAutoSlide();
+                    });
+                });
+
+                startAutoSlide();
+            })();
+
+            (function() {
+                var track = document.getElementById('home-categories');
+                var scrollbar = document.getElementById('home-categories-scrollbar');
+                var thumb = document.getElementById('home-categories-scrollbar-thumb');
+                if (!track || !scrollbar || !thumb) return;
+
+                function updateThumb() {
+                    var scrollableWidth = track.scrollWidth - track.clientWidth;
+
+                    if (scrollableWidth <= 0) {
+                        scrollbar.style.visibility = 'hidden';
+                        return;
+                    }
+                    scrollbar.style.visibility = 'visible';
+
+                    var thumbWidthPct = Math.max(15, Math.min(100, (track.clientWidth / track.scrollWidth) * 100));
+                    var maxTranslatePct = 100 - thumbWidthPct;
+                    var scrolledPct = (track.scrollLeft / scrollableWidth) * maxTranslatePct;
+
+                    thumb.style.width = thumbWidthPct + '%';
+                    thumb.style.transform = 'translateX(' + (scrolledPct / thumbWidthPct * 100) + '%)';
+                }
+
+                track.addEventListener('scroll', updateThumb, {
+                    passive: true
+                });
+                window.addEventListener('resize', updateThumb);
+                updateThumb();
+            })();
+        </script>
     @endpush
 @endsection

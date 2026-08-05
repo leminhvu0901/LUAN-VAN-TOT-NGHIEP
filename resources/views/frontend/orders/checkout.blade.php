@@ -39,7 +39,6 @@
 
         <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form"
             data-cod-url="{{ route('checkout.store') }}"
-            data-momo-url="{{ route('momo.pay') }}"
             data-vnpay-url="{{ route('vnpay.pay') }}">
             @csrf
             <input type="hidden" name="idempotency_key" value="{{ $checkoutToken }}">
@@ -345,7 +344,6 @@
 
                         @php
                         $codEnabled = (bool) \App\Models\Setting::getValue('cod_enabled', true);
-                        $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
                         $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
                         // COD tắt -> tự chọn phương thức online ĐẦU TIÊN còn bật (chỉ 1 radio được checked).
                         $autoCheckOnline = !$codEnabled;
@@ -365,21 +363,6 @@
                             </label>
                             @endif
 
-                            <!-- Chuyển khoản (MoMo - hiện đầy đủ các phương thức) -->
-                            @if($momoEnabled)
-                            <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
-                                <input type="radio" name="payment_method" value="momo" {{ $autoCheckOnline ? 'checked' : '' }} class="text-primary focus:ring-primary">
-                                <div class="flex items-center gap-3">
-                                    <span class="material-symbols-outlined text-primary text-3xl material-filled">account_balance</span>
-                                    <div>
-                                        <span class="block font-bold text-on-surface">Chuyển khoản (MoMo)</span>
-                                        <span class="text-xs text-on-surface-variant">Ví MoMo, ATM, Visa/Master...</span>
-                                    </div>
-                                </div>
-                            </label>
-                            @php $autoCheckOnline = false; @endphp
-                            @endif
-
                             <!-- Chuyển khoản qua VNPay -->
                             @if($vnpayEnabled)
                             <label class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
@@ -395,7 +378,7 @@
                             @php $autoCheckOnline = false; @endphp
                             @endif
 
-                            @if(!$codEnabled && !$momoEnabled && !$vnpayEnabled)
+                            @if(!$codEnabled && !$vnpayEnabled)
                             <div class="col-span-full p-4 bg-red-50 text-red-800 border border-red-200 rounded-xl text-sm font-semibold">
                                 Cửa hàng hiện đang tạm ngắt toàn bộ cổng thanh toán. Không thể hoàn tất đặt hàng lúc này.
                             </div>
@@ -641,5 +624,1451 @@
             shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
         };
     </script>
-    <script src="{{ asset('js/frontend/orders/checkout.js') }}?v={{ filemtime(public_path('js/frontend/orders/checkout.js')) }}"></script>
+    <script>
+let map;
+let marker;
+
+let provincesData = null;
+let provincesLoading = false;
+let wardsDataByProvince = {};
+let wardsLoading = false;
+
+const areaSearchItems = { province: [], ward: [] };
+
+let locationMethod = 'map';
+let areaUserSelected = false;
+let specificUserEdited = false;
+let pendingMapLatLng = null;
+let mapReverseTimer = null;
+
+function geoapifyKey() {
+    return (window.checkoutConfig && window.checkoutConfig.geoapifyKey) || '';
+}
+
+function setLocStatus(state, extraText) {
+    const iconEl = document.getElementById('locStatusIcon');
+    const textEl = document.getElementById('locStatusText');
+    const boxEl = document.getElementById('locStatus');
+    if (!iconEl || !textEl || !boxEl) return;
+
+    const map = {
+        idle: ['location_searching', 'Chưa xác định vị trí', 'text-on-surface-variant'],
+        manual: ['edit_location_alt', 'Nhập đầy đủ khu vực + địa chỉ cụ thể — hệ thống sẽ tự ghim vị trí lên bản đồ để bạn kiểm tra', 'text-on-surface-variant'],
+        locating: ['pending', 'Đang xác định vị trí...', 'text-amber-600'],
+        ok: ['check_circle', 'Đã xác định vị trí', 'text-primary'],
+        notfound: ['error', 'Không tìm thấy địa chỉ', 'text-error'],
+        outofrange: ['wrong_location', 'Ngoài phạm vi giao hàng', 'text-error'],
+    };
+    const cfg = map[state] || map.idle;
+    iconEl.textContent = cfg[0];
+    textEl.textContent = extraText || cfg[1];
+    boxEl.className = 'mb-4 flex items-center gap-2 text-sm font-medium rounded-xl px-3 py-2.5 bg-surface-container-lowest ' + cfg[2];
+}
+
+function setLocationMethod(method) {
+    if (!['gps', 'map', 'manual'].includes(method)) method = 'map';
+    const methodChanged = method !== locationMethod;
+    locationMethod = method;
+    if (methodChanged) {
+        areaUserSelected = false;
+        specificUserEdited = false;
+    }
+    const hidden = document.getElementById('addr_location_method');
+    if (hidden) hidden.value = method;
+
+    document.querySelectorAll('.loc-method-btn').forEach(function (btn) {
+        const active = btn.dataset.method === method;
+        btn.classList.toggle('bg-primary', active);
+        btn.classList.toggle('text-white', active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.toggle('text-on-surface-variant', !active);
+    });
+
+    const gpsBlock = document.getElementById('gpsBlock');
+    const mapColumn = document.getElementById('mapColumn');
+    const mapHint = document.getElementById('mapHint');
+    const manualMapHint = document.getElementById('manualMapHint');
+    const grid = document.getElementById('addressGrid');
+    const confirmBtn = document.getElementById('btnConfirmMapLocation');
+
+    if (gpsBlock) gpsBlock.classList.toggle('hidden', method !== 'gps');
+    if (mapHint) mapHint.classList.toggle('hidden', method !== 'map');
+    if (manualMapHint) manualMapHint.classList.toggle('hidden', method !== 'manual');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+
+    if (mapColumn) mapColumn.classList.remove('hidden');
+    if (grid) { grid.classList.add('lg:grid-cols-2'); grid.classList.remove('lg:grid-cols-1'); }
+    setTimeout(function () {
+        initMapIfNeeded();
+        if (map) {
+            map.invalidateSize();
+            const lat = parseFloat(document.getElementById('addr_lat').value) || 10.73809;
+            const lng = parseFloat(document.getElementById('addr_lng').value) || 106.67812;
+            map.setView([lat, lng], 15);
+            if (marker) marker.setLatLng([lat, lng]);
+        }
+    }, 50);
+
+    if (method === 'manual') {
+        setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'manual');
+        scheduleManualForwardGeocode();
+    } else {
+        setLocStatus(document.getElementById('addr_lat').value ? 'ok' : 'idle');
+    }
+
+    updateSaveButtonState();
+}
+
+function initMapIfNeeded() {
+    if (map) return;
+    const mapEl = document.getElementById('addressMap');
+    if (!mapEl) return;
+    const key = geoapifyKey();
+    if (!key) return;
+
+    const lat = 10.7433;
+    const lng = 106.6738;
+
+    map = L.map('addressMap').setView([lat, lng], 14);
+    L.tileLayer(`https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${key}`, {
+        attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | © OpenStreetMap contributors'
+    }).addTo(map);
+
+    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+    marker.on('dragend', function () {
+        const position = marker.getLatLng();
+        onMapPointPicked(position.lat, position.lng);
+    });
+
+    map.on('click', function (e) {
+        marker.setLatLng(e.latlng);
+        onMapPointPicked(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+function onMapPointPicked(lat, lng) {
+    if (locationMethod === 'gps') {
+        document.getElementById('addr_lat').value = lat.toFixed(6);
+        document.getElementById('addr_lng').value = lng.toFixed(6);
+        reverseGeocode(lat, lng);
+        if (!flagOutOfRange(lat, lng)) {
+            setLocStatus('ok', 'Đã xác định vị trí hiện tại');
+        }
+        updateSaveButtonState();
+        return;
+    }
+
+    pendingMapLatLng = { lat: lat, lng: lng };
+    const confirmBtn = document.getElementById('btnConfirmMapLocation');
+    if (confirmBtn) confirmBtn.classList.remove('hidden');
+    setLocStatus('locating', 'Đã chọn 1 điểm — bấm "Xác nhận vị trí này" để dùng.');
+
+    if (mapReverseTimer) clearTimeout(mapReverseTimer);
+    mapReverseTimer = setTimeout(function () { reverseGeocode(lat, lng); }, 500);
+}
+
+function confirmMapLocation() {
+    if (!pendingMapLatLng) return;
+    document.getElementById('addr_lat').value = pendingMapLatLng.lat.toFixed(6);
+    document.getElementById('addr_lng').value = pendingMapLatLng.lng.toFixed(6);
+    reverseGeocode(pendingMapLatLng.lat, pendingMapLatLng.lng);
+    const confirmBtn = document.getElementById('btnConfirmMapLocation');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    if (!flagOutOfRange(pendingMapLatLng.lat, pendingMapLatLng.lng)) {
+        setLocStatus('ok', 'Đã xác định vị trí trên bản đồ');
+    }
+    updateSaveButtonState();
+}
+
+let manualGeocodeTimer = null;
+const MANUAL_GEOCODE_MIN_CONFIDENCE = 0.3;
+
+function buildManualAddressQuery() {
+    const specific = (document.getElementById('addr_specific').value || '').trim();
+    const wardName = (document.getElementById('addr_ward_search').value || '').trim();
+    const provinceName = (document.getElementById('addr_province_search').value || '').trim();
+    if (!specific || !wardName || !provinceName) return null;
+
+    let query = [specific, wardName, provinceName].join(', ');
+    query = query.replace(/phường\s*\d+/giu, '');
+    query = query.replace(/,\s*,/g, ',');
+    query = query.replace(/,\s*$/, '').trim() + ', Việt Nam';
+    return query;
+}
+
+function scheduleManualForwardGeocode() {
+    if (locationMethod !== 'manual') return;
+    if (manualGeocodeTimer) clearTimeout(manualGeocodeTimer);
+    manualGeocodeTimer = setTimeout(runManualForwardGeocode, 900);
+}
+
+function runManualForwardGeocode() {
+    if (locationMethod !== 'manual') return;
+    const query = buildManualAddressQuery();
+    if (!query) return;
+
+    const key = geoapifyKey();
+    if (!key) return;
+
+    const cfg = window.checkoutConfig || {};
+    const biasLat = cfg.shopLat || 10.73809;
+    const biasLng = cfg.shopLng || 106.67812;
+
+    setLocStatus('locating', 'Đang xác định vị trí từ địa chỉ đã nhập...');
+
+    const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&lang=vi&limit=1&bias=proximity:${biasLng},${biasLat}&apiKey=${key}`;
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            if (locationMethod !== 'manual') return;
+
+            const props = data && data.features && data.features[0] && data.features[0].properties;
+            if (!props || props.lat === undefined || props.lon === undefined) {
+                setLocStatus('notfound', 'Không tìm thấy vị trí cho địa chỉ này. Vui lòng kiểm tra lại hoặc chạm/kéo ghim trên bản đồ bên dưới để chọn thủ công.');
+                return;
+            }
+
+            const lat = props.lat;
+            const lng = props.lon;
+            const confidence = (props.rank && props.rank.confidence) || 0;
+
+            initMapIfNeeded();
+            if (map) {
+                map.setView([lat, lng], 16);
+                if (marker) marker.setLatLng([lat, lng]);
+            }
+            document.getElementById('addr_lat').value = lat.toFixed(6);
+            document.getElementById('addr_lng').value = lng.toFixed(6);
+            document.getElementById('addr_formatted').value = props.formatted || '';
+
+            if (flagOutOfRange(lat, lng)) {
+            } else if (confidence < MANUAL_GEOCODE_MIN_CONFIDENCE) {
+                setLocStatus('locating', 'Chưa chắc chắn vị trí này đúng — vui lòng nhìn kỹ ghim trên bản đồ, kéo lại nếu chưa đúng.');
+            } else {
+                setLocStatus('ok', 'Đã xác định vị trí — kiểm tra ghim trên bản đồ, kéo chỉnh nếu chưa đúng.');
+            }
+            updateSaveButtonState();
+        })
+        .catch(() => {
+            if (locationMethod !== 'manual') return;
+            setLocStatus('notfound', 'Không thể xác định vị trí lúc này. Vui lòng chạm/kéo ghim trên bản đồ để chọn thủ công.');
+        });
+}
+
+function straightLineKm(lat1, lng1, lat2, lng2) {
+    const toRad = function (d) { return d * Math.PI / 180; };
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function flagOutOfRange(lat, lng) {
+    const cfg = window.checkoutConfig || {};
+    if (!cfg.shopLat || !cfg.shopLng || !cfg.shippingMaxDistanceKm) return false;
+    const km = straightLineKm(cfg.shopLat, cfg.shopLng, lat, lng);
+    if (km > cfg.shippingMaxDistanceKm) {
+        setLocStatus('outofrange', 'Ngoài phạm vi giao hàng (khoảng ' + km.toFixed(1) + ' km, tối đa ' + cfg.shippingMaxDistanceKm + ' km)');
+        return true;
+    }
+    return false;
+}
+
+function applyLocationProperties(props) {
+    if (areaUserSelected) return;
+    if (!provincesData) return;
+
+    const provinceGuess = normalizeVN(props.state || '');
+    if (!provinceGuess) return;
+    const province = provincesData.find(p => normalizeVN(p.name) === provinceGuess);
+    if (!province) return;
+
+    const provinceSel = document.getElementById('addr_province_select');
+    if (provinceSel && provinceSel.value !== String(province.code)) {
+        provinceSel.value = String(province.code);
+        setAreaSearchValue('province', province.name);
+        document.getElementById('addr_province_code').value = String(province.code);
+        showAreaError('province', '');
+    }
+
+    const wardGuess = normalizeVN(props.suburb || props.district || '');
+    loadWardsFor(province.code).then(wards => {
+        if (!wards || areaUserSelected || !wardGuess) return;
+        const ward = wards.find(w => normalizeVN(w.name) === wardGuess);
+        if (!ward) return;
+        const wardSel = document.getElementById('addr_ward_select');
+        if (wardSel) {
+            wardSel.value = String(ward.code);
+            setAreaSearchValue('ward', ward.name);
+            document.getElementById('addr_ward_code').value = String(ward.code);
+            showAreaError('ward', '');
+        }
+        updateSaveButtonState();
+    });
+
+    updateSaveButtonState();
+}
+
+function fetchReverse(lat, lng, type) {
+    const key = geoapifyKey();
+    let url = `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lng}&lang=vi&apiKey=${key}`;
+    if (type) url += `&type=${type}`;
+    return fetch(url)
+        .then(res => res.json())
+        .then(data => (data && data.features && data.features[0] && data.features[0].properties) || null);
+}
+
+function reverseGeocode(lat, lng) {
+    const key = geoapifyKey();
+    if (!key) return;
+    fetchReverse(lat, lng, 'building')
+        .then(props => props || fetchReverse(lat, lng, null))
+        .then(props => {
+            if (!props) return;
+            applyLocationProperties(props);
+
+            const specificParts = [props.housenumber, props.street].filter(Boolean);
+            const specificEl = document.getElementById('addr_specific');
+            if (specificEl && !specificUserEdited && specificParts.length > 0) {
+                specificEl.value = specificParts.join(' ');
+                updateSaveButtonState();
+            }
+        })
+        .catch(err => console.error(err));
+}
+
+function normalizeVN(str) {
+    return (str || '')
+        .toString()
+        .toLowerCase()
+        .replace(/đ/g, 'd')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\b(thanh pho|tinh|phuong|xa|thi tran)\b/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function areaSearchElements(which) {
+    return {
+        search: document.getElementById(which === 'province' ? 'addr_province_search' : 'addr_ward_search'),
+        select: document.getElementById(which === 'province' ? 'addr_province_select' : 'addr_ward_select'),
+        dropdown: document.getElementById(which === 'province' ? 'addr_province_dropdown' : 'addr_ward_dropdown'),
+        options: document.getElementById(which === 'province' ? 'addr_province_options' : 'addr_ward_options'),
+        empty: document.getElementById(which === 'province' ? 'addr_province_empty' : 'addr_ward_empty'),
+    };
+}
+
+function setAreaSearchItems(which, items) {
+    areaSearchItems[which] = Array.isArray(items) ? items : [];
+    renderAreaOptions(which, '');
+}
+
+function setAreaSearchValue(which, value) {
+    const { search } = areaSearchElements(which);
+    if (search) search.value = value || '';
+}
+
+function renderAreaOptions(which, query) {
+    const { options, empty, select } = areaSearchElements(which);
+    if (!options || !empty) return;
+
+    const normalizedQuery = normalizeVN(query || '');
+    const filtered = areaSearchItems[which].filter(item =>
+        !normalizedQuery || normalizeVN(item.name).includes(normalizedQuery)
+    );
+    options.innerHTML = '';
+
+    filtered.forEach(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.code = String(item.code);
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-selected', select && select.value === String(item.code) ? 'true' : 'false');
+        button.className = 'w-full text-left px-3 py-2.5 rounded-lg text-sm hover:bg-primary-container/20 focus:bg-primary-container/20 focus:outline-none transition-colors';
+        if (select && select.value === String(item.code)) {
+            button.classList.add('bg-primary-container/20', 'text-primary', 'font-bold');
+        }
+        button.textContent = item.name;
+        button.addEventListener('click', function () {
+            chooseAreaOption(which, item.code, item.name);
+        });
+        options.appendChild(button);
+    });
+
+    empty.classList.toggle('hidden', filtered.length > 0);
+}
+
+function openAreaSearch(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown || search.disabled) return;
+
+    ['province', 'ward'].forEach(other => {
+        if (other !== which) closeAreaSearch(other);
+    });
+    renderAreaOptions(which, '');
+    dropdown.classList.remove('hidden');
+    search.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(function () { search.select(); });
+}
+
+function closeAreaSearch(which) {
+    const { search, select, dropdown } = areaSearchElements(which);
+    if (!dropdown) return;
+    dropdown.classList.add('hidden');
+    if (search) {
+        search.setAttribute('aria-expanded', 'false');
+        const selected = areaSearchItems[which].find(item => select && String(item.code) === select.value);
+        search.value = selected ? selected.name : '';
+    }
+}
+
+function toggleAreaSearch(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown || search.disabled) return;
+    if (dropdown.classList.contains('hidden')) {
+        search.focus();
+        openAreaSearch(which);
+    } else {
+        closeAreaSearch(which);
+    }
+}
+
+function filterAreaOptions(which) {
+    const { search, dropdown } = areaSearchElements(which);
+    if (!search || !dropdown) return;
+
+    renderAreaOptions(which, search.value);
+    dropdown.classList.remove('hidden');
+    search.setAttribute('aria-expanded', 'true');
+}
+
+function chooseAreaOption(which, code, name) {
+    const { search, select, dropdown } = areaSearchElements(which);
+    if (!search || !select) return;
+
+    const oldCode = select.value;
+    select.value = String(code);
+    search.value = name;
+    if (dropdown) dropdown.classList.add('hidden');
+    search.setAttribute('aria-expanded', 'false');
+
+    if (oldCode === String(code)) {
+        updateSaveButtonState();
+        return;
+    }
+    if (which === 'province') onProvinceChange();
+    else onWardChange();
+}
+
+function handleAreaSearchKeydown(event, which) {
+    if (event.key === 'Escape') {
+        closeAreaSearch(which);
+        event.target.blur();
+        return;
+    }
+    if (event.key !== 'Enter') return;
+
+    const { options, dropdown } = areaSearchElements(which);
+    const first = options ? options.querySelector('button') : null;
+    if (first && dropdown && !dropdown.classList.contains('hidden')) {
+        event.preventDefault();
+        first.click();
+    }
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function renderCouponSuccessInfo(data, code) {
+    const lines = [];
+    lines.push(
+        '<p class="flex items-center gap-1 text-primary font-bold">' +
+        '<span class="material-symbols-outlined text-sm">check_circle</span>' +
+        'Áp dụng thành công mã ' + escapeHtml(code) + '!' +
+        '</p>'
+    );
+
+    const discountAmount = parseFloat(data.discount_amount);
+    if (!isNaN(discountAmount) && discountAmount > 0) {
+        lines.push('<p class="text-on-surface font-semibold mt-1">Giảm ' + discountAmount.toLocaleString('vi-VN') + 'đ</p>');
+    }
+
+    if (data.description) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.description) + '</p>');
+    }
+
+    if (data.scope_label) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.scope_label) + '</p>');
+    }
+
+    if (data.end_at) {
+        lines.push('<p class="text-on-surface-variant font-normal mt-0.5">Hạn dùng: ' + escapeHtml(data.end_at) + '</p>');
+    }
+
+    return lines.join('');
+}
+
+function showAreaError(which, msg) {
+    const help = document.getElementById(which === 'province' ? 'provinceHelpText' : 'wardHelpText');
+    const sel = document.getElementById(which === 'province' ? 'addr_province_select' : 'addr_ward_select');
+    const search = document.getElementById(which === 'province' ? 'addr_province_search' : 'addr_ward_search');
+    if (help) { help.textContent = msg || ''; help.classList.toggle('hidden', !msg); }
+    if (sel) sel.setAttribute('aria-invalid', msg ? 'true' : 'false');
+    if (search) search.setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+
+function loadProvinces() {
+    if (provincesData) {
+        setAreaSearchItems('province', provincesData);
+        return Promise.resolve(provincesData);
+    }
+
+    provincesLoading = true;
+    const sel = document.getElementById('addr_province_select');
+    const search = document.getElementById('addr_province_search');
+    if (sel) {
+        sel.disabled = true;
+        sel.innerHTML = '<option value="">Đang tải tỉnh/thành phố...</option>';
+    }
+    if (search) {
+        search.disabled = true;
+        search.value = '';
+        search.placeholder = 'Đang tải tỉnh/thành phố...';
+    }
+    updateSaveButtonState();
+
+    return fetch('/administrative/provinces')
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            provincesLoading = false;
+            if (!ok || !data.success) {
+                showAreaError('province', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
+                if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+                if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
+                updateSaveButtonState();
+                return null;
+            }
+            provincesData = data.data;
+            if (sel) {
+                sel.disabled = false;
+                sel.innerHTML = '<option value="">Chọn tỉnh/thành phố</option>' +
+                    provincesData.map(p => `<option value="${p.code}">${escapeHtml(p.name)}</option>`).join('');
+            }
+            setAreaSearchItems('province', provincesData);
+            if (search) {
+                search.disabled = false;
+                search.placeholder = 'Tìm tỉnh/thành phố...';
+            }
+            updateSaveButtonState();
+            return provincesData;
+        })
+        .catch(() => {
+            provincesLoading = false;
+            showAreaError('province', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
+            if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+            if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
+            updateSaveButtonState();
+            return null;
+        });
+}
+
+function loadWardsFor(provinceCode) {
+    const fillWardOptions = function (wards) {
+        const provinceSelect = document.getElementById('addr_province_select');
+        if (provinceSelect && provinceSelect.value !== String(provinceCode)) return;
+        const wardSelect = document.getElementById('addr_ward_select');
+        const wardSearch = document.getElementById('addr_ward_search');
+        if (wardSelect) {
+            wardSelect.disabled = false;
+            wardSelect.innerHTML = '<option value="">Chọn phường/xã</option>' +
+                wards.map(w => `<option value="${w.code}">${escapeHtml(w.name)}</option>`).join('');
+        }
+        setAreaSearchItems('ward', wards);
+        if (wardSearch) {
+            wardSearch.disabled = false;
+            wardSearch.placeholder = 'Tìm phường/xã...';
+        }
+    };
+
+    if (wardsDataByProvince[provinceCode]) {
+        fillWardOptions(wardsDataByProvince[provinceCode]);
+        return Promise.resolve(wardsDataByProvince[provinceCode]);
+    }
+
+    wardsLoading = true;
+    const sel = document.getElementById('addr_ward_select');
+    const search = document.getElementById('addr_ward_search');
+    if (sel) {
+        sel.disabled = true;
+        sel.innerHTML = '<option value="">Đang tải phường/xã...</option>';
+    }
+    if (search) {
+        search.disabled = true;
+        search.value = '';
+        search.placeholder = 'Đang tải phường/xã...';
+    }
+    updateSaveButtonState();
+
+    return fetch(`/administrative/provinces/${provinceCode}/wards`)
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            wardsLoading = false;
+            if (!ok || !data.success) {
+                showAreaError('ward', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
+                if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+                if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
+                updateSaveButtonState();
+                return null;
+            }
+            wardsDataByProvince[provinceCode] = data.data;
+            fillWardOptions(data.data);
+            updateSaveButtonState();
+            return data.data;
+        })
+        .catch(() => {
+            wardsLoading = false;
+            showAreaError('ward', 'Không thể tải dữ liệu địa chỉ. Vui lòng thử lại.');
+            if (sel) sel.innerHTML = '<option value="">Không tải được — thử lại</option>';
+            if (search) { search.disabled = true; search.placeholder = 'Không tải được dữ liệu'; }
+            updateSaveButtonState();
+            return null;
+        });
+}
+
+function onProvinceChange() {
+    areaUserSelected = true;
+    const sel = document.getElementById('addr_province_select');
+    const code = sel && sel.value ? sel.value : '';
+    document.getElementById('addr_province_code').value = code;
+    showAreaError('province', '');
+
+    document.getElementById('addr_ward_code').value = '';
+    showAreaError('ward', '');
+    const wardSel = document.getElementById('addr_ward_select');
+    if (wardSel) {
+        wardSel.disabled = true;
+        wardSel.innerHTML = '<option value="">Vui lòng chọn tỉnh/thành phố trước</option>';
+    }
+    const wardSearch = document.getElementById('addr_ward_search');
+    if (wardSearch) {
+        wardSearch.disabled = true;
+        wardSearch.value = '';
+        wardSearch.placeholder = 'Chọn tỉnh/thành phố trước';
+    }
+    setAreaSearchItems('ward', []);
+
+    document.getElementById('addr_lat').value = '';
+    document.getElementById('addr_lng').value = '';
+    pendingMapLatLng = null;
+    const confirmBtn = document.getElementById('btnConfirmMapLocation');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    setLocStatus('idle');
+
+    updateSaveButtonState();
+    if (code) loadWardsFor(parseInt(code, 10));
+}
+
+function onWardChange() {
+    areaUserSelected = true;
+    const sel = document.getElementById('addr_ward_select');
+    document.getElementById('addr_ward_code').value = sel && sel.value ? sel.value : '';
+    showAreaError('ward', '');
+    updateSaveButtonState();
+    scheduleManualForwardGeocode();
+}
+
+function resetAreaSelects() {
+    areaUserSelected = false;
+    document.getElementById('addr_province_code').value = '';
+    document.getElementById('addr_ward_code').value = '';
+    showAreaError('province', '');
+    showAreaError('ward', '');
+    const provinceSel = document.getElementById('addr_province_select');
+    if (provinceSel && provincesData) provinceSel.value = '';
+    setAreaSearchValue('province', '');
+    const wardSel = document.getElementById('addr_ward_select');
+    if (wardSel) {
+        wardSel.disabled = true;
+        wardSel.innerHTML = '<option value="">Vui lòng chọn tỉnh/thành phố trước</option>';
+    }
+    const wardSearch = document.getElementById('addr_ward_search');
+    if (wardSearch) {
+        wardSearch.disabled = true;
+        wardSearch.value = '';
+        wardSearch.placeholder = 'Chọn tỉnh/thành phố trước';
+    }
+    setAreaSearchItems('ward', []);
+}
+
+function preselectAreaByName(provinceName, wardName) {
+    loadProvinces().then(provinces => {
+        if (!provinces) return;
+        const provinceGuess = normalizeVN(provinceName);
+        const province = provinces.find(p => normalizeVN(p.name) === provinceGuess);
+        if (!province) return;
+
+        const provinceSel = document.getElementById('addr_province_select');
+        if (provinceSel) provinceSel.value = String(province.code);
+        setAreaSearchValue('province', province.name);
+        document.getElementById('addr_province_code').value = String(province.code);
+
+        loadWardsFor(province.code).then(wards => {
+            if (!wards) return;
+            const wardGuess = normalizeVN(wardName);
+            const ward = wards.find(w => normalizeVN(w.name) === wardGuess);
+            if (!ward) return;
+            const wardSel = document.getElementById('addr_ward_select');
+            if (wardSel) wardSel.value = String(ward.code);
+            setAreaSearchValue('ward', ward.name);
+            document.getElementById('addr_ward_code').value = String(ward.code);
+            updateSaveButtonState();
+        });
+    });
+}
+
+function updateSaveButtonState() {
+    const btn = document.getElementById('btnSaveAddress');
+    if (!btn) return;
+    const fullname = (document.getElementById('addr_fullname').value || '').trim();
+    const phone = (document.getElementById('addr_phone').value || '').trim();
+    const specific = (document.getElementById('addr_specific').value || '').trim();
+    const hasCoords = !!document.getElementById('addr_lat').value;
+    const phoneOk = /^(0[3|5|7|8|9])+([0-9]{8})$/.test(phone);
+    const areaOk = !!(document.getElementById('addr_province_code').value && document.getElementById('addr_ward_code').value);
+    const locationOk = hasCoords || locationMethod === 'manual';
+    const notLoading = !provincesLoading && !wardsLoading;
+
+    const phoneErrorEl = document.getElementById('addr_phone_error');
+    if (phoneErrorEl) phoneErrorEl.classList.toggle('hidden', phone === '' || phoneOk);
+
+    btn.disabled = !(fullname && phoneOk && areaOk && specific && locationOk && notLoading);
+}
+
+function getCurrentLocation() {
+    if (!navigator.geolocation) {
+        setLocStatus('notfound', 'Trình duyệt không hỗ trợ định vị GPS');
+        if (window.FrontendAlert) window.FrontendAlert.error('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn trên bản đồ hoặc nhập địa chỉ.'); else alert('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng chọn trên bản đồ hoặc nhập địa chỉ.');
+        return;
+    }
+
+    setLocStatus('locating', 'Đang xác định vị trí hiện tại...');
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            document.getElementById('addr_lat').value = lat.toFixed(6);
+            document.getElementById('addr_lng').value = lng.toFixed(6);
+
+            initMapIfNeeded();
+            if (map) {
+                map.setView([lat, lng], 16);
+                if (marker) marker.setLatLng([lat, lng]);
+            }
+            reverseGeocode(lat, lng);
+
+            if (!flagOutOfRange(lat, lng)) {
+                if (accuracy && accuracy > 100) {
+                    setLocStatus('ok', 'Đã xác định vị trí (độ chính xác thấp ~' + Math.round(accuracy) + 'm) — hãy kéo ghim để chỉnh lại');
+                } else {
+                    setLocStatus('ok', 'Đã xác định vị trí hiện tại');
+                }
+            }
+            updateSaveButtonState();
+        },
+        (error) => {
+            let msg = 'Không thể lấy vị trí hiện tại.';
+            if (error.code === error.PERMISSION_DENIED) {
+                msg = 'Bạn đã từ chối quyền truy cập vị trí. Vui lòng cấp quyền, hoặc chọn trên bản đồ / nhập địa chỉ thủ công.';
+            } else if (error.code === error.TIMEOUT) {
+                msg = 'Xác định vị trí quá lâu (hết thời gian chờ). Vui lòng thử lại, hoặc chọn trên bản đồ / nhập địa chỉ.';
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                msg = 'Không lấy được vị trí (thiết bị/mạng không hỗ trợ). Vui lòng chọn trên bản đồ / nhập địa chỉ.';
+            }
+            setLocStatus('notfound', 'Không lấy được vị trí GPS');
+            if (window.FrontendAlert) window.FrontendAlert.error(msg); else alert(msg);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+function setAddrType(type) {
+    document.getElementById('addr_type').value = type;
+    const homeBtn = document.getElementById('btnTypeHome');
+    const officeBtn = document.getElementById('btnTypeOffice');
+    [[homeBtn, 'home'], [officeBtn, 'office']].forEach(([btn, btnType]) => {
+        if (!btn) return;
+        const isActive = btnType === type;
+        btn.classList.toggle('bg-primary', isActive);
+        btn.classList.toggle('text-white', isActive);
+        btn.classList.toggle('border-primary', isActive);
+    });
+}
+
+function openAddressModal(isEdit = false, data = null) {
+    const modal = document.getElementById('addressModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    pendingMapLatLng = null;
+    const confirmBtn = document.getElementById('btnConfirmMapLocation');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+
+    loadProvinces();
+
+    if (isEdit && data) {
+        document.getElementById('addressModalTitle').textContent = 'Sửa địa chỉ';
+        document.getElementById('addr_id').value = data.id || '';
+        document.getElementById('addr_fullname').value = data.fullname || '';
+        document.getElementById('addr_phone').value = data.phone || '';
+        document.getElementById('addr_specific').value = data.specificAddress || '';
+        document.getElementById('addr_lat').value = data.latitude || '';
+        document.getElementById('addr_lng').value = data.longitude || '';
+        document.getElementById('addr_formatted').value = '';
+        document.getElementById('addr_default').checked = String(data.isDefault) === '1' || data.isDefault === true;
+
+        specificUserEdited = false;
+        areaUserSelected = false;
+        setAddrType(data.type === 'office' ? 'office' : 'home');
+
+        preselectAreaByName(data.province || '', data.ward || '');
+    } else {
+        document.getElementById('addressModalTitle').textContent = 'Thêm địa chỉ mới';
+        document.getElementById('addr_id').value = '';
+        document.getElementById('addr_fullname').value = '';
+        document.getElementById('addr_phone').value = '';
+        document.getElementById('addr_specific').value = '';
+        document.getElementById('addr_lat').value = '';
+        document.getElementById('addr_lng').value = '';
+        document.getElementById('addr_formatted').value = '';
+        document.getElementById('addr_default').checked = false;
+
+        specificUserEdited = false;
+        resetAreaSelects();
+        setAddrType('home');
+    }
+
+    setLocationMethod(isEdit && data && data.locationMethod ? data.locationMethod : 'map');
+    updateSaveButtonState();
+}
+
+function closeAddressModal() {
+    const modal = document.getElementById('addressModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+document.addEventListener('click', function (event) {
+    const addBtn = event.target.closest('.add-address-btn');
+    if (addBtn) {
+        openAddressModal(false);
+        return;
+    }
+
+    const editBtn = event.target.closest('.edit-address-btn');
+    if (editBtn) {
+        openAddressModal(true, {
+            id: editBtn.dataset.addressId,
+            fullname: editBtn.dataset.fullname,
+            phone: editBtn.dataset.phone,
+            province: editBtn.dataset.province,
+            district: editBtn.dataset.district,
+            ward: editBtn.dataset.ward,
+            specificAddress: editBtn.dataset.specificAddress,
+            type: editBtn.dataset.type,
+            isDefault: editBtn.dataset.isDefault,
+            latitude: editBtn.dataset.latitude,
+            longitude: editBtn.dataset.longitude,
+            locationMethod: editBtn.dataset.locationMethod,
+        });
+    }
+});
+
+function saveAddress() {
+    const id = document.getElementById('addr_id').value;
+    const fullname = document.getElementById('addr_fullname').value.trim();
+    const phone = document.getElementById('addr_phone').value.trim();
+    const specific = document.getElementById('addr_specific').value.trim();
+    const lat = document.getElementById('addr_lat').value;
+    const lng = document.getElementById('addr_lng').value;
+    const type = document.getElementById('addr_type').value;
+    const isDefault = document.getElementById('addr_default').checked ? 1 : 0;
+    const method = document.getElementById('addr_location_method').value || 'map';
+    const formatted = document.getElementById('addr_formatted').value || '';
+    const provinceCode = document.getElementById('addr_province_code').value;
+    const wardCode = document.getElementById('addr_ward_code').value;
+
+    if (!fullname || !phone || !specific) {
+        if (window.FrontendAlert) window.FrontendAlert.error('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể.'); else alert('Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ cụ thể.');
+        return;
+    }
+    if (!provinceCode || !wardCode) {
+        if (!provinceCode) showAreaError('province', 'Vui lòng chọn Tỉnh/Thành phố.');
+        if (!wardCode) showAreaError('ward', 'Vui lòng chọn Phường/Xã.');
+        return;
+    }
+    if (method !== 'manual' && !lat) {
+        if (window.FrontendAlert) window.FrontendAlert.error('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".'); else alert('Vui lòng xác định vị trí trên bản đồ (bấm "Xác nhận vị trí này") hoặc bấm "Lấy vị trí hiện tại".');
+        return;
+    }
+
+    const payload = {
+        fullname,
+        phone,
+        specific_address: specific,
+        province_code: parseInt(provinceCode, 10),
+        ward_code: parseInt(wardCode, 10),
+        latitude: lat || null,
+        longitude: lng || null,
+        location_method: method,
+        formatted_address: formatted,
+        type,
+        is_default: isDefault,
+        _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    };
+
+    const url = id ? `/profile/address/${id}` : '/profile/address';
+
+    const stateObj = {
+        selected_address_id: id || 'new',
+        weather: document.getElementById('weather_select') ? document.getElementById('weather_select').value : null,
+        is_peak_hour: document.getElementById('peak_hour_select') ? document.getElementById('peak_hour_select').value : null
+    };
+    localStorage.setItem('checkout_address_state', JSON.stringify(stateObj));
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+    Object.keys(payload).forEach(function (key) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = payload[key] === null || payload[key] === undefined ? '' : payload[key];
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+}
+
+window.getCurrentLocation = getCurrentLocation;
+window.setAddrType = setAddrType;
+window.closeAddressModal = closeAddressModal;
+window.saveAddress = saveAddress;
+window.onProvinceChange = onProvinceChange;
+window.onWardChange = onWardChange;
+window.setLocationMethod = setLocationMethod;
+window.confirmMapLocation = confirmMapLocation;
+window.updateSaveButtonState = updateSaveButtonState;
+window.openAreaSearch = openAreaSearch;
+window.closeAreaSearch = closeAreaSearch;
+window.toggleAreaSearch = toggleAreaSearch;
+window.filterAreaOptions = filterAreaOptions;
+window.handleAreaSearchKeydown = handleAreaSearchKeydown;
+
+document.addEventListener('DOMContentLoaded', function () {
+    ['addr_fullname', 'addr_phone', 'addr_specific'].forEach(function (elId) {
+        const el = document.getElementById(elId);
+        if (el) el.addEventListener('input', updateSaveButtonState);
+    });
+    const specificEl = document.getElementById('addr_specific');
+    if (specificEl) {
+        specificEl.addEventListener('input', function () {
+            specificUserEdited = true;
+            scheduleManualForwardGeocode();
+        });
+    }
+    const provSel = document.getElementById('addr_province_select');
+    if (provSel) provSel.addEventListener('change', function () { onProvinceChange(); updateSaveButtonState(); });
+    const wardSel = document.getElementById('addr_ward_select');
+    if (wardSel) wardSel.addEventListener('change', function () { onWardChange(); updateSaveButtonState(); });
+
+    document.addEventListener('click', function (event) {
+        ['province', 'ward'].forEach(function (which) {
+            const root = document.querySelector(`[data-area-search-root="${which}"]`);
+            if (root && !root.contains(event.target)) closeAreaSearch(which);
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const priceSummaryEl = document.getElementById('price-summary');
+    if (!priceSummaryEl) return;
+
+    const subtotal = parseInt(priceSummaryEl.dataset.subtotal);
+    let discount = 0;
+    let pointsDiscount = 0;
+    const comboDiscount = parseInt(priceSummaryEl.dataset.comboDiscount) || 0;
+
+    const shippingDistanceText = document.getElementById('summary-shipping-distance-text');
+    const weatherFeeText = document.getElementById('summary-weather-fee-text');
+
+    const discountRow = document.getElementById('summary-discount-row');
+    const discountText = document.getElementById('summary-discount-text');
+    const totalText = document.getElementById('summary-total-text');
+    const couponInput = document.getElementById('coupon_code_input');
+    const applyCouponBtn = document.getElementById('apply_coupon_btn');
+    const couponMessage = document.getElementById('coupon_message');
+    const orderBtn = document.getElementById('order-submit-btn');
+
+    const pointsInput = document.getElementById('points_to_redeem_input');
+    const applyPointsBtn = document.getElementById('apply_points_btn');
+    const pointsMessage = document.getElementById('points_message');
+    const maxRedeemablePointsText = document.getElementById('max-redeemable-points');
+
+    const config = window.checkoutConfig || {
+        shippingBaseFee: 15000,
+        shippingFeePerKm: 5000,
+        shippingMaxDistanceKm: 15,
+        freeShippingMinimum: 150000
+    };
+
+    const paymentRadios = document.querySelectorAll('input[name="payment_method"]');
+    const checkoutForm = document.getElementById('checkout-form');
+
+    if (checkoutForm) {
+        checkoutForm.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                e.preventDefault();
+            }
+        });
+    }
+
+    function updateFormAction() {
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedPayment && checkoutForm) {
+            if (selectedPayment.value === 'vnpay' && checkoutForm.dataset.vnpayUrl) {
+                checkoutForm.action = checkoutForm.dataset.vnpayUrl;
+            } else if (checkoutForm.dataset.codUrl) {
+                checkoutForm.action = checkoutForm.dataset.codUrl;
+            }
+        }
+    }
+
+    paymentRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            updateBorders(paymentRadios);
+            updateFormAction();
+            if (orderBtn) {
+                if (radio.value === 'vnpay') {
+                    orderBtn.innerText = 'Chuyển khoản (VNPay)';
+                } else {
+                    orderBtn.innerText = 'Đặt hàng (COD)';
+                }
+            }
+        });
+    });
+
+    updateFormAction();
+
+    function updateBorders(radios) {
+        radios.forEach(radio => {
+            const label = radio.closest('label');
+            if (label) {
+                if (radio.checked) {
+                    label.classList.add('border-2', 'border-primary', 'bg-primary-container/10');
+                    label.classList.remove('border-outline-variant');
+                } else {
+                    label.classList.remove('border-2', 'border-primary', 'bg-primary-container/10');
+                    label.classList.add('border-outline-variant');
+                }
+            }
+        });
+    }
+
+    updateBorders(paymentRadios);
+
+    let discountPercent = 0;
+    let maxDiscountAmount = 0;
+    let couponScope = 'order';
+
+    document.querySelectorAll('.coupon-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const code = chip.dataset.code;
+            if (!code || !couponInput) return;
+
+            couponInput.value = code;
+
+            document.querySelectorAll('.coupon-chip').forEach(c => {
+                c.classList.remove('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+            });
+            chip.classList.add('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+
+            if (applyCouponBtn) applyCouponBtn.click();
+        });
+    });
+
+    if (applyCouponBtn && couponInput) {
+        couponInput.addEventListener('input', () => {
+            document.querySelectorAll('.coupon-chip').forEach(c => {
+                c.classList.remove('!bg-primary', '!border-primary', '!text-white', 'ring-2', 'ring-primary/30');
+            });
+        });
+
+        applyCouponBtn.addEventListener('click', () => {
+            const code = couponInput.value.trim().toUpperCase();
+
+            if (code === '') {
+                discount = 0;
+                discountPercent = 0;
+                maxDiscountAmount = 0;
+                couponScope = 'order';
+                couponMessage.innerText = '';
+                discountRow.classList.add('hidden');
+                document.getElementById('hidden_coupon_code').value = '';
+                calculateTotal();
+                return;
+            }
+
+            const token = document.querySelector('input[name="_token"]').value;
+            const currentSubtotal = subtotal;
+
+            couponMessage.innerText = 'Đang kiểm tra...';
+            couponMessage.className = 'text-xs text-on-surface-variant font-medium mt-1';
+
+            fetch('/checkout/validate-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token
+                },
+                body: JSON.stringify({
+                    coupon_code: code,
+                    subtotal: currentSubtotal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.valid) {
+                    discount = parseFloat(data.discount_amount) || 0;
+                    couponScope = data.scope || 'order';
+                    
+                    if (data.discount_type === 'percent') {
+                        discountPercent = data.discount_value;
+                        maxDiscountAmount = data.max_discount_amount ? parseFloat(data.max_discount_amount) : 0;
+                    } else {
+                        discountPercent = 0;
+                        maxDiscountAmount = 0;
+                    }
+
+                    couponMessage.innerHTML = renderCouponSuccessInfo(data, code);
+                    couponMessage.className = 'text-xs mt-1.5';
+                } else {
+                    discount = 0;
+                    discountPercent = 0;
+                    couponScope = 'order';
+                    couponMessage.innerText = data.message;
+                    couponMessage.className = 'text-xs text-error font-bold mt-1';
+                }
+                
+                calculateTotal();
+            })
+            .catch(err => {
+                console.error('Lỗi kiểm tra mã giảm giá:', err);
+                discount = 0;
+                discountPercent = 0;
+                maxDiscountAmount = 0;
+                couponMessage.innerText = 'Có lỗi xảy ra khi kiểm tra mã.';
+                couponMessage.className = 'text-xs text-error font-bold mt-1';
+                calculateTotal();
+            });
+        });
+    }
+
+    if (pointsInput) {
+        const pointsBalance = parseInt(pointsInput.dataset.pointsBalance || 0);
+        const pointValue = parseFloat(pointsInput.dataset.pointValue || 1000);
+        const maxRedeemPercent = parseFloat(pointsInput.dataset.maxRedeemPercent || 100);
+        const minPointsToRedeem = parseInt(pointsInput.dataset.minPointsToRedeem || 10);
+
+        const maxDiscountMoney = subtotal * (maxRedeemPercent / 100);
+        const maxPointsRedeemable = Math.min(pointsBalance, Math.floor(maxDiscountMoney / pointValue));
+
+        if (maxRedeemablePointsText) {
+            maxRedeemablePointsText.innerText = maxPointsRedeemable;
+        }
+
+        if (applyPointsBtn) {
+            applyPointsBtn.addEventListener('click', () => {
+                const enteredPoints = parseInt(pointsInput.value || 0);
+                if (isNaN(enteredPoints) || enteredPoints < 0) {
+                    pointsDiscount = 0;
+                    pointsMessage.innerText = 'Số điểm không hợp lệ.';
+                    pointsMessage.className = 'text-xs text-error font-bold mt-1';
+                    calculateTotal();
+                    return;
+                }
+
+                if (enteredPoints > pointsBalance) {
+                    pointsDiscount = 0;
+                    pointsMessage.innerText = 'Số điểm nhập vượt quá số dư hiện có.';
+                    pointsMessage.className = 'text-xs text-error font-bold mt-1';
+                    calculateTotal();
+                    return;
+                }
+
+                if (enteredPoints > maxPointsRedeemable) {
+                    pointsDiscount = 0;
+                    pointsMessage.innerText = 'Số điểm vượt quá giới hạn tối đa cho đơn này (' + maxPointsRedeemable + ' điểm).';
+                    pointsMessage.className = 'text-xs text-error font-bold mt-1';
+                    calculateTotal();
+                    return;
+                }
+
+                if (enteredPoints > 0 && enteredPoints < minPointsToRedeem) {
+                    pointsDiscount = 0;
+                    pointsMessage.innerText = 'Số điểm tối thiểu để được đổi là ' + minPointsToRedeem + ' điểm.';
+                    pointsMessage.className = 'text-xs text-error font-bold mt-1';
+                    calculateTotal();
+                    return;
+                }
+
+                pointsDiscount = enteredPoints * pointValue;
+                if (enteredPoints > 0) {
+                    pointsMessage.innerText = 'Áp dụng đổi ' + enteredPoints + ' điểm thành công (Giảm -' + pointsDiscount.toLocaleString('vi-VN') + 'đ)';
+                    pointsMessage.className = 'text-xs text-primary font-bold mt-1';
+                } else {
+                    pointsMessage.innerText = '';
+                }
+                calculateTotal();
+            });
+        }
+    }
+
+    function calculateTotal() {
+        const hiddenDist = document.getElementById('hidden_distance_km');
+        const distanceKm = hiddenDist ? parseFloat(hiddenDist.value) : 2.5;
+
+        const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
+        const weatherFee = hiddenWeatherFee ? parseFloat(hiddenWeatherFee.value) : 0;
+
+        const freeShipThreshold = config.freeShippingMinimum;
+        const freeShip = subtotal >= freeShipThreshold;
+
+        let distanceFee = 0;
+        if (!freeShip) {
+            if (distanceKm <= 2) {
+                distanceFee = config.shippingBaseFee;
+            } else {
+                distanceFee = config.shippingBaseFee + (distanceKm - 2) * config.shippingFeePerKm;
+            }
+        }
+        distanceFee = Math.round(distanceFee);
+
+        if (discountPercent > 0 && couponScope === 'order') {
+            discount = Math.round(subtotal * (discountPercent / 100));
+            if (maxDiscountAmount && maxDiscountAmount > 0 && discount > maxDiscountAmount) {
+                discount = maxDiscountAmount;
+            }
+            if (discount > subtotal) discount = subtotal;
+        }
+
+        const totalDiscount = discount + pointsDiscount + comboDiscount;
+
+        const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - totalDiscount);
+
+        const distValEl = document.getElementById('summary-distance-km-val');
+        if (distValEl) distValEl.innerText = distanceKm.toFixed(1);
+
+        const freeShipRow = document.getElementById('summary-free-ship-row');
+        const shippingDistRow = document.getElementById('summary-shipping-distance-row');
+
+        if (distanceKm > config.shippingMaxDistanceKm) {
+            if (orderBtn) {
+                orderBtn.disabled = true;
+                orderBtn.innerText = 'Chỉ giao trong ' + config.shippingMaxDistanceKm + 'km';
+                orderBtn.classList.add('opacity-80', 'cursor-not-allowed', 'bg-gray-300', 'text-gray-600');
+                orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary', 'bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white');
+            }
+            if (shippingDistanceText) shippingDistanceText.innerHTML = '<span class="text-error font-bold">Không hỗ trợ giao quá ' + config.shippingMaxDistanceKm + 'km</span>';
+            if (totalText) totalText.innerHTML = '<span class="text-error font-bold">---</span>';
+
+            const weatherRowOver = document.getElementById('summary-weather-fee-row');
+            if (weatherRowOver) weatherRowOver.classList.add('hidden');
+            if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
+        } else {
+            if (orderBtn) {
+                const isClosed = document.getElementById('order-submit-btn').dataset.closed === '1';
+                if (!isClosed) {
+                    orderBtn.disabled = false;
+                    const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+                    orderBtn.classList.remove('opacity-80', 'cursor-not-allowed', 'bg-gray-300', 'text-gray-600', 'opacity-50');
+                    if (selectedPayment && selectedPayment.value === 'vnpay') {
+                        orderBtn.innerText = 'Chuyển khoản (VNPay)';
+                        orderBtn.classList.add('bg-[#003c71]', 'hover:bg-[#002e57]', 'text-white');
+                        orderBtn.classList.remove('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary', 'bg-[#ae2070]', 'hover:bg-[#8b1a5a]');
+                    } else {
+                        orderBtn.innerText = 'Đặt hàng (COD)';
+                        orderBtn.classList.add('bg-primary-container', 'hover:bg-[#008f00]', 'text-on-primary');
+                        orderBtn.classList.remove('bg-[#ae2070]', 'hover:bg-[#8b1a5a]', 'text-white', 'bg-[#003c71]', 'hover:bg-[#002e57]');
+                    }
+                }
+            }
+
+            if (freeShip) {
+                if (freeShipRow) freeShipRow.classList.remove('hidden');
+                if (shippingDistRow) shippingDistRow.classList.add('hidden');
+                if (shippingDistanceText) shippingDistanceText.innerText = '0đ';
+
+                const weatherRow = document.getElementById('summary-weather-fee-row');
+                if (weatherRow) weatherRow.classList.add('hidden');
+                if (hiddenWeatherFee) hiddenWeatherFee.value = 0;
+            } else {
+                if (freeShipRow) freeShipRow.classList.add('hidden');
+                if (shippingDistRow) shippingDistRow.classList.remove('hidden');
+                if (shippingDistanceText) shippingDistanceText.innerText = distanceFee.toLocaleString('vi-VN') + 'đ';
+
+                const weatherRow = document.getElementById('summary-weather-fee-row');
+                if (weatherFee > 0) {
+                    if (weatherRow) weatherRow.classList.remove('hidden');
+                    const weatherText = document.getElementById('summary-weather-fee-text');
+                    if (weatherText) weatherText.innerText = '+' + weatherFee.toLocaleString('vi-VN') + 'đ';
+                } else {
+                    if (weatherRow) weatherRow.classList.add('hidden');
+                }
+            }
+
+            if (totalText) totalText.innerText = total.toLocaleString('vi-VN') + 'đ';
+        }
+
+        if (totalDiscount > 0) {
+            if (discountRow) discountRow.classList.remove('hidden');
+            if (discountText) discountText.innerText = '-' + totalDiscount.toLocaleString('vi-VN') + 'đ';
+        } else {
+            if (discountRow) discountRow.classList.add('hidden');
+        }
+    }
+
+    const changeAddressBtn = document.getElementById('change-address-btn');
+    const addressListPanel = document.getElementById('address-list-panel');
+    if (changeAddressBtn && addressListPanel) {
+        changeAddressBtn.addEventListener('click', () => {
+            addressListPanel.classList.toggle('hidden');
+        });
+    }
+
+    const addressRadios = document.querySelectorAll('input[name="address_selector"]');
+    const hiddenAddressIdInput = document.getElementById('selected_address_id');
+    const activeAddressName = document.getElementById('active-address-name');
+    const activeAddressPhone = document.getElementById('active-address-phone');
+    const activeAddressDetails = document.getElementById('active-address-details');
+
+    function updateDistanceForAddress(addressId) {
+        if (!addressId) return;
+
+        const distanceValText = document.getElementById('distance-calc-desc');
+        if (distanceValText) distanceValText.innerText = 'Đang tính toán...';
+
+        fetch(`/checkout/distance?address_id=${addressId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const distanceKm = data.distance_km;
+                    const hiddenDist = document.getElementById('hidden_distance_km');
+                    if (hiddenDist) {
+                        hiddenDist.value = distanceKm;
+                    }
+
+                    updateWeatherFeeForAddress(addressId, distanceKm);
+                    calculateTotal();
+
+                    const calcDesc = document.getElementById('distance-calc-desc');
+                    if (calcDesc) {
+                        const fmtBase = config.shippingBaseFee.toLocaleString('vi-VN');
+                        const fmtPerKm = config.shippingFeePerKm.toLocaleString('vi-VN');
+                        const text = `Phí vận chuyển: ${fmtBase}đ (2km đầu) + ${fmtPerKm}đ / km tiếp theo.`;
+                        if (data.is_mock) {
+                            calcDesc.innerHTML = `<span style="color:#d97706; font-weight: 600;">⚠️ ${data.message}</span><br>${text}`;
+                        } else {
+                            calcDesc.innerHTML = `<span style="color:#15803d; font-weight: 600;">✅ Khoảng cách được tính thực tế bằng Geoapify Routing API.</span><br>${text}`;
+                        }
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching distance:', err);
+                const errValText = document.getElementById('distance-calc-desc');
+                if (errValText) errValText.innerText = 'Lỗi kết nối';
+            });
+    }
+
+    function updateWeatherFeeForAddress(addressId, distanceKm) {
+        if (!addressId) return;
+
+        fetch(`/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const fee = data.fee;
+                    const condition = data.condition;
+
+                    const hiddenWeatherFee = document.getElementById('hidden_weather_fee');
+                    if (hiddenWeatherFee) hiddenWeatherFee.value = fee;
+
+                    const conditionValEl = document.getElementById('summary-weather-condition-val');
+                    if (conditionValEl) conditionValEl.innerText = condition;
+
+                    calculateTotal();
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching weather fee:', err);
+            });
+    }
+
+    calculateTotal();
+    if (hiddenAddressIdInput && hiddenAddressIdInput.value) {
+        updateDistanceForAddress(hiddenAddressIdInput.value);
+    }
+
+    addressRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (hiddenAddressIdInput) hiddenAddressIdInput.value = radio.value;
+            if (activeAddressName) activeAddressName.innerText = radio.dataset.fullname;
+            if (activeAddressPhone) activeAddressPhone.innerText = radio.dataset.phone;
+            if (activeAddressDetails) activeAddressDetails.innerText = radio.dataset.address;
+
+            updateDistanceForAddress(radio.value);
+
+            addressRadios.forEach(r => {
+                const card = r.closest('.address-card');
+                if (card) {
+                    if (r.checked) {
+                        card.classList.add('border-primary', 'bg-primary-container/5');
+                        card.classList.remove('border-outline-variant');
+                    } else {
+                        card.classList.remove('border-primary', 'bg-primary-container/5');
+                        card.classList.add('border-outline-variant');
+                    }
+                }
+            });
+        });
+    });
+});
+
+function deleteAddressCheckout(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/profile/address/' + id + '/delete';
+    form.style.display = 'none';
+
+    const tokenInput = document.createElement('input');
+    tokenInput.type = '_token';
+    tokenInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    form.appendChild(tokenInput);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+    </script>
     @endsection

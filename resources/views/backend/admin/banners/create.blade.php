@@ -151,5 +151,56 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/backend/admin/banners/create.js') }}"></script>
+<script>
+// =========================================================================
+// XỬ LÝ CHỌN ẢNH & HIỂN THỊ XEM TRƯỚC CHO FORM BANNER (CREATE)
+// =========================================================================
+
+function triggerFileInput() {
+    document.getElementById('image-input').click();
+}
+
+function previewSelectedImage(input) {
+    if (input.files && input.files[0]) {
+        if (input.files[0].size > 10 * 1024 * 1024) {
+            if (window.AdminAlert) {
+                window.AdminAlert.error('Dung lượng tệp ảnh không được vượt quá 10MB.', 'Ảnh quá lớn');
+            } else {
+                alert('Dung lượng tệp ảnh không được vượt quá 10MB.');
+            }
+            input.value = '';
+            return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('image-preview').setAttribute('src', e.target.result);
+            document.getElementById('image-preview-container').classList.remove('hidden');
+            document.getElementById('upload-placeholder').classList.add('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeImagePreview() {
+    document.getElementById('image-input').value = '';
+    document.getElementById('image-preview').setAttribute('src', '#');
+    document.getElementById('image-preview-container').classList.add('hidden');
+    document.getElementById('upload-placeholder').classList.remove('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr(".banner-date-picker", {
+            locale: "vn",
+            dateFormat: "Y-m-d H:i:S",
+            enableTime: true,
+            time_24hr: true,
+            disableMobile: true,
+            monthSelectorType: "static"
+        });
+    }
+});
+</script>
 @endpush
+

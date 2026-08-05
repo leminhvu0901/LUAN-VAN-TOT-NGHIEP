@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Frontend\Concerns;
 use Illuminate\Http\Request;
 
 /**
- * Dùng chung cho mọi controller cổng thanh toán online (MoMo, VNPay, ...) — trả lỗi/điều hướng
- * đúng định dạng theo kiểu request: JSON cho fetch() (checkout.js submit qua AJAX) để JS hiện lỗi
- * tại chỗ không cần tải lại trang; redirect cổ điển cho request thường.
+ * Dùng chung cho mọi controller cổng thanh toán online (MoMo, VNPay, ...) 
  */
 trait HandlesCheckoutResponse
 {

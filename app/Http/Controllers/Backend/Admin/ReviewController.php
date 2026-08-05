@@ -6,6 +6,7 @@ use App\Models\Review;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Controller quản lý đánh giá (reviews) ở khu vực Backend (admin).
@@ -82,10 +83,6 @@ class ReviewController
 
     /**
      * Chuyển đổi trạng thái hiển thị của đánh giá (toggle visible/hidden).
-     * 
-     * Phản hồi trả về:
-     * - Trả dữ liệu JSON về cho hàm doToggleVisibility() trong file JS: [public/js/backend/admin/reviews/index.js]
-     *   để thay đổi nhãn giao diện (Đang hiển thị/Đang ẩn) và cập nhật số liệu thống kê.
      */
     public function toggleVisibility(Request $request, $id)
     {
@@ -197,7 +194,7 @@ class ReviewController
 
                 if ($file->isValid()) {
                     $ext = $file->getClientOriginalExtension() ?: 'jpg';
-                    $filename = 'review_' . time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $ext;
+                    $filename = 'review_' . time() . '_' . Str::random(10) . '.' . $ext;
                     $file->move(public_path('images/reviews'), $filename);
                     $images[] = 'reviews/' . $filename;
                     $currentCount++;

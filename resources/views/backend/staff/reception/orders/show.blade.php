@@ -74,10 +74,10 @@
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
-                // Đơn MoMo/VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
+                // Đơn VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
                 // (route staff.reception.orders.refund), khác nút "Hủy đơn" thường ở trên.
                 $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && in_array($order->payment_method, ['momo', 'vnpay'], true)
+                    && $order->payment_method === 'vnpay'
                     && $order->payment_status === 'paid';
                 // Đơn tiền mặt tại quầy: phải thu tiền (khối "Thanh toán" ngay bên dưới) TRƯỚC khi được
                 // xác nhận - khớp rule server-side ở OrderWorkflowService::transition().
@@ -181,9 +181,9 @@
             <div class="flex items-center justify-between">
                 <div>
                     <div class="font-bold text-gray-900 uppercase">
-                        {{ match($order->payment_method) { 'momo' => 'Chuyển khoản (MoMo)', 'vnpay' => 'Chuyển khoản (VNPay)', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                        {{ match($order->payment_method) { 'vnpay' => 'Chuyển khoản (VNPay)', 'cash' => 'Tiền mặt', default => 'COD' } }}
                     </div>
-                    @if(in_array($order->payment_method, ['momo', 'vnpay'], true))
+                    @if($order->payment_method === 'vnpay')
                         @if(($order->payment_status ?? '') === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
@@ -221,15 +221,15 @@
                     @endif
                 </div>
                 <span class="material-symbols-outlined text-4xl text-gray-200">
-                    {{ in_array($order->payment_method, ['momo', 'vnpay'], true) ? 'account_balance_wallet' : 'money' }}
+                    {{ $order->payment_method === 'vnpay' ? 'account_balance_wallet' : 'money' }}
                 </span>
             </div>
 
-            @if(in_array($order->payment_method, ['momo', 'vnpay'], true) && !in_array($order->payment_status, ['paid', 'refunded'], true))
+            @if($order->payment_method === 'vnpay' && !in_array($order->payment_status, ['paid', 'refunded'], true))
                 <form action="{{ route('staff.reception.orders.pay_online', $order->id) }}" method="POST" class="mt-4">
                     @csrf
                     <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
-                        {{ $order->payment_method === 'vnpay' ? 'Thanh toán chuyển khoản (VNPay)' : 'Thanh toán chuyển khoản (Ví MoMo / ATM / Thẻ...)' }}
+                        Thanh toán chuyển khoản (VNPay)
                     </button>
                 </form>
             @endif
@@ -416,11 +416,11 @@
                                              điều hành, lệch hẳn với phần còn lại của trang. --}}
                                         <select name="delivery_staff_id" required class="custom-select-init w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                                             <option value="">-- Chọn nhân viên giao hàng --</option>
-                                            @foreach($availableDeliveryStaff as $staff)
+                                            @foreach($deliveryStaffs as $staff)
                                                 <option value="{{ $staff->id }}">{{ $staff->name }}{{ $staff->phone ? ' — ' . $staff->phone : '' }}</option>
                                             @endforeach
                                         </select>
-                                        @if($availableDeliveryStaff->isEmpty())
+                                        @if($deliveryStaffs->isEmpty())
                                             <p class="text-xs text-red-500">Chưa có nhân viên giao hàng nào đang hoạt động.</p>
                                         @else
                                             <button type="submit" class="w-full min-h-[40px] bg-primary text-white font-bold rounded-lg text-sm">
@@ -534,7 +534,7 @@
             </div>
             <hr>
             <p class="print-ticket__row-sm">
-                Thanh toán: {{ match($order->payment_method) { 'momo' => 'MoMo', 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                Thanh toán: {{ match($order->payment_method) { 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD' } }}
             </p>
             @if($order->payment_method === 'cash' && $order->amount_tendered !== null)
                 <div class="print-ticket__flex-row--small">
@@ -552,6 +552,124 @@
     </div>
 
     @push('scripts')
-        <script src="{{ asset('js/backend/staff/reception/orders/show.js') }}"></script>
+        <script>
+        function applyFallbackImage(image) {
+            if (image.dataset.fallbackApplied === "true") return;
+            image.dataset.fallbackApplied = "true";
+            image.src = image.dataset.fallbackSrc;
+        }
+
+        function printSection(bodyClass) {
+            document.body.classList.add("pos-printing-ticket", bodyClass);
+
+            function cleanup() {
+                document.body.classList.remove("pos-printing-ticket", bodyClass);
+                window.removeEventListener("afterprint", cleanup);
+            }
+            window.addEventListener("afterprint", cleanup);
+            setTimeout(cleanup, 3000);
+
+            window.print();
+        }
+
+        function askCancelReasonAndSubmit(form, reasonInput, message) {
+            const reason = prompt(message);
+            if (reason === null) return;
+
+            if (reason.trim().length < 5) {
+                alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
+                return;
+            }
+
+            reasonInput.value = reason.trim();
+            form.submit();
+        }
+
+        function initOrderShowPage() {
+            const prepTicketBtn = document.getElementById("print-prep-ticket-btn");
+            if (prepTicketBtn) {
+                prepTicketBtn.addEventListener("click", function () {
+                    printSection("pos-printing-prep");
+                });
+            }
+
+            const invoiceBtn = document.getElementById("print-invoice-btn");
+            if (invoiceBtn) {
+                invoiceBtn.addEventListener("click", function () {
+                    printSection("pos-printing-invoice");
+                });
+            }
+
+            const tenderedDisplay = document.getElementById("cash-amount-tendered-display");
+            const tenderedInput = document.getElementById("cash-amount-tendered");
+            const changePreview = document.getElementById("cash-change-preview");
+            const finalAmountInput = document.getElementById("cash-final-amount");
+            if (tenderedDisplay && tenderedInput && changePreview && finalAmountInput) {
+                const finalAmount = Number(finalAmountInput.value);
+
+                const formatValue = function (val) {
+                    let raw = String(val).replace(/[^0-9]/g, '');
+                    if (raw.length > 10) raw = raw.slice(0, 10);
+                    tenderedInput.value = raw;
+                    tenderedDisplay.value = raw === '' ? '' : new Intl.NumberFormat('vi-VN').format(parseInt(raw));
+
+                    const tendered = Number(raw) || 0;
+                    const change = Math.max(0, tendered - finalAmount);
+                    changePreview.textContent = change.toLocaleString("vi-VN") + "đ";
+                };
+
+                if (tenderedDisplay.value) {
+                    formatValue(tenderedDisplay.value);
+                }
+
+                tenderedDisplay.addEventListener("input", function () {
+                    const selectionStart = this.selectionStart;
+                    const prevLen = this.value.length;
+
+                    formatValue(this.value);
+
+                    const newLen = this.value.length;
+                    const diff = newLen - prevLen;
+                    const newPos = Math.max(0, selectionStart + diff);
+                    this.setSelectionRange(newPos, newPos);
+                });
+            }
+
+            document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
+                image.addEventListener("error", function () {
+                    applyFallbackImage(this);
+                });
+
+                if (image.complete && image.naturalWidth === 0) {
+                    applyFallbackImage(image);
+                }
+            });
+
+            const cancelBtn = document.getElementById('cancel-order-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () {
+                    askCancelReasonAndSubmit(
+                        document.getElementById('cancel-order-form'),
+                        document.getElementById('cancel_reason_input'),
+                        'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                    );
+                });
+            }
+
+            const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
+            if (refundCancelBtn) {
+                refundCancelBtn.addEventListener('click', function () {
+                    askCancelReasonAndSubmit(
+                        document.getElementById('refund-cancel-order-form'),
+                        document.getElementById('refund_cancel_reason_input'),
+                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                    );
+                });
+            }
+        }
+
+        initOrderShowPage();
+        </script>
     @endpush
 @endsection
+

@@ -2,7 +2,18 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Models\Favorite;
+use App\Models\Order;
+use App\Models\Setting;
+use App\Models\User;
+use App\Models\UserAddress;
+use App\Services\AdministrativeDivisionService;
+use App\Services\GeoapifyService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ProfileController
 {
@@ -11,18 +22,18 @@ class ProfileController
      */
     public function index()
     {
-        $userId = \Illuminate\Support\Facades\Auth::id();
-        $addresses = \App\Models\UserAddress::query()
+        $userId = Auth::id();
+        $addresses = UserAddress::query()
             ->where('user_id', $userId)
             ->orderByDesc('is_default')
             ->orderByDesc('id')
             ->get();
 
-        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn MoMo/VNPay chưa thanh toán bị lỗi/hủy)
-        $ordersCount = \App\Models\Order::query()
+        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn VNPay chưa thanh toán bị lỗi/hủy)
+        $ordersCount = Order::query()
             ->where('user_id', $userId)
             ->where(function ($q) {
-                $q->whereNotIn('payment_method', ['momo', 'vnpay'])
+                $q->where('payment_method', '!=', 'vnpay')
                     ->orWhereNull('payment_method')
                     ->orWhere('payment_status', '!=', 'unpaid');
             })
@@ -40,7 +51,7 @@ class ProfileController
         $request->validate([
             'name' => 'required|string|max:30', // Bắt buộc nhập tên, tối đa 30 ký tự
             // SĐT phải đúng định dạng số điện thoại VN và không được trùng với tài khoản khác (trừ tài khoản hiện tại)
-            'phone' => ['nullable', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . \Illuminate\Support\Facades\Auth::id()],
+            'phone' => ['nullable', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . Auth::id()],
             'address' => 'nullable|string|max:255',
             'cropped_avatar' => 'nullable|string', // Chuỗi ảnh Avatar dạng Base64
         ], [
@@ -71,7 +82,7 @@ class ProfileController
                     $decodedData = base64_decode($base64Data);
                     if ($decodedData !== false) {
                         // Đặt tên file ảnh ngẫu nhiên để tránh trùng lặp
-                        $filename = time() . '_' . \Illuminate\Support\Str::random(10) . '.' . $type;
+                        $filename = time() . '_' . Str::random(10) . '.' . $type;
                         $dir = public_path('images/avatars');
                         if (!is_dir($dir)) {
                             mkdir($dir, 0755, true);
@@ -85,8 +96,8 @@ class ProfileController
         }
 
         // 4. Lưu mảng dữ liệu vào Database
-        \App\Models\User::query()
-            ->where('id', \Illuminate\Support\Facades\Auth::id())
+        User::query()
+            ->where('id', Auth::id())
             ->update($updateData);
 
         // Mặc định email không thay đổi qua form này vì liên quan đến login
@@ -100,14 +111,14 @@ class ProfileController
     public function toggleFavorite(Request $request)
     {
         $productId = $request->input('product_id');
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = Auth::id();
 
         if (!$productId) {
             return response()->json(['success' => false, 'message' => 'Product ID is missing']);
         }
 
         // Kiểm tra xem user đã thả tim sản phẩm này chưa
-        $exists = \App\Models\Favorite::query()
+        $exists = Favorite::query()
             ->where('user_id', $userId)
             ->where('product_id', $productId)
             ->first();
@@ -115,14 +126,14 @@ class ProfileController
         $status = '';
         if ($exists) {
             // Nếu đã thả tim rồi -> Bấm lần nữa là Xóa khỏi danh sách
-            \App\Models\Favorite::query()
+            Favorite::query()
                 ->where('user_id', $userId)
                 ->where('product_id', $productId)
                 ->delete();
             $status = 'removed';
         } else {
             // Nếu chưa có -> Thêm vào danh sách yêu thích
-            \App\Models\Favorite::query()->insert([
+            Favorite::query()->insert([
                 'user_id' => $userId,
                 'product_id' => $productId,
                 'created_at' => now(),
@@ -131,10 +142,10 @@ class ProfileController
         }
 
         // Lấy lại danh sách yêu thích MỚI NHẤT của user (có join bảng products và reviews để lấy Số Sao)
-        $favorites = \App\Models\Favorite::query()
+        $favorites = Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->leftJoin(
-                \Illuminate\Support\Facades\DB::raw(
+                DB::raw(
                     '(SELECT product_id, ROUND(AVG(rating), 1) as avg_rating, COUNT(id) as review_count
                       FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'
                 ),
@@ -146,8 +157,8 @@ class ProfileController
             ->select(
                 'products.*',
                 'favorites.id as favorite_id',
-                \Illuminate\Support\Facades\DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'), // Nếu không có đánh giá thì 0 sao
-                \Illuminate\Support\Facades\DB::raw('COALESCE(r.review_count, 0) as review_count')
+                DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'), // Nếu không có đánh giá thì 0 sao
+                DB::raw('COALESCE(r.review_count, 0) as review_count')
             )
             ->get();
 
@@ -199,7 +210,7 @@ class ProfileController
     // Đối chiếu province_code/ward_code khách gửi với danh mục hành chính CHÍNH THỨC
     private function resolveAdministrativeArea(Request $request): array
     {
-        $service = app(\App\Services\AdministrativeDivisionService::class);
+        $service = app(AdministrativeDivisionService::class);
         $provinceCode = (int) $request->input('province_code');
         $wardCode = (int) $request->input('ward_code');
 
@@ -241,9 +252,9 @@ class ProfileController
             $query = preg_replace('/,\s*,/', ',', $query);
             $query = trim(preg_replace('/,\s*$/', '', (string) $query)) . ', Việt Nam';
 
-            $storeLat = (float) \App\Models\Setting::getValue('store_latitude', 10.73809);
-            $storeLng = (float) \App\Models\Setting::getValue('store_longitude', 106.67812);
-            $geo = app(\App\Services\GeoapifyService::class)->geocodeAddress($query, $storeLat, $storeLng);
+            $storeLat = (float) Setting::getValue('store_latitude', 10.73809);
+            $storeLng = (float) Setting::getValue('store_longitude', 106.67812);
+            $geo = app(GeoapifyService::class)->geocodeAddress($query, $storeLat, $storeLng);
 
             if (!$geo || $geo['confidence'] < self::GEOCODE_MIN_CONFIDENCE) {
                 return ['error' => 'Không xác định được vị trí cho địa chỉ này. Bạn vui lòng kiểm tra lại hoặc chọn trực tiếp trên bản đồ.'];
@@ -280,23 +291,23 @@ class ProfileController
             return $this->addressError($request, 'specific_address', $location['error']);
         }
 
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = Auth::id();
         $isDefault = $request->boolean('is_default'); // User có tick chọn làm mặc định không?
 
         // 2. Logic xử lý Địa chỉ Mặc định
         if ($isDefault) {
             // Nếu chọn mặc định, phải gỡ bỏ trạng thái mặc định của tất cả các địa chỉ cũ
-            \App\Models\UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
+            UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
         } else {
             // Nếu không chọn mặc định, nhưng user CHƯA CÓ địa chỉ nào cả -> Bắt buộc địa chỉ đầu tiên này thành mặc định
-            $count = \App\Models\UserAddress::query()->where('user_id', $userId)->count();
+            $count = UserAddress::query()->where('user_id', $userId)->count();
             if ($count === 0) {
                 $isDefault = true;
             }
         }
 
         // 3. Thêm mới vào DB và lấy ID vừa thêm
-        $id = \App\Models\UserAddress::query()->insertGetId([
+        $id = UserAddress::query()->insertGetId([
             'user_id' => $userId,
             'fullname' => $request->input('fullname'),
             'phone' => $request->input('phone'),
@@ -340,16 +351,16 @@ class ProfileController
             return $this->addressError($request, 'specific_address', $location['error']);
         }
 
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = Auth::id();
         $isDefault = $request->boolean('is_default');
 
         // 2. Nếu tick chọn địa chỉ này làm mặc định -> Hủy mặc định các địa chỉ khác
         if ($isDefault) {
-            \App\Models\UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
+            UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
         }
 
         // 3. Update DB
-        \App\Models\UserAddress::query()
+        UserAddress::query()
             ->where('id', $id)
             ->where('user_id', $userId)
             ->update([
@@ -391,23 +402,23 @@ class ProfileController
      */
     public function deleteAddress(Request $request, $id)
     {
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = Auth::id();
 
         // 1. Xóa địa chỉ theo id
-        \App\Models\UserAddress::query()
+        UserAddress::query()
             ->where('id', $id)
             ->where('user_id', $userId)
             ->delete();
 
         // 2. Logic Thông minh: Nếu địa chỉ vừa xóa VÔ TÌNH LÀ ĐỊA CHỈ MẶC ĐỊNH
         // -> User sẽ không còn địa chỉ mặc định nào nữa.
-        $hasDefault = \App\Models\UserAddress::query()->where('user_id', $userId)->where('is_default', true)->exists();
+        $hasDefault = UserAddress::query()->where('user_id', $userId)->where('is_default', true)->exists();
 
         if (!$hasDefault) {
             // Lấy địa chỉ bất kỳ (cũ nhất) còn sót lại trong DB để đôn lên làm mặc định thay thế
-            $first = \App\Models\UserAddress::query()->where('user_id', $userId)->first();
+            $first = UserAddress::query()->where('user_id', $userId)->first();
             if ($first) {
-                \App\Models\UserAddress::query()->where('id', $first->id)->update(['is_default' => true]);
+                UserAddress::query()->where('id', $first->id)->update(['is_default' => true]);
             }
         }
 
@@ -422,12 +433,12 @@ class ProfileController
      */
     public function setDefaultAddress($id)
     {
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = Auth::id();
         // Bước 1: Xóa trạng thái mặc định của tất cả địa chỉ
-        \App\Models\UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
+        UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
         
         // Bước 2: Set riêng địa chỉ có ID được chọn thành mặc định
-        \App\Models\UserAddress::query()->where('id', $id)->where('user_id', $userId)->update(['is_default' => true]);
+        UserAddress::query()->where('id', $id)->where('user_id', $userId)->update(['is_default' => true]);
 
         return response()->json(['success' => true]); // Không dùng trực tiếp ở JS (hoặc dự phòng)
     }
@@ -450,10 +461,10 @@ class ProfileController
             'new_password.confirmed' => 'Mật khẩu xác nhận không trùng khớp.',
         ]);
 
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
         // 2. Kiểm tra Mật khẩu cũ có đúng không (dùng Hash::check vì pass lưu trong DB đã bị mã hóa)
-        if (!\Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
+        if (!Hash::check($request->input('current_password'), $user->password)) {
             return $this->passwordError($request, 'current_password', 'Mật khẩu hiện tại không chính xác.');
         }
 
@@ -463,10 +474,10 @@ class ProfileController
         }
 
         // 4. Mã hóa (Hash) mật khẩu mới và lưu xuống Database
-        \App\Models\User::query()
+        User::query()
             ->where('id', $user->id)
             ->update([
-                'password' => \Illuminate\Support\Facades\Hash::make($request->input('new_password')),
+                'password' => Hash::make($request->input('new_password')),
                 'updated_at' => now(),
             ]);
 

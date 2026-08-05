@@ -100,7 +100,7 @@ class BannerController
         // Lấy danh sách các vị trí hiện có trong DB để làm bộ lọc
         $positions = Banner::select('position')->distinct()->whereNotNull('position')->pluck('position')->toArray();
 
-        return  view('backend.admin.banners.index', compact(
+        return view('backend.admin.banners.index', compact(
             'banners',
             'totalBanners',
             'activeBanners',
@@ -116,7 +116,7 @@ class BannerController
      */
     public function create()
     {
-        return  view('backend.admin.banners.create');
+        return view('backend.admin.banners.create');
     }
 
     /**
@@ -171,7 +171,7 @@ class BannerController
      */
     public function edit(Banner $banner)
     {
-        return  view('backend.admin.banners.edit', compact('banner'));
+        return view('backend.admin.banners.edit', compact('banner'));
     }
 
     /**

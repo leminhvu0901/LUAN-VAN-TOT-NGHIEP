@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -218,7 +219,7 @@ class CustomerController
             try {
                 $customer->delete();
                 $deletedCount++;
-            } catch (\Illuminate\Database\QueryException $e) {
+            } catch (QueryException $e) {
                 // Lỗi rảng buộc khóa ngoại (ví dụ có đơn hàng)
                 if ($e->getCode() == "23000") {
                     // Khóa tài khoản thay vì xóa
@@ -325,7 +326,7 @@ class CustomerController
         try {
             $customer->delete(); // Thực hiện xóa cứng (Hard Delete) bản ghi khách hàng khỏi Database
             return redirect()->back()->with('success', 'Xóa khách hàng thành công!');
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại (Foreign Key Constraint) khi khách hàng có đơn hàng/đánh giá
                 $customer->is_active = 0;
                 $customer->save(); // Khóa tài khoản khách hàng để tránh làm hỏng dữ liệu báo cáo đơn hàng

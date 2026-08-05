@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Controller Đối soát tiền mặt thu hộ (COD - Cash On Delivery).
- * Nhân viên giao hàng (Shipper) khi đi giao đơn online sẽ thu tiền mặt từ khách hàng, sau đó phải nộp lại cho quầy.
- * Trang này giúp Lễ tân quản lý số tiền shipper đang cầm, xác nhận shipper đã nộp tiền mặt cho quán.
  */
 class CodController
 {

@@ -13,8 +13,6 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Controller Quản lý Vật tư/Nguyên liệu dành cho Lễ tân.
- * Phụ trách các thao tác: xem danh sách nguyên liệu, lịch sử nhập/xuất kho của từng món,
- * lập phiếu nhập kho mới, và xuất dùng trực tiếp nguyên liệu tại quầy.
  */
 class MaterialController
 {
@@ -25,10 +23,6 @@ class MaterialController
 
     /**
      * Lấy danh sách Vật tư có lọc và phân trang.
-     * 
-     * Phản hồi trả về:
-     * - Nếu là AJAX: Trả về JSON chứa HTML bảng vật tư mới cho JS cập nhật tại [public/js/backend/staff/reception/materials/index.js].
-     * - Nếu là request thường: Trả về trang quản lý vật tư đầy đủ.
      */
     public function index(Request $request)
     {

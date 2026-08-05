@@ -2,9 +2,17 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Models\Category;
+use App\Models\Favorite;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ProductSize;
+use App\Models\Review;
+use App\Models\Topping;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProductController
 {
@@ -15,7 +23,7 @@ class ProductController
     public function show($slug, Request $request)
     {
         // lay het thong tin tu san pham ban chọn
-        $product = \App\Models\Product::query()
+        $product = Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -41,13 +49,13 @@ class ProductController
         }
 
         // 2. Lấy danh sách các kích cỡ (Sizes) của sản phẩm này và sắp xếp theo mức giá chênh lệch tăng dần
-        $sizes = \App\Models\ProductSize::query()
+        $sizes = ProductSize::query()
             ->where('product_id', $product->id)
             ->orderBy('price_adjustment')
             ->get();
 
         // 3. Lấy danh sách các loại Topping được liên kết với sản phẩm này (chỉ lấy topping còn khả dụng)
-        $toppings = \App\Models\Topping::query()
+        $toppings = Topping::query()
             ->join('product_toppings', 'toppings.id', '=', 'product_toppings.topping_id')
             ->where('product_toppings.product_id', $product->id)
             ->where('toppings.is_available', 1)
@@ -56,7 +64,7 @@ class ProductController
 
         // 4. Lấy danh sách đánh giá mới nhất kèm thông tin người dùng — áp dụng bộ lọc sao/có ảnh
         // (nút lọc trên trang giờ là link GET thật, xem resources/views/frontend/products/show.blade.php).
-        $reviewsQuery = \App\Models\Review::query()
+        $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
             ->where('reviews.is_visible', 1)
@@ -76,7 +84,7 @@ class ProductController
             ->withQueryString();
 
         // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu lượt đánh giá 1 sao, 2 sao, ..., 5 sao)
-        $ratingDistribution = \App\Models\Review::query()
+        $ratingDistribution = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
             ->selectRaw('rating, COUNT(*) as count')
@@ -85,7 +93,7 @@ class ProductController
             ->toArray();
 
         // Số đánh giá có kèm hình ảnh — dùng cho nút lọc "Có hình ảnh".
-        $hasImageCount = \App\Models\Review::query()
+        $hasImageCount = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
             ->whereNotNull('image')
@@ -93,7 +101,7 @@ class ProductController
 
         // 6. Tìm các sản phẩm liên quan (cùng danh mục, loại trừ sản phẩm hiện tại)
         // Sắp xếp theo mức độ phổ biến (bán chạy nhất) để gợi ý và giới hạn lấy tối đa 4 sản phẩm
-        $relatedProducts = \App\Models\Product::query()
+        $relatedProducts = Product::query()
             ->select(
                 'products.*',
                 DB::raw('COALESCE(r2.avg_rating, 0) as avg_rating'),
@@ -111,7 +119,7 @@ class ProductController
         // 7. Kiểm tra xem người dùng hiện tại đã lưu sản phẩm này vào danh sách yêu thích (Wishlist) chưa
         $isFavorite = false;
         if (Auth::check()) {
-            $isFavorite = \App\Models\Favorite::query()
+            $isFavorite = Favorite::query()
                 ->where('user_id', Auth::id())
                 ->where('product_id', $product->id)
                 ->exists();
@@ -119,7 +127,7 @@ class ProductController
 
         // 8. Xác định xem sản phẩm này có phải là Bán chạy (Bestseller) hay không
         // Lấy danh sách ID của top 6 sản phẩm bán ra với số lượng nhiều nhất
-        $top6HotProductIds = \App\Models\OrderItem::query()
+        $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
             ->where('orders.status', 'completed')
@@ -133,7 +141,7 @@ class ProductController
         // Nếu ID sản phẩm nằm trong top 6 bán chạy -> đánh dấu là HOT
         $isHot = in_array($product->id, $top6HotProductIds);
         // Nếu sản phẩm được tạo ra cách đây dưới 15 ngày -> đánh dấu là Mới (New)
-        $isNew = (\Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
+        $isNew = (Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
 
         // Trả về view và truyền toàn bộ dữ liệu đã tính toán sang giao diện
         return view('frontend.products.show', compact(
@@ -176,13 +184,13 @@ class ProductController
         }
 
         // 1. Lấy danh sách các danh mục sản phẩm đang mở hoạt động và sắp xếp theo thứ tự hiển thị
-        $categories = \App\Models\Category::query()
+        $categories = Category::query()
             ->where('is_active', 1)
             ->orderBy('display_order')
             ->get();
 
         // 2. Xây dựng câu truy vấn lọc danh sách sản phẩm
-        $query = \App\Models\Product::query()
+        $query = Product::query()
             ->select(
                 'products.*',
                 'categories.name as category_name',
@@ -225,14 +233,14 @@ class ProductController
         // 3. Lấy danh sách ID các sản phẩm đã được người dùng hiện tại yêu thích (để hiển thị nút thả tim)
         $favoriteProductIds = [];
         if (Auth::check()) {
-            $favoriteProductIds = \App\Models\Favorite::query()
+            $favoriteProductIds = Favorite::query()
                 ->where('user_id', Auth::id())
                 ->pluck('product_id')
                 ->toArray();
         }
 
         // 4. Lấy danh sách ID của top 6 sản phẩm bán chạy nhất hệ thống
-        $top6HotProductIds = \App\Models\OrderItem::query()
+        $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
             ->where('orders.status', 'completed')

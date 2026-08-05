@@ -7,7 +7,6 @@ use App\Models\Promotion;
 /**
  * Controller xem danh sách Khuyến mãi dành cho Lễ tân.
  * Lễ tân chỉ có quyền xem các chương trình đang áp dụng (Read-only) để tư vấn cho khách tại quầy.
- * Không tích hợp các chức năng chỉnh sửa/thêm/xóa (CRUD) ở đây.
  */
 class PromotionController
 {

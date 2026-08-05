@@ -4,6 +4,13 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Frontend\Concerns\CreatesOnlinePaymentOrder;
 use App\Http\Controllers\Frontend\Concerns\HandlesCheckoutResponse;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\CartItemTopping;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Promotion;
+use App\Models\Setting;
 use App\Services\OrderWorkflowService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,25 +22,29 @@ class VnpayController
 {
     use HandlesCheckoutResponse, CreatesOnlinePaymentOrder;
 
-    // ─── Cấu hình VNPay, chọn theo Settings admin (payment_environment: sandbox/production) ──
+    // ─── Cấu hình VNPay (Môi trường thử nghiệm Sandbox) ──
     private string $tmnCode;
     private string $hashSecret;
     private string $vnpUrl;
     private string $refundEndpoint;
-    private bool $isProduction;
     private bool $configValid;
 
     public function __construct(private readonly OrderWorkflowService $orderWorkflow)
     {
-        $this->isProduction = \App\Models\Setting::getValue('payment_environment', 'sandbox') === 'production';
-        $vnpayConfig = config('services.vnpay.' . ($this->isProduction ? 'production' : 'sandbox'), []);
+        $vnpayConfig = config('services.vnpay.sandbox', []);
+        $tmn = Setting::getValue('vnpay_tmn_code');
+        $this->tmnCode = !empty($tmn) ? (string) $tmn : (string) ($vnpayConfig['tmn_code'] ?? '');
 
-        $this->tmnCode = (string) ($vnpayConfig['tmn_code'] ?? '');
-        $this->hashSecret = (string) ($vnpayConfig['hash_secret'] ?? '');
-        $this->vnpUrl = (string) ($vnpayConfig['url'] ?? '');
-        $this->refundEndpoint = (string) ($vnpayConfig['refund_endpoint'] ?? '');
+        $secret = Setting::getValue('vnpay_hash_secret');
+        $this->hashSecret = !empty($secret) ? (string) $secret : (string) ($vnpayConfig['hash_secret'] ?? '');
 
-        $this->configValid = $this->tmnCode !== '' && $this->hashSecret !== '';
+        $url = Setting::getValue('vnpay_url');
+        $this->vnpUrl = !empty($url) ? (string) $url : (string) ($vnpayConfig['url'] ?? 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html');
+
+        $refund = Setting::getValue('vnpay_refund_url');
+        $this->refundEndpoint = !empty($refund) ? (string) $refund : (string) ($vnpayConfig['refund_endpoint'] ?? 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction');
+
+        $this->configValid = !empty($this->tmnCode) && !empty($this->hashSecret);
     }
 
     /**
@@ -44,12 +55,12 @@ class VnpayController
     public function createPayment(Request $request)
     {
         $result = $this->createPendingOrderForOnlinePayment($request, 'vnpay');//tạo một đơn hàng tạm thời
-        if (!($result instanceof \App\Models\Order)) {
+        if (!($result instanceof Order)) {
             return $result;
         }
-        $order = $result;
 
-        return $this->checkoutRedirect($request, $this->buildPaymentUrl($order, $request));
+        $paymentUrl = $this->buildPaymentUrl($result, $request);
+        return $this->checkoutRedirect($request, $paymentUrl);
     }
 
     /**
@@ -57,7 +68,7 @@ class VnpayController
      * string có chữ ký rồi redirect thẳng trình duyệt sang đó. Theo đúng thuật toán trong tài liệu
      * tích hợp chính thức VNPay (sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
      */
-    private function buildPaymentUrl(\App\Models\Order $order, Request $request): string
+    private function buildPaymentUrl(Order $order, Request $request): string
     {
         $inputData = [
             'vnp_Version' => '2.1.0',
@@ -103,7 +114,7 @@ class VnpayController
      *
      * @return array{success: bool, transId: ?string, message: string}
      */
-    public function requestRefund(\App\Models\Order $order): array
+    public function requestRefund(Order $order): array
     {
         $requestId = 'RF' . $order->order_code . '_' . time();
         $amountStr = (string) ((int) round((float) $order->final_amount) * 100);
@@ -150,10 +161,7 @@ class VnpayController
         ];
 
         try {
-            $httpClient = Http::timeout(30);
-            if (!$this->isProduction) {
-                $httpClient = $httpClient->withoutVerifying();
-            }
+            $httpClient = Http::timeout(30)->withoutVerifying();
             $response = $httpClient->post($this->refundEndpoint, $payload);
             $result = $response->json();
 
@@ -182,7 +190,7 @@ class VnpayController
      * Lễ tân/admin bấm "Hoàn tiền & Hủy đơn" cho một đơn VNPay đã thanh toán — copy y hệt logic
      * MomoController::refundOrder(), chỉ đổi guard/message theo VNPay.
      */
-    public function refundOrder(Request $request, \App\Models\Order $order)
+    public function refundOrder(Request $request, Order $order)
     {
         if (!$this->configValid) {
             return $this->refundError($request, 'Chưa cấu hình VNPay cho môi trường chính thức. Vui lòng liên hệ quản trị viên.');
@@ -240,7 +248,7 @@ class VnpayController
      * Lễ tân bấm "Thanh toán VNPay" cho một đơn tại quầy đã tồn tại — copy logic
      * MomoController::payExistingOrder(), gọi buildPaymentUrl() thay vì requestPayUrl().
      */
-    public function payExistingOrder(Request $request, \App\Models\Order $order)
+    public function payExistingOrder(Request $request, Order $order)
     {
         if (!$this->configValid) {
             return $this->checkoutError($request, 'Chưa cấu hình VNPay cho môi trường chính thức. Vui lòng chọn thanh toán tiền mặt hoặc liên hệ quản trị viên.');
@@ -288,22 +296,21 @@ class VnpayController
      * Xóa CHỈ những cart_items đã được đưa vào đơn hàng này (dựa theo product_id) — dùng chung cho
      * cả handleReturn/handleIpn, y hệt logic MomoController.
      */
-    private function clearOrderedCartItems(\App\Models\Order $order): void
+    private function clearOrderedCartItems(Order $order): void
     {
-        $cart = \App\Models\Cart::query()->where('user_id', $order->user_id)->first();
+        $cart = Cart::query()->where('user_id', $order->user_id)->first();
         if (!$cart) {
             return;
         }
 
-        $orderedProductIds = $order->items->pluck('product_id')->toArray();
-        $cartItemIds = \App\Models\CartItem::query()
+        $cartItemIds = CartItem::query()
             ->where('cart_id', $cart->id)
-            ->whereIn('product_id', $orderedProductIds)
-            ->pluck('id');
+            ->pluck('id')
+            ->toArray();
 
-        if ($cartItemIds->isNotEmpty()) {
-            \App\Models\CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
-            \App\Models\CartItem::query()->whereIn('id', $cartItemIds)->delete();
+        if (!empty($cartItemIds)) {
+            CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
+            CartItem::query()->whereIn('id', $cartItemIds)->delete();
         }
     }
 
@@ -324,7 +331,7 @@ class VnpayController
             'vnp_TransactionNo' => $data['vnp_TransactionNo'] ?? null,
         ]);
 
-        $order = $orderId ? \App\Models\Order::query()->where('order_code', $orderId)->first() : null;
+        $order = $orderId ? Order::query()->where('order_code', $orderId)->first() : null;
         if (!$order) {
             return redirect()->route('checkout')->with('error', 'Không tìm thấy đơn hàng.');
         }
@@ -362,11 +369,11 @@ class VnpayController
         }
 
         if (in_array($order->payment_status, ['unpaid', 'failed'])) {
-            \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
-            \App\Models\Order::query()->where('id', $order->id)->delete();
+            OrderItem::query()->where('order_id', $order->id)->delete();
+            Order::query()->where('id', $order->id)->delete();
 
             if ($order->promotion_id) {
-                \App\Models\Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
+                Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
             }
         }
 
@@ -389,7 +396,7 @@ class VnpayController
         }
 
         $orderId = $data['vnp_TxnRef'] ?? null;
-        $order = $orderId ? \App\Models\Order::query()->where('order_code', $orderId)->first() : null;
+        $order = $orderId ? Order::query()->where('order_code', $orderId)->first() : null;
         if (!$order) {
             Log::warning('VNPay IPN: order not found', ['orderId' => $orderId]);
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
@@ -427,11 +434,11 @@ class VnpayController
         } elseif ($order->delivery_type === 'pickup') {
             Log::info("VNPay IPN: Pickup order {$orderId} payment failed (responseCode={$responseCode}), kept for retry.");
         } else {
-            \App\Models\OrderItem::query()->where('order_id', $order->id)->delete();
-            \App\Models\Order::query()->where('id', $order->id)->delete();
+            OrderItem::query()->where('order_id', $order->id)->delete();
+            Order::query()->where('id', $order->id)->delete();
 
             if ($order->promotion_id) {
-                \App\Models\Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
+                Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
             }
             Log::info("VNPay IPN: Order {$orderId} marked as FAILED (responseCode={$responseCode})");
         }

@@ -158,5 +158,92 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/backend/admin/customers/index.js') }}?v={{ time() }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const bulkDeleteContainer = document.getElementById('bulk-delete-container');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const deselectBtn = document.getElementById('bulk-deselect-btn');
+    const bulkDeleteForm = document.getElementById('bulk-delete-form');
+
+    function getCheckedIds() {
+        return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+    }
+
+    function updateBulkDeleteUI() {
+        const count = getCheckedIds().length;
+        if (bulkDeleteContainer) bulkDeleteContainer.classList.toggle('hidden', count === 0);
+        if (deselectBtn) deselectBtn.classList.toggle('hidden', count === 0);
+        if (selectedCountSpan) selectedCountSpan.textContent = count;
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList.contains('js-select-all')) {
+            const checked = e.target.checked;
+            document.querySelectorAll('.js-select-all').forEach(el => el.checked = checked);
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
+            updateBulkDeleteUI();
+        }
+        if (e.target && e.target.classList.contains('row-checkbox')) {
+            const allCheckboxes = document.querySelectorAll('.row-checkbox');
+            const isAllChecked = allCheckboxes.length > 0 && document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+            document.querySelectorAll('.js-select-all').forEach(el => el.checked = isAllChecked);
+            updateBulkDeleteUI();
+        }
+    });
+
+    if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+            document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false);
+            updateBulkDeleteUI();
+        });
+    }
+
+    const bulkDeleteBtn = document.querySelector('.js-bulk-delete');
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener('click', function () {
+            const ids = getCheckedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Xóa ${ids.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`)) return;
+
+            bulkDeleteForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+            ids.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = id;
+                bulkDeleteForm.appendChild(input);
+            });
+            bulkDeleteForm.submit();
+        });
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList.contains('toggle-status')) {
+            const checkbox = e.target;
+            const form = checkbox.closest('form');
+            const willBeActive = checkbox.checked;
+
+            if (!willBeActive) {
+                const reason = prompt('Vui lòng nhập lý do khóa tài khoản này:');
+                if (reason === null || reason.trim() === '') {
+                    checkbox.checked = true;
+                    return;
+                }
+                form.querySelector('input[name="lock_reason"]').value = reason.trim();
+            }
+
+            form.querySelector('input[name="is_active"]').value = willBeActive ? '1' : '0';
+            form.submit();
+        }
+    });
+});
+
+window.deleteCustomer = function (id) {
+    if (confirm('Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.')) {
+        const form = document.getElementById('delete-form-' + id);
+        if (form) form.submit();
+    }
+};
+</script>
 @endpush
+

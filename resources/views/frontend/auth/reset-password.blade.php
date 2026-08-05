@@ -96,5 +96,37 @@ test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
     </div>
 </div>
 
-{{-- Nạp script điều khiển ẩn hiện Modal + submit form qua fetch --}}
-<script src="{{ asset('js/frontend/auth/reset-password.js') }}?v={{ filemtime(public_path('js/frontend/auth/reset-password.js')) }}"></script>
+<script>
+// Tự động mở Modal Đặt lại mật khẩu khi server yêu cầu
+document.addEventListener('DOMContentLoaded', function () {
+    const resetModal = document.getElementById('reset-password-modal');
+    if (resetModal && resetModal.getAttribute('data-show-reset-password') === 'true') {
+        resetModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        const firstInput = resetModal.querySelector('input');
+        if (firstInput) setTimeout(function () { firstInput.focus(); }, 100);
+    }
+});
+
+// Đóng modal Đặt lại mật khẩu khi click nút X hoặc lớp nền overlay
+document.addEventListener('click', function (e) {
+    const modal = document.getElementById('reset-password-modal');
+    if (!modal) return;
+
+    const closeBtn = e.target.closest('#close-reset-password');
+    if (closeBtn) {
+        e.preventDefault();
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+    }
+
+    const overlay = e.target.closest('#reset-password-overlay');
+    if (overlay) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        return;
+    }
+});
+</script>
+

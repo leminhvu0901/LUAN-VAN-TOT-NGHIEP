@@ -89,6 +89,22 @@
     </div>
 
     @push('scripts')
-        <script src="{{ asset('js/backend/staff/reception/orders/index.js') }}?v={{ time() }}"></script>
+        <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof flatpickr !== 'undefined') {
+                flatpickr(".orders-date-picker", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "d/m/Y",
+                    allowInput: true,
+                    disableMobile: true,
+                    locale: "vn",
+                    monthSelectorType: "static",
+                    appendTo: document.querySelector('.orders-page') || document.body,
+                });
+            }
+        });
+        </script>
     @endpush
 @endsection
+

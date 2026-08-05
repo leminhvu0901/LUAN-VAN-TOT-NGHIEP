@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Backend\Staff\Delivery;
 
-use App\Http\Controllers\Frontend\MomoController;
 use App\Http\Controllers\Frontend\VnpayController;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -90,7 +89,7 @@ class OrderController
 
     /**
      * Ghi nhận "Giao hàng thất bại".
-     * Hỗ trợ tự động hoàn tiền online qua cổng MoMo/VNPay nếu lý do thất bại là "Hàng bị đổ vỡ/hư hỏng".
+     * Hỗ trợ tự động hoàn tiền online qua cổng VNPay nếu lý do thất bại là "Hàng bị đổ vỡ/hư hỏng".
      */
     public function fail(Request $request, Order $order)
     {
@@ -106,11 +105,11 @@ class OrderController
 
         // Nếu hàng hư hỏng trên đường đi và khách đã thanh toán online -> Kích hoạt hoàn tiền online ngay
         $needsRefund = $validated['failure_type'] === 'damaged'
-            && in_array($order->payment_method, ['momo', 'vnpay'], true)
+            && $order->payment_method === 'vnpay'
             && $order->payment_status === 'paid';
 
         if ($needsRefund) {
-            $gatewayLabel = $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo';
+            $gatewayLabel = 'VNPay';
 
             if (!$order->payment_transaction_id) { // Kiểm tra mã giao dịch gốc để hoàn tiền
                 Log::error("{$gatewayLabel} refund skipped: missing payment_transaction_id", ['orderId' => $order->order_code]);
@@ -118,10 +117,8 @@ class OrderController
                 return $this->success('history', 'Đã ghi nhận giao hàng thất bại. Không tìm thấy mã giao dịch gốc để hoàn tiền — vui lòng báo lễ tân xử lý hoàn tiền thủ công.');
             }
 
-            // Gọi API hoàn tiền từ MomoController hoặc VnpayController tương ứng
-            $refundResult = $order->payment_method === 'vnpay'
-                ? app(VnpayController::class)->requestRefund($order)
-                : app(MomoController::class)->requestRefund($order);
+            // Gọi API hoàn tiền từ VnpayController
+            $refundResult = app(VnpayController::class)->requestRefund($order);
 
             if ($refundResult['success']) {
                 $this->sv_orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']); // Ghi nhận thất bại kèm cập nhật hoàn tiền

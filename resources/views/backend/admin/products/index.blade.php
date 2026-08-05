@@ -196,5 +196,143 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('js/backend/admin/products/index.js') }}"></script>
+<script>
+function getScrollContainer() {
+    return document.getElementById("main-content-area");
+}
+
+function updateBulkDeleteButton() {
+    const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+    const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
+    const selectedCountSpan = document.getElementById("selected-count");
+    const count = document.querySelectorAll(".product-checkbox:checked").length;
+
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = count > 0 ? `(${count})` : "";
+    }
+
+    if (!bulkDeleteBtn) return;
+
+    if (count > 0) {
+        bulkDeleteBtn.classList.remove("hidden");
+        bulkDeleteBtn.classList.add("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.remove("hidden");
+            bulkDeselectBtn.classList.add("flex");
+        }
+    } else {
+        bulkDeleteBtn.classList.add("hidden");
+        bulkDeleteBtn.classList.remove("flex");
+        if (bulkDeselectBtn) {
+            bulkDeselectBtn.classList.add("hidden");
+            bulkDeselectBtn.classList.remove("flex");
+        }
+    }
+}
+
+function handleSelectAll(checked) {
+    document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
+        checkbox.checked = checked;
+    });
+    updateBulkDeleteButton();
+}
+
+function syncSelectAllCheckboxes() {
+    const checkboxes = document.querySelectorAll(".product-checkbox");
+    const allChecked = checkboxes.length > 0 && document.querySelectorAll(".product-checkbox:checked").length === checkboxes.length;
+    document.querySelectorAll(".js-select-all").forEach((el) => (el.checked = allChecked));
+}
+
+function submitBulkDelete() {
+    const ids = Array.from(document.querySelectorAll(".product-checkbox:checked")).map((cb) => cb.value);
+    if (ids.length === 0) return;
+
+    if (!confirm(`Bạn chuẩn bị xóa ${ids.length} sản phẩm đã chọn. Tiếp tục?`)) return;
+
+    const bulkDeleteForm = document.getElementById("bulk-delete-form");
+    if (!bulkDeleteForm) return;
+
+    bulkDeleteForm.querySelectorAll('input[name="product_ids[]"]').forEach((el) => el.remove());
+    ids.forEach((id) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "product_ids[]";
+        input.value = id;
+        bulkDeleteForm.appendChild(input);
+    });
+
+    window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
+    bulkDeleteForm.submit();
+}
+
+function confirmDeleteProduct(event, formElement) {
+    if (!confirm("Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?")) {
+        event.preventDefault();
+        return false;
+    }
+    window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
+    return true;
+}
+
+function initProductTableEvents(tableContainer) {
+    const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
+    const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
+
+    window.submitBulkDelete = submitBulkDelete;
+    window.confirmDeleteProduct = confirmDeleteProduct;
+
+    if (bulkDeleteBtn) {
+        bulkDeleteBtn.addEventListener("click", submitBulkDelete);
+    }
+    if (bulkDeselectBtn) {
+        bulkDeselectBtn.addEventListener("click", function () {
+            document.querySelectorAll(".product-checkbox, .js-select-all").forEach((el) => (el.checked = false));
+            updateBulkDeleteButton();
+        });
+    }
+
+    tableContainer.addEventListener("change", function (event) {
+        if (event.target.classList.contains("js-select-all")) {
+            handleSelectAll(event.target.checked);
+            return;
+        }
+        if (event.target.classList.contains("product-checkbox")) {
+            syncSelectAllCheckboxes();
+            updateBulkDeleteButton();
+        }
+    });
+
+    tableContainer.addEventListener("submit", function (event) {
+        const deleteForm = event.target.closest(".js-product-delete-form");
+        if (deleteForm) {
+            confirmDeleteProduct(event, deleteForm);
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const tableContainer = document.getElementById("table-container");
+    if (!tableContainer) return;
+
+    initProductTableEvents(tableContainer);
+    updateBulkDeleteButton();
+});
+
+const PRODUCTS_SCROLL_STORAGE_KEY = "admin-products-scroll-y";
+
+window.addEventListener("beforeunload", function () {
+    const container = getScrollContainer();
+    const scrollY = window.pendingScrollY !== undefined ? window.pendingScrollY : container?.scrollTop;
+    if (scrollY !== undefined) sessionStorage.setItem(PRODUCTS_SCROLL_STORAGE_KEY, String(scrollY));
+});
+
+window.addEventListener("load", function () {
+    const savedScrollY = sessionStorage.getItem(PRODUCTS_SCROLL_STORAGE_KEY);
+    const container = getScrollContainer();
+    if (savedScrollY !== null && container) {
+        container.scrollTop = parseInt(savedScrollY, 10);
+        sessionStorage.removeItem(PRODUCTS_SCROLL_STORAGE_KEY);
+    }
+});
+</script>
 @endpush

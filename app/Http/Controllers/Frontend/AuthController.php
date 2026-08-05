@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -15,14 +17,14 @@ class AuthController
     /**
      * Thời gian hiệu lực của mã OTP (giây). 
      */
-    private const OTP_LIFETIME_SECONDS = 300;
+    private const OTP_LIFETIME_SECONDS = 60;
 
     /**
      * Thời hạn của quyền đặt lại mật khẩu (giây) tính từ lúc xác thực OTP thành công. Trước đây cờ
      * can_reset_password không có hạn -> nằm lại trong session vô thời hạn, ai mở lại trình duyệt cũng
      * còn quyền đổi mật khẩu. Giới hạn lại để quyền này hết hiệu lực nếu không dùng ngay.
      */
-    private const RESET_PASSWORD_WINDOW_SECONDS = 600;
+    private const RESET_PASSWORD_WINDOW_SECONDS = 60;
 
     /**
      * Xử lý yêu cầu Đăng ký tài khoản mới từ phía người dùng.
@@ -99,20 +101,20 @@ class AuthController
         ]);
 
         // Ghi log mã OTP vào file log của hệ thống để tiện cho việc kiểm thử/debug
-        \Illuminate\Support\Facades\Log::info("OTP for register {$email} is: {$otp}");
+        Log::info("OTP for register {$email} is: {$otp}");
 
         // 5. Gửi email chứa mã OTP xác nhận tài khoản — bọc try/catch vì trước đây nếu gửi mail lỗi
         // (vd cấu hình SMTP sai/thiếu trên môi trường production) thì exception văng thẳng ra thành
         // lỗi 500 không rõ ràng, khiến nút "Đăng Ký Tài Khoản" có bấm cũng như không, không hiểu vì sao.
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
+            Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản');
             });
         } catch (\Throwable $e) {
             // \Throwable (không chỉ \Exception): cấu hình SMTP thiếu (vd MAIL_HOST rỗng) có thể khiến
             // Symfony Mailer văng TypeError (kế thừa \Error, không phải \Exception) - phải bắt cả 2 loại
             // thì mới không lọt ra ngoài thành lỗi 500 "Server Error" chung chung không rõ nguyên nhân.
-            \Illuminate\Support\Facades\Log::error('Register OTP mail send failed: ' . $e->getMessage());
+            Log::error('Register OTP mail send failed: ' . $e->getMessage());
             $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => ['register_error' => [$message]]], 422);
@@ -165,7 +167,7 @@ class AuthController
 
         // 2. So khớp mã OTP người dùng nhập với mã đã gửi
         if ($enteredOtp == $sessionOtp) {
-            $otpIssuedAt = $sessionTime ? \Illuminate\Support\Carbon::parse($sessionTime) : null;
+            $otpIssuedAt = $sessionTime ? Carbon::parse($sessionTime) : null;
             if (!$otpIssuedAt || $otpIssuedAt->diffInSeconds(now()) > self::OTP_LIFETIME_SECONDS) {
                 return $this->otpError($request, 'Mã OTP đã hết hạn. Vui lòng nhấn Gửi lại để nhận mã mới.');
             }
@@ -199,7 +201,7 @@ class AuthController
                 try {
                     $user = User::create($registerData);
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::error('Verify OTP - create user failed: ' . $e->getMessage());
+                    Log::error('Verify OTP - create user failed: ' . $e->getMessage());
                     $request->session()->forget(['register_data', 'verify_email', 'verify_otp', 'verify_otp_time']);
                     return $this->otpError($request, 'Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.');
                 }
@@ -264,19 +266,19 @@ class AuthController
             'verify_otp_time' => now()
         ]);
 
-        \Illuminate\Support\Facades\Log::info("OTP for resend {$email} is: {$otp}");
+        Log::info("OTP for resend {$email} is: {$otp}");
 
         // Gửi lại thư điện tử mới chứa mã OTP vừa cập nhật — bọc try/catch cùng lý do với postRegister()
         // ở trên: gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi
         // 500 không rõ ràng.
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
+            Mail::raw("Mã xác minh OTP mới của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản (Gửi lại)');
             });
         } catch (\Throwable $e) {
             // \Throwable: xem giải thích ở postRegister() - SMTP thiếu cấu hình có thể văng TypeError
             // (\Error) thay vì \Exception, cần bắt cả 2 mới không lọt ra thành lỗi 500 chung chung.
-            \Illuminate\Support\Facades\Log::error('Resend OTP mail send failed: ' . $e->getMessage());
+            Log::error('Resend OTP mail send failed: ' . $e->getMessage());
             return $this->otpError($request, 'Không thể gửi lại email xác minh lúc này, vui lòng thử lại sau.');
         }
 
@@ -490,19 +492,19 @@ class AuthController
             'is_forgot_password' => true // Đánh dấu đây là phiên xác thực quên mật khẩu
         ]);
 
-        \Illuminate\Support\Facades\Log::info("OTP for forgot password {$email} is: {$otp}");
+        Log::info("OTP for forgot password {$email} is: {$otp}");
 
         // 4. Gửi email chứa mã OTP khôi phục mật khẩu — bọc try/catch cùng lý do với postRegister():
         // gửi mail lỗi (vd cấu hình SMTP sai/thiếu trên production) không nên văng thành lỗi 500 không
         // rõ ràng khiến nút bấm "có bấm cũng như không".
         try {
-            \Illuminate\Support\Facades\Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
+            Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 5 phút.", function ($message) use ($email) {
                 $message->to($email)->subject('Khôi phục mật khẩu');
             });
         } catch (\Throwable $e) {
             // \Throwable: xem giải thích ở postRegister() - SMTP thiếu cấu hình có thể văng TypeError
             // (\Error) thay vì \Exception, cần bắt cả 2 mới không lọt ra thành lỗi 500 chung chung.
-            \Illuminate\Support\Facades\Log::error('Forgot password OTP mail send failed: ' . $e->getMessage());
+            Log::error('Forgot password OTP mail send failed: ' . $e->getMessage());
             $message = 'Không thể gửi email xác minh lúc này, vui lòng thử lại sau.';
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => ['forgot_error' => [$message]]], 422);
@@ -549,7 +551,7 @@ class AuthController
         }
 
         // Carbon::parse: session serialize kiểu json nên giá trị đọc ra là CHUỖI, không phải Carbon.
-        return \Illuminate\Support\Carbon::parse($grantedAt)->diffInSeconds(now()) <= self::RESET_PASSWORD_WINDOW_SECONDS;
+        return Carbon::parse($grantedAt)->diffInSeconds(now()) <= self::RESET_PASSWORD_WINDOW_SECONDS;
     }
 
     /**

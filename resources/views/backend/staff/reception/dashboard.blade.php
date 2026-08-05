@@ -99,7 +99,7 @@
             @endphp
 
             <div class="flex flex-col sm:flex-row items-center gap-6">
-                {{-- Donut: vàng = tiền mặt, xanh = chuyển khoản (MoMo) --}}
+                {{-- Donut: vàng = tiền mặt, xanh = chuyển khoản (VNPay) --}}
                 <div class="relative w-40 h-40 shrink-0">
                     <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" role="img" aria-label="Tỉ lệ doanh thu hôm nay theo hình thức thanh toán">
                         <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="14" />
@@ -137,7 +137,7 @@
                     <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
                         <div class="flex items-center gap-2">
                             <span class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
-                            <span class="text-sm font-semibold text-gray-700">Chuyển khoản (MoMo)</span>
+                            <span class="text-sm font-semibold text-gray-700">Chuyển khoản (VNPay)</span>
                         </div>
                         <div class="text-right">
                             <div class="font-bold text-gray-900">{{ number_format($transferRevenueToday, 0, ',', '.') }}đ</div>

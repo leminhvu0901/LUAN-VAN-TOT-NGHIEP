@@ -119,6 +119,396 @@
             channelRevenueChartData: {!! json_encode($channelRevenueChartData) !!},
             channelOrdersChartData: {!! json_encode($channelOrdersChartData) !!}
         };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterForm = document.getElementById('filter-form');
+            const presetSelect = document.getElementById('preset-select');
+            const dateFromContainer = document.getElementById('date-from-container');
+            const dateToContainer = document.getElementById('date-to-container');
+            const exportBtn = document.getElementById('export-btn');
+
+            let revenueChart = null;
+            let statusChart = null;
+            let channelChart = null;
+            let channelOrdersChart = null;
+
+            function initFlatpickr() {
+                if (typeof flatpickr !== 'undefined') {
+                    flatpickr('#date_from', {
+                        locale: 'vn',
+                        dateFormat: 'Y-m-d',
+                        allowInput: false,
+                        disableMobile: true
+                    });
+                    flatpickr('#date_to', {
+                        locale: 'vn',
+                        dateFormat: 'Y-m-d',
+                        allowInput: false,
+                        disableMobile: true
+                    });
+                }
+            }
+
+            initFlatpickr();
+
+            function initRevenueChart(data) {
+                const ctx = document.getElementById('revenue-chart');
+                if (!ctx) return;
+
+                if (revenueChart) {
+                    revenueChart.destroy();
+                }
+
+                const isMobile = window.innerWidth < 640;
+
+                revenueChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [
+                            {
+                                label: 'Doanh thu (VNĐ)',
+                                data: data.revenue,
+                                type: 'line',
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderWidth: isMobile ? 2 : 3,
+                                pointBackgroundColor: '#10b981',
+                                pointHoverRadius: 6,
+                                tension: 0.35,
+                                fill: true,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Số đơn hàng',
+                                data: data.orders,
+                                type: 'bar',
+                                backgroundColor: 'rgba(59, 130, 246, 0.4)',
+                                hoverBackgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                borderRadius: 4,
+                                barPercentage: 0.55,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'top',
+                                labels: {
+                                    font: { family: 'Inter', size: isMobile ? 10 : 12, weight: '500' },
+                                    color: '#475569',
+                                    boxWidth: isMobile ? 8 : 12,
+                                    padding: isMobile ? 6 : 10
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 12 },
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.dataset.yAxisID === 'y') {
+                                            label += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.raw);
+                                        } else {
+                                            label += context.raw + ' đơn';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11 },
+                                    color: '#64748b'
+                                }
+                            },
+                            y: {
+                                position: 'left',
+                                type: 'linear',
+                                grid: { color: '#f1f5f9' },
+                                ticks: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11 },
+                                    color: '#64748b',
+                                    callback: function (value) {
+                                        if (value >= 1000000) {
+                                            return (value / 1000000) + 'M';
+                                        }
+                                        if (value >= 1000) {
+                                            return (value / 1000) + 'k';
+                                        }
+                                        return value;
+                                    }
+                                }
+                            },
+                            y1: {
+                                position: 'right',
+                                type: 'linear',
+                                grid: { display: false },
+                                ticks: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11 },
+                                    color: '#64748b',
+                                    stepSize: 1,
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function initStatusChart(data) {
+                const ctx = document.getElementById('status-chart');
+                if (!ctx) return;
+
+                if (statusChart) {
+                    statusChart.destroy();
+                }
+
+                const total = data.counts.reduce((a, b) => a + b, 0);
+                const isMobile = window.innerWidth < 640;
+
+                statusChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.counts,
+                            backgroundColor: [
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#06b6d4',
+                                '#10b981',
+                                '#ef4444'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'right',
+                                labels: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11, weight: '500' },
+                                    color: '#475569',
+                                    boxWidth: isMobile ? 8 : 12,
+                                    padding: isMobile ? 6 : 8
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 11 },
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function (context) {
+                                        const val = context.raw;
+                                        const pct = total > 0 ? roundTo((val / total) * 100, 1) : 0;
+                                        return ` ${context.label}: ${val} đơn (${pct}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: isMobile ? '55%' : '65%'
+                    }
+                });
+            }
+
+            function roundTo(num, decimals) {
+                return +(Math.round(num + "e+" + decimals)  + "e-" + decimals);
+            }
+
+            function initChannelChart(data) {
+                const ctx = document.getElementById('channel-chart');
+                if (!ctx) return;
+
+                if (channelChart) {
+                    channelChart.destroy();
+                }
+
+                const total = data.amounts.reduce((a, b) => a + b, 0);
+                const isMobile = window.innerWidth < 640;
+
+                channelChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.amounts,
+                            backgroundColor: [
+                                '#f97316',
+                                '#0ea5e9'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'right',
+                                labels: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11, weight: '500' },
+                                    color: '#475569',
+                                    boxWidth: isMobile ? 8 : 12,
+                                    padding: isMobile ? 6 : 8
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 11 },
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function (context) {
+                                        const val = context.raw;
+                                        const pct = total > 0 ? roundTo((val / total) * 100, 1) : 0;
+                                        const formatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+                                        return ` ${context.label}: ${formatted} (${pct}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: isMobile ? '55%' : '65%'
+                    }
+                });
+            }
+
+            function initChannelOrdersChart(data) {
+                const ctx = document.getElementById('channel-orders-chart');
+                if (!ctx) return;
+
+                if (channelOrdersChart) {
+                    channelOrdersChart.destroy();
+                }
+
+                const total = data.counts.reduce((a, b) => a + b, 0);
+                const isMobile = window.innerWidth < 640;
+
+                channelOrdersChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            data: data.counts,
+                            backgroundColor: [
+                                '#f97316',
+                                '#0ea5e9'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: isMobile ? 'bottom' : 'right',
+                                labels: {
+                                    font: { family: 'Inter', size: isMobile ? 9 : 11, weight: '500' },
+                                    color: '#475569',
+                                    boxWidth: isMobile ? 8 : 12,
+                                    padding: isMobile ? 6 : 8
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+                                bodyFont: { family: 'Inter', size: 11 },
+                                padding: 10,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function (context) {
+                                        const val = context.raw;
+                                        const pct = total > 0 ? roundTo((val / total) * 100, 1) : 0;
+                                        return ` ${context.label}: ${val} đơn (${pct}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: isMobile ? '55%' : '65%'
+                    }
+                });
+            }
+
+            if (presetSelect) {
+                presetSelect.addEventListener('change', function () {
+                    if (this.value === 'custom') {
+                        dateFromContainer.classList.remove('hidden');
+                        dateToContainer.classList.remove('hidden');
+                    } else {
+                        dateFromContainer.classList.add('hidden');
+                        dateToContainer.classList.add('hidden');
+                        filterForm.submit();
+                    }
+                });
+            }
+
+            if (exportBtn) {
+                function buildExportUrl() {
+                    const url = new URL(window.reportsConfig.exportUrl, window.location.origin);
+                    if (filterForm) {
+                        url.search = new URLSearchParams(new FormData(filterForm)).toString();
+                    }
+                    return url.toString();
+                }
+
+                function downloadReport() {
+                    window.location.href = buildExportUrl();
+                }
+
+                exportBtn.addEventListener('click', function () {
+                    if (window.AdminAlert) {
+                        window.AdminAlert.confirm(
+                            'Hệ thống sẽ tạo file Excel (.xlsx) theo đúng khoảng thời gian đang lọc. Bạn có muốn tải xuống?',
+                            downloadReport,
+                            'Xuất báo cáo ra Excel?'
+                        );
+                    } else {
+                        downloadReport();
+                    }
+                });
+            }
+
+            if (window.reportsConfig) {
+                initRevenueChart(window.reportsConfig.revenueChartData);
+                initStatusChart(window.reportsConfig.orderStatusChartData);
+                initChannelChart(window.reportsConfig.channelRevenueChartData);
+                initChannelOrdersChart(window.reportsConfig.channelOrdersChartData);
+            }
+
+            window.addEventListener('resize', function () {
+                if (window.reportsConfig) {
+                    if (revenueChart && statusChart && channelChart && channelOrdersChart) {
+                        initRevenueChart(window.reportsConfig.revenueChartData);
+                        initStatusChart(window.reportsConfig.orderStatusChartData);
+                        initChannelChart(window.reportsConfig.channelRevenueChartData);
+                        initChannelOrdersChart(window.reportsConfig.channelOrdersChartData);
+                    }
+                }
+            });
+        });
     </script>
-    <script src="{{ asset('js/backend/admin/reports/index.js') }}"></script>
 @endpush

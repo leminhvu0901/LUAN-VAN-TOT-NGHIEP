@@ -9,12 +9,15 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductSize;
 use App\Models\Review;
+use App\Models\Setting;
 use App\Models\Topping;
 use App\Services\NotificationService;
 use App\Services\OrderService;
+use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class CustomerOrderController
@@ -36,8 +39,8 @@ class CustomerOrderController
 
         // Bắt đầu truy vấn lấy các đơn hàng của người dùng hiện tại đang đăng nhập
         $query = Order::query()->with('items.product')->where('user_id', Auth::id())
-            // Chỉ hiển thị các đơn hàng thanh toán COD hoặc các đơn thanh toán online (MoMo, VNPay) đã được thanh toán thành công
-            ->where(fn($builder) => $builder->whereNotIn('payment_method', ['momo', 'vnpay'])
+            // Chỉ hiển thị các đơn hàng thanh toán COD hoặc các đơn thanh toán online (VNPay) đã được thanh toán thành công
+            ->where(fn($builder) => $builder->where('payment_method', '!=', 'vnpay')
                 ->orWhereNull('payment_method')->orWhere('payment_status', '!=', 'unpaid'));
 
         // Áp dụng bộ lọc trạng thái nếu hợp lệ
@@ -88,7 +91,7 @@ class CustomerOrderController
         $this->assertStoreOpen();
 
         // Kiểm tra cấu hình hệ thống xem phương thức COD có đang được cho phép sử dụng hay không
-        $codEnabled = \App\Models\Setting::getValue('cod_enabled', '1');
+        $codEnabled = Setting::getValue('cod_enabled', '1');
         if ($codEnabled != '1') {
             throw ValidationException::withMessages(['checkout' => 'Phương thức thanh toán COD hiện đang tạm khóa.']);
         }
@@ -188,7 +191,7 @@ class CustomerOrderController
     /**
      * Hủy đơn hàng đang chờ xác nhận (xử lý cả hoàn tiền tự động nếu đã thanh toán online)
      */
-    public function cancel(Order $order, Request $request, \App\Services\OrderWorkflowService $workflow)
+    public function cancel(Order $order, Request $request, OrderWorkflowService $workflow)
     {
         // Đảm bảo đây đúng là đơn hàng của khách hàng hiện tại
         abort_unless($order->user_id === Auth::id(), 404);
@@ -204,9 +207,9 @@ class CustomerOrderController
             $reason = 'Khách hàng tự hủy đơn hàng.';
         }
 
-        // Nếu đơn hàng ĐÃ THANH TOÁN online thành công (MoMo/VNPay) nhưng shop chưa bấm xác nhận nhận đơn:
+        // Nếu đơn hàng ĐÃ THANH TOÁN online thành công (VNPay) nhưng shop chưa bấm xác nhận nhận đơn:
         // Tiến hành tự động gọi API hoàn tiền sang cổng thanh toán tương ứng trước khi cập nhật hủy trên hệ thống.
-        if ($order->payment_status === 'paid' && in_array($order->payment_method, ['momo', 'vnpay'], true)) {
+        if ($order->payment_status === 'paid' && $order->payment_method === 'vnpay') {
             return $this->refundAndCancelForCustomer($order, $request, $reason);
         }
 
@@ -223,28 +226,26 @@ class CustomerOrderController
     }
 
     /**
-     * Tự động hoàn tiền và hủy đơn hàng đối với các đơn thanh toán trực tuyến (MoMo/VNPay)
+     * Tự động hoàn tiền và hủy đơn hàng đối với các đơn thanh toán trực tuyến (VNPay)
      */
     private function refundAndCancelForCustomer(Order $order, Request $request, string $reason)
     {
         // Đảm bảo đơn có chứa mã giao dịch gốc để hoàn tiền
         if (!$order->payment_transaction_id) {
-            \Illuminate\Support\Facades\Log::error('Customer self-cancel refund skipped: missing payment_transaction_id', [
+            Log::error('Customer self-cancel refund skipped: missing payment_transaction_id', [
                 'orderId' => $order->order_code,
             ]);
             return $this->cancelError('Không tìm thấy mã giao dịch gốc để hoàn tiền. Vui lòng liên hệ cửa hàng để được hỗ trợ.');
         }
 
-        $gatewayLabel = $order->payment_method === 'vnpay' ? 'VNPay' : 'MoMo';
+        $gatewayLabel = 'VNPay';
 
         // Gọi hàm API hoàn tiền của đúng cổng thanh toán đã đặt mua
-        $result = $order->payment_method === 'vnpay'
-            ? app(VnpayController::class)->requestRefund($order)
-            : app(MomoController::class)->requestRefund($order);
+        $result = app(VnpayController::class)->requestRefund($order);
 
         // Kiểm tra kết quả gọi API hoàn tiền từ cổng thanh toán
         if (!$result['success']) {
-            \Illuminate\Support\Facades\Log::error('Customer self-cancel refund failed', [
+            Log::error('Customer self-cancel refund failed', [
                 'orderId' => $order->order_code,
                 'message' => $result['message'],
             ]);
@@ -253,7 +254,7 @@ class CustomerOrderController
 
         try {
             // Khi cổng thanh toán xác nhận hoàn tiền thành công -> cập nhật trạng thái đơn hàng sang refunded và cancelled, giải phóng tồn kho
-            app(\App\Services\OrderWorkflowService::class)->refundAndCancel($order, $result['transId'], $reason);
+            app(OrderWorkflowService::class)->refundAndCancel($order, $result['transId'], $reason);
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors());
         }
@@ -285,14 +286,14 @@ class CustomerOrderController
     private function assertStoreOpen(): void
     {
         // 1. Kiểm tra cấu hình bật/tắt nhận đơn hàng của quán
-        $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
+        $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         if (!$receiveEnabled) {
             throw ValidationException::withMessages(['checkout' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
         }
 
         // 2. Kiểm tra xem giờ hiện hành có nằm trong khung giờ mở cửa của quán hay không
-        $open = \App\Models\Setting::getValue('store_open_time', '08:00');
-        $close = \App\Models\Setting::getValue('store_close_time', '22:00');
+        $open = Setting::getValue('store_open_time', '08:00');
+        $close = Setting::getValue('store_close_time', '22:00');
         $nowStr = now('Asia/Ho_Chi_Minh')->format('H:i');
 
         $isOpen = false;

@@ -258,8 +258,137 @@
 </div>
 
 @push('scripts')
-<script src="{{ asset('js/frontend/products/review.js') }}?v={{ filemtime(public_path('js/frontend/products/review.js')) }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('#star-rating-container span');
+    const ratingInput = document.getElementById('rating-input');
+
+    let currentRating = (ratingInput && ratingInput.value) ? parseInt(ratingInput.value, 10) : 0;
+
+    stars.forEach(star => {
+        star.addEventListener('mouseover', function() { 
+            highlightStars(this.getAttribute('data-value')); 
+        });
+
+        star.addEventListener('mouseout', function() { 
+            highlightStars(currentRating); 
+        });
+
+        star.addEventListener('click', function() {
+            currentRating = this.getAttribute('data-value');
+            ratingInput.value = currentRating;
+            highlightStars(currentRating);
+            stars.forEach(s => s.classList.replace('text-gray-300', 'text-yellow-400'));
+        });
+    });
+
+    function highlightStars(val) {
+        stars.forEach(star => {
+            if (star.getAttribute('data-value') <= val) {
+                star.style.fontVariationSettings = "'FILL' 1";
+                if(currentRating == 0) {
+                    star.classList.replace('text-gray-300', 'text-yellow-400');
+                }
+            } else {
+                star.style.fontVariationSettings = "'FILL' 0";
+                if(currentRating == 0) {
+                    star.classList.replace('text-yellow-400', 'text-gray-300');
+                }
+            }
+        });
+    }
+
+    function toggleReviewEditMode(showEdit) {
+        const viewMode = document.getElementById('review-view-mode');
+        const editMode = document.getElementById('review-edit-mode');
+        if (!viewMode || !editMode) return;
+        viewMode.classList.toggle('hidden', showEdit);
+        editMode.classList.toggle('hidden', !showEdit);
+    }
+    window.toggleReviewEditMode = toggleReviewEditMode;
+
+    function previewImages(input) {
+        const previewContainer = document.getElementById('image-preview-container');
+        previewContainer.innerHTML = '';
+
+        if (input.files && input.files.length > 0) {
+            if (input.files.length > 5) {
+                const errorMsg = 'Chỉ được phép chọn tối đa 5 hình ảnh.';
+                if (window.FrontendAlert) window.FrontendAlert.error(errorMsg); else alert(errorMsg);
+                input.value = '';
+                return;
+            }
+
+            let hasLargeFile = false;
+            Array.from(input.files).forEach(file => { 
+                if (file.size > 2 * 1024 * 1024) hasLargeFile = true; 
+            });
+            if (hasLargeFile) {
+                const errorSizeMsg = 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.';
+                if (window.FrontendAlert) window.FrontendAlert.error(errorSizeMsg); else alert(errorSizeMsg);
+                input.value = '';
+                return;
+            }
+
+            Array.from(input.files).forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.className = 'relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200';
+                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    previewContainer.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            const clearDiv = document.createElement('div');
+            clearDiv.className = 'relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 border-dashed flex items-center justify-center cursor-pointer hover:bg-red-50 text-error transition-colors';
+            clearDiv.onclick = () => {
+                input.value = '';
+                previewContainer.innerHTML = '';
+            };
+            clearDiv.innerHTML = '<span class="material-symbols-outlined text-2xl">delete</span>';
+            previewContainer.appendChild(clearDiv);
+        }
+    }
+    window.previewImages = previewImages;
+});
+
+(function () {
+    const track = document.getElementById('review-filters-track');
+    const scrollbar = document.getElementById('review-filters-scrollbar');
+    const thumb = document.getElementById('review-filters-scrollbar-thumb');
+    if (!track || !scrollbar || !thumb) return;
+
+    function updateScrollIndicator() {
+        const scrollWidth = track.scrollWidth;
+        const clientWidth = track.clientWidth;
+        const scrollLeft = track.scrollLeft;
+
+        if (scrollWidth <= clientWidth) {
+            scrollbar.style.display = 'none';
+            return;
+        }
+
+        scrollbar.style.display = 'block';
+
+        const thumbWidthRatio = clientWidth / scrollWidth;
+        const thumbWidth = Math.max(20, clientWidth * thumbWidthRatio);
+        thumb.style.width = thumbWidth + 'px';
+
+        const maxScrollLeft = scrollWidth - clientWidth;
+        const maxThumbLeft = clientWidth - thumbWidth;
+        const thumbLeft = (scrollLeft / maxScrollLeft) * maxThumbLeft;
+        thumb.style.transform = `translateX(${thumbLeft}px)`;
+    }
+
+    track.addEventListener('scroll', updateScrollIndicator);
+    window.addEventListener('resize', updateScrollIndicator);
+    updateScrollIndicator();
+})();
+</script>
 @endpush
+
 
 @include('frontend.components.bottom-nav')
 @endsection

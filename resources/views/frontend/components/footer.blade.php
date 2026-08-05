@@ -133,7 +133,7 @@
             <div class="flex flex-wrap items-center gap-4 text-center md:text-left">
                 <span class="text-[#94a3b8] text-xs font-bold tracking-wider uppercase">Đối tác thanh toán</span>
                 <div class="flex items-center gap-2">
-                    <div class="footer-payment-badge badge-momo" title="Thanh toán qua ví MoMo">MOMO</div>
+
                     <div class="footer-payment-badge badge-vnpay" title="Thanh toán qua VNPay">VNPAY</div>
                     <div class="footer-payment-badge badge-cod" title="Thanh toán khi nhận hàng (COD)">COD</div>
                 </div>
@@ -170,4 +170,18 @@
     </div>
 </footer>
 
-<script src="{{ asset('js/frontend/layout/footer.js') }}?v={{ filemtime(public_path('js/frontend/layout/footer.js')) }}"></script>
+<script>
+// Accordion đóng/mở danh sách liên kết footer trên giao diện mobile (<=640px)
+document.addEventListener('DOMContentLoaded', function () {
+    const headers = document.querySelectorAll('.footer-column h6');
+    headers.forEach(header => {
+        header.addEventListener('click', function () {
+            if (window.innerWidth <= 640) {
+                const column = this.closest('.footer-column');
+                if (column) column.classList.toggle('open');
+            }
+        });
+    });
+});
+</script>
+

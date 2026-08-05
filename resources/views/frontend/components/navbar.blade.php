@@ -416,5 +416,108 @@ Mở/đóng được điều khiển bởi navbar.js
 navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
 --}}
 @push('scripts')
-    <script src="{{ asset('js/frontend/layout/navbar.js') }}?v={{ filemtime(public_path('js/frontend/layout/navbar.js')) }}"></script>
+<script>
+// Quản lý ngăn kéo Yêu thích, Giỏ hàng, Menu Mobile và Popup đóng cửa
+(function () {
+    const $ = (id) => document.getElementById(id);
+
+    // Mở/Đóng Ngăn kéo Yêu thích
+    const openWishlist = () => {
+        const drawer = $('wishlist-drawer');
+        const overlay = $('wishlist-overlay');
+        if (!drawer || !overlay) return;
+        overlay.style.display = 'block';
+        requestAnimationFrame(() => {
+            drawer.style.transform = 'translateX(0)';
+            overlay.style.opacity = '1';
+        });
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeWishlist = () => {
+        const drawer = $('wishlist-drawer');
+        const overlay = $('wishlist-overlay');
+        if (!drawer || !overlay) return;
+        drawer.style.transform = 'translateX(100%)';
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 320);
+        document.body.style.overflow = '';
+    };
+
+    $('wishlist-btn')?.addEventListener('click', openWishlist);
+    $('wishlist-close')?.addEventListener('click', closeWishlist);
+    $('wishlist-overlay')?.addEventListener('click', closeWishlist);
+
+    // Mở/Đóng Ngăn kéo Giỏ hàng
+    const openCart = () => {
+        const drawer = $('cart-drawer');
+        const overlay = $('cart-overlay');
+        if (!drawer || !overlay) return;
+        if (typeof window.loadCart === 'function') window.loadCart();
+        overlay.style.display = 'block';
+        requestAnimationFrame(() => {
+            drawer.style.transform = 'translateX(0)';
+            overlay.style.opacity = '1';
+        });
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeCart = () => {
+        const drawer = $('cart-drawer');
+        const overlay = $('cart-overlay');
+        if (!drawer || !overlay) return;
+        drawer.style.transform = 'translateX(100%)';
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 320);
+        document.body.style.overflow = '';
+    };
+
+    $('cart-btn')?.addEventListener('click', openCart);
+    $('cart-close')?.addEventListener('click', closeCart);
+    $('cart-overlay')?.addEventListener('click', closeCart);
+
+    // Toggle Hamburger Menu Mobile
+    $('hamburger')?.addEventListener('click', () => {
+        const menu = $('mobile-menu');
+        const search = $('mobile-search-bar');
+        const ham = $('ham-icon');
+        const close = $('close-icon');
+        if (!menu || !ham || !close) return;
+        const isOpen = menu.classList.toggle('open');
+        if (search) search.classList.toggle('open', isOpen);
+        ham.classList.toggle('hidden', isOpen);
+        close.classList.toggle('hidden', !isOpen);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeWishlist(); closeCart(); }
+    });
+
+    // Thông báo cửa hàng đóng cửa khi quá giờ làm việc
+    const storeClosedModal = $('store-closed-modal');
+    if (storeClosedModal) {
+        const lastShownAt = sessionStorage.getItem('store_closed_popup_shown_at');
+        const now = Date.now();
+        if (!lastShownAt || (now - parseInt(lastShownAt)) > 10000) {
+            const content = $('store-closed-content');
+            sessionStorage.setItem('store_closed_popup_shown_at', now.toString());
+            storeClosedModal.style.display = 'flex';
+            setTimeout(() => {
+                storeClosedModal.style.opacity = '1';
+                content.style.transform = 'scale(1)';
+                content.style.opacity = '1';
+            }, 50);
+
+            $('close-store-modal-btn')?.addEventListener('click', function () {
+                storeClosedModal.style.opacity = '0';
+                content.style.transform = 'scale(0.9)';
+                content.style.opacity = '0';
+                setTimeout(() => {
+                    storeClosedModal.style.display = 'none';
+                }, 300);
+            });
+        }
+    }
+})();
+</script>
 @endpush

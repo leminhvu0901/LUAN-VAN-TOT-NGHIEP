@@ -10,7 +10,7 @@
         <div class="space-y-2">
             <label class="flex items-start gap-2 text-sm text-gray-700">
                 <input type="radio" name="fail-reason-type" value="damaged" class="mt-0.5">
-                <span>Hàng hư hỏng/đổ vỡ trong quá trình giao <span class="text-xs text-emerald-600">(sẽ tự động hoàn tiền nếu đơn đã thanh toán trực tuyến MoMo/VNPay)</span></span>
+                <span>Hàng hư hỏng/đổ vỡ trong quá trình giao <span class="text-xs text-emerald-600">(sẽ tự động hoàn tiền nếu đơn đã thanh toán trực tuyến VNPay)</span></span>
             </label>
             <label class="flex items-start gap-2 text-sm text-gray-700">
                 <input type="radio" name="fail-reason-type" value="customer_unreachable" class="mt-0.5" checked>
@@ -36,5 +36,75 @@
 </div>
 
 @push('scripts')
-    <script src="{{ asset('js/backend/staff/delivery/fail-reason-modal.js') }}"></script>
+<script>
+(function () {
+    "use strict";
+
+    let currentForm = null;
+
+    const backdrop = document.getElementById('fail-reason-backdrop');
+    const textarea = document.getElementById('fail-reason-textarea');
+    const hint = document.getElementById('fail-reason-hint');
+
+    function openModal(form) {
+        currentForm = form;
+        textarea.value = '';
+        hint.classList.add('hidden');
+        const defaultRadio = document.querySelector('input[name="fail-reason-type"][value="customer_unreachable"]');
+        if (defaultRadio) defaultRadio.checked = true;
+        backdrop.classList.remove('hidden');
+        setTimeout(() => textarea.focus(), 50);
+    }
+
+    function closeModal() {
+        backdrop.classList.add('hidden');
+        currentForm = null;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('click', function (event) {
+            const btn = event.target.closest('[data-open-fail-modal]');
+            if (!btn) return;
+
+            const orderId = btn.getAttribute('data-open-fail-modal');
+            const form = document.getElementById('fail-form-' + orderId);
+            if (form) openModal(form);
+        });
+
+        const cancelBtn = document.getElementById('fail-reason-cancel');
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+        const closeBtn = document.getElementById('fail-reason-close');
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+        if (backdrop) {
+            backdrop.addEventListener('click', function (event) {
+                if (event.target === backdrop) closeModal();
+            });
+        }
+
+        const confirmBtn = document.getElementById('fail-reason-confirm');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                const reason = textarea.value.trim();
+
+                if (reason.length < 5) {
+                    hint.classList.remove('hidden');
+                    textarea.focus();
+                    return;
+                }
+
+                if (!currentForm) return;
+
+                const selectedType = document.querySelector('input[name="fail-reason-type"]:checked');
+                currentForm.querySelector('input[name="reason"]').value = reason;
+                currentForm.querySelector('input[name="failure_type"]').value = selectedType ? selectedType.value : 'other';
+                closeModal();
+                currentForm.submit();
+            });
+        }
+    });
+})();
+</script>
 @endpush
+

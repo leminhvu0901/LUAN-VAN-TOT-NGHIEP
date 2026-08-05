@@ -2,19 +2,26 @@
 
 namespace App\Http\Controllers\Backend\Staff\Reception;
 
+use App\Http\Controllers\Frontend\VnpayController;
 use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\CartPricingService;
 use App\Services\NotificationService;
 use App\Services\OrderService;
 use App\Services\OrderWorkflowService;
+use App\Services\PromotionService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -39,12 +46,11 @@ class OrderController
      * Hiển thị danh sách đơn hàng cho Lễ tân.
      * Hỗ trợ lọc theo trạng thái, khoảng thời gian, sắp xếp ngày tạo, tìm kiếm đa năng theo mã đơn/tên/SĐT khách,
      * và phân trang tùy chỉnh.
-     * Tự động dọn dẹp các đơn thanh toán MoMo bị quá hạn (stale pending) mỗi lần tải danh sách.
+     * Tự động dọn dẹp các đơn thanh toán VNPay bị quá hạn (stale pending) mỗi lần tải danh sách.
      */
     public function index(Request $request)
     {
-        // Dọn đơn MoMo "chờ thanh toán" bị treo quá lâu mỗi lần lễ tân mở danh sách — không cần cron
-        // để thấy hiệu quả ngay, cron (nếu có cấu hình) chỉ để dọn cả khi không ai mở trang.
+        // Dọn đơn online "chờ thanh toán" bị treo quá lâu mỗi lần lễ tân mở danh sách
         $this->sv_orderWorkflow->cancelStalePendingPayments();
 
         $status = $request->query('status'); // Đọc tham số lọc trạng thái từ URL
@@ -127,8 +133,6 @@ class OrderController
 
     /**
      * Xem chi tiết 1 đơn hàng cụ thể.
-     * Nạp thông tin danh sách sản phẩm (kèm tên/ảnh fallback từ bảng products), thông tin nhân viên giao hàng,
-     * danh sách Shipper khả dụng (để phân công nếu đơn cần giao) và thông tin cửa hàng để chuẩn bị in hóa đơn.
      */
     public function show(Order $order)
     {
@@ -141,24 +145,21 @@ class OrderController
         $order->loadMissing('deliveryStaff'); // Nạp thông tin tài khoản nhân viên vận chuyển (nếu có)
 
         // Chỉ lấy danh sách tài khoản shipper đang hoạt động nếu đơn là đơn giao và chưa được gán shipper
-        $availableDeliveryStaff = ($order->delivery_type === 'delivery' && $order->status === 'confirmed' && !$order->delivery_staff_id)
-            ? \App\Models\User::where('role', 'staff')->where('staff_type', 'delivery')->where('is_active', true)->orderBy('name')->get()
+        $deliveryStaffs = $order->delivery_type === 'delivery'
+            ? User::where('role', 'staff')->where('staff_type', 'delivery')->where('is_active', true)->orderBy('name')->get()
             : collect();
 
         $storeInfo = [ // Lấy cấu hình thông tin quán trong bảng settings để hiển thị khi in hóa đơn POS
-            'name' => \App\Models\Setting::getValue('store_name', 'Happy Tea'),
-            'phone' => \App\Models\Setting::getValue('store_phone', ''),
-            'address' => \App\Models\Setting::getValue('store_address', ''),
+            'name' => Setting::getValue('store_name', 'Happy Tea'),
+            'phone' => Setting::getValue('store_phone', ''),
+            'address' => Setting::getValue('store_address', ''),
         ];
 
-        return view('backend.staff.reception.orders.show', compact('order', 'items', 'availableDeliveryStaff', 'storeInfo'));
+        return view('backend.staff.reception.orders.show', compact('order', 'items', 'deliveryStaffs', 'storeInfo'));
     }
 
     /**
      * Cập nhật trạng thái đơn hàng (Xác nhận, Hủy đơn,...).
-     * Ràng buộc nghiệp vụ: Đối với đơn giao hàng (delivery), Lễ tân chỉ được chuyển trạng thái TRƯỚC khi đơn sang
-     * bước giao hàng ('shipping'). Khi đơn đã ở trạng thái 'shipping', quyền cập nhật (hoàn thành/giao thất bại)
-     * thuộc về Nhân viên vận chuyển để đảm bảo đúng quy trình kiểm soát.
      */
     public function updateStatus(Request $request, Order $order)
     {
@@ -171,7 +172,7 @@ class OrderController
         // Khi shipper đã đi giao (shipping), lễ tân không được can thiệp vào tiến trình của đơn hàng nữa.
         $isDeliveryOrder = $order->delivery_type !== 'pickup';
         if ($isDeliveryOrder && ($order->status === 'shipping' || in_array($validated['status'], ['shipping', 'completed'], true))) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'status' => 'Đơn giao hàng đang trên đường đi (hoặc cần chuyển sang bước giao hàng) — chỉ nhân viên giao hàng được xử lý sau khi được phân công.',
             ]);
         }
@@ -183,27 +184,50 @@ class OrderController
 
     /**
      * Lễ tân gửi yêu cầu Admin phê duyệt đơn hàng giá trị lớn.
-     * Đặt cờ needs_admin_approval = true và gửi email thông báo cho Admin.
      */
     public function requestAdminApproval(Request $request, Order $order)
     {
-        // Chỉ cho gửi yêu cầu khi đơn đang ở trạng thái pending
-        if ($order->status !== 'pending') {
-            return back()->withErrors(['approval' => 'Chỉ có thể gửi yêu cầu cho đơn đang chờ xác nhận.']);
+        if ($order->total_amount < 500000 && $order->final_amount < 500000) {
+            throw ValidationException::withMessages([
+                'order' => 'Chỉ các đơn hàng có tổng giá trị từ 500.000đ mới cần gửi yêu cầu duyệt Admin.'
+            ]);
         }
 
-        // Đặt cờ và lưu
-        $order->needs_admin_approval = true;
-        $order->save();
+        if ($order->needs_admin_approval) {
+            return redirect()->back()->with('warning', 'Đơn hàng này đã được gửi yêu cầu duyệt trước đó.');
+        }
 
-        // Gửi email thông báo cho Admin
         try {
-            $this->sv_notifications->sendAdminApprovalRequest($order);
+            $order->update(['needs_admin_approval' => true]);
+
+            // Gửi Mail cho Admin
+            $this->sv_notifications->notifyAdminForApproval($order);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('requestAdminApproval: failed to send email', ['error' => $e->getMessage()]);
+            Log::error('requestAdminApproval: failed to send email', ['error' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Đã gửi yêu cầu phê duyệt cho Admin! Vui lòng chờ Admin xác nhận.');
+        return redirect()->back()->with('success', 'Đã gửi yêu cầu phê duyệt đơn hàng đến Quản trị viên!');
+    }
+
+    /**
+     * Duyệt đơn hàng trực tiếp tại quầy (dành cho Lễ tân khi tự chịu trách nhiệm).
+     */
+    public function approveDirectly(Request $request, Order $order)
+    {
+        $order->update([
+            'needs_admin_approval' => false,
+            'status' => 'confirmed',
+            'assigned_at' => now(),
+        ]);
+
+        $this->sv_orderWorkflow->logMovement(
+            $order,
+            'approve_directly',
+            'Lễ tân trực tiếp phê duyệt đơn hàng tại quầy',
+            Auth::id()
+        );
+
+        return back()->with('success', 'Đã phê duyệt đơn hàng thành công!');
     }
 
     /**
@@ -220,7 +244,7 @@ class OrderController
         $this->sv_orderWorkflow->assignDeliveryStaff(
             $order,
             (int) $validated['delivery_staff_id'],
-            \Illuminate\Support\Facades\Auth::id()
+            Auth::id()
         );
 
         return back()->with('success', 'Đã phân công nhân viên giao hàng!');
@@ -228,11 +252,6 @@ class OrderController
 
     /**
      * Hiển thị màn hình Tạo đơn tại quầy (POS) cho Lễ tân.
-     *
-     * Lấy danh sách sản phẩm đang bán (kèm danh mục, kích thước, topping còn khả dụng)
-     * và trạng thái kích hoạt cổng thanh toán MoMo để phục vụ bán hàng trực tiếp tại quầy.
-     *
-     * @return \Illuminate\View\View
      */
     public function createOrder()
     {
@@ -247,45 +266,32 @@ class OrderController
             }
         ])->orderByDesc('is_active')->orderBy('name')->get();
 
-        $categories = \App\Models\Category::query()->where('is_active', true)->orderBy('name')->get();
-        // POS chỉ nên cho chọn MoMo/VNPay nếu admin đã bật kênh đó trong Cài đặt (tiền mặt luôn khả
-        // dụng vì không phụ thuộc cổng thanh toán ngoài).
-        $momoEnabled = (bool) \App\Models\Setting::getValue('momo_enabled', false);
-        $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
+        $categories = Category::query()->where('is_active', true)->orderBy('name')->get();
+        $vnpayEnabled = (bool) Setting::getValue('vnpay_enabled', false);
 
-        // Khi trang này được tải lại sau redirect-back do lỗi validate lúc tạo đơn (vd. điểm vượt số
-        // dư), old('customer_id') vẫn còn nhưng tên/SĐT/số điểm khách hàng không nằm trong old() -
-        // truy lại từ DB để view tự hiện lại đúng khách đã chọn, tránh lễ tân phải tìm lại từ đầu.
         $selectedCustomer = old('customer_id')
             ? User::where('role', 'customer')->find(old('customer_id'))
             : null;
 
-        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'momoEnabled', 'vnpayEnabled', 'selectedCustomer'));
+        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'vnpayEnabled', 'selectedCustomer'));
     }
 
     /**
      * Xem trước tổng tiền đơn hàng tại quầy (POS) qua AJAX trước khi tạo đơn.
-     *
      * Tính toán tạm tính, kiểm tra áp dụng mã giảm giá nhập tay hoặc tự động chọn ưu đãi tốt nhất,
      * tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy (pickup) nên phí giao hàng = 0.
-     * 
-     * Trả về JSON:
-     * {
-     *   "subtotal": float, "discount": float, "combo_discount": float, "membership_discount": float,
-     *   "shipping_fee": 0, "promotion_code": string|null, "promotion_label": string|null,
-     *   "points_discount": float, "points_error": string|null, "final_amount": float,
-     *   "coupon_error": string|null, "gifts": array
-     * }
      */
     public function previewTotal(Request $request)
     {
         $cart = Cart::query()->where('user_id', Auth::id())->first();
-        $items = $cart ? \App\Models\CartItem::query()->where('cart_id', $cart->id)->get() : collect();
+        $items = $cart ? CartItem::query()->where('cart_id', $cart->id)->get() : collect();
 
         if ($items->isEmpty()) {
             return response()->json([
                 'subtotal' => 0,
                 'discount' => 0,
+                'combo_discount' => 0,
+                'membership_discount' => 0,
                 'shipping_fee' => 0,
                 'promotion_code' => null,
                 'promotion_label' => null,
@@ -293,12 +299,17 @@ class OrderController
                 'points_error' => null,
                 'final_amount' => 0,
                 'coupon_error' => null,
+                'gifts' => [],
             ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
         }
 
-        $pricedItems = $this->sv_cartPricing->pricedItems($cart);
-        $subtotal = $this->sv_cartPricing->subtotal($pricedItems);
-        $totalQuantity = (int) $pricedItems->sum('quantity');
+        $items = $this->sv_cartPricing->pricedItems($cart);
+        $subtotal = $this->sv_cartPricing->subtotal($items);
+        $totalQuantity = (int) $items->sum('quantity');
+        $comboResult = app(PromotionService::class)->resolveComboRewards(
+            $items,
+            'pickup'
+        );
 
         $customerId = $request->query('customer_id');
         $orderOwner = $customerId ? User::where('role', 'customer')->find($customerId) : null;
@@ -309,17 +320,17 @@ class OrderController
         if ($couponCode !== '') {
             try {
                 //xem trước số tiền giảm 
-                $preview = $this->sv_orderService->previewManualCoupon($couponCode, $pricedItems, $orderOwner, $subtotal, 'pickup', $totalQuantity);
+                $preview = $this->sv_orderService->previewManualCoupon($couponCode, $items, $orderOwner, $subtotal, 'pickup', $totalQuantity);
                 $promotion = $preview['promotion'];
                 $discount = $preview['discount'];
-            } catch (\Illuminate\Validation\ValidationException $e) {
+            } catch (ValidationException $e) {
                 $promotion = null;
                 $discount = 0;
                 $couponError = collect($e->errors())->flatten()->first();
             }
         } else {
             //Xem trước khuyến mãi tự động sẽ áp dụng cho một đơn tại quầy
-            $preview = $this->sv_orderService->previewAutoPromotion($pricedItems, $subtotal, $totalQuantity);
+            $preview = $this->sv_orderService->previewAutoPromotion($items, $subtotal, $totalQuantity);
             $promotion = $preview['promotion'];
             $discount = $preview['discount'];
         }
@@ -336,17 +347,9 @@ class OrderController
         $pointsDiscount = $pointsPreview['discount'];
         $pointsError = $pointsPreview['error'];
 
-        // Xem trước thưởng combo (phần tặng quà độc lập với mã giảm giá ở trên; phần giảm giá của combo
-        // chỉ cộng thêm nếu không trùng sản phẩm với mã đó — xem PromotionService::resolveComboRewards())
-        // để lễ tân biết trước khi tạo đơn.
-        $comboResult = app(\App\Services\PromotionService::class)->resolveComboRewards(
-            $pricedItems,
-            'pickup',
-            ['promotion' => $promotion, 'discount' => $discount]
-        );
         $gifts = collect($comboResult['entries'])->where('type', 'gift');
         $comboDiscount = collect($comboResult['entries'])->where('type', 'discount')->sum('discount_amount');
-        $discount = $comboResult['auto_discount'];
+        $discount += $comboResult['auto_discount'];
 
         $totalDiscount = min($subtotal, $discount + $comboDiscount + $membershipDiscount + $pointsDiscount);
 
@@ -373,9 +376,9 @@ class OrderController
 
     /**
      * Lưu và tạo Đơn hàng mới tại quầy (POS).
-     * Tiếp nhận phương thức thanh toán (tiền mặt / MoMo), loại nhận hàng (uống tại chỗ / mang về),
+     * Tiếp nhận phương thức thanh toán (tiền mặt / VNPay), loại nhận hàng (uống tại chỗ / mang về),
      * thông tin khách hàng (khách thành viên hoặc vãng lai), điểm thưởng áp dụng và mã giảm giá.
-     * Nếu thanh toán MoMo -> chuyển hướng sang cổng MoMo; Nếu tiền mặt -> chuyển sang trang chi tiết đơn để chờ thu tiền.
+     * Nếu thanh toán VNPay -> chuyển hướng sang cổng VNPay; Nếu tiền mặt -> chuyển sang trang chi tiết đơn để chờ thu tiền.
      * 
      * Phản hồi trả về:
      * - Trả về kết quả JSON điều hướng cho JS tại file [public/js/backend/staff/reception/orders/create.js]
@@ -385,7 +388,7 @@ class OrderController
     {
 
         $validated = $request->validate([
-            'payment_method' => ['required', 'in:cash,momo,vnpay'],
+            'payment_method' => ['required', 'in:cash,vnpay'],
             'note' => ['nullable', 'string', 'max:500'],
             'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
             // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên — để trống = khách vãng lai.
@@ -426,14 +429,11 @@ class OrderController
             'note' => $validated['note'] ?? null,
         ];
 
-        $order = $this->sv_orderService->create(Auth::user(), $payload, $validated['payment_method']); // Gọi OrderService để xử lý lưu đơn hàng chính thức
+        $paymentMethod = $validated['payment_method'];
+        $order = $this->sv_orderService->create(Auth::user(), $payload, $paymentMethod); // Gọi OrderService để xử lý lưu đơn hàng chính thức
 
-        if ($validated['payment_method'] === 'momo') {
-            // Chuyển sang cổng MoMo để khách quét QR thanh toán ngay tại quầy.
-            $response = app(\App\Http\Controllers\Frontend\MomoController::class)->payExistingOrder($request, $order);
-        } elseif ($validated['payment_method'] === 'vnpay') {
-            // Chuyển sang cổng VNPay để khách thanh toán ngay tại quầy.
-            $response = app(\App\Http\Controllers\Frontend\VnpayController::class)->payExistingOrder($request, $order);
+        if ($paymentMethod === 'vnpay') {
+            $response = app(VnpayController::class)->payExistingOrder($request, $order);
         } else {
             // Tiền mặt: KHÔNG tự động đánh dấu đã thanh toán ngay ở đây nữa — lễ tân phải nhập số
             // tiền khách đưa và bấm xác nhận rõ ràng ở trang chi tiết đơn (confirmCashPayment()) sau
@@ -445,8 +445,8 @@ class OrderController
         // Giao diện POS tạo đơn qua fetch (Accept: application/json) — trả URL đích để JS tự điều
         // hướng bằng window.location.href, thay vì để trình duyệt tự redirect như request thường.
         if ($request->expectsJson()) {
-            if ($response instanceof \Illuminate\Http\JsonResponse) {
-                return $response; // Trả về phản hồi của MoMo/VNPay nếu là JsonResponse
+            if ($response instanceof JsonResponse) {
+                return $response; // Trả về phản hồi của VNPay nếu là JsonResponse
             }
             return response()->json(['success' => true, 'redirect_url' => $response->getTargetUrl()]); // Trả về link chuyển hướng để JS điều phối
         }
@@ -496,16 +496,19 @@ class OrderController
     public function searchCustomer(Request $request)
     {
         $search = trim((string) $request->query('q', ''));
-        if (mb_strlen($search) < 2) {
-            return response()->json(['results' => []]);
+        if (strlen($search) < 2) {
+            return response()->json(['customers' => []]);
         }
 
-        $customers = \App\Models\User::query()->where('role', 'customer')
+        $customers = User::query()->where('role', 'customer')
             ->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%");
+                $q->where('phone', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             })
-            ->limit(8)
-            ->get(['id', 'name', 'phone', 'points']);
+            ->select('id', 'name', 'phone', 'email', 'points', 'membership_level')
+            ->limit(10)
+            ->get();
 
         return response()->json(['results' => $customers]);
     }

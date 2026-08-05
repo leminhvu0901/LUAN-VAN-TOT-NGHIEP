@@ -83,5 +83,89 @@
     </div>
 </div>
 
-{{-- Nhúng tệp tin Script JS xử lý tương tác nhập mã OTP và đếm ngược thời gian --}}
-<script src="{{ asset('js/frontend/auth/verify-otp.js') }}?v={{ filemtime(public_path('js/frontend/auth/verify-otp.js')) }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpModal = document.getElementById('otp-modal');
+    if (otpModal && otpModal.getAttribute('data-show-otp') === 'true') {
+        otpModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        setTimeout(() => {
+            const firstInput = otpModal.querySelector('.otp-input');
+            if(firstInput) firstInput.focus();
+        }, 100);
+    }
+
+    const inputs = document.querySelectorAll('.otp-input');
+    
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            if (this.value.length === 1 && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && index > 0) {
+                inputs[index - 1].focus();
+                inputs[index - 1].value = '';
+            }
+        });
+        
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            
+            const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 4);
+            if (pastedData) {
+                for (let i = 0; i < pastedData.length; i++) {
+                    if (inputs[i]) {
+                        inputs[i].value = pastedData[i];
+                        if (i < 3) inputs[i + 1].focus();
+                    }
+                }
+            }
+        });
+    });
+
+    let timeLeft = 58;
+    const timerEl = document.getElementById('timer');
+    const timerText = document.getElementById('timer-text');
+    const resendBtn = document.getElementById('resend-btn');
+    let countdownInterval = null;
+
+    if (otpModal && otpModal.style.display !== 'none') {
+        startTimer();
+    }
+
+    function startTimer() {
+        if (countdownInterval) clearInterval(countdownInterval);
+        
+        timeLeft = 58;
+        resendBtn.classList.remove('active');
+        timerText.style.display = 'block';
+        
+        countdownInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                timerText.style.display = 'none';
+                resendBtn.classList.add('active');
+            } else {
+                const seconds = timeLeft < 10 ? '0' + timeLeft : timeLeft;
+                if(timerEl) timerEl.textContent = '00:' + seconds;
+            }
+        }, 1000);
+    }
+});
+
+document.addEventListener('click', function (e) {
+    const overlay = e.target.closest('#otp-overlay');
+    if (overlay) {
+        const cancelForm = document.getElementById('cancel-otp-form');
+        if (cancelForm) cancelForm.submit();
+    }
+});
+</script>
+
