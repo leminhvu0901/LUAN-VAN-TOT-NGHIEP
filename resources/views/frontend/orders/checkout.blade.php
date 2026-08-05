@@ -17,10 +17,13 @@
     </header>
 
     <div class="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-        @if(session('error'))
+        {{-- Lỗi chung (session('error')) HOẶC lỗi validate form (vd địa chỉ không hợp lệ, phiên đặt
+        hàng hết hạn...) sau khi submit form thật và tải lại trang — trước đây các lỗi này chỉ hiện
+        qua JS đọc JSON trả về từ fetch(), giờ phải render trực tiếp từ $errors mới thấy được. --}}
+        @if(session('error') || $errors->any())
         <div class="bg-error-container text-on-error-container border border-error p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm">
             <span class="material-symbols-outlined">error</span>
-            <span class="font-bold text-sm">{{ session('error') }}</span>
+            <span class="font-bold text-sm">{{ session('error') ?: $errors->first() }}</span>
         </div>
         @endif
 

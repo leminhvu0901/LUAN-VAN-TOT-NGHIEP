@@ -999,30 +999,23 @@ function saveAddress() {
     };
     localStorage.setItem('checkout_address_state', JSON.stringify(stateObj));
 
-    const saveBtn = document.getElementById('btnSaveAddress');
-    if (saveBtn) saveBtn.disabled = true;
-
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-        .then(res => res.json().then(data => ({ ok: res.ok, data: data })))
-        .then(({ ok, data }) => {
-            if (ok && data.success) {
-                window.location.reload();
-            } else {
-                // Xử lý khi server không xác định được tọa độ nhập tay
-                setLocStatus('notfound', 'Không tìm thấy địa chỉ');
-                if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.'); else alert(data.message || 'Không xác định được vị trí. Vui lòng kiểm tra lại hoặc chọn trên bản đồ.');
-                updateSaveButtonState();
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            if (window.FrontendAlert) window.FrontendAlert.error('Có lỗi xảy ra, vui lòng thử lại.'); else alert('Có lỗi xảy ra, vui lòng thử lại.');
-            updateSaveButtonState();
-        });
+    // Modal địa chỉ nằm lồng trong <form id="checkout-form"> chính nên không thể thêm 1 <form> nữa vào
+    // đây — dựng tạm 1 form ẩn độc lập rồi submit thật (không phải AJAX/fetch), tải lại trang checkout
+    // sau khi lưu xong để hiện đúng danh sách địa chỉ mới (lỗi server trả về, vd không xác định được
+    // tọa độ, sẽ hiện qua $errors sau khi tải lại — xem addressError() trong ProfileController).
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+    Object.keys(payload).forEach(function (key) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = payload[key] === null || payload[key] === undefined ? '' : payload[key];
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Bind helper function to window to expose to inline events
@@ -1135,43 +1128,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Gửi yêu cầu đặt hàng qua fetch để tránh tải lại trang khi gặp lỗi
-    if (checkoutForm) {
-        checkoutForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            const btn = document.getElementById('order-submit-btn');
-            if (btn) btn.disabled = true;
-
-            fetch(checkoutForm.action, {
-                method: 'POST',
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: new FormData(checkoutForm),
-            })
-                .then(function (response) {
-                    return response.json().then(function (data) { return { status: response.status, data: data }; });
-                })
-                .then(function (result) {
-                    if (result.status >= 400) {
-                        const errors = result.data && result.data.errors ? result.data.errors : {};
-                        const firstError = Object.values(errors)[0];
-                        if (window.FrontendAlert) window.FrontendAlert.error((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.'); else alert((firstError && firstError[0]) || result.data.message || 'Không thể đặt hàng, vui lòng kiểm tra lại.');
-                        if (btn) btn.disabled = false;
-                        return;
-                    }
-
-                    if (result.data && result.data.redirect_url) {
-                        window.location.href = result.data.redirect_url;
-                        return;
-                    }
-
-                    if (btn) btn.disabled = false;
-                })
-                .catch(function () {
-                    if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
-                    if (btn) btn.disabled = false;
-                });
-        });
-    }
+    // Form đặt hàng submit thật (tải lại trang) — action đổi đúng cổng thanh toán qua updateFormAction()
+    // ở trên; server (CustomerOrderController::store()/MomoController/VnpayController::createPayment(),
+    // đều dùng HandlesCheckoutResponse) tự redirect tới đích hoặc quay lại kèm lỗi qua $errors.
 
     paymentRadios.forEach(radio => {
         radio.addEventListener('change', () => {
@@ -1634,21 +1593,23 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Xóa địa chỉ giao hàng ngay từ trang Checkout (POST /profile/address/{id}/delete).
-// Sau khi xóa thành công → reload trang để cập nhật danh sách địa chỉ.
-async function deleteAddressCheckout(id) {
+// Xóa địa chỉ giao hàng ngay từ trang Checkout (POST /profile/address/{id}/delete) — dựng form ẩn độc
+// lập rồi submit thật (cùng lý do/pattern với saveAddress() ở trên: nút xóa nằm lồng trong form chính
+// nên không thể thêm <form> bao quanh trực tiếp).
+function deleteAddressCheckout(id) {
     if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return;
-    try {
-        const res = await fetch(`/profile/address/${id}/delete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content') })
-        });
-        const json = await res.json();
-        if (json.success) {
-            window.location.reload();
-        } else {
-            if (window.FrontendAlert) window.FrontendAlert.error(json.message || "Có lỗi xảy ra"); else alert(json.message || "Có lỗi xảy ra");
-        }
-    } catch (e) { if (window.FrontendAlert) window.FrontendAlert.error("Có lỗi xảy ra"); else alert("Có lỗi xảy ra"); }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/profile/address/' + id + '/delete';
+    form.style.display = 'none';
+
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = '_token';
+    tokenInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    form.appendChild(tokenInput);
+
+    document.body.appendChild(form);
+    form.submit();
 }

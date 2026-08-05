@@ -262,7 +262,7 @@ class ProfileController
         ];
     }
 
-    //lưu địa chỉ giao hàng mới 
+    //lưu địa chỉ giao hàng mới
     public function storeAddress(Request $request)
     {
         // 1. Kiểm tra thông tin nhập vào
@@ -271,13 +271,13 @@ class ProfileController
         // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức (không tin tên frontend gửi).
         $area = $this->resolveAdministrativeArea($request);
         if (isset($area['error'])) {
-            return response()->json(['success' => false, 'message' => $area['error'], 'errors' => [$area['field'] => [$area['error']]]], 422);
+            return $this->addressError($request, $area['field'], $area['error']);
         }
 
         // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa có) — mơ hồ/không thấy thì báo lỗi, không lưu.
         $location = $this->resolveLocation($request, $area);
         if (isset($location['error'])) {
-            return response()->json(['success' => false, 'message' => $location['error']], 422);
+            return $this->addressError($request, 'specific_address', $location['error']);
         }
 
         $userId = \Illuminate\Support\Facades\Auth::id();
@@ -314,8 +314,10 @@ class ProfileController
             'updated_at' => now(),
         ]);
 
-        // Trả kết quả về cho Frontend
-        return response()->json(['success' => true, 'id' => $id]);// checkout.js-saveAddress()
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'id' => $id]);
+        }
+        return redirect()->route('checkout')->with('success', 'Đã thêm địa chỉ giao hàng mới!');
     }
 
     /**
@@ -329,13 +331,13 @@ class ProfileController
         // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức (không tin tên frontend gửi).
         $area = $this->resolveAdministrativeArea($request);
         if (isset($area['error'])) {
-            return response()->json(['success' => false, 'message' => $area['error'], 'errors' => [$area['field'] => [$area['error']]]], 422);
+            return $this->addressError($request, $area['field'], $area['error']);
         }
 
         // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa có) — mơ hồ/không thấy thì báo lỗi, không lưu.
         $location = $this->resolveLocation($request, $area);
         if (isset($location['error'])) {
-            return response()->json(['success' => false, 'message' => $location['error']], 422);
+            return $this->addressError($request, 'specific_address', $location['error']);
         }
 
         $userId = \Illuminate\Support\Facades\Auth::id();
@@ -366,16 +368,31 @@ class ProfileController
                 'updated_at' => now(),
             ]);
 
-        return response()->json(['success' => true, 'id' => intval($id)]); // checkout.js - saveAddress()
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'id' => intval($id)]);
+        }
+        return redirect()->route('checkout')->with('success', 'Đã cập nhật địa chỉ giao hàng!');
+    }
+
+    /**
+     * Trả lỗi lưu địa chỉ đúng định dạng theo kiểu request: JSON 422 cho fetch (modal địa chỉ ở trang
+     * checkout submit qua AJAX nếu còn dùng), redirect-back kèm withErrors() cho form thật.
+     */
+    private function addressError(Request $request, string $field, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message, 'errors' => [$field => [$message]]], 422);
+        }
+        return redirect()->route('checkout')->withErrors([$field => $message])->withInput();
     }
 
     /**
      * Xóa Địa chỉ giao hàng
      */
-    public function deleteAddress($id)
+    public function deleteAddress(Request $request, $id)
     {
         $userId = \Illuminate\Support\Facades\Auth::id();
-        
+
         // 1. Xóa địa chỉ theo id
         \App\Models\UserAddress::query()
             ->where('id', $id)
@@ -385,7 +402,7 @@ class ProfileController
         // 2. Logic Thông minh: Nếu địa chỉ vừa xóa VÔ TÌNH LÀ ĐỊA CHỈ MẶC ĐỊNH
         // -> User sẽ không còn địa chỉ mặc định nào nữa.
         $hasDefault = \App\Models\UserAddress::query()->where('user_id', $userId)->where('is_default', true)->exists();
-        
+
         if (!$hasDefault) {
             // Lấy địa chỉ bất kỳ (cũ nhất) còn sót lại trong DB để đôn lên làm mặc định thay thế
             $first = \App\Models\UserAddress::query()->where('user_id', $userId)->first();
@@ -394,7 +411,10 @@ class ProfileController
             }
         }
 
-        return response()->json(['success' => true]); // checkout.js - deleteAddressCheckout()
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->route('checkout')->with('success', 'Đã xóa địa chỉ giao hàng.');
     }
 
     /**
