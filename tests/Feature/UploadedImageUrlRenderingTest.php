@@ -22,7 +22,7 @@ class UploadedImageUrlRenderingTest extends TestCase
     private function makeProduct(string $imagePath): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true,
+            'name' => 'Trà sữa', 'is_active' => true,
             'created_at' => now(), 'updated_at' => now(),
         ]);
 

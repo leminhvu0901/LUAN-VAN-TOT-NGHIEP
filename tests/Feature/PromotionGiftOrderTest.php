@@ -31,7 +31,7 @@ class PromotionGiftOrderTest extends TestCase
 
     private function makeProduct(array $overrides = []): Product
     {
-        $categoryId = Category::create(['name' => 'Đồ uống', 'slug' => 'cat-' . uniqid(), 'is_active' => true])->id;
+        $categoryId = Category::create(['name' => 'Đồ uống', 'is_active' => true])->id;
 
         return Product::create(array_merge([
             'name' => 'Cà phê sữa đá',

@@ -289,7 +289,7 @@ class StaffRoleWorkflowTest extends TestCase
     public function test_delivery_orders_index_card_shows_items_payment_status_and_fees(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
-        $categoryId = DB::table('categories')->insertGetId(['name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $categoryId = DB::table('categories')->insertGetId(['name' => 'Trà sữa', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $product = Product::create(['name' => 'Trà sữa trân châu', 'slug' => 'sp-' . uniqid(), 'sku' => 'SKU-' . strtoupper(uniqid()), 'base_price' => 30000, 'category_id' => $categoryId, 'is_active' => true]);
 
         $codOrder = $this->makeOrder([
@@ -464,42 +464,6 @@ class StaffRoleWorkflowTest extends TestCase
     /**
      * Giao thất bại vì "hàng hư hỏng/đổ vỡ" trên đơn MoMo đã thanh toán -> tự động hoàn tiền MoMo
      * trước khi hủy đơn, đơn chuyển payment_status=refunded + status=cancelled.
-     */
-    public function test_delivery_staff_marks_failed_delivery_damaged_triggers_refund(): void
-    {
-        \Illuminate\Support\Facades\Http::fake([
-            '*/v2/gateway/api/refund' => \Illuminate\Support\Facades\Http::response(['resultCode' => 0, 'transId' => 'REFUND-TX-1'], 200),
-        ]);
-
-        $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
-        $order = $this->makeOrder([
-            'status' => 'shipping',
-            'delivery_staff_id' => $delivery->id,
-            'assigned_at' => now(),
-            'payment_method' => 'momo',
-            'payment_status' => 'paid',
-            'paid_at' => now(),
-            'payment_transaction_id' => 'ORIGINAL-TX-1',
-        ]);
-
-        $this->actingAs($delivery);
-        $response = $this->patch("/staff/delivery/orders/{$order->id}/fail", [
-            'reason' => 'Trà sữa đổ vỡ trong lúc vận chuyển',
-            'failure_type' => 'damaged',
-        ]);
-        $response->assertRedirect();
-
-        $order = $order->fresh();
-        $this->assertEquals('cancelled', $order->status);
-        $this->assertEquals('refunded', $order->payment_status);
-        $this->assertEquals('REFUND-TX-1', $order->refund_transaction_id);
-        $this->assertNotNull($order->refunded_at);
-        $this->assertEquals('damaged', $order->delivery_failure_type);
-    }
-
-    /**
-     * Y hệt test trên nhưng cho đơn VNPay đã thanh toán — Delivery\OrderController::fail() phải dispatch
-     * đúng sang VnpayController::requestRefund() thay vì MomoController.
      */
     public function test_delivery_staff_marks_failed_delivery_damaged_triggers_refund_for_vnpay(): void
     {
@@ -685,15 +649,15 @@ class StaffRoleWorkflowTest extends TestCase
     {
         $stalePickup = $this->makeOrder([
             'delivery_type' => 'pickup', 'delivery_address' => null,
-            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'status' => 'pending',
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'pending',
             'created_at' => now()->subMinutes(20),
         ]);
         $staleVnpay = $this->makeOrder([
             'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'pending',
             'created_at' => now()->subMinutes(20),
         ]);
-        $freshMomo = $this->makeOrder([
-            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'status' => 'pending',
+        $freshVnpay = $this->makeOrder([
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'pending',
             'created_at' => now()->subMinutes(5),
         ]);
         $staleCod = $this->makeOrder([
@@ -701,11 +665,11 @@ class StaffRoleWorkflowTest extends TestCase
             'created_at' => now()->subMinutes(20),
         ]);
         $staleButConfirmed = $this->makeOrder([
-            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'status' => 'confirmed',
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'confirmed',
             'created_at' => now()->subMinutes(20),
         ]);
         $staleButPaid = $this->makeOrder([
-            'payment_method' => 'momo', 'payment_status' => 'paid', 'status' => 'pending',
+            'payment_method' => 'vnpay', 'payment_status' => 'paid', 'status' => 'pending',
             'created_at' => now()->subMinutes(20),
         ]);
 
@@ -714,22 +678,22 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(2, $cancelledCount);
         $this->assertEquals('cancelled', $stalePickup->fresh()->status);
         $this->assertEquals('cancelled', $staleVnpay->fresh()->status);
-        $this->assertEquals('pending', $freshMomo->fresh()->status);
+        $this->assertEquals('pending', $freshVnpay->fresh()->status);
         $this->assertEquals('pending', $staleCod->fresh()->status);
         $this->assertEquals('confirmed', $staleButConfirmed->fresh()->status);
         $this->assertEquals('pending', $staleButPaid->fresh()->status);
     }
 
     /**
-     * Mở trang danh sách đơn của lễ tân cũng tự dọn luôn đơn MoMo treo quá lâu — để có hiệu quả
+     * Mở trang danh sách đơn của lễ tân cũng tự dọn luôn đơn VNPay treo quá lâu — để có hiệu quả
      * ngay cả khi không có Task Scheduler/cron thật chạy `orders:cancel-stale-pending`.
      */
-    public function test_visiting_reception_order_list_opportunistically_cancels_stale_momo_orders(): void
+    public function test_visiting_reception_order_list_opportunistically_cancels_stale_vnpay_orders(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
         $stalePickup = $this->makeOrder([
             'delivery_type' => 'pickup', 'delivery_address' => null,
-            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'status' => 'pending',
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'status' => 'pending',
             'created_at' => now()->subMinutes(30),
         ]);
 
@@ -958,19 +922,16 @@ class StaffRoleWorkflowTest extends TestCase
     /**
      * AJAX (lọc/phân trang không tải lại trang) chỉ trả về đúng phần bảng, không phải cả trang HTML.
      */
-    public function test_materials_index_ajax_returns_partial_not_full_page(): void
+    public function test_materials_index_page_renders_full_page_with_results(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
         Material::create(['name' => 'Trân châu trắng', 'unit' => 'kg', 'unit_price' => 45000, 'current_stock' => 10, 'is_active' => true]);
 
-        $response = $this->actingAs($staff)
-            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
-            ->getJson('/staff/reception/materials');
+        $response = $this->actingAs($staff)->get('/staff/reception/materials');
 
         $response->assertOk();
-        $response->assertJsonStructure(['html']);
-        $this->assertStringContainsString('Trân châu trắng', $response->json('html'));
-        $this->assertStringNotContainsString('<html', $response->json('html'));
+        $response->assertSee('<html', false);
+        $response->assertSee('Trân châu trắng');
     }
 
     /**
@@ -999,33 +960,31 @@ class StaffRoleWorkflowTest extends TestCase
      * cho 1 đơn ĐÃ TỒN TẠI (vd khách chọn MoMo lúc tạo đơn nhưng chưa quét mã xong) - khác với luồng
      * redirect MoMo lúc mới TẠO đơn đã được test riêng.
      */
-    public function test_receptionist_can_retry_momo_payment_on_existing_unpaid_order(): void
+    public function test_receptionist_can_retry_vnpay_payment_on_existing_unpaid_order(): void
     {
-        \Illuminate\Support\Facades\Http::fake([
-            '*' => \Illuminate\Support\Facades\Http::response(['payUrl' => 'https://test-payment.momo.vn/fake-retry-url'], 200),
-        ]);
-        config(['services.momo.production.partner_code' => 'TEST', 'services.momo.production.access_key' => 'TEST', 'services.momo.production.secret_key' => 'TEST']);
+        config(['services.vnpay.sandbox.tmn_code' => 'TEST', 'services.vnpay.sandbox.hash_secret' => 'TEST']);
 
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
         $order = $this->makeOrder([
-            'payment_method' => 'momo', 'payment_status' => 'unpaid', 'delivery_type' => 'pickup',
+            'payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'delivery_type' => 'pickup',
             'delivery_address' => null, 'status' => 'confirmed',
         ]);
 
         $response = $this->actingAs($staff)->post("/staff/reception/orders/{$order->id}/pay-online");
 
-        $response->assertRedirect('https://test-payment.momo.vn/fake-retry-url');
+        $response->assertStatus(302);
+        $this->assertStringStartsWith('https://sandbox.vnpayment.vn/', $response->headers->get('Location'));
         $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
     /**
      * Đơn đã thanh toán rồi thì không được thử thanh toán lại lần nữa.
      */
-    public function test_retrying_momo_payment_on_already_paid_order_is_rejected(): void
+    public function test_retrying_vnpay_payment_on_already_paid_order_is_rejected(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
         $order = $this->makeOrder([
-            'payment_method' => 'momo', 'payment_status' => 'paid', 'delivery_type' => 'pickup',
+            'payment_method' => 'vnpay', 'payment_status' => 'paid', 'delivery_type' => 'pickup',
             'delivery_address' => null, 'status' => 'confirmed',
         ]);
 
@@ -1040,7 +999,7 @@ class StaffRoleWorkflowTest extends TestCase
     private function makeProduct(array $overrides = []): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Trà sữa', 'slug' => 'tra-sua-' . uniqid(), 'created_at' => now(), 'updated_at' => now(),
+            'name' => 'Trà sữa', 'created_at' => now(), 'updated_at' => now(),
         ]);
 
         return Product::create(array_merge([
@@ -1161,8 +1120,12 @@ class StaffRoleWorkflowTest extends TestCase
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
-        $response->assertDontSee('print-prep-ticket-btn', false);
-        $response->assertDontSee('print-invoice-btn', false);
+        // Chỉ kiểm tra chuỗi id="..." của chính thẻ <button> — chuỗi tên id trần (không kèm id=)
+        // còn xuất hiện trong <script> gọi getElementById() được nhúng thẳng vào trang (từ khi gộp
+        // JS vào Blade), nên assertDontSee('print-prep-ticket-btn') trần sẽ luôn thất bại dù nút
+        // chưa render, vì JS tham chiếu tới nó vẫn luôn có mặt trên trang bất kể nút có hiện hay không.
+        $response->assertDontSee('id="print-prep-ticket-btn"', false);
+        $response->assertDontSee('id="print-invoice-btn"', false);
         $response->assertSee('Xác nhận đơn để in');
 
         // Đơn tiền mặt CHƯA thu tiền -> không được phép xác nhận đơn (chặn ở transition()).
@@ -1177,8 +1140,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertSame('confirmed', $order->fresh()->status);
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
-        $response->assertSee('print-prep-ticket-btn', false);
-        $response->assertSee('print-invoice-btn', false);
+        $response->assertSee('id="print-prep-ticket-btn"', false);
+        $response->assertSee('id="print-invoice-btn"', false);
     }
 
     /**
@@ -1190,41 +1153,15 @@ class StaffRoleWorkflowTest extends TestCase
         $order = $this->makeOrder(['delivery_type' => 'delivery', 'payment_method' => 'cod', 'status' => 'pending']);
 
         $response = $this->actingAs($receptionist)->get("/staff/reception/orders/{$order->id}");
-        $response->assertDontSee('print-prep-ticket-btn', false);
-        $response->assertDontSee('print-invoice-btn', false);
+        $response->assertDontSee('id="print-prep-ticket-btn"', false);
+        $response->assertDontSee('id="print-invoice-btn"', false);
 
         $this->patch("/staff/reception/orders/{$order->id}/status", ['status' => 'confirmed']);
         $this->assertSame('unpaid', $order->fresh()->payment_status);
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
-        $response->assertSee('print-prep-ticket-btn', false);
-        $response->assertSee('print-invoice-btn', false);
-    }
-
-    /**
-     * Đơn tại quầy chọn MoMo -> KHÔNG tự đánh dấu đã thanh toán, mà chuyển hướng sang cổng MoMo
-     * để khách quét QR; việc đánh dấu paid thật sự chỉ xảy ra ở webhook/return của MoMo (đã có sẵn).
-     */
-    public function test_receptionist_counter_order_momo_redirects_to_payment_gateway(): void
-    {
-        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
-        \Illuminate\Support\Facades\Http::fake([
-            '*' => \Illuminate\Support\Facades\Http::response(['payUrl' => 'https://test-payment.momo.vn/fake-pay-url'], 200),
-        ]);
-
-        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
-        $product = $this->makeProduct();
-
-        $this->actingAs($receptionist);
-        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'momo']);
-        $response->assertRedirect('https://test-payment.momo.vn/fake-pay-url');
-
-        $order = Order::where('created_by', $receptionist->id)->latest()->first();
-        $this->assertNotNull($order);
-        $this->assertEquals('momo', $order->payment_method);
-        $this->assertEquals('unpaid', $order->payment_status);
+        $response->assertSee('id="print-prep-ticket-btn"', false);
+        $response->assertSee('id="print-invoice-btn"', false);
     }
 
     /**
@@ -1387,15 +1324,17 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('receptionist', $receptionist->fresh()->staff_type);
 
         // Giá trị hợp lệ -> đổi thành công
-        $response = $this->patchJson("/admin/staff-accounts/{$receptionist->id}/staff-type", ['staff_type' => 'delivery']);
-        $response->assertOk();
-        $response->assertJson(['success' => true, 'staff_type' => 'delivery']);
+        $response = $this->patch("/admin/staff-accounts/{$receptionist->id}/staff-type", ['staff_type' => 'delivery']);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertEquals('delivery', $receptionist->fresh()->staff_type);
 
-        // Không đụng tài khoản customer/admin dù ID trùng khớp về mặt số học với 1 staff khác
+        // Không đụng tài khoản customer/admin dù ID trùng khớp về mặt số học với 1 staff khác - route
+        // tự redirect kèm lỗi (không phải 404) vì lookup chỉ where('role','staff') rồi kiểm tra null.
         $customer = User::factory()->create(['role' => 'customer']);
-        $response = $this->patchJson("/admin/staff-accounts/{$customer->id}/staff-type", ['staff_type' => 'delivery']);
-        $response->assertStatus(404);
+        $response = $this->patch("/admin/staff-accounts/{$customer->id}/staff-type", ['staff_type' => 'delivery']);
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('error');
         $this->assertNull($customer->fresh()->staff_type);
     }
 
@@ -1411,10 +1350,10 @@ class StaffRoleWorkflowTest extends TestCase
         // Tiền mặt hôm nay: 'cash' + 'cod' đã thanh toán
         $this->makeOrder(['payment_method' => 'cash', 'payment_status' => 'paid', 'paid_at' => now(), 'final_amount' => 40000]);
         $this->makeOrder(['payment_method' => 'cod', 'payment_status' => 'paid', 'paid_at' => now(), 'final_amount' => 20000]);
-        // Chuyển khoản hôm nay: 'momo' đã thanh toán
-        $this->makeOrder(['payment_method' => 'momo', 'payment_status' => 'paid', 'paid_at' => now(), 'final_amount' => 60000]);
-        // Không tính: momo chưa thanh toán
-        $this->makeOrder(['payment_method' => 'momo', 'payment_status' => 'unpaid', 'paid_at' => null, 'final_amount' => 99000]);
+        // Chuyển khoản hôm nay: 'vnpay' đã thanh toán
+        $this->makeOrder(['payment_method' => 'vnpay', 'payment_status' => 'paid', 'paid_at' => now(), 'final_amount' => 60000]);
+        // Không tính: vnpay chưa thanh toán
+        $this->makeOrder(['payment_method' => 'vnpay', 'payment_status' => 'unpaid', 'paid_at' => null, 'final_amount' => 99000]);
         // Không tính: đã thanh toán nhưng từ hôm qua
         $this->makeOrder(['payment_method' => 'cash', 'payment_status' => 'paid', 'paid_at' => now()->subDay(), 'final_amount' => 77000]);
 
@@ -2130,8 +2069,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->post('/staff/reception/orders', ['payment_method' => 'cash']); // Khách vãng lai -> user_id null
 
         $this->actingAs($admin);
-        $response = $this->deleteJson("/admin/staff-accounts/{$receptionist->id}");
-        $response->assertStatus(422);
+        $response = $this->delete("/admin/staff-accounts/{$receptionist->id}");
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('users', ['id' => $receptionist->id]);
     }
 
@@ -2629,13 +2569,14 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($admin);
 
-        $response = $this->deleteJson("/admin/staff-accounts/{$usedDelivery->id}");
-        $response->assertStatus(422);
+        $response = $this->delete("/admin/staff-accounts/{$usedDelivery->id}");
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('users', ['id' => $usedDelivery->id]);
 
-        $response = $this->deleteJson("/admin/staff-accounts/{$unusedReceptionist->id}");
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response = $this->delete("/admin/staff-accounts/{$unusedReceptionist->id}");
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseMissing('users', ['id' => $unusedReceptionist->id]);
     }
 
@@ -2652,8 +2593,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get("/admin/staff-accounts/{$customer->id}/edit")->assertStatus(404);
         $this->put("/admin/staff-accounts/{$customer->id}", ['name' => 'Hack', 'email' => 'hack@x.com', 'staff_type' => 'delivery', 'is_active' => 1])->assertStatus(404);
 
-        $response = $this->deleteJson("/admin/staff-accounts/{$customer->id}");
-        $response->assertStatus(404);
+        $response = $this->delete("/admin/staff-accounts/{$customer->id}");
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('error');
         $this->assertDatabaseHas('users', ['id' => $customer->id, 'role' => 'customer']);
     }
 

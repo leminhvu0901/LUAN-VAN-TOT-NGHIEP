@@ -56,7 +56,7 @@ class VnpayCheckoutTest extends TestCase
     private function makeProduct(array $overrides = []): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
-            'name' => 'Drink', 'slug' => 'drink-' . Str::random(6), 'created_at' => now(), 'updated_at' => now(),
+            'name' => 'Drink', 'created_at' => now(), 'updated_at' => now(),
         ]);
 
         return Product::create(array_merge([

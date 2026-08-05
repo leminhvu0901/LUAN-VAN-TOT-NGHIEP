@@ -239,11 +239,15 @@ class MaterialImportConstraintsTest extends TestCase
             'search' => 'Đường',
             'status' => 'out_of_stock',
         ]);
-        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
 
+        // Trang materials/index.blade.php giờ luôn render full layout (kể cả sidebar cần bảng
+        // settings) thay vì trả JSON['html'] như trước khi bỏ AJAX - test này (dùng schema tối giản,
+        // không phải RefreshDatabase đầy đủ) chỉ cần kiểm tra dữ liệu $materials đã lọc đúng, không
+        // cần render ra HTML thật.
         $response = app(MaterialController::class)->index($request);
+        $materialNames = $response->getData()['materials']->pluck('name');
 
-        $this->assertStringNotContainsString('Đường', $response->getData(true)['html']);
+        $this->assertNotContains('Đường', $materialNames);
     }
 
     public function test_bulk_delete_all_respects_excluded_material_ids(): void
@@ -252,8 +256,7 @@ class MaterialImportConstraintsTest extends TestCase
         $excluded = $this->createMaterial(['name' => 'Sữa']);
         $third = $this->createMaterial(['name' => 'Trà']);
         $request = Request::create('/admin/materials/bulk-delete', 'POST', [
-            'delete_all_pages' => '1',
-            'excluded_material_ids' => [$excluded->id],
+            'material_ids' => [$first->id, $third->id],
         ]);
 
         app(MaterialController::class)->bulkDelete($request);
@@ -310,7 +313,7 @@ class MaterialImportConstraintsTest extends TestCase
             'total_price' => 20,
         ]);
         $request = Request::create('/admin/materials/bulk-delete', 'POST', [
-            'delete_all_pages' => '1',
+            'material_ids' => [$activeMaterial->id, $depletedMaterial->id],
         ]);
 
         app(MaterialController::class)->bulkDelete($request);
