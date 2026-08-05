@@ -297,7 +297,7 @@ class AuthController
             'can_reset_password',
             'can_reset_password_at'
         ]);
-        return response()->json(['status' => 'success']);
+        return redirect('/');
     }
 
     /**

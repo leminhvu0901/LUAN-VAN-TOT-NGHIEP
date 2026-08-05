@@ -106,142 +106,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
-    // Cho phép openOtpModal() (gọi khi mở modal bằng JS thuần sau khi đăng ký/quên mật khẩu submit
-    // qua fetch, không tải lại trang) khởi động lại đúng bộ đếm ngược này.
-    window.startOtpTimer = startTimer;
-
-    // Submit form nhập mã OTP qua fetch — trước đây nhập sai/hết hạn thì tải lại cả trang, phải gõ
-    // lại từ đầu. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng thì tùy trường hợp: luồng quên
-    // mật khẩu chuyển thẳng sang modal Đặt lại mật khẩu bằng JS (không tải lại trang, xem
-    // reset-password.js), luồng đăng ký điều hướng thật tới trang chủ (đã tự đăng nhập).
-    const otpForm = otpModal ? otpModal.querySelector('form') : null;
-    if (otpForm) {
-        otpForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            const btn = otpForm.querySelector('button[type="submit"]');
-            if (btn) btn.disabled = true;
-
-            fetch(otpForm.action, {
-                method: 'POST',
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: new FormData(otpForm),
-            })
-                .then(function (response) {
-                    return response.json().then(function (data) { return { status: response.status, data: data }; });
-                })
-                .then(function (result) {
-                    if (result.status >= 400) {
-                        const errors = (result.data && result.data.errors) || {};
-                        const firstError = Object.values(errors)[0];
-                        const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Mã OTP không chính xác.';
-                        const errorEl = document.getElementById('otp-error-alert');
-                        if (errorEl) {
-                            errorEl.textContent = message;
-                            errorEl.classList.remove('hidden');
-                        } else {
-                            if (window.FrontendAlert) window.FrontendAlert.error(message); else alert(message);
-                        }
-                        if (btn) btn.disabled = false;
-                        return;
-                    }
-                    if (result.data && result.data.show_reset_password) {
-                        otpModal.style.display = 'none';
-                        if (typeof window.openResetPasswordModal === 'function') window.openResetPasswordModal();
-                        if (btn) btn.disabled = false;
-                        return;
-                    }
-                    if (result.data && result.data.redirect_url) {
-                        window.location.href = result.data.redirect_url;
-                        return;
-                    }
-                    if (btn) btn.disabled = false;
-                })
-                .catch(function () {
-                    if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
-                    if (btn) btn.disabled = false;
-                });
-        });
-    }
 });
 
-// Mở modal OTP bằng JS thuần (không tải lại trang) — dùng chung cho cả luồng "Đăng ký" và "Quên mật
-// khẩu" ngay sau khi form tương ứng submit thành công qua fetch (xem register.js/forgot-password.js).
-// Trước đây phải tải lại trang để server render lại cờ show_otp + session('verify_email'); giờ JS tự
-// mở modal + tự điền email vừa nhập, không cần vòng qua server thêm lần nữa.
-window.openOtpModal = function (email) {
-    const otpModal = document.getElementById('otp-modal');
-    if (!otpModal) return;
+// Form nhập mã OTP submit thật (tải lại trang) — sai thì quay lại kèm lỗi ($errors->has('otp_error')),
+// otp-modal tự mở lại nhờ data-show-otp; đúng thì tùy trường hợp: luồng quên mật khẩu server flash
+// show_reset_password=true (modal Đặt lại mật khẩu tự mở, xem reset-password.js), luồng đăng ký
+// redirect thật tới trang chủ (đã tự đăng nhập).
 
-    const emailDisplay = document.getElementById('otp-email-display');
-    if (emailDisplay && email) emailDisplay.textContent = email;
-
-    document.querySelectorAll('.otp-input').forEach(function (input) { input.value = ''; });
-    const errorEl = document.getElementById('otp-error-alert');
-    if (errorEl) errorEl.classList.add('hidden');
-
-    otpModal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-
-    const firstInput = otpModal.querySelector('.otp-input');
-    if (firstInput) setTimeout(function () { firstInput.focus(); }, 100);
-
-    if (typeof window.startOtpTimer === 'function') window.startOtpTimer();
-};
-
-// Hàm gửi yêu cầu để xóa session OTP khi người dùng tắt modal hoặc hủy xác thực
-function cancelOTPSession() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    // Ưu tiên sendBeacon: nếu người dùng bấm Đóng rồi F5/điều hướng đi ngay lập tức, một fetch() thường
-    // có thể bị trình duyệt hủy giữa chừng trước khi server kịp xóa session, khiến modal OTP hiện lại
-    // sau khi tải lại trang (session('verify_email') vẫn còn). sendBeacon được trình duyệt đảm bảo gửi
-    // đi dù trang đang unload. Không set được header tùy ý nên gửi _token qua body để CSRF vẫn hợp lệ
-    // (Laravel đọc _token từ input trước khi xét tới header X-CSRF-TOKEN).
-    if (navigator.sendBeacon) {
-        const body = new URLSearchParams({ _token: csrfToken || '' });
-        navigator.sendBeacon('/cancel-otp', body);
-        return;
-    }
-
-    fetch('/cancel-otp', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Tải lại trang hoặc cập nhật trạng thái nếu cần thiết
-        console.log('OTP Session cleared successfully.');
-    })
-    .catch(err => console.error('Error clearing OTP session:', err));
-}
-
-// 3. Logic đóng Modal khi tương tác với nút đóng (X) hoặc nhấp ra ngoài vùng nền tối (Overlay)
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('otp-modal');
-    if (!modal) return;
-
-    // Nhấp vào nút có ID close-otp hoặc nằm trong thẻ của nó
-    const closeBtn = e.target.closest('#close-otp');
-    if (closeBtn) {
-        e.preventDefault();
-        modal.style.display = 'none';
-        // Khôi phục lại trạng thái cuộn trang web bình thường
-        document.body.style.overflow = '';
-        // Gọi hàm xóa session OTP trên server
-        cancelOTPSession();
-        return;
-    }
-
-    // Nhấp vào vùng nền tối bao quanh modal
+// Đóng modal OTP = hủy xác thực: nhấp ra ngoài vùng nền tối cũng submit luôn form ẩn "cancel-otp-form"
+// (xem verify-otp.blade.php) để dọn session OTP trên server — điều hướng thật, không còn sendBeacon/fetch.
+document.addEventListener('click', function (e) {
     const overlay = e.target.closest('#otp-overlay');
     if (overlay) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-        // Gọi hàm xóa session OTP trên server
-        cancelOTPSession();
-        return;
+        const cancelForm = document.getElementById('cancel-otp-form');
+        if (cancelForm) cancelForm.submit();
     }
 });

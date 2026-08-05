@@ -46,55 +46,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Submit form quên mật khẩu qua fetch — trước đây email không tồn tại thì tải lại cả trang mới thấy
-// lỗi. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng thì JS tự chuyển sang modal OTP luôn
-// (openOtpModal(), định nghĩa ở verify-otp.js) không cần tải lại trang.
-document.addEventListener('DOMContentLoaded', function () {
-    const forgotForm = document.querySelector('#forgot-modal form');
-    if (!forgotForm) return;
-
-    forgotForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        const btn = forgotForm.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = true;
-
-        fetch(forgotForm.action, {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            body: new FormData(forgotForm),
-        })
-            .then(function (response) {
-                return response.json().then(function (data) { return { status: response.status, data: data }; });
-            })
-            .then(function (result) {
-                if (result.status >= 400) {
-                    const errors = (result.data && result.data.errors) || {};
-                    const firstError = Object.values(errors)[0];
-                    const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Không thể gửi yêu cầu, vui lòng kiểm tra lại.';
-                    const errorEl = document.getElementById('forgot-error-alert');
-                    if (errorEl) {
-                        errorEl.textContent = message;
-                        errorEl.classList.remove('hidden');
-                    } else {
-                        if (window.FrontendAlert) window.FrontendAlert.error(message); else alert(message);
-                    }
-                    if (btn) btn.disabled = false;
-                    return;
-                }
-
-                if (result.data && result.data.otp_required) {
-                    const forgotModal = document.getElementById('forgot-modal');
-                    if (forgotModal) forgotModal.style.display = 'none';
-                    if (typeof window.openOtpModal === 'function') window.openOtpModal(result.data.email);
-                    if (btn) btn.disabled = false;
-                    return;
-                }
-
-                if (btn) btn.disabled = false;
-            })
-            .catch(function () {
-                if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
-                if (btn) btn.disabled = false;
-            });
-    });
-});
+// Form quên mật khẩu submit thật (tải lại trang) — sai (email không tồn tại) thì quay lại kèm lỗi
+// ($errors->has('forgot_error')), script inline cuối forgot-password.blade.php tự mở lại modal dựa
+// vào session('show_forgot'); đúng thì server flash show_otp=true, modal OTP tự mở sau khi tải lại.

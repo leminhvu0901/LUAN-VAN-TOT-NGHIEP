@@ -10,12 +10,17 @@
         {{-- Hộp xác thực OTP chính chứa biểu mẫu nhập mã và bộ đếm ngược --}}
         <div id="otp-box" class="l-modal-box">
             
-            {{-- Nút biểu tượng chữ X để đóng Modal OTP khi cần --}}
-            <button id="close-otp" type="button" class="l-close-btn" aria-label="Đóng">
+            {{-- Nút biểu tượng chữ X để đóng Modal OTP — submit thật (không phải AJAX) form ẩn bên dưới
+            để dọn session OTP trên server rồi quay về trang chủ. Dùng thuộc tính form="..." vì nút này
+            nằm trước form nhập OTP chính, không thể lồng 2 form vào nhau. --}}
+            <button id="close-otp" type="submit" form="cancel-otp-form" class="l-close-btn" aria-label="Đóng">
                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
+            <form id="cancel-otp-form" action="{{ route('verify.otp.cancel') }}" method="POST" class="hidden">
+                @csrf
+            </form>
 
             {{-- Phần hiển thị biểu tượng xác thực (Khiên bảo mật kèm biểu tượng phong bì thư) --}}
             <div class="otp-icon-wrap">
@@ -46,8 +51,8 @@
                 {{-- Token bảo mật CSRF bắt buộc của Laravel nhằm chống tấn công giả mạo --}}
                 @csrf
                 
-                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác nhận mã OTP. Luôn render sẵn (ẩn
-                mặc định) vì form submit qua fetch (xem verify-otp.js), JS cần chỗ có sẵn để tự hiện lỗi. --}}
+                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác nhận mã OTP (render trực tiếp từ
+                $errors sau khi submit form thật và tải lại trang). --}}
                 @php
                     $otpErrorMsg = $errors->has('otp_error')
                         ? $errors->first('otp_error')

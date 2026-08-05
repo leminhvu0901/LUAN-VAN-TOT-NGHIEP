@@ -1,12 +1,13 @@
 {{-- Khung Modal Đặt lại mật khẩu (Mặc định được ẩn bằng CSS, tự động hiển thị nếu Session đánh dấu
 đã xác thực OTP quên mật khẩu thành công). Trước đây đây là 1 TRANG RIÊNG (route GET /reset-password)
 điều hướng cả trang - giờ chuyển thành modal giống hệt Đăng nhập/Đăng ký để không phải rời trang. --}}
-{{-- CHỈ mở modal theo cờ FLASH 'show_reset_password' (chỉ sống đúng 1 request ngay sau khi xác thực
-OTP thành công). TUYỆT ĐỐI KHÔNG dùng session('can_reset_password') ở đây: đó là cờ QUYỀN, tồn tại lâu
-trong session cho tới khi bị xoá - nếu dùng nó, chỉ cần tải lại trang bất kỳ (vd bấm "Gửi lại" mã OTP)
-là modal tự bung ra, cho phép đặt lại mật khẩu mà KHÔNG cần nhập đúng OTP. Đây là lỗ hổng bảo mật thật
-đã từng xảy ra - xem test test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
-<div id="reset-password-modal" data-show-reset-password="{{ session('show_reset_password') ? 'true' : 'false' }}">
+{{-- Mở modal theo cờ FLASH 'show_reset_password' HOẶC khi vừa submit lỗi (reset_error) — cả 2 đều chỉ
+sống đúng 1 request nên an toàn, giống hệt cách modal Đăng nhập/Đăng ký đang làm. TUYỆT ĐỐI KHÔNG dùng
+session('can_reset_password') ở đây: đó là cờ QUYỀN, tồn tại lâu trong session cho tới khi bị xoá - nếu
+dùng nó, chỉ cần tải lại trang bất kỳ (vd bấm "Gửi lại" mã OTP) là modal tự bung ra, cho phép đặt lại
+mật khẩu mà KHÔNG cần nhập đúng OTP. Đây là lỗ hổng bảo mật thật đã từng xảy ra - xem test
+test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
+<div id="reset-password-modal" data-show-reset-password="{{ (session('show_reset_password') || $errors->has('reset_error') || $errors->has('password')) ? 'true' : 'false' }}">
 
     {{-- Lớp nền tối mờ phía sau Modal (Overlay) --}}
     <div id="reset-password-overlay"></div>
@@ -52,9 +53,8 @@ là modal tự bung ra, cho phép đặt lại mật khẩu mà KHÔNG cần nh�
                 {{-- Token bảo mật tránh tấn công giả mạo yêu cầu chéo CSRF --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi chung (vd phiên xác thực hết hạn, không tìm thấy tài khoản)
-                khi server trả về lỗi. Luôn render sẵn (ẩn mặc định) vì form submit qua fetch (xem
-                reset-password.js), JS cần chỗ có sẵn để tự hiện lỗi. --}}
+                {{-- Hiển thị thông báo lỗi chung (vd phiên xác thực hết hạn, không tìm thấy tài khoản,
+                mật khẩu không đủ mạnh) khi server trả về lỗi sau khi submit form thật. --}}
                 <div id="reset-password-error-alert" class="l-error-alert {{ $errors->has('reset_error') ? '' : 'hidden' }}">
                     {{ $errors->first('reset_error') }}
                 </div>

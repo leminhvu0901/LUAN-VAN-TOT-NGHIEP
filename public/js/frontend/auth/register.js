@@ -44,62 +44,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Submit form đăng ký qua fetch — trước đây sai (email đã dùng, mật khẩu không đủ mạnh...) thì tải
-// lại cả trang mới thấy lỗi, phải gõ lại toàn bộ. Giờ sai thì modal đứng yên, hiện lỗi tại chỗ; đúng
-// thì JS tự chuyển sang modal OTP luôn (openOtpModal(), định nghĩa ở verify-otp.js) không cần tải lại
-// trang để server render lại cờ show_otp nữa.
-document.addEventListener('DOMContentLoaded', function () {
-    const registerForm = document.querySelector('#register-modal form');
-    if (!registerForm) return;
-
-    registerForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        const btn = registerForm.querySelector('button[type="submit"]');
-        // Lưu lại chữ gốc để khôi phục sau — nếu không có bước này, khi SMTP chậm/lỗi thì nút bấm chỉ
-        // disable im lìm không có phản hồi gì, người dùng tưởng web bị đứng.
-        const originalBtnText = btn ? btn.textContent : '';
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Đang xử lý...';
-        }
-
-        fetch(registerForm.action, {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            body: new FormData(registerForm),
-        })
-            .then(function (response) {
-                return response.json().then(function (data) { return { status: response.status, data: data }; });
-            })
-            .then(function (result) {
-                if (result.status >= 400) {
-                    const errors = (result.data && result.data.errors) || {};
-                    const firstError = Object.values(errors)[0];
-                    const message = (firstError && firstError[0]) || (result.data && result.data.message) || 'Đăng ký thất bại, vui lòng kiểm tra lại.';
-                    const errorEl = document.getElementById('register-error-alert');
-                    if (errorEl) {
-                        errorEl.textContent = message;
-                        errorEl.classList.remove('hidden');
-                    } else {
-                        if (window.FrontendAlert) window.FrontendAlert.error(message); else alert(message);
-                    }
-                    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
-                    return;
-                }
-
-                if (result.data && result.data.otp_required) {
-                    const registerModal = document.getElementById('register-modal');
-                    if (registerModal) registerModal.style.display = 'none';
-                    if (typeof window.openOtpModal === 'function') window.openOtpModal(result.data.email);
-                    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
-                    return;
-                }
-
-                if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
-            })
-            .catch(function () {
-                if (window.FrontendAlert) window.FrontendAlert.error('Không thể kết nối máy chủ, vui lòng thử lại.'); else alert('Không thể kết nối máy chủ, vui lòng thử lại.');
-                if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
-            });
-    });
-});
+// Form đăng ký submit thật (tải lại trang) — sai thì quay lại kèm lỗi ($errors->has('register_error')),
+// data-show-register do Blade render sẽ tự mở lại modal đăng ký; đúng thì server flash show_otp=true,
+// modal OTP (data-show-otp, xem verify-otp.blade.php) tự mở ngay sau khi trang tải lại.
