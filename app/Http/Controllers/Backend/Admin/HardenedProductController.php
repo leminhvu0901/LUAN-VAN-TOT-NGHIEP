@@ -75,7 +75,7 @@ class HardenedProductController
 
     /**
      * Hàm xử lý lưu thông tin sản phẩm mới vào Database.
-     * Thực hiện validate dữ liệu form, tạo Slug, tự động sinh mã SKU nếu trống, 
+     * Thực hiện validate dữ liệu form, tạo Slug, tự động sinh mã SKU nếu trống,
      * chạy DB Transaction lưu thông tin sản phẩm, lưu album ảnh phụ và đồng bộ toppings/sizes.
      */
     public function store(Request $request)
@@ -104,7 +104,7 @@ class HardenedProductController
 
     /**
      * Hàm xử lý cập nhật các thông tin chỉnh sửa của sản phẩm vào Database.
-     * Thực hiện xác thực validate, chạy DB Transaction ghi đè dữ liệu, 
+     * Thực hiện xác thực validate, chạy DB Transaction ghi đè dữ liệu,
      * upload ảnh mới, xóa tệp ảnh cũ khỏi máy chủ để tránh rác ổ đĩa.
      */
     public function update(Request $request, Product $product)
@@ -134,7 +134,7 @@ class HardenedProductController
         return redirect($this->safeReturnUrl($request))->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
-    // tự động xác định và lấy URL của trang mà người dùng 
+    // tự động xác định và lấy URL của trang mà người dùng
     private function resolveBackUrl(Request $request): string
     {
         $referer = $request->headers->get('referer');
@@ -168,9 +168,7 @@ class HardenedProductController
         return back()->with('success', 'Xóa sản phẩm thành công!');
     }
 
-    /**
-     * Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện (chỉ các dòng đang chọn trong trang hiện tại).
-     */
+    // Hàm xử lý xóa hàng loạt sản phẩm được tích chọn ở giao diện
     public function bulkDelete(Request $request)
     {
         $ids = $request->validate(['product_ids' => ['required', 'array'], 'product_ids.*' => ['integer', 'exists:products,id']])['product_ids'];

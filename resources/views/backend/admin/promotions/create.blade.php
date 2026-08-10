@@ -175,7 +175,7 @@
                                 <option value="gold" {{ old('apply_for') == 'gold' ? 'selected' : '' }}>Vàng (Gold)</option>
                                 <option value="diamond" {{ old('apply_for') == 'diamond' ? 'selected' : '' }}>Kim cương (Diamond)</option>
                             </select>
-                            <p class="text-xs text-gray-400 mt-1">Chỉ những khách hàng đạt hạng này trở lên mới có thể sử dụng.</p>
+                            <p class="text-xs text-gray-400 mt-1">Chỉ khách hàng đúng hạng này mới sử dụng được (không áp dụng cho hạng khác).</p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kênh áp dụng</label>
@@ -187,13 +187,22 @@
                             <p class="text-xs text-gray-400 mt-1">Mã "Tại quầy" được lễ tân tự động áp dụng, không cần khách nhập; mã "Giao hàng" khách tự nhập ở trang thanh toán.</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Giới hạn số lượt dùng</label>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Giới hạn số lượt dùng (toàn hệ thống)</label>
                             <input type="number" name="usage_limit"
                                 value="{{ old('usage_limit') }}"
                                 placeholder="Không giới hạn"
                                 min="1"
                                 class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
                             <p class="text-xs text-gray-400 mt-1">Để trống = không giới hạn số lần sử dụng.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Giới hạn lượt dùng / 1 tài khoản</label>
+                            <input type="number" name="usage_limit_per_user"
+                                value="{{ old('usage_limit_per_user', 1) }}"
+                                placeholder="Không giới hạn"
+                                min="1"
+                                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                            <p class="text-xs text-gray-400 mt-1">Mặc định 1 = mỗi tài khoản chỉ dùng được 1 lần. Để trống = không giới hạn.</p>
                         </div>
                     </div>
 
@@ -348,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const descriptionInput = document.getElementById('promo-description');
     const descCount = document.getElementById('desc-count');
 
+    // Định dạng ô nhập tiền theo kiểu Việt Nam
     function bindVNDInput(displayEl, hiddenEl) {
         if (!displayEl || !hiddenEl) return;
 
@@ -382,11 +392,13 @@ document.addEventListener('DOMContentLoaded', function () {
     bindVNDInput(displayMaxDiscount, hiddenMaxDiscount);
     bindVNDInput(displayMinOrder, hiddenMinOrder);
 
+    // Đọc kiểu giảm giá đang được chọn (theo % hay số tiền cố định)
     function getCurrentType() {
         const checked = document.querySelector('input[name="type"]:checked');
         return checked ? checked.value : 'percent';
     }
 
+    // Đổi giao diện form theo kiểu giảm giá đang chọn
     function updateTypeUI(selectedType) {
         const isPercent = (selectedType === 'percent');
 
@@ -463,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const scopeComboFields = document.getElementById('scope-combo-fields');
     const moneyDiscountFields = document.getElementById('money-discount-fields');
 
+    // Hiện/ẩn các khu vực của form theo phạm vi áp dụng (cả đơn / sản phẩm / danh mục / combo)
     function updateScopeUI(selectedScope) {
         scopeOptions.forEach(function (option) {
             const isActive = option.dataset.scope === selectedScope;
@@ -478,6 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (moneyDiscountFields) moneyDiscountFields.classList.toggle('hidden', selectedScope === 'combo');
     }
 
+    // Đọc phạm vi áp dụng đang được chọn
     function getCurrentScope() {
         const checked = document.querySelector('input[name="scope"]:checked');
         return checked ? checked.value : 'order';
@@ -525,6 +539,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (descriptionInput && descCount) {
+        // Đếm số ký tự còn lại cho ô mô tả
         const updateCount = () => {
             const len = descriptionInput.value.length;
             descCount.textContent = len + '/100';
@@ -571,11 +586,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Khởi tạo khu vực khai báo tổ hợp món của combo
     function initComboItems() {
         const container = document.getElementById('combo-items');
         const addButton = document.getElementById('add-combo-item');
         if (!container || !addButton) return;
 
+        // Sinh một dòng chọn sản phẩm + số lượng trong tổ hợp combo
         function createComboItemRow() {
             const row = document.createElement('div');
             row.className = 'combo-item-row grid grid-cols-1 sm:grid-cols-[1fr_120px_40px] gap-2';
@@ -618,16 +635,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const comboDiscountValueUnit = document.getElementById('combo-discount-value-unit');
     const comboMaxDiscountWrap = document.getElementById('combo-max-discount-wrap');
 
+    // Hiện/ẩn khu vực chọn quà tặng kèm của combo
     function updateComboRewardUI() {
         if (comboDiscountFields && comboHasDiscount) comboDiscountFields.classList.toggle('hidden', !comboHasDiscount.checked);
         if (comboGiftFields && comboHasGift) comboGiftFields.classList.toggle('hidden', !comboHasGift.checked);
     }
 
+    // Đọc kiểu giảm giá riêng của combo đang chọn
     function getComboDiscountType() {
         const checked = document.querySelector('input[name="discount_type"]:checked');
         return checked ? checked.value : 'percent';
     }
 
+    // Đổi giao diện theo kiểu giảm giá riêng của combo
     function updateComboDiscountTypeUI(selectedType) {
         const isPercent = selectedType === 'percent';
         if (comboDiscountTypePercentLabel) {
@@ -671,6 +691,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateComboDiscountTypeUI(getComboDiscountType());
 
+    // Kiểm tra combo ngay tại trình duyệt trước khi gửi (đủ ít nhất 2 món, không trùng sản phẩm), chặn sớm cho khỏi mất công tải lại trang
     function validateComboBeforeSubmit() {
         const productSelects = Array.from(document.querySelectorAll('#combo-items select[name="combo_product_ids[]"]'));
         const hasProduct = productSelects.some((sel) => sel.value);

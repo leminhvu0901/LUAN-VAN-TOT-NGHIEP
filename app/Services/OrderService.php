@@ -16,12 +16,7 @@ use Illuminate\Validation\ValidationException;
 //"Dịch vụ xử lý đơn hàng".
 class OrderService
 {
-    /**
-     * Hàm khởi tạo (Constructor) nạp các Service liên quan:
-     * - CartPricingService: Dịch vụ tính giá sản phẩm trong giỏ hàng.
-     * - ShippingQuoteService: Dịch vụ tính khoảng cách và phí vận chuyển.
-     * - PromotionService: Dịch vụ xử lý khuyến mãi và combo quà tặng.
-     */
+ 
     public function __construct(
         private readonly CartPricingService $cartPricing,
         private readonly ShippingQuoteService $shipping,
@@ -29,15 +24,7 @@ class OrderService
     ) {
     }
 
-    /**
-     * public: Cho phép gọi từ bên ngoài (ví dụ: các Controller thanh toán).
-     * create(...): Tạo mới đơn hàng trong hệ thống (bao gồm kiểm tra cửa hàng, giỏ hàng, phí ship, khuyến mãi, điểm tích lũy, trừ giỏ hàng và lưu DB).
-     * 
-     * Các tham số:
-     * - User $user: Người thực hiện thao tác checkout (nhân viên lễ tân tại quầy hoặc khách mua hàng trực tuyến).
-     * - array $payload: Mảng chứa dữ liệu khách gửi lên (loại đơn, địa chỉ, mã giảm giá, mã idempotency_key, điểm quy đổi...).
-     * - string $paymentMethod: Phương thức thanh toán (COD, MoMo, VNPay, tiền mặt...).
-     */
+  //tao mới đơn hàng trong hệ thống (bao gồm kiểm tra cửa hàng, giỏ hàng, phí ship, khuyến mãi, điểm tích lũy, trừ giỏ hàng và lưu DB).
     public function create(User $user, array $payload, string $paymentMethod): Order
     {
         // Kiểm tra Idempotency Key: Đề phòng mạng lag khách bấm nút "Đặt hàng" 2 lần liên tục,
@@ -166,9 +153,12 @@ class OrderService
             } else {
                 $manualCode = null;
             }
-            if ($manualCode === null && !$isPickup) {
+            // Không nhập mã thì đơn KHÔNG có khuyến mãi — kể cả đơn tại quầy. Trước đây đơn tại quầy tự
+            // chọn giúp mã tốt nhất, giờ lễ tân phải tự bấm chọn giống khách, để mỗi đơn luôn chỉ có
+            // đúng 1 mã do người dùng chủ động chọn.
+            if ($manualCode === null) {
                 $promotion = null;
-                $autoResult = ['promotion' => null, 'discount' => 0.0];
+                $autoResult = ['promotion' => null, 'discount' => 0.0, 'gifts' => []];
             } else {
                 $autoResult = $this->promotions->resolveBestDiscount( // Gọi PromotionService để tìm mã giảm giá tốt nhất phù hợp cho đơn
                     $items,
@@ -182,17 +172,16 @@ class OrderService
                 $promotion = $autoResult['promotion'];
             }
 
-            // Tính toán quà tặng và giảm giá đi kèm từ chương trình Combo
-            $comboResult = $this->promotions->resolveComboRewards($items, $channel, $autoResult);
-            $comboEntries = $comboResult['entries'];
-            $couponDiscount = $comboResult['auto_discount'];
-            $comboDiscountTotal = collect($comboEntries)->where('type', 'discount')->sum('discount_amount');
+            // Mỗi đơn chỉ giữ đúng 1 mã. Nếu mã đó là mã combo thì phần quà tặng đi kèm nằm sẵn trong
+            // kết quả trả về; các loại mã khác luôn có 'gifts' rỗng.
+            $couponDiscount = $autoResult['discount'];
+            $giftEntries = $autoResult['gifts'] ?? [];
 
             // Tính toán giảm giá theo hạng thành viên (Silver, Gold, Diamond)
             $membershipDiscount = $this->membershipDiscount($orderOwner, $subtotal); // Gọi hàm nội bộ để tính mức giảm giá tri ân theo thứ hạng thành viên
 
             // Tổng hợp các khoản giảm giá (đảm bảo số tiền giảm tối đa không vượt quá giá trị tạm tính của đơn)
-            $discount = min($subtotal, $couponDiscount + $comboDiscountTotal + $membershipDiscount + $pointsDiscount);
+            $discount = min($subtotal, $couponDiscount + $membershipDiscount + $pointsDiscount);
             // Số tiền thanh toán cuối cùng = Tổng tiền sản phẩm + Phí ship + Phí thời tiết - Số tiền giảm giá
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discount);
 
@@ -202,7 +191,7 @@ class OrderService
             } while (Order::withTrashed()->where('order_code', $orderCode)->exists());
 
             // Tách các giá trị cần truyền vào câu lệnh tạo đơn hàng thành các khối if-else dễ hiểu:
-            
+
             // Xác định ai là người tạo đơn (Lễ tân/Admin tạo hộ hoặc null nếu khách tự đặt)
             if (in_array($user->role, ['staff', 'admin'], true)) {
                 $createdBy = $user->id;
@@ -311,11 +300,8 @@ class OrderService
                 ]);
             }
 
-            // 3. Tạo chi tiết đơn hàng cho các sản phẩm quà tặng được tặng kèm theo chương trình Combo (giá bán = 0đ)
-            foreach ($comboEntries as $entry) {
-                if ($entry['type'] !== 'gift') {
-                    continue;
-                }
+            // 3. Tạo chi tiết đơn hàng cho các sản phẩm quà tặng của mã combo khách đã áp (giá bán = 0đ)
+            foreach ($giftEntries as $entry) {
                 $comboItemNames = $entry['combo_items']->map(fn($ci) => $ci->quantity . ' ' . $ci->product->name)->implode(' + ');
                 OrderItem::create([ // Lưu thông tin quà tặng combo với đơn giá 0đ
                     'order_id' => $order->id,
@@ -340,12 +326,9 @@ class OrderService
             DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
             DB::table('cart_items')->whereIn('id', $itemIds)->delete();
 
-            // Tăng số lượng đã dùng của mã giảm giá và chương trình combo
+            // Tăng số lượt đã dùng của mã khách áp (mã combo cũng chỉ là 1 mã nên đếm đúng 1 lần)
             if ($promotion) {
                 $promotion->increment('used_count');
-            }
-            foreach (collect($comboEntries)->pluck('promotion')->unique('id') as $comboPromotion) {
-                $comboPromotion->increment('used_count');
             }
 
             // 5. Trừ điểm tích lũy của khách hàng thành viên nếu khách chọn quy đổi điểm sang tiền giảm giá
@@ -359,34 +342,7 @@ class OrderService
         }, 3); // Thử lại tối đa 3 lần nếu có tranh chấp khóa (deadlock)
     }
 
-    /**
-     * public: Cho phép gọi từ bên ngoài.
-     * previewAutoPromotion(...): Xem trước khuyến mãi tự động sẽ áp dụng cho một đơn tại quầy (dùng cho giao diện POS hiển thị trước tổng tiền).
-     * 
-     * Các tham số:
-     * - Collection $items: Danh sách sản phẩm trong giỏ đã định giá.
-     * - float $subtotal: Tổng tiền tạm tính thô.
-     * - int $totalQuantity: Tổng số lượng ly nước trong đơn.
-     * 
-     * Trả về kiểu dữ liệu: array (Mảng thông tin khuyến mãi tự động tối ưu nhất và số tiền giảm giá).
-     */
-    public function previewAutoPromotion(\Illuminate\Support\Collection $items, float $subtotal, int $totalQuantity = 0): array
-    {
-        return $this->promotions->resolveBestDiscount($items, $subtotal, null, 'pickup', $totalQuantity);
-    }
-
-    /**
-     * public: Cho phép gọi từ bên ngoài.
-     * previewManualCoupon(...): Xem trước số tiền giảm khi lễ tân nhập thủ công một mã coupon giảm giá trên POS.
-     * 
-     * Các tham số:
-     * - string $code: Mã giảm giá do khách cung cấp.
-     * - Collection $items: Danh sách sản phẩm.
-     * - ?User $orderOwner: Khách đứng tên đơn.
-     * - float $subtotal: Tổng tiền thô.
-     * - ?string $deliveryType: Kiểu giao hàng (tại quầy 'pickup' hoặc giao đi 'delivery').
-     * - int $totalQuantity: Tổng số lượng ly nước.
-     */
+   //Xem trước số tiền giảm khi lễ tân nhập thủ công một mã coupon giảm giá trên POS.
     public function previewManualCoupon(
         string $code,
         \Illuminate\Support\Collection $items,
@@ -406,15 +362,7 @@ class OrderService
         );
     }
 
-    /**
-     * public: Cho phép gọi từ bên ngoài.
-     * previewPointsDiscount(...): Xem trước số tiền giảm giá khi quy đổi điểm tích lũy của khách hàng thành viên.
-     * 
-     * Các tham số:
-     * - int $pointsToRedeem: Số điểm muốn quy đổi.
-     * - ?User $orderOwner: Tài khoản khách hàng thành viên.
-     * - float $subtotal: Tổng tiền tạm tính.
-     */
+   //Xem trước số tiền giảm giá khi quy đổi điểm tích lũy của khách hàng thành viên.
     public function previewPointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): array
     {
         try {
@@ -426,17 +374,7 @@ class OrderService
         }
     }
 
-    /**
-     * private: Chỉ dùng nội bộ trong class này.
-     * resolvePointsDiscount(...): Kiểm tra tính hợp lệ và quy đổi điểm tích lũy sang tiền giảm giá.
-     * 
-     * Quy tắc quy đổi:
-     * - Phải có tài khoản thành viên (không áp dụng cho khách vãng lai).
-     * - Chương trình quy đổi phải đang hoạt động (`loyalty_enabled = 1`).
-     * - Số điểm muốn quy đổi phải lớn hơn hoặc bằng mức tối thiểu (`loyalty_min_points_to_redeem`).
-     * - Số điểm muốn đổi không được lớn hơn số dư tài khoản của khách.
-     * - Số tiền giảm quy đổi không được vượt quá % trần giá trị hóa đơn cho phép (`loyalty_max_redeem_percent`).
-     */
+    //Kiểm tra tính hợp lệ và quy đổi điểm tích lũy sang tiền giảm giá.
     private function resolvePointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): float
     {
         if ($pointsToRedeem <= 0) {
@@ -481,15 +419,7 @@ class OrderService
         return $pointsDiscount;
     }
 
-    /**
-     * public: Cho phép gọi từ bên ngoài.
-     * membershipDiscount(?User $orderOwner, float $subtotal): Tính số tiền giảm giá tri ân theo cấp hạng thành viên của khách.
-     * 
-     * Các hạng thành viên:
-     * - Hạng Bạc (silver): Giảm 2% tổng tiền sản phẩm.
-     * - Hạng Vàng (gold): Giảm 5% tổng tiền sản phẩm.
-     * - Hạng Kim Cương (diamond): Giảm 10% tổng tiền sản phẩm.
-     */
+    //Tính số tiền giảm giá tri ân theo cấp hạng thành viên của khách.
     public function membershipDiscount(?User $orderOwner, float $subtotal): float
     {
         return match ($orderOwner?->membership_level) {

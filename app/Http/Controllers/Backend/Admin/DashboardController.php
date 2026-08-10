@@ -14,6 +14,7 @@ use Carbon\Carbon;
 
 class DashboardController
 {
+    // trang dash boar
     public function index()
     {
         $now = Carbon::now();
@@ -174,7 +175,7 @@ class DashboardController
             'orders' => $chartOrders
         ];
 
-        // 4. Danh sách đơn hàng mới nhất (Top 5)
+        // 4. Danh sách đơn hàng mới nhất
         $recentOrders = Order::latest()->limit(5)->get()->map(function ($order) {
             $labels = [
                 'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],
@@ -195,7 +196,7 @@ class DashboardController
             ];
         });
 
-        // 5. Đánh giá mới nhất (Top 5)
+        // 5. Đánh giá mới nhất
         $recentReviews = Review::with(['product', 'user'])
             ->latest()
             ->limit(5)

@@ -79,9 +79,6 @@
                             <button type="button" onclick="triggerFileInput();" class="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all flex items-center gap-1.5 shadow">
                                 <span class="material-symbols-outlined text-[18px]">cached</span> Thay đổi
                             </button>
-                            <button type="button" onclick="removeImagePreview();" class="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all flex items-center gap-1.5 shadow">
-                                <span class="material-symbols-outlined text-[18px]">delete</span> Xóa ảnh
-                            </button>
                         </div>
                     </div>
 
@@ -170,10 +167,12 @@
 // XỬ LÝ CHỌN ẢNH & HIỂN THỊ XEM TRƯỚC CHO FORM BANNER (EDIT)
 // =========================================================================
 
+// Bấm vào khung ảnh thì mở hộp thoại chọn file (thẻ input file gốc bị ẩn cho đẹp)
 function triggerFileInput() {
     document.getElementById('image-input').click();
 }
 
+// Hiện ảnh xem trước ngay sau khi chọn file, chưa cần tải lên máy chủ
 function previewSelectedImage(input) {
     if (input.files && input.files[0]) {
         if (input.files[0].size > 10 * 1024 * 1024) {
@@ -194,13 +193,6 @@ function previewSelectedImage(input) {
         }
         reader.readAsDataURL(input.files[0]);
     }
-}
-
-function removeImagePreview() {
-    document.getElementById('image-input').value = '';
-    document.getElementById('image-preview').setAttribute('src', '#');
-    document.getElementById('image-preview-container').classList.add('hidden');
-    document.getElementById('upload-placeholder').classList.remove('hidden');
 }
 
 document.addEventListener('DOMContentLoaded', function() {

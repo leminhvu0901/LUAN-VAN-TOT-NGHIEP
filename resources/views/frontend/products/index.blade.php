@@ -162,15 +162,19 @@
     @include('frontend.components.bottom-nav')
 
     <script>
+    // Đóng/mở thanh sidebar Bộ lọc trên di động (gắn class "open" để CSS trượt sidebar ra/vào),
+    // trên desktop sidebar luôn hiện sẵn nên hàm này thường chỉ được gọi khi ở màn hình nhỏ.
     function toggleFilter() {
         const sidebar = document.querySelector('.p-sidebar');
         if (sidebar) sidebar.classList.toggle('open');
     }
 
+    // Cập nhật nhãn hiển thị khoảng giá (VD "0đ – 250.000đ") và tô màu phần thanh trượt giá đã kéo
+    // qua (bên trái con trượt tô xanh, bên phải để màu xám) mỗi khi người dùng kéo thanh <input type="range">
     function updatePriceLabel(val) {
         const formatted = parseInt(val).toLocaleString('vi-VN');
         document.getElementById('price-label').textContent = '0đ – ' + formatted + 'đ';
-        
+
         const slider = document.getElementById('price-slider');
         if (slider) {
             const pct = ((val - slider.min) / (slider.max - slider.min)) * 100;
@@ -178,6 +182,8 @@
         }
     }
 
+    // Khởi tạo nhãn + màu thanh trượt giá đúng theo giá trị đã chọn từ trước (VD sau khi submit
+    // filter và tải lại trang, giá trị slider được server giữ lại qua query string)
     window.addEventListener('DOMContentLoaded', () => {
         const slider = document.getElementById('price-slider');
         if (slider) {
@@ -185,6 +191,8 @@
         }
     });
 
+    // Xóa nội dung ô tìm kiếm (cả ô tìm kiếm trong sidebar lẫn ô tìm kiếm trên navbar) rồi submit
+    // lại form lọc ngay lập tức - dùng cho nút "x" xóa nhanh từ khóa tìm kiếm đang áp dụng
     function clearSearchAndSubmit() {
         const searchInput = document.getElementById('filter-search');
         if (searchInput) searchInput.value = '';
@@ -193,6 +201,9 @@
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
 
+    // Submit form lọc (GET) ngay khi người dùng đổi 1 lựa chọn trong sidebar (tích danh mục, chọn
+    // sao đánh giá...) - chỉ tự submit trên màn hình > 640px (desktop/tablet); trên di động người
+    // dùng phải bấm nút "Áp dụng" thủ công, tránh submit liên tục gây giật khi đang thao tác trên sidebar trượt
     function submitFilterForm() {
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
@@ -200,11 +211,20 @@
     const sortSelect = document.getElementById('sort-select');
     let grid = document.getElementById('product-grid');
 
+    // =========================================================================
+    // SẮP XẾP LẠI LƯỚI SẢN PHẨM PHÍA CLIENT (không gọi lại server) khi đổi dropdown "Sắp xếp theo".
+    // Toàn bộ sản phẩm của TRANG hiện tại (đã phân trang từ backend) đã có sẵn trong DOM kèm các
+    // data-* attribute (data-sold, data-price-val, data-date, data-rating-val...); hàm này chỉ sắp
+    // xếp lại thứ tự các thẻ đã có, không lọc/phân trang lại - tương tự cơ chế bộ lọc pill ở trang chủ.
+    // =========================================================================
     function applySortAndFilter() {
         if (!sortSelect || !grid) return;
         const sortBy = sortSelect.value;
         const cards = Array.from(grid.querySelectorAll('.p-product-card'));
 
+        // Tiêu chí sắp xếp tương ứng từng lựa chọn trong dropdown: phổ biến (theo lượt bán), giảm
+        // giá (ưu tiên sản phẩm đang sale trước, cùng loại thì so lượt bán), giá tăng/giảm dần, mới
+        // nhất (theo ngày tạo) và đánh giá cao nhất
         cards.sort((a, b) => {
             if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0);
             if (sortBy === 'discount') {
@@ -220,9 +240,14 @@
             return 0;
         });
 
+        // appendChild trên 1 phần tử đã có sẵn trong DOM sẽ DI CHUYỂN nó tới cuối, không tạo bản
+        // sao - lặp theo đúng thứ tự vừa sort() sẽ đưa toàn bộ thẻ về đúng thứ tự hiển thị mới
         cards.forEach(card => {
             grid.appendChild(card);
 
+            // Đổi badge nào được hiển thị trên thẻ sản phẩm cho khớp với tiêu chí đang sắp xếp (VD
+            // sort theo "Mới nhất" thì ưu tiên hiện badge "Mới", sort theo "Giảm giá" thì ưu tiên
+            // hiện badge "Giảm giá") - mỗi thẻ chỉ hiện tối đa 1 badge tại 1 thời điểm để đỡ rối mắt
             const hotBadge = card.querySelector('.home-prod-card__badge--hot');
             const newBadge = card.querySelector('.home-prod-card__badge--new');
             const saleBadge = card.querySelector('.home-prod-card__badge--sale');
@@ -244,9 +269,16 @@
 
     if (sortSelect && grid) {
         sortSelect.addEventListener('change', applySortAndFilter);
-        applySortAndFilter();
+        applySortAndFilter(); // Chạy 1 lần lúc tải trang để áp dụng đúng lựa chọn sắp xếp mặc định
     }
 
+    // =========================================================================
+    // DROPDOWN "SẮP XẾP THEO" TÙY BIẾN GIAO DIỆN
+    // Thẻ <select> gốc (#sort-select) được ẩn đi và thay bằng 1 dropdown tự vẽ bằng div/button để
+    // dễ tùy biến giao diện hơn <select> mặc định của trình duyệt. Khối này đồng bộ 2 chiều: chọn
+    // trong dropdown tùy biến sẽ cập nhật lại giá trị + bắn sự kiện "change" trên <select> gốc, để
+    // applySortAndFilter() ở trên (đang lắng nghe sự kiện change của select gốc) vẫn chạy bình thường.
+    // =========================================================================
     (function () {
         const dropdown = document.getElementById('sort-dropdown');
         const toggle = document.getElementById('sort-dropdown-toggle');
@@ -256,12 +288,14 @@
 
         const SORT_LABEL_PREFIX = 'Sắp xếp theo: ';
 
+        // Mở khung bộ lọc dạng trượt trên màn hình nhỏ
         function openMenu() {
             menu.hidden = false;
             dropdown.classList.add('is-open');
             toggle.setAttribute('aria-expanded', 'true');
         }
 
+        // Đóng khung bộ lọc dạng trượt
         function closeMenu() {
             menu.hidden = true;
             dropdown.classList.remove('is-open');
@@ -269,10 +303,12 @@
         }
 
         toggle.addEventListener('click', function (event) {
-            event.stopPropagation();
+            event.stopPropagation(); // Chặn không cho lan lên listener "click ra ngoài" bên dưới
             if (menu.hidden) openMenu(); else closeMenu();
         });
 
+        // Bấm chọn 1 lựa chọn trong menu: đổi trạng thái "đang chọn", đổi nhãn hiển thị, đồng bộ giá
+        // trị + bắn sự kiện change sang <select> gốc rồi đóng menu lại
         menu.addEventListener('click', function (event) {
             const option = event.target.closest('.p-sort-dropdown__option');
             if (!option) return;
@@ -290,6 +326,7 @@
             closeMenu();
         });
 
+        // Đóng menu khi bấm ra ngoài vùng dropdown, hoặc khi bấm phím Escape
         document.addEventListener('click', function (event) {
             if (!menu.hidden && !dropdown.contains(event.target)) closeMenu();
         });
@@ -298,6 +335,8 @@
         });
     })();
 
+    // Khi submit form lọc (nút "Áp dụng" trên di động), tự đóng sidebar bộ lọc lại trước khi trang
+    // tải lại - tránh trường hợp trang mới tải xong mà sidebar vẫn đang ở trạng thái mở đè lên nội dung
     const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.addEventListener('submit', function () {

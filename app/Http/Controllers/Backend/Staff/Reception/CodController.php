@@ -8,17 +8,14 @@ use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-/**
- * Controller Đối soát tiền mặt thu hộ (COD - Cash On Delivery).
- */
 class CodController
 {
     // Inject dịch vụ quản lý trạng thái đơn hàng và đối soát tiền
-    public function __construct(private readonly OrderWorkflowService $sv_orderWorkflow) {}
+    public function __construct(private readonly OrderWorkflowService $sv_orderWorkflow)
+    {
+    }
 
-    /**
-     * Hiển thị giao diện đối soát tiền COD cho từng nhân viên giao hàng.
-     */
+    // Hiển thị giao diện đối soát tiền COD cho từng nhân viên giao hàng
     public function index()
     {
         // Lấy danh sách toàn bộ nhân viên giao hàng (Shipper) đang hoạt động
@@ -51,9 +48,7 @@ class CodController
         return view('backend.staff.reception.cod-settlement.index', compact('groups')); // Trả về giao diện đối soát tiền mặt
     }
 
-    /**
-     * Xác nhận đối soát cho một đơn hàng COD riêng lẻ.
-     */
+    // Xác nhận đối soát cho một đơn hàng COD riêng lẻ
     public function settleOne(Request $request, Order $order)
     {
         $this->sv_orderWorkflow->settleCod($order, Auth::id()); // Gọi workflow service đánh dấu đơn hàng đã nộp tiền (lưu ID người nhận là lễ tân hiện tại)
@@ -62,9 +57,7 @@ class CodController
         return back()->with('success', $message);
     }
 
-    /**
-     * Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn treo của một Shipper cụ thể.
-     */
+    // Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn treo của một Shipper cụ thể
     public function settleAll(Request $request, User $deliveryStaff)
     {
         // Ngăn chặn nếu đối tượng truyền vào không phải là tài khoản Shipper

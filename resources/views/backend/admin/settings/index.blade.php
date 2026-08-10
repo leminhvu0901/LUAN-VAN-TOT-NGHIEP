@@ -724,6 +724,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mobileBtn = document.getElementById('mobile-tab-selector-btn');
     const mobileMenu = document.getElementById('mobile-tab-dropdown-menu');
 
+    // Chuyển giữa các tab cấu hình
     function switchTab(targetId) {
         localStorage.setItem('active_settings_tab', targetId);
         if (history.pushState) {
@@ -810,8 +811,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     switchTab(initialSection || 'store');
 
+    // Tự khóa/mở nhóm ô nhập phụ thuộc vào một công tắc bật/tắt
     const bindToggleDependency = (toggle, inputs) => {
         if (!toggle) return;
+        // Áp trạng thái khóa/mở cho nhóm ô nhập theo công tắc hiện tại
         const apply = () => {
             const isEnabled = toggle.checked;
             inputs.forEach(input => {
@@ -848,6 +851,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeTimeInput = document.getElementById('store_close_time');
     const hoursPreview = document.getElementById('hours-preview-text');
 
+    // Hiện ngay câu mô tả giờ mở cửa khi admin chỉnh, để thấy trước kết quả
     const updateHoursPreview = () => {
         if (!hoursPreview) return;
         const openVal = openTimeInput ? openTimeInput.value.trim() : '';
@@ -888,6 +892,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const loyaltyMoneyInput = document.getElementById('loyalty_money_per_point');
     const loyaltyIllustration = document.getElementById('loyalty-illustration-text');
     if (loyaltyMoneyInput && loyaltyIllustration) {
+        // Minh họa tức thì: với tỷ lệ tích điểm vừa nhập thì đơn 100.000đ được bao nhiêu điểm
         const updateLoyaltyIllustration = () => {
             const value = parseFloat(loyaltyMoneyInput.value) || 0;
             const formatted = new Intl.NumberFormat('vi-VN').format(value);

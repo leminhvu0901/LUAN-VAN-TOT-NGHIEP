@@ -10,8 +10,7 @@
             <div>
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách đơn hàng --}}
-                    <a href="{{ route('staff.reception.orders.index') }}"
-                        onclick="smartGoBack(event)"
+                    <a href="{{ route('staff.reception.orders.index') }}" onclick="smartGoBack(event)"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         title="Quay lại">
                         <span class="material-symbols-outlined text-[20px]">arrow_back</span>
@@ -19,7 +18,7 @@
 
                     {{-- Mã đơn hàng --}}
                     <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Đơn hàng <span
-                            class="text-primary">{{ $order->order_code ?? ('#HPY-' . $order->id) }}</span></h1>
+                            class="text-primary">{{ $order->order_code ?? '#HPY-' . $order->id }}</span></h1>
                 </div>
                 {{-- Hiển thị ngày giờ đặt hàng --}}
                 <p class="text-sm text-gray-500 mt-1 ml-11">Ngày đặt:
@@ -30,7 +29,7 @@
                      phiếu để bắt đầu làm đồ ngay, không thể chờ thu tiền xong mới in, áp dụng như nhau
                      cho cả đơn tại quầy và đơn đặt online/giao hàng. Chỉ chặn khi đơn còn "chờ xác nhận"
                      (chưa chắc sẽ nhận) hoặc đã hủy. --}}
-                @if(in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
+                @if (in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
                     <button id="print-prep-ticket-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
                         <span class="material-symbols-outlined text-[18px]">receipt_long</span>
@@ -48,7 +47,7 @@
         </div>
 
         {{-- PHẦN 1.5: THÔNG BÁO LÝ DO HỦY ĐƠN --}}
-        @if($order->status === 'cancelled' && $order->cancel_reason)
+        @if ($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
                 <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
                 <div>
@@ -72,13 +71,14 @@
                 $isDeliveryOrder = $order->delivery_type !== 'pickup';
                 // Không cho hủy khi: đơn đã thanh toán (phải hoàn tiền trước — theo rule OrderWorkflowService),
                 // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
-                $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && $order->payment_status !== 'paid';
+                $canCancel =
+                    in_array($order->status, ['pending', 'confirmed'], true) && $order->payment_status !== 'paid';
                 // Đơn VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
                 // (route staff.reception.orders.refund), khác nút "Hủy đơn" thường ở trên.
-                $canRefundAndCancel = in_array($order->status, ['pending', 'confirmed'], true)
-                    && $order->payment_method === 'vnpay'
-                    && $order->payment_status === 'paid';
+                $canRefundAndCancel =
+                    in_array($order->status, ['pending', 'confirmed'], true) &&
+                    $order->payment_method === 'vnpay' &&
+                    $order->payment_status === 'paid';
                 // Đơn tiền mặt tại quầy: phải thu tiền (khối "Thanh toán" ngay bên dưới) TRƯỚC khi được
                 // xác nhận - khớp rule server-side ở OrderWorkflowService::transition().
                 $cashNotYetCollected = $order->payment_method === 'cash' && $order->payment_status !== 'paid';
@@ -90,10 +90,13 @@
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
                         <div class="flex items-center gap-2 mt-1">
-                            <span class="badge-status {{ $statusBadgeClass }} font-bold text-xs inline-block px-2.5 py-1">{{ $statusLabel }}</span>
-                            @if($order->needs_admin_approval)
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê duyệt
+                            <span
+                                class="badge-status {{ $statusBadgeClass }} font-bold text-xs inline-block px-2.5 py-1">{{ $statusLabel }}</span>
+                            @if ($order->needs_admin_approval)
+                                <span
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê
+                                    duyệt
                                 </span>
                             @endif
                         </div>
@@ -101,8 +104,9 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    @if($order->needs_admin_approval)
-                        <div class="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                    @if ($order->needs_admin_approval)
+                        <div
+                            class="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
                             <span class="material-symbols-outlined text-[18px] text-amber-600">mark_email_unread</span>
                             <span>Đã gửi email yêu cầu Admin phê duyệt. Vui lòng chờ Admin xác nhận.</span>
                         </div>
@@ -112,11 +116,13 @@
                             Cần xác nhận đã thu tiền mặt (khối "Thanh toán" bên dưới) trước khi xác nhận đơn.
                         </p>
                     @elseif($order->status === 'pending')
-                        @if((float)$order->final_amount >= 500000)
+                        @if ((float) $order->final_amount >= 500000)
                             {{-- Đơn hàng từ 500k trở lên phải gửi Admin phê duyệt trước --}}
-                            <form action="{{ route('staff.reception.orders.request_approval', $order->id) }}" method="POST">
+                            <form action="{{ route('staff.reception.orders.request_approval', $order->id) }}"
+                                method="POST">
                                 @csrf
-                                <button type="submit" class="min-h-[40px] px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-sm flex items-center gap-1.5 shadow-sm transition">
+                                <button type="submit"
+                                    class="min-h-[40px] px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-sm flex items-center gap-1.5 shadow-sm transition">
                                     <span class="material-symbols-outlined text-[18px]">verified_user</span>
                                     Gửi Admin phê duyệt
                                 </button>
@@ -126,41 +132,49 @@
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="confirmed">
-                                <button type="submit" class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
+                                <button type="submit"
+                                    class="min-h-[40px] px-4 bg-primary text-white font-bold rounded-lg text-sm">Xác nhận đơn</button>
                             </form>
                         @endif
                     @endif
 
                     {{-- Đơn tại quầy: khách nhận trực tiếp, không có bước giao hàng — xác nhận xong là hoàn thành luôn. --}}
-                    @if($order->delivery_type === 'pickup' && in_array($order->status, ['confirmed', 'shipping'], true))
+                    @if ($order->delivery_type === 'pickup' && in_array($order->status, ['confirmed', 'shipping'], true))
                         <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="status" value="completed">
-                            <button type="submit" class="min-h-[40px] px-4 bg-emerald-600 text-white font-bold rounded-lg text-sm">Hoàn thành</button>
+                            <button type="submit"
+                                class="min-h-[40px] px-4 bg-emerald-600 text-white font-bold rounded-lg text-sm">Hoàn thành</button>
                         </form>
                     @endif
 
-                    @if($canCancel)
-                        <form id="cancel-order-form" action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
+                    @if ($canCancel)
+                        <form id="cancel-order-form"
+                            action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="status" value="cancelled">
                             <input type="hidden" name="cancel_reason" id="cancel_reason_input">
-                            <button type="button" id="cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm">Hủy đơn</button>
+                            <button type="button" id="cancel-order-btn"
+                                class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm">Hủy đơn</button>
                         </form>
                     @elseif($canRefundAndCancel)
-                        <form id="refund-cancel-order-form" action="{{ route('staff.reception.orders.refund', $order->id) }}" method="POST">
+                        <form id="refund-cancel-order-form"
+                            action="{{ route('staff.reception.orders.refund', $order->id) }}" method="POST">
                             @csrf
                             <input type="hidden" name="cancel_reason" id="refund_cancel_reason_input">
-                            <button type="button" id="refund-cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy đơn
+                            <button type="button" id="refund-cancel-order-btn"
+                                class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy
+                                đơn
                             </button>
                         </form>
                     @endif
 
-                    @if($isDeliveryOrder && $order->status === 'shipping')
-                        <p class="text-xs text-gray-400">Đơn đang được giao — chỉ nhân viên vận chuyển được cập nhật tiếp.</p>
+                    @if ($isDeliveryOrder && $order->status === 'shipping')
+                        <p class="text-xs text-gray-400">Đơn đang được giao — chỉ nhân viên vận chuyển được cập nhật tiếp.
+                        </p>
                     @elseif(in_array($order->status, ['completed', 'cancelled']))
                         <p class="text-xs text-gray-400">Đơn đã kết thúc, không thể thay đổi thêm.</p>
                     @elseif(!$canCancel && !$canRefundAndCancel && in_array($order->status, ['pending', 'confirmed']))
@@ -181,10 +195,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <div class="font-bold text-gray-900 uppercase">
-                        {{ match($order->payment_method) { 'vnpay' => 'Chuyển khoản (VNPay)', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                        {{ match ($order->payment_method) {'vnpay' => 'Chuyển khoản (VNPay)','cash' => 'Tiền mặt',default => 'COD'} }}
                     </div>
-                    @if($order->payment_method === 'vnpay')
-                        @if(($order->payment_status ?? '') === 'paid')
+                    @if ($order->payment_method === 'vnpay')
+                        @if (($order->payment_status ?? '') === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
                             </div>
@@ -192,8 +206,9 @@
                             <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
                             </div>
-                            @if($order->refunded_at)
-                                <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
+                            @if ($order->refunded_at)
+                                <p class="text-xs text-gray-500 mt-1">Lúc
+                                    {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
                             @endif
                         @else
                             <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
@@ -201,14 +216,15 @@
                             </div>
                         @endif
                     @elseif($order->payment_method === 'cash')
-                        @if($order->payment_status === 'paid')
+                        @if ($order->payment_status === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
                                 <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thu tiền mặt
                             </div>
-                            @if($order->amount_tendered !== null)
+                            @if ($order->amount_tendered !== null)
                                 <p class="text-xs text-gray-500 mt-1">
                                     Khách đưa: {{ number_format($order->amount_tendered, 0, ',', '.') }}đ
-                                    · Thối lại: {{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ
+                                    · Thối lại:
+                                    {{ number_format(max(0, $order->amount_tendered - $order->final_amount), 0, ',', '.') }}đ
                                 </p>
                             @endif
                         @else
@@ -225,8 +241,9 @@
                 </span>
             </div>
 
-            @if($order->payment_method === 'vnpay' && !in_array($order->payment_status, ['paid', 'refunded'], true))
-                <form action="{{ route('staff.reception.orders.pay_online', $order->id) }}" method="POST" class="mt-4">
+            @if ($order->payment_method === 'vnpay' && !in_array($order->payment_status, ['paid', 'refunded'], true))
+                <form action="{{ route('staff.reception.orders.pay_online', $order->id) }}" method="POST"
+                    class="mt-4">
                     @csrf
                     <button type="submit" class="w-full min-h-[44px] bg-pink-600 text-white font-bold rounded-xl">
                         Thanh toán chuyển khoản (VNPay)
@@ -234,15 +251,19 @@
                 </form>
             @endif
 
-            @if($order->payment_method === 'cash' && $order->payment_status !== 'paid')
-                <form action="{{ route('staff.reception.orders.confirm_cash', $order->id) }}" method="POST" class="mt-4 space-y-2 pt-4 border-t border-gray-100">
+            @if ($order->payment_method === 'cash' && $order->payment_status !== 'paid')
+                <form action="{{ route('staff.reception.orders.confirm_cash', $order->id) }}" method="POST"
+                    class="mt-4 space-y-2 pt-4 border-t border-gray-100">
                     @csrf
                     <label class="block text-sm font-medium text-gray-700">Tiền khách đưa</label>
                     <input type="text" id="cash-amount-tendered-display"
-                         value="{{ old('amount_tendered', (int) $order->final_amount) }}"
-                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
-                    <input type="hidden" name="amount_tendered" id="cash-amount-tendered" value="{{ old('amount_tendered', (int) $order->final_amount) }}">
-                    @error('amount_tendered') <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                        value="{{ old('amount_tendered', (int) $order->final_amount) }}"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" required>
+                    <input type="hidden" name="amount_tendered" id="cash-amount-tendered"
+                        value="{{ old('amount_tendered', (int) $order->final_amount) }}">
+                    @error('amount_tendered')
+                        <p class="text-red-500 text-xs">{{ $message }}</p>
+                    @enderror
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-gray-500">Tiền thừa</span>
                         <span id="cash-change-preview" class="font-bold text-gray-900">0đ</span>
@@ -267,10 +288,11 @@
                         <h3 class="font-bold text-gray-900 text-lg">Chi tiết món</h3>
                     </div>
                     <div class="divide-y divide-gray-100">
-                        @foreach($items as $item)
+                        @foreach ($items as $item)
                             <div class="p-5 flex gap-4">
-                                <div class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
-                                    @if($item->product_image)
+                                <div
+                                    class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+                                    @if ($item->product_image)
                                         <img src="{{ $item->product_image_url }}" alt="{{ $item->product_name }}"
                                             class="w-full h-full object-cover"
                                             data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
@@ -283,38 +305,51 @@
 
                                 <div class="flex-1 flex flex-col justify-between overflow-hidden">
                                     @php
-                                        $iceLabels = ['normal' => 'Đá chung', 'full' => 'Đá riêng', 'less' => 'Ít đá', 'none' => 'Không đá'];
+                                        $iceLabels = [
+                                            'normal' => 'Đá chung',
+                                            'full' => 'Đá riêng',
+                                            'less' => 'Ít đá',
+                                            'none' => 'Không đá',
+                                        ];
                                         $itemToppings = is_array($item->options) ? $item->options : [];
                                     @endphp
-                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                    <div
+                                        class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
                                         <div class="break-words overflow-wrap-anywhere">
                                             <h4 class="font-bold text-gray-900">{{ $item->product_name }}</h4>
                                             <div class="text-sm text-gray-500 mt-1 flex flex-wrap gap-1">
-                                                @if($item->size_name)
-                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Size {{ $item->size_name }}</span>
+                                                @if ($item->size_name)
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Size
+                                                        {{ $item->size_name }}</span>
                                                 @endif
-                                                @if($item->sugar_level !== null)
-                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Đường {{ $item->sugar_level }}%</span>
+                                                @if ($item->sugar_level !== null)
+                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">Đường
+                                                        {{ $item->sugar_level }}%</span>
                                                 @endif
-                                                @if($item->ice_level)
-                                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">{{ $iceLabels[$item->ice_level] ?? $item->ice_level }}</span>
+                                                @if ($item->ice_level)
+                                                    <span
+                                                        class="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">{{ $iceLabels[$item->ice_level] ?? $item->ice_level }}</span>
                                                 @endif
                                             </div>
-                                            @if(!empty($itemToppings))
-                                                <p class="text-xs text-gray-500 mt-1">+ Topping: {{ implode(', ', $itemToppings) }}</p>
+                                            @if (!empty($itemToppings))
+                                                <p class="text-xs text-gray-500 mt-1">+ Topping:
+                                                    {{ implode(', ', $itemToppings) }}</p>
                                             @endif
-                                            @if($item->note)
+                                            @if ($item->note)
                                                 <p class="text-xs text-amber-600 mt-1">Ghi chú: {{ $item->note }}</p>
                                             @endif
                                         </div>
                                         <div class="text-left sm:text-right shrink-0">
-                                            <span class="font-bold text-gray-900">{{ number_format($item->unit_price, 0, ',', '.') }}đ</span>
-                                            <span class="text-sm text-gray-500 ml-2 sm:ml-0 sm:block">x{{ $item->quantity }}</span>
+                                            <span
+                                                class="font-bold text-gray-900">{{ number_format($item->unit_price, 0, ',', '.') }}đ</span>
+                                            <span
+                                                class="text-sm text-gray-500 ml-2 sm:ml-0 sm:block">x{{ $item->quantity }}</span>
                                         </div>
                                     </div>
                                     <div class="text-right mt-2 border-t border-gray-50 pt-2 sm:border-none sm:pt-0">
                                         <span class="text-gray-500 text-xs sm:hidden mr-1">Thành tiền:</span>
-                                        <span class="font-bold text-primary">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
+                                        <span
+                                            class="font-bold text-primary">{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
                                     </div>
                                 </div>
                             </div>
@@ -333,19 +368,20 @@
                             <span>Phí giao hàng ({{ $order->distance_km ?? 0 }}km)</span>
                             <span class="font-medium">{{ number_format($order->shipping_fee ?? 0, 0, ',', '.') }}đ</span>
                         </div>
-                        @if($order->weather_fee > 0)
+                        @if ($order->weather_fee > 0)
                             <div class="flex justify-between text-gray-600">
                                 <span>Phụ thu thời tiết xấu</span>
                                 <span class="font-medium">{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
                             </div>
                         @endif
-                        @if($order->discount_amount > 0)
+                        @if ($order->discount_amount > 0)
                             <div class="flex justify-between text-emerald-600">
                                 <span>Khuyến mãi {{ $order->coupon_code ? '(' . $order->coupon_code . ')' : '' }}</span>
-                                <span class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
+                                <span
+                                    class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
                             </div>
                         @endif
-                        @if($order->points_redeemed > 0)
+                        @if ($order->points_redeemed > 0)
                             <div class="flex justify-between text-emerald-600 text-sm">
                                 <span>Đã dùng điểm tích lũy</span>
                                 <span class="font-medium">{{ number_format($order->points_redeemed, 0, ',', '.') }} điểm</span>
@@ -353,7 +389,8 @@
                         @endif
                         <div class="pt-4 mt-2 border-t border-gray-100 flex justify-between items-center">
                             <span class="font-bold text-gray-900 text-lg">Tổng cộng</span>
-                            <span class="font-bold text-primary text-xl">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
+                            <span
+                                class="font-bold text-primary text-xl">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
                         </div>
                     </div>
                 </div>
@@ -369,7 +406,8 @@
                         Khách hàng
                     </h3>
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                        <div
+                            class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
                             {{ substr($order->customer_name, 0, 1) }}
                         </div>
                         <div>
@@ -386,44 +424,52 @@
                         Giao hàng
                     </h3>
                     <div class="flex flex-col gap-4">
-                        @if($order->delivery_type === 'pickup')
+                        @if ($order->delivery_type === 'pickup')
                             <div>
                                 <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Hình thức nhận hàng</p>
                                 <p class="text-sm text-gray-900">Khách nhận tại quầy (không cần giao hàng)</p>
                             </div>
                         @else
                             <div>
-                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao</p>
+                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao
+                                </p>
                                 <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
                             </div>
 
                             <div>
                                 <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Nhân viên giao hàng</p>
-                                @if($order->deliveryStaff)
+                                @if ($order->deliveryStaff)
                                     <p class="text-sm font-semibold text-gray-900">{{ $order->deliveryStaff->name }}</p>
                                     <p class="text-xs text-gray-500">
                                         {{ $order->deliveryStaff->phone ?: 'Chưa cập nhật SĐT' }}
-                                        @if($order->assigned_at)
-                                            · Phân công lúc {{ \Carbon\Carbon::parse($order->assigned_at)->format('d/m/Y H:i') }}
+                                        @if ($order->assigned_at)
+                                            · Phân công lúc
+                                            {{ \Carbon\Carbon::parse($order->assigned_at)->format('d/m/Y H:i') }}
                                         @endif
                                     </p>
                                 @elseif($order->status === 'confirmed')
-                                    <form action="{{ route('staff.reception.orders.assign_delivery', $order->id) }}" method="POST" class="flex flex-col gap-2 mt-1">
+                                    <form action="{{ route('staff.reception.orders.assign_delivery', $order->id) }}"
+                                        method="POST" class="flex flex-col gap-2 mt-1">
                                         @csrf
                                         {{-- custom-select-init (public/js/backend/admin/layout.js) thay khung sổ xuống
                                              mặc định của trình duyệt bằng dropdown tự vẽ theo đúng giao diện chung -
                                              native <select> để trần trên mobile hiện thanh xanh dương mặc định của hệ
                                              điều hành, lệch hẳn với phần còn lại của trang. --}}
-                                        <select name="delivery_staff_id" required class="custom-select-init w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                        <select name="delivery_staff_id" required
+                                            class="custom-select-init w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                                             <option value="">-- Chọn nhân viên giao hàng --</option>
-                                            @foreach($deliveryStaffs as $staff)
-                                                <option value="{{ $staff->id }}">{{ $staff->name }}{{ $staff->phone ? ' — ' . $staff->phone : '' }}</option>
+                                            @foreach ($deliveryStaffs as $staff)
+                                                <option value="{{ $staff->id }}">
+                                                    {{ $staff->name }}{{ $staff->phone ? ' — ' . $staff->phone : '' }}
+                                                </option>
                                             @endforeach
                                         </select>
-                                        @if($deliveryStaffs->isEmpty())
-                                            <p class="text-xs text-red-500">Chưa có nhân viên giao hàng nào đang hoạt động.</p>
+                                        @if ($deliveryStaffs->isEmpty())
+                                            <p class="text-xs text-red-500">Chưa có nhân viên giao hàng nào đang hoạt động.
+                                            </p>
                                         @else
-                                            <button type="submit" class="w-full min-h-[40px] bg-primary text-white font-bold rounded-lg text-sm">
+                                            <button type="submit"
+                                                class="w-full min-h-[40px] bg-primary text-white font-bold rounded-lg text-sm">
                                                 Phân công giao hàng
                                             </button>
                                         @endif
@@ -435,7 +481,7 @@
                                 @endif
                             </div>
                         @endif
-                        @if($order->customer_note)
+                        @if ($order->customer_note)
                             <div>
                                 <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Ghi chú của khách</p>
                                 <p class="text-sm text-gray-900 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
@@ -460,30 +506,37 @@
         <div class="print-ticket">
             <h2 class="print-ticket__title">PHIẾU PHA CHẾ</h2>
             <p class="print-ticket__subtitle">
-                {{ $order->delivery_type === 'pickup' ? ($pickupModeLabels[$order->pickup_mode] ?? 'Tại quầy') : 'Giao hàng' }}
+                {{ $order->delivery_type === 'pickup' ? $pickupModeLabels[$order->pickup_mode] ?? 'Tại quầy' : 'Giao hàng' }}
             </p>
             <hr>
             <p class="print-ticket__row"><strong>Mã đơn:</strong> {{ $order->order_code }}</p>
-            <p class="print-ticket__row"><strong>Giờ tạo:</strong> {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
+            <p class="print-ticket__row"><strong>Giờ tạo:</strong>
+                {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
             <hr>
-            @foreach($items as $item)
+            @foreach ($items as $item)
                 @php $printToppings = is_array($item->options) ? $item->options : []; @endphp
                 <div class="print-ticket__item">
                     <p class="print-ticket__item-name">{{ $item->quantity }} x {{ $item->product_name }}</p>
                     <p class="print-ticket__item-detail">
-                        @if($item->size_name) Size {{ $item->size_name }} @endif
-                        @if($item->sugar_level !== null) · Đường {{ $item->sugar_level }}% @endif
-                        @if($item->ice_level) · {{ $printIceLabels[$item->ice_level] ?? $item->ice_level }} @endif
+                        @if ($item->size_name)
+                            Size {{ $item->size_name }}
+                        @endif
+                        @if ($item->sugar_level !== null)
+                            · Đường {{ $item->sugar_level }}%
+                        @endif
+                        @if ($item->ice_level)
+                            · {{ $printIceLabels[$item->ice_level] ?? $item->ice_level }}
+                        @endif
                     </p>
-                    @if(!empty($printToppings))
+                    @if (!empty($printToppings))
                         <p class="print-ticket__item-detail">+ {{ implode(', ', $printToppings) }}</p>
                     @endif
-                    @if($item->note)
+                    @if ($item->note)
                         <p class="print-ticket__item-note">Ghi chú: {{ $item->note }}</p>
                     @endif
                 </div>
             @endforeach
-            @if($order->customer_note)
+            @if ($order->customer_note)
                 <hr>
                 <p class="print-ticket__note"><strong>Ghi chú đơn:</strong> {{ $order->customer_note }}</p>
             @endif
@@ -494,10 +547,10 @@
     <div id="print-customer-invoice" class="hidden">
         <div class="print-ticket">
             <h2 class="print-ticket__title--invoice">{{ $storeInfo['name'] }}</h2>
-            @if($storeInfo['address'])
+            @if ($storeInfo['address'])
                 <p class="print-ticket__center-sm">{{ $storeInfo['address'] }}</p>
             @endif
-            @if($storeInfo['phone'])
+            @if ($storeInfo['phone'])
                 <p class="print-ticket__center-sm-mb">ĐT: {{ $storeInfo['phone'] }}</p>
             @endif
             <p class="print-ticket__center-bold">HÓA ĐƠN BÁN HÀNG</p>
@@ -505,9 +558,10 @@
             <p class="print-ticket__row-sm">Mã đơn: {{ $order->order_code }}</p>
             <p class="print-ticket__row-sm">Ngày: {{ \Carbon\Carbon::parse($order->created_at)->format('H:i d/m/Y') }}</p>
             <hr>
-            @foreach($items as $item)
+            @foreach ($items as $item)
                 <div class="print-ticket__flex-row">
-                    <span>{{ $item->product_name }}{{ $item->size_name ? ' (' . $item->size_name . ')' : '' }} x{{ $item->quantity }}</span>
+                    <span>{{ $item->product_name }}{{ $item->size_name ? ' (' . $item->size_name . ')' : '' }}
+                        x{{ $item->quantity }}</span>
                     <span>{{ number_format($item->unit_price * $item->quantity, 0, ',', '.') }}đ</span>
                 </div>
             @endforeach
@@ -516,13 +570,13 @@
                 <span>Tạm tính</span>
                 <span>{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
             </div>
-            @if($order->discount_amount > 0)
+            @if ($order->discount_amount > 0)
                 <div class="print-ticket__flex-row--plain">
                     <span>Giảm giá{{ $order->coupon_code ? ' (' . $order->coupon_code . ')' : '' }}</span>
                     <span>-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
                 </div>
             @endif
-            @if($order->shipping_fee > 0)
+            @if ($order->shipping_fee > 0)
                 <div class="print-ticket__flex-row--plain">
                     <span>Phí giao hàng</span>
                     <span>{{ number_format($order->shipping_fee, 0, ',', '.') }}đ</span>
@@ -534,9 +588,10 @@
             </div>
             <hr>
             <p class="print-ticket__row-sm">
-                Thanh toán: {{ match($order->payment_method) { 'vnpay' => 'VNPay', 'cash' => 'Tiền mặt', default => 'COD' } }}
+                Thanh toán:
+                {{ match ($order->payment_method) {'vnpay' => 'VNPay','cash' => 'Tiền mặt',default => 'COD'} }}
             </p>
-            @if($order->payment_method === 'cash' && $order->amount_tendered !== null)
+            @if ($order->payment_method === 'cash' && $order->amount_tendered !== null)
                 <div class="print-ticket__flex-row--small">
                     <span>Khách đưa</span>
                     <span>{{ number_format($order->amount_tendered, 0, ',', '.') }}đ</span>
@@ -553,123 +608,128 @@
 
     @push('scripts')
         <script>
-        function applyFallbackImage(image) {
-            if (image.dataset.fallbackApplied === "true") return;
-            image.dataset.fallbackApplied = "true";
-            image.src = image.dataset.fallbackSrc;
-        }
-
-        function printSection(bodyClass) {
-            document.body.classList.add("pos-printing-ticket", bodyClass);
-
-            function cleanup() {
-                document.body.classList.remove("pos-printing-ticket", bodyClass);
-                window.removeEventListener("afterprint", cleanup);
-            }
-            window.addEventListener("afterprint", cleanup);
-            setTimeout(cleanup, 3000);
-
-            window.print();
-        }
-
-        function askCancelReasonAndSubmit(form, reasonInput, message) {
-            const reason = prompt(message);
-            if (reason === null) return;
-
-            if (reason.trim().length < 5) {
-                alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
-                return;
+            // Thay bằng ảnh mặc định khi ảnh sản phẩm bị lỗi hoặc đã bị xóa khỏi máy chủ
+            function applyFallbackImage(image) {
+                if (image.dataset.fallbackApplied === "true") return;
+                image.dataset.fallbackApplied = "true";
+                image.src = image.dataset.fallbackSrc;
             }
 
-            reasonInput.value = reason.trim();
-            form.submit();
-        }
+            // In một khu vực của trang (phiếu pha chế / hóa đơn) bằng cách gắn class riêng lên body rồi gọi window.print()
+            function printSection(bodyClass) {
+                document.body.classList.add("pos-printing-ticket", bodyClass);
 
-        function initOrderShowPage() {
-            const prepTicketBtn = document.getElementById("print-prep-ticket-btn");
-            if (prepTicketBtn) {
-                prepTicketBtn.addEventListener("click", function () {
-                    printSection("pos-printing-prep");
-                });
+                // Gỡ class in khỏi body sau khi in xong; có hẹn giờ 3 giây dự phòng vì sự kiện afterprint không phải trình duyệt nào cũng bắn
+                function cleanup() {
+                    document.body.classList.remove("pos-printing-ticket", bodyClass);
+                    window.removeEventListener("afterprint", cleanup);
+                }
+                window.addEventListener("afterprint", cleanup);
+                setTimeout(cleanup, 3000);
+
+                window.print();
             }
 
-            const invoiceBtn = document.getElementById("print-invoice-btn");
-            if (invoiceBtn) {
-                invoiceBtn.addEventListener("click", function () {
-                    printSection("pos-printing-invoice");
-                });
-            }
+            // Bắt buộc nhập lý do hủy qua hộp thoại rồi mới gửi form, không cho hủy đơn suông
+            function askCancelReasonAndSubmit(form, reasonInput, message) {
+                const reason = prompt(message);
+                if (reason === null) return;
 
-            const tenderedDisplay = document.getElementById("cash-amount-tendered-display");
-            const tenderedInput = document.getElementById("cash-amount-tendered");
-            const changePreview = document.getElementById("cash-change-preview");
-            const finalAmountInput = document.getElementById("cash-final-amount");
-            if (tenderedDisplay && tenderedInput && changePreview && finalAmountInput) {
-                const finalAmount = Number(finalAmountInput.value);
-
-                const formatValue = function (val) {
-                    let raw = String(val).replace(/[^0-9]/g, '');
-                    if (raw.length > 10) raw = raw.slice(0, 10);
-                    tenderedInput.value = raw;
-                    tenderedDisplay.value = raw === '' ? '' : new Intl.NumberFormat('vi-VN').format(parseInt(raw));
-
-                    const tendered = Number(raw) || 0;
-                    const change = Math.max(0, tendered - finalAmount);
-                    changePreview.textContent = change.toLocaleString("vi-VN") + "đ";
-                };
-
-                if (tenderedDisplay.value) {
-                    formatValue(tenderedDisplay.value);
+                if (reason.trim().length < 5) {
+                    alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
+                    return;
                 }
 
-                tenderedDisplay.addEventListener("input", function () {
-                    const selectionStart = this.selectionStart;
-                    const prevLen = this.value.length;
-
-                    formatValue(this.value);
-
-                    const newLen = this.value.length;
-                    const diff = newLen - prevLen;
-                    const newPos = Math.max(0, selectionStart + diff);
-                    this.setSelectionRange(newPos, newPos);
-                });
+                reasonInput.value = reason.trim();
+                form.submit();
             }
 
-            document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
-                image.addEventListener("error", function () {
-                    applyFallbackImage(this);
-                });
-
-                if (image.complete && image.naturalWidth === 0) {
-                    applyFallbackImage(image);
+            // Khởi tạo trang chi tiết đơn hàng
+            function initOrderShowPage() {
+                const prepTicketBtn = document.getElementById("print-prep-ticket-btn");
+                if (prepTicketBtn) {
+                    prepTicketBtn.addEventListener("click", function() {
+                        printSection("pos-printing-prep");
+                    });
                 }
-            });
 
-            const cancelBtn = document.getElementById('cancel-order-btn');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function () {
-                    askCancelReasonAndSubmit(
-                        document.getElementById('cancel-order-form'),
-                        document.getElementById('cancel_reason_input'),
-                        'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
-                    );
+                const invoiceBtn = document.getElementById("print-invoice-btn");
+                if (invoiceBtn) {
+                    invoiceBtn.addEventListener("click", function() {
+                        printSection("pos-printing-invoice");
+                    });
+                }
+
+                const tenderedDisplay = document.getElementById("cash-amount-tendered-display");
+                const tenderedInput = document.getElementById("cash-amount-tendered");
+                const changePreview = document.getElementById("cash-change-preview");
+                const finalAmountInput = document.getElementById("cash-final-amount");
+                if (tenderedDisplay && tenderedInput && changePreview && finalAmountInput) {
+                    const finalAmount = Number(finalAmountInput.value);
+
+                    // Định dạng số tiền để hiển thị
+                    const formatValue = function(val) {
+                        let raw = String(val).replace(/[^0-9]/g, '');
+                        if (raw.length > 10) raw = raw.slice(0, 10);
+                        tenderedInput.value = raw;
+                        tenderedDisplay.value = raw === '' ? '' : new Intl.NumberFormat('vi-VN').format(parseInt(raw));
+
+                        const tendered = Number(raw) || 0;
+                        const change = Math.max(0, tendered - finalAmount);
+                        changePreview.textContent = change.toLocaleString("vi-VN") + "đ";
+                    };
+
+                    if (tenderedDisplay.value) {
+                        formatValue(tenderedDisplay.value);
+                    }
+
+                    tenderedDisplay.addEventListener("input", function() {
+                        const selectionStart = this.selectionStart;
+                        const prevLen = this.value.length;
+
+                        formatValue(this.value);
+
+                        const newLen = this.value.length;
+                        const diff = newLen - prevLen;
+                        const newPos = Math.max(0, selectionStart + diff);
+                        this.setSelectionRange(newPos, newPos);
+                    });
+                }
+
+                document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
+                    image.addEventListener("error", function() {
+                        applyFallbackImage(this);
+                    });
+
+                    if (image.complete && image.naturalWidth === 0) {
+                        applyFallbackImage(image);
+                    }
                 });
+
+                const cancelBtn = document.getElementById('cancel-order-btn');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        askCancelReasonAndSubmit(
+                            document.getElementById('cancel-order-form'),
+                            document.getElementById('cancel_reason_input'),
+                            'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                        );
+                    });
+                }
+
+                const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
+                if (refundCancelBtn) {
+                    refundCancelBtn.addEventListener('click', function() {
+                        askCancelReasonAndSubmit(
+                            document.getElementById('refund-cancel-order-form'),
+                            document.getElementById('refund_cancel_reason_input'),
+                            'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                        );
+                    });
+                }
             }
 
-            const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
-            if (refundCancelBtn) {
-                refundCancelBtn.addEventListener('click', function () {
-                    askCancelReasonAndSubmit(
-                        document.getElementById('refund-cancel-order-form'),
-                        document.getElementById('refund_cancel_reason_input'),
-                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
-                    );
-                });
-            }
-        }
-
-        initOrderShowPage();
+            initOrderShowPage();
         </script>
     @endpush
 @endsection
-

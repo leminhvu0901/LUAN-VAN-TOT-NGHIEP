@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Http\Controllers\Frontend;
-
 use App\Models\Category;
 use App\Models\Favorite;
 use App\Models\OrderItem;
@@ -16,10 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductController
 {
-    /**
-     * Hiển thị trang thông tin chi tiết của một sản phẩm.
-
-     */
+    // HIỂN THỊ CHI TIẾT SẢN PHẨM
     public function show($slug, Request $request)
     {
         // lay het thong tin tu san pham ban chọn
@@ -27,17 +22,12 @@ class ProductController
             ->select(
                 'products.*',
                 'categories.name as category_name',
-                // Lấy điểm đánh giá trung bình, mặc định là 0 nếu chưa có đánh giá nào
                 DB::raw('COALESCE(r.avg_rating, 0) as avg_rating'),
-                // Lấy tổng số lượt đánh giá, mặc định là 0
                 DB::raw('COALESCE(r.review_count, 0) as review_count'),
-                // Lấy tổng số lượng sản phẩm này đã bán ra, mặc định là 0
                 DB::raw('COALESCE(o.total_sold, 0) as total_sold')
             )
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
-            // Join với bảng phụ gom nhóm điểm đánh giá theo sản phẩm (chỉ lấy đánh giá được phép hiển thị)
             ->leftJoin(DB::raw('(SELECT product_id, AVG(rating) as avg_rating, COUNT(id) as review_count FROM reviews WHERE is_visible = 1 GROUP BY product_id) as r'), 'products.id', '=', 'r.product_id')
-            // Join với bảng phụ gom nhóm tổng số lượng đã bán từ các chi tiết đơn hàng
             ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
             ->where('categories.is_active', 1)
             ->where('products.slug', $slug)
@@ -47,7 +37,6 @@ class ProductController
         if (!$product) {
             abort(404);
         }
-
         // 2. Lấy danh sách các kích cỡ (Sizes) của sản phẩm này và sắp xếp theo mức giá chênh lệch tăng dần
         $sizes = ProductSize::query()
             ->where('product_id', $product->id)
@@ -62,8 +51,7 @@ class ProductController
             ->select('toppings.*')
             ->get();
 
-        // 4. Lấy danh sách đánh giá mới nhất kèm thông tin người dùng — áp dụng bộ lọc sao/có ảnh
-        // (nút lọc trên trang giờ là link GET thật, xem resources/views/frontend/products/show.blade.php).
+        // 4. Lấy danh sách đánh giá mới nhất kèm thông tin người dùng
         $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
@@ -155,13 +143,13 @@ class ProductController
             'isFavorite',
             'isHot',
             'isNew',
-            'isFiltered'
+            'isFiltered',
+            'top6HotProductIds'
         ));
     }
 
-    /**
-     * Hiển thị danh sách tất cả sản phẩm kèm tính năng tìm kiếm, lọc theo danh mục, giá cả và xếp hạng.
-     */
+
+    // Hiển thị danh sách tất cả sản phẩm kèm tính năng tìm kiếm, lọc theo danh mục, giá cả và xếp hạng.
     public function index(Request $request)
     {
         // Nhận dữ liệu đầu vào phục vụ cho việc lọc sản phẩm
@@ -169,7 +157,7 @@ class ProductController
         if (!is_array($categoryIds)) {
             $categoryIds = empty($categoryIds) ? [] : [$categoryIds];
         }
-        $maxPrice = $request->input('max_price', 600000); // Giá tối đa mặc định là 600,000đ
+        $maxPrice = $request->input('max_price', 600000);
         $minRating = $request->input('rating');
 
         // Xử lý chuẩn hóa từ khóa tìm kiếm (chuyển chữ thường, bỏ khoảng trắng thừa)
@@ -178,7 +166,7 @@ class ProductController
         if (!empty($rawSearch)) {
             $searchQuery = trim($rawSearch);
             if (class_exists('Normalizer')) {
-                $searchQuery = \Normalizer::normalize($searchQuery, \Normalizer::FORM_C);
+                $searchQuery = \Normalizer::normalize($searchQuery, \Normalizer::FORM_C);//chuan hoa
             }
             $searchQuery = mb_strtolower($searchQuery, 'UTF-8');
         }
@@ -223,10 +211,7 @@ class ProductController
             $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
         }
 
-        // Thực thi lấy kết quả sản phẩm, phân trang 15 sản phẩm/trang (khớp lưới 5 cột x 3 hàng ở
-        // desktop, xem .p-product-grid trong users.css) và mặc định sắp xếp theo trạng thái (còn hàng
-        // trước, hết hàng sau) và độ bán chạy (total_sold). withQueryString() giữ nguyên các tham số
-        // lọc (category/max_price/rating/search) khi chuyển trang.
+        // Thực thi lấy kết quả sản phẩm
         $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')
             ->paginate(15)->withQueryString();
 

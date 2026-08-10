@@ -165,10 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const deselectBtn = document.getElementById('bulk-deselect-btn');
     const bulkDeleteForm = document.getElementById('bulk-delete-form');
 
+    // Lấy mảng id của các dòng đang được tích chọn trong bảng
     function getCheckedIds() {
         return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     }
 
+    // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
     function updateBulkDeleteUI() {
         const count = getCheckedIds().length;
         if (bulkDeleteContainer) bulkDeleteContainer.classList.toggle('hidden', count === 0);
@@ -238,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Hỏi xác nhận rồi gửi yêu cầu xóa một khách hàng
 window.deleteCustomer = function (id) {
     if (confirm('Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.')) {
         const form = document.getElementById('delete-form-' + id);

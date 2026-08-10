@@ -185,6 +185,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             let operationalChart = null;
 
+            // Vẽ biểu đồ vận hành tổng quan trên trang dashboard
             function initOperationalChart(data) {
                 const ctx = document.getElementById('operational-chart');
                 if (!ctx) return;

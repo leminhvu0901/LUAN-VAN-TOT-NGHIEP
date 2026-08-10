@@ -8955,6 +8955,7 @@ chuyển ra đây để mobile thu gọn lại được) */
 }
 
 .pd-rel-card__img-wrap {
+  position: relative;
   aspect-ratio: 1;
   overflow: hidden;
   background: #f8fafc;

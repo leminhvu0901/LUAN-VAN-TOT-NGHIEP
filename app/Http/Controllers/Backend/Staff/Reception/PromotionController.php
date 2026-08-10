@@ -4,23 +4,16 @@ namespace App\Http\Controllers\Backend\Staff\Reception;
 
 use App\Models\Promotion;
 
-/**
- * Controller xem danh sách Khuyến mãi dành cho Lễ tân.
- * Lễ tân chỉ có quyền xem các chương trình đang áp dụng (Read-only) để tư vấn cho khách tại quầy.
- */
 class PromotionController
 {
-    /**
-     * Hiển thị danh sách các chương trình khuyến mãi còn hiệu lực.
-     */
+   //Hiển thị danh sách các chương trình khuyến mãi còn hiệu lực.
     public function index()
     {
         $now = now(); // Lấy mốc thời gian hiện tại của hệ thống
-
         $promotions = Promotion::query()
             ->where('is_active', true) // Chỉ lấy các chương trình đang được bật kích hoạt
             // Lễ tân bán hàng tại quầy nên lọc bỏ các mã chỉ áp dụng riêng cho giao hàng (delivery)
-            ->whereIn('applies_to', ['all', 'pickup']) 
+            ->whereIn('applies_to', ['all', 'pickup'])
             ->where(function ($query) use ($now) { // Lọc các chương trình khuyến mãi theo ngày hiệu lực
                 $query->where('is_recurring', true) // Lấy các chương trình lặp lại (luôn luôn có hiệu lực)
                     ->orWhere(function ($q) use ($now) {

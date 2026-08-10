@@ -200,10 +200,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCountSpan = document.getElementById('selected-count');
     const bulkDeleteForm = document.getElementById('bulk-delete-form');
 
+    // Lấy mảng id của các dòng đang được tích chọn trong bảng
     function getCheckedIds() {
         return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     }
 
+    // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
     function updateBulkDeleteButton() {
         const count = getCheckedIds().length;
         if (bulkDeleteContainer) bulkDeleteContainer.classList.toggle('hidden', count === 0);

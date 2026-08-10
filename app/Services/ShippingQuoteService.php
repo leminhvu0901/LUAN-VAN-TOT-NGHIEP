@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Support\Facades\Http;
@@ -18,23 +19,23 @@ class ShippingQuoteService
     public function quote(UserAddress $address, float $subtotal, ?User $user): array
     {
         $distance = $this->distanceFor($address);
-        
-        $baseFee = (float) \App\Models\Setting::getValue('shipping_base_fee', 15000);
-        $feePerKm = (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000);
-        
+
+        $baseFee = (float) Setting::getValue('shipping_base_fee', 15000);
+        $feePerKm = (float) Setting::getValue('shipping_fee_per_km', 5000);
+
         $threshold = match ($user?->membership_level) {
             'silver' => 120000,
             'gold' => 90000,
             'diamond' => 0,
-            default => (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000),
+            default => (float) Setting::getValue('free_shipping_minimum', 150000),
         };
-        
+
         if ($distance <= 2) {
             $shippingFee = $baseFee;
         } else {
             $shippingFee = $baseFee + ($distance - 2) * $feePerKm;
         }
-        
+
         $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee);
 
         return [
@@ -50,25 +51,24 @@ class ShippingQuoteService
         return $this->distanceForWithSource($address)['distance_km'];
     }
 
-    // Như distanceFor() nhưng kèm 'is_mock' (false = số km thật từ Geoapify Routing API/
-    // OpenRouteService, true = ước lượng cố định theo quận/huyện) — CartController dùng để hiển thị
-    // đúng trạng thái cho khách ở màn hình checkout. Thứ tự nguồn: Geoapify Routing API (chính) ->
-    // OpenRouteService (dự phòng, giữ lại cho đến khi Geoapify được xác nhận ổn định) -> ước lượng cố
-    // định (luôn có, không bao giờ để trống).
+    // Tính khoảng cách giao hàng thật, có 3 tầng dự phòng nối tiếp — luôn trả về kết quả, không bao giờ trống
     public function distanceForWithSource(UserAddress $address): array
     {
-        $storeLat = (float) \App\Models\Setting::getValue('store_latitude', 10.73809);
-        $storeLng = (float) \App\Models\Setting::getValue('store_longitude', 106.67812);
+        $storeLat = (float) Setting::getValue('store_latitude', 10.73809);
+        $storeLng = (float) Setting::getValue('store_longitude', 106.67812);
 
+        // Chỉ gọi API định vị nếu địa chỉ khách đã có sẵn tọa độ (geocode hoặc chọn trên bản đồ)
         if ($address->latitude && $address->longitude) {
             $destLat = (float) $address->latitude;
             $destLng = (float) $address->longitude;
 
+            // Ưu tiên 1: Geoapify Routing API — khoảng cách lái xe thực tế
             $distance = $this->geoapify->drivingDistanceKm($storeLat, $storeLng, $destLat, $destLng);
             if ($distance !== null) {
                 return ['distance_km' => $distance, 'is_mock' => false];
             }
 
+            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService (chỉ nếu có cấu hình key)
             if (config('services.openroute.key')) {
                 try {
                     $response = Http::timeout(8)
@@ -85,6 +85,7 @@ class ShippingQuoteService
             }
         }
 
+        // Ưu tiên 3 (luôn có): chưa có tọa độ hoặc cả 2 API đều lỗi -> ước lượng thô theo tên quận/huyện
         $district = mb_strtolower((string) $address->district);
         $estimate = match (true) {
             str_contains($district, '8') => 1.5,
@@ -123,21 +124,17 @@ class ShippingQuoteService
     private function percentForGroup(string $group): int
     {
         return match ($group) {
-            'light_rain' => (int) \App\Models\Setting::getValue('weather_light_rain_percent', 5),
-            'heavy_rain' => (int) \App\Models\Setting::getValue('weather_heavy_rain_percent', 10),
-            'storm' => (int) \App\Models\Setting::getValue('weather_storm_percent', 15),
+            'light_rain' => (int) Setting::getValue('weather_light_rain_percent', 5),
+            'heavy_rain' => (int) Setting::getValue('weather_heavy_rain_percent', 10),
+            'storm' => (int) Setting::getValue('weather_storm_percent', 15),
             default => 0,
         };
     }
 
-    // Tình trạng thời tiết đang áp dụng.
-    //   - Cài đặt 'weather_override' khác 'auto' -> DÙNG LUÔN giá trị admin ép, KHÔNG gọi API. Đây là
-    //     đường dành cho trình diễn/kiểm thử (không phải lúc nào cũng canh được trời mưa thật).
-    //   - Ngược lại -> đọc thời tiết thật tại tọa độ giao hàng qua Open-Meteo.
-    // Lỗi mạng/thiếu tọa độ đều trả 'none' để không bao giờ chặn luồng đặt hàng.
+    //thời tiết hiện tại đang được áp dụng
     public function currentWeatherGroup(?float $lat, ?float $lng): string
     {
-        $override = (string) \App\Models\Setting::getValue('weather_override', 'auto');
+        $override = (string) Setting::getValue('weather_override', 'auto');
         if ($override !== '' && $override !== 'auto') {
             return array_key_exists($override, self::WEATHER_LABELS) ? $override : 'none';
         }
@@ -159,9 +156,7 @@ class ShippingQuoteService
         }
     }
 
-    // Phụ thu thời tiết cho một mức phí giao hàng cho trước. NGUỒN TÍNH DUY NHẤT — cả lúc tạo đơn thật
-    // lẫn lúc hiển thị thử ở trang checkout đều gọi hàm này, tránh lệch số giữa màn hình và hóa đơn.
-    // Trả về ['fee' => .., 'group' => .., 'label' => ..].
+    // tính tiền thật
     public function weatherSurcharge(float $shippingFee, ?float $lat, ?float $lng): array
     {
         $none = ['fee' => 0.0, 'group' => 'none', 'label' => self::WEATHER_LABELS['none']];
@@ -171,12 +166,12 @@ class ShippingQuoteService
             return $none;
         }
 
-        if (\App\Models\Setting::getValue('weather_surcharge_enabled', '0') != '1') {
+        if (Setting::getValue('weather_surcharge_enabled', '0') != '1') {
             return $none;
         }
 
-        $group = $this->currentWeatherGroup($lat, $lng);
-        $percent = $this->percentForGroup($group);
+        $group = $this->currentWeatherGroup($lat, $lng);//thoi tiet hien tai dược ap dung
+        $percent = $this->percentForGroup($group);//muc phu thu thoi tiet
         if ($percent <= 0) {
             return $none;
         }
@@ -188,6 +183,7 @@ class ShippingQuoteService
         ];
     }
 
+    // tinh phí thời tiết
     private function weatherFee(UserAddress $address, float $shippingFee): float
     {
         return (float) $this->weatherSurcharge(

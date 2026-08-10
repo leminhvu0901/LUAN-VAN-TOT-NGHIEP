@@ -10,20 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Controller Quản lý Đơn hàng dành cho Nhân viên giao hàng (Shipper).
- * Shipper chỉ có quyền xem và xử lý trạng thái giao hàng của các đơn được phân công cho chính mình.
- * Không tích hợp các chức năng quản trị như xóa đơn hàng, xóa hàng loạt hay xuất file báo cáo.
- */
 class OrderController
 {
-    // Inject workflow service quản lý chuyển đổi trạng thái đơn hàng
-    public function __construct(private readonly OrderWorkflowService $sv_orderWorkflow) {}
-
-    /**
-     * Hiển thị danh sách đơn hàng do Shipper này phụ trách.
-     * Hỗ trợ các Tab bộ lọc: Đơn được gán (assigned), Đơn đang đi giao (shipping), Lịch sử giao hàng (history).
-     */
+    public function __construct(private readonly OrderWorkflowService $sv_orderWorkflow)
+    {
+    }
+    // Hiển thị danh sách đơn hàng do Shipper này phụ trách.
     public function index(Request $request)
     {
         // Nhận tab lọc từ URL, mặc định là tab đơn được gán
@@ -51,9 +43,7 @@ class OrderController
         return view('backend.staff.delivery.orders.index', compact('orders', 'tab', 'codToCollect'));
     }
 
-    /**
-     * Hiển thị chi tiết thông tin của đơn hàng để Shipper đi giao.
-     */
+    // Hiển thị chi tiết thông tin của đơn hàng để Shipper đi giao
     public function show(Order $order)
     {
         $this->authorizeOwnership($order); // Đảm bảo an ninh kiểm soát: Đơn này phải thuộc về Shipper hiện tại
@@ -67,9 +57,7 @@ class OrderController
         return view('backend.staff.delivery.orders.show', compact('order', 'items'));
     }
 
-    /**
-     * Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng sang Đang giao hàng (shipping).
-     */
+    // Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng sang Đang giao hàng (shipping)
     public function ship(Order $order)
     {
         $this->authorizeOwnership($order);
@@ -77,23 +65,18 @@ class OrderController
         return $this->success('shipping', 'Đã nhận đơn và chuyển sang đang giao!');
     }
 
-    /**
-     * Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao sang Hoàn thành (completed).
-     */
+    // Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao sang Hoàn thành (completed)
     public function complete(Order $order)
     {
-        $this->authorizeOwnership($order);
+        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
         $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái đơn hàng sang 'completed' (hoàn thành)
         return $this->success('history', 'Đã xác nhận giao hàng thành công!');
     }
 
-    /**
-     * Ghi nhận "Giao hàng thất bại".
-     * Hỗ trợ tự động hoàn tiền online qua cổng VNPay nếu lý do thất bại là "Hàng bị đổ vỡ/hư hỏng".
-     */
+    // Ghi nhận "Giao hàng thất bại".
     public function fail(Request $request, Order $order)
     {
-        $this->authorizeOwnership($order);
+        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
 
         $validated = $request->validate([ // Validate lý do giao hàng thất bại
             'reason' => ['required', 'string', 'max:500'],
@@ -121,32 +104,30 @@ class OrderController
             $refundResult = app(VnpayController::class)->requestRefund($order);
 
             if ($refundResult['success']) {
+                //Giao thất bại và ghi nhận thông tin hoàn tiền MoMo/VnPay
                 $this->sv_orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']); // Ghi nhận thất bại kèm cập nhật hoàn tiền
                 return $this->success('history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
             }
 
             // Hoàn tiền thất bại: Vẫn hủy đơn để giải phóng chuyến giao hàng của shipper nhưng báo lễ tân hoàn thủ công
             Log::error("{$gatewayLabel} refund failed on delivery-failed (damaged)", ['orderId' => $order->order_code, 'message' => $refundResult['message']]);
+            // Ghi nhận đơn hàng giao thất bại và tiến hành hủy đơn
             $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
             return $this->success('history', "Đã ghi nhận giao hàng thất bại. Hoàn tiền {$gatewayLabel} thất bại — vui lòng báo lễ tân xử lý hoàn tiền thủ công.");
         }
-
+        // Ghi nhận đơn hàng giao thất bại và tiến hành hủy đơn
         $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']); // Ghi nhận thất bại thông thường
 
         return $this->success('history', 'Đã ghi nhận giao hàng thất bại.');
     }
 
-    /**
-     * Hàm helper trả về redirect kèm thông báo về đúng tab danh sách sau khi xử lý đơn xong.
-     */
+    // Hàm helper trả về redirect kèm thông báo về đúng tab danh sách sau khi xử lý đơn xong
     private function success(string $tab, string $message)
     {
         return redirect()->route('staff.delivery.orders.index', ['tab' => $tab])->with('success', $message);
     }
 
-    /**
-     * Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin).
-     */
+    // Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
     private function authorizeOwnership(Order $order): void
     {
         $user = Auth::user();

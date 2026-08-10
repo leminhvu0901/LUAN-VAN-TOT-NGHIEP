@@ -1339,6 +1339,51 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
+     * Xóa nhân viên đã có lịch sử hoạt động (tạo đơn/phân công/đối soát) phải bị chặn ở server —
+     * KHÔNG được xóa ngầm — và tài khoản phải còn nguyên trong DB sau đó.
+     */
+    public function test_deleting_staff_with_order_history_is_blocked(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        // Nhân viên này đã từng tạo 1 đơn tại quầy -> có lịch sử hoạt động thật.
+        $this->makeOrder(['created_by' => $receptionist->id]);
+
+        $response = $this->actingAs($admin)->delete(route('admin.staff_accounts.destroy', $receptionist->id));
+
+        $response->assertRedirect(route('admin.staff_accounts.index'));
+        $response->assertSessionHas('error');
+        $this->assertModelExists($receptionist);
+    }
+
+    /**
+     * Lỗi "không thể xóa vì có lịch sử hoạt động" (session('error') — KHÁC session flash 'success' và
+     * $errors validate()) phải THỰC SỰ hiện lên màn hình qua toast, không được bị nuốt mất. Bug thật:
+     * backend.partials.flash_messages trước đây chỉ đọc session('success') và $errors->any(), bỏ sót
+     * hẳn session('error') — nên lỗi có set đúng ở server nhưng người dùng không bao giờ thấy được.
+     */
+    public function test_staff_delete_error_message_actually_renders_as_toast(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $this->makeOrder(['created_by' => $receptionist->id]);
+
+        $this->actingAs($admin)->delete(route('admin.staff_accounts.destroy', $receptionist->id))
+            ->assertRedirect(route('admin.staff_accounts.index'));
+
+        // Session flash tồn tại tới request kế tiếp -> mô phỏng đúng luồng thật (redirect được trình
+        // duyệt tự động follow, rồi flash_messages.blade.php đọc session('error') để bơm ra JS).
+        $errorMessage = 'Không thể xóa: nhân viên này đã có lịch sử hoạt động (đơn hàng/phân công/đối soát). Vui lòng khóa tài khoản thay vì xóa.';
+        $page = $this->actingAs($admin)->get(route('admin.staff_accounts.index'));
+
+        $page->assertOk();
+        $page->assertSee('window.flashErrorMessages', false);
+        // So khớp đúng dạng JSON đã encode (Blade dùng json_encode() không escape unicode) để chắc chắn
+        // NỘI DUNG lỗi thật sự có mặt trong script, không chỉ biến rỗng.
+        $page->assertSee(json_encode($errorMessage), false);
+    }
+
+    /**
      * Dashboard lễ tân tính đúng doanh thu hôm nay theo hình thức thanh toán: tiền mặt gộp cả
      * 'cash' và 'cod', chuyển khoản là 'momo'; chỉ tính đơn đã thanh toán (paid_at) hôm nay,
      * bỏ qua đơn chưa thanh toán và đơn đã thanh toán từ hôm qua.
@@ -2076,10 +2121,10 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * POS Giai đoạn 4: lễ tân nhập mã khuyến mãi tay -> ưu tiên dùng mã đó thay vì tự động chọn mã
-     * tốt nhất (resolveAutoPromotion), kể cả khi mã tự động có sẵn và đủ điều kiện.
+     * Lễ tân chọn mã nào thì đơn dùng đúng mã đó, kể cả khi đang có mã khác giá trị khác cùng đủ
+     * điều kiện — hệ thống không tự ý đổi sang mã "tốt hơn".
      */
-    public function test_pos_manual_coupon_code_overrides_auto_promotion(): void
+    public function test_pos_uses_exactly_the_code_staff_picked(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
 
@@ -2256,7 +2301,11 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($order->shift_id);
     }
 
-    public function test_counter_order_auto_applies_eligible_promotion(): void
+    /**
+     * Đơn tại quầy KHÔNG còn tự chọn mã giúp: lễ tân không bấm chọn mã thì đơn giữ nguyên giá gốc,
+     * dù có mã đủ điều kiện đang chạy. Bấm chọn mã rồi thì mới được giảm.
+     */
+    public function test_counter_order_does_not_auto_apply_promotion_until_staff_picks_one(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
 
@@ -2275,12 +2324,23 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
 
-        $order = Order::where('created_by', $receptionist->id)->latest()->first();
-        $this->assertEquals($promotion->id, $order->promotion_id);
-        $this->assertEquals(10000, (float) $order->discount_amount);
-        $this->assertEquals(90000, (float) $order->final_amount);
+        // Không gửi coupon_code -> không có khuyến mãi nào được áp.
+        // orderByDesc('id') chứ không phải latest(): travelTo đóng băng đồng hồ nên 2 đơn có cùng created_at.
+        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
+        $this->assertNull($order->promotion_id);
+        $this->assertEquals(0, (float) $order->discount_amount);
+        $this->assertEquals(100000, (float) $order->final_amount);
+
+        // Lễ tân bấm chọn mã -> lúc này mới được giảm.
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'AUTO10']);
+
+        $picked = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
+        $this->assertEquals($promotion->id, $picked->promotion_id);
+        $this->assertEquals(10000, (float) $picked->discount_amount);
+        $this->assertEquals(90000, (float) $picked->final_amount);
     }
 
     /**
@@ -2653,10 +2713,10 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Xem trước tổng tiền đơn tại quầy TRƯỚC khi tạo đơn: có khuyến mãi tự động đủ điều kiện thì
-     * phải hiện đúng số tiền giảm + tổng phải trả thật, khớp chính xác với số tiền khi tạo đơn thật.
+     * Xem trước tổng tiền đơn tại quầy: chưa bấm chọn mã thì KHÔNG giảm gì, nhưng mã đủ điều kiện phải
+     * hiện trong danh sách để lễ tân bấm. Bấm rồi thì số tiền xem trước phải khớp đơn tạo thật.
      */
-    public function test_preview_total_shows_correct_subtotal_and_auto_promotion_discount(): void
+    public function test_preview_total_lists_available_codes_and_only_discounts_after_staff_picks_one(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
 
@@ -2677,9 +2737,21 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
 
+        // Chưa chọn mã -> giữ nguyên giá gốc, nhưng mã phải nằm trong danh sách gợi ý.
         $preview = $this->getJson('/staff/reception/orders/preview-total');
         $preview->assertOk();
         $preview->assertJson([
+            'subtotal' => 100000,
+            'discount' => 0,
+            'promotion_code' => null,
+            'final_amount' => 100000,
+            'available_promotions' => [['code' => 'PREVIEW10', 'label' => 'Giảm 10%']],
+        ]);
+
+        // Lễ tân bấm chọn mã -> xem trước ra đúng số tiền giảm.
+        $picked = $this->getJson('/staff/reception/orders/preview-total?coupon_code=PREVIEW10');
+        $picked->assertOk();
+        $picked->assertJson([
             'subtotal' => 100000,
             'discount' => 10000,
             'promotion_code' => 'PREVIEW10',
@@ -2687,7 +2759,7 @@ class StaffRoleWorkflowTest extends TestCase
         ]);
 
         // Số xem trước phải khớp chính xác với đơn tạo thật
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'PREVIEW10']);
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertEquals(90000, (float) $order->final_amount);
     }
@@ -2816,10 +2888,10 @@ class StaffRoleWorkflowTest extends TestCase
     }
 
     /**
-     * Mã tự động chọn (không nhập mã tay) có set min_quantity cũng phải bị loại khỏi danh sách ứng
-     * viên nếu giỏ hàng chưa đủ số lượng — không được tự động áp nhầm khi khách chỉ mua 1 món.
+     * Mã có set min_quantity chỉ được gợi ý cho lễ tân khi giỏ đã đủ số lượng, và bấm chọn khi chưa đủ
+     * thì bị từ chối — không có đường nào lọt vào đơn khi điều kiện chưa thỏa.
      */
-    public function test_pos_auto_promotion_skips_min_quantity_code_when_cart_has_too_few_items(): void
+    public function test_pos_min_quantity_code_is_hidden_and_rejected_until_cart_has_enough_items(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
 
@@ -2833,8 +2905,16 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
 
-        // Chỉ 1 món -> mã combo (min_quantity=2) không đủ điều kiện, không có mã khác -> không áp dụng gì
+        // Chỉ 1 món -> mã (min_quantity=2) chưa đủ điều kiện: không được gợi ý, bấm vào cũng bị từ chối.
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        $this->getJson('/staff/reception/orders/preview-total')
+            ->assertOk()
+            ->assertJson(['available_promotions' => []]);
+        $this->getJson('/staff/reception/orders/preview-total?coupon_code=AUTOCOMBO')
+            ->assertOk()
+            ->assertJson(['discount' => 0, 'promotion_code' => null])
+            ->assertJsonPath('coupon_error', 'Đơn hàng cần mua tối thiểu 2 món để dùng mã này.');
+
         $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
         $firstOrder = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNull($firstOrder->promotion_id);
@@ -2842,9 +2922,52 @@ class StaffRoleWorkflowTest extends TestCase
         // Đơn trước đã tạo thành công nên giỏ hàng đã bị xóa sạch — thêm lại đủ 2 món cho đơn tiếp
         // theo (không phải "thêm 1 món nữa" vào giỏ cũ, vì giỏ cũ không còn tồn tại).
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 2])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->getJson('/staff/reception/orders/preview-total')
+            ->assertOk()
+            ->assertJson(['available_promotions' => [['code' => 'AUTOCOMBO']]]);
+
+        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'AUTOCOMBO']);
         $secondOrder = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNotNull($secondOrder->promotion_id);
         $this->assertEquals(15000, (float) $secondOrder->discount_amount);
+    }
+
+    /**
+     * Mã "cần nhân viên xác nhận" phải được gợi ý cho lễ tân bấm (chính lễ tân là người xác nhận),
+     * nhưng KHÔNG gợi ý cho khách tự bấm ở trang thanh toán.
+     */
+    public function test_staff_verification_code_is_suggested_at_pos_but_not_to_customers(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
+        $product = $this->makeProduct(['base_price' => 100000]);
+
+        \App\Models\Promotion::create([
+            'code' => 'NHANVIEN', 'type' => 'fixed', 'value' => 20000, 'apply_for' => 'all',
+            'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'requires_staff_verification' => true,
+        ]);
+
+        // POS: có gợi ý
+        $this->actingAs($receptionist);
+        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
+        $this->getJson('/staff/reception/orders/preview-total')
+            ->assertOk()
+            ->assertJson(['available_promotions' => [['code' => 'NHANVIEN']]]);
+
+        // Trang khách: không gợi ý
+        $customer = User::factory()->create(['role' => 'customer']);
+        $cart = \App\Models\Cart::create(['user_id' => $customer->id]);
+        \App\Models\CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100000]);
+        \App\Models\UserAddress::create([
+            'user_id' => $customer->id, 'fullname' => 'Nguyễn Văn A', 'phone' => '0911222333',
+            'province' => 'Thành phố Hồ Chí Minh', 'district' => 'Quận 8', 'ward' => 'Phường Chánh Hưng',
+            'specific_address' => '180 Cao Lỗ', 'latitude' => 10.7383043, 'longitude' => 106.6788227,
+        ]);
+
+        $this->actingAs($customer)->get('/checkout')
+            ->assertOk()
+            ->assertDontSee('NHANVIEN', false);
     }
 }

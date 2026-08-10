@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\PromotionCombo;
 use App\Models\User;
@@ -11,16 +10,17 @@ use Illuminate\Validation\ValidationException;
 
 class PromotionService
 {
-    // Chọn mã giảm giá tốt nhất cho giỏ hàng (thủ công nếu có nhập mã, hoặc tự động nếu không nhập)
+    // Áp mã giảm giá cho giỏ hàng. Hệ thống KHÔNG tự chọn mã giúp nữa (cả trang khách lẫn POS lễ tân):
+    // không có mã nào được nhập thì đơn không có khuyến mãi, đảm bảo mỗi đơn chỉ mang đúng 1 mã do
+    // người dùng chủ động chọn.
     public function resolveBestDiscount(Collection $items, float $subtotal, ?User $user, string $channel, int $totalQuantity, ?string $manualCode = null, bool $lock = false): array
     {
         if (filled($manualCode)) {
-            // Xử lý nhập mã thủ công nếu khách hàng có nhập mã
+            // xử lý mã user tự nhập
             return $this->resolveManualCode($manualCode, $items, $subtotal, $user, $channel, $totalQuantity, $lock);
         }
 
-        // Tự động chọn mã tối ưu nếu khách không nhập mã
-        return $this->resolveAutoPromotion($items, $subtotal, $channel, $totalQuantity); // Gọi hàm nội bộ tìm ưu đãi tự động tốt nhất
+        return ['promotion' => null, 'discount' => 0.0, 'gifts' => []];
     }
 
     // Kiểm tra và xử lý áp dụng mã giảm giá nhập thủ công
@@ -37,7 +37,7 @@ class PromotionService
             throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không tồn tại.']);
         }
 
-        if (!in_array($promotion->scope, ['order', 'product', 'category'], true)) {
+        if (!in_array($promotion->scope, ['order', 'product', 'category', 'combo'], true)) {
             throw ValidationException::withMessages(['coupon_code' => 'Mã giảm giá không hợp lệ.']);
         }
 
@@ -45,6 +45,11 @@ class PromotionService
         $validity = $promotion->checkValidity($user, $subtotal, $channel, $totalQuantity);
         if (!$validity['valid']) {
             throw ValidationException::withMessages(['coupon_code' => $validity['message']]);
+        }
+
+        // Combo có cách tính riêng (mua đủ tổ hợp món mới được thưởng) nên tách hẳn ra một nhánh.
+        if ($promotion->scope === 'combo') {
+            return $this->resolveComboCode($promotion, $items);
         }
 
         // Nạp sẵn dữ liệu quan hệ products và categories nếu chưa được load
@@ -56,56 +61,84 @@ class PromotionService
                 'coupon_code' => match ($promotion->scope) {
                     // pluck('name'): Rút danh sách tên sản phẩm, implode: nối thành chuỗi
                     'product' => 'Giỏ hàng chưa có sản phẩm áp dụng mã này. Mã chỉ giảm cho: '
-                        . $promotion->products->pluck('name')->implode(', ') . '.',
+                    . $promotion->products->pluck('name')->implode(', ') . '.',
                     'category' => 'Giỏ hàng chưa có sản phẩm thuộc danh mục áp dụng mã này. Mã chỉ giảm cho danh mục: '
-                        . $promotion->categories->pluck('name')->implode(', ') . '.',
+                    . $promotion->categories->pluck('name')->implode(', ') . '.',
                     default => 'Mã giảm giá không áp dụng được cho giỏ hàng hiện tại.',
                 },
             ]);
         }
 
-        // Trả về thông tin mã khuyến mãi và số tiền giảm đã qua tính toán
-        return ['promotion' => $promotion, 'discount' => $this->calculateDiscount($promotion, $items)]; // Gọi hàm nội bộ để tính số tiền chiết khấu thực tế
+        // Trả về thông tin mã khuyến mãi và số tiền giảm đã qua tính toán. 'gifts' luôn rỗng vì chỉ
+        // mã combo mới có quà tặng kèm.
+        return [
+            'promotion' => $promotion,
+            'discount' => $this->calculateDiscount($promotion, $items), // Gọi hàm nội bộ để tính số tiền chiết khấu thực tế
+            'gifts' => [],
+        ];
     }
 
-    // Tự động tìm mã giảm giá hợp lệ và tối ưu nhất cho giỏ hàng
-    private function resolveAutoPromotion(Collection $items, float $subtotal, string $channel, int $totalQuantity): array
+    // Áp dụng một mã COMBO khách vừa chọn: 
+    private function resolveComboCode(Promotion $promotion, Collection $items): array
     {
-        $now = now();
-        $promotion = Promotion::query()
-            ->whereIn('scope', ['order', 'product', 'category'])
-            ->where('is_active', true)
-            ->where('apply_for', 'all')
-            ->whereIn('applies_to', ['all', $channel])
-            // Bỏ qua mã yêu cầu nhân viên xác nhận (chỉ dành cho nhập tay)
-            ->where('requires_staff_verification', false)
-            ->where(function ($q) use ($subtotal) {
-                $q->whereNull('min_order_amount')->orWhere('min_order_amount', '<=', $subtotal);
-            })
-            ->where(function ($q) use ($totalQuantity) {
-                $q->whereNull('min_quantity')->orWhere('min_quantity', '<=', $totalQuantity);
-            })
-            ->where(function ($q) {
-                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
-            })
-            ->with(['products', 'categories'])
-            ->get()
-            // Lọc các mã đang trong khung giờ hiệu lực
-            ->filter(fn(Promotion $p) => $this->isWithinTimeWindow($p, $now))
-            // Lọc các mã mà giỏ hàng có chứa sản phẩm áp dụng
-            ->filter(fn(Promotion $p) => $this->eligibleSubtotal($p, $items) > 0)
-            // Sắp xếp mã giảm nhiều tiền nhất lên đầu tiên
-            ->sortByDesc(fn(Promotion $p) => $this->calculateDiscount($p, $items))
-            ->first();
+        $promotion->loadMissing(['combo.giftProduct', 'comboItems.product']);
+        $combo = $promotion->combo;
 
-        // Tính số tiền giảm của mã tìm được (nếu không có thì trả về 0)
-        if ($promotion) {
-            $discount = $this->calculateDiscount($promotion, $items); // Tính số tiền giảm giá của mã tự động được chọn
-        } else {
-            $discount = 0.0;
+        if (!$combo || $promotion->comboItems->isEmpty()) {
+            throw ValidationException::withMessages(['coupon_code' => 'Mã combo này chưa được cấu hình đầy đủ.']);
         }
 
-        return ['promotion' => $promotion, 'discount' => $discount];
+        // Đếm số lượng từng món đang có trong giỏ để xem ghép được mấy bộ combo
+        $inCart = [];
+        $priceByProduct = [];
+        foreach ($items as $item) {
+            $inCart[$item->product_id] = ($inCart[$item->product_id] ?? 0) + (int) $item->quantity;
+            if (!isset($priceByProduct[$item->product_id])) {
+                $priceByProduct[$item->product_id] = (float) ($item->calculated_unit_price ?? $item->unit_price);
+            }
+        }
+
+        $applications = $this->comboApplications($promotion, $inCart);//// Tính số lần tối đa mà giỏ hàng đủ điều kiện áp dụng Combo
+        if ($combo->max_applications_per_order) {
+            $applications = min($applications, (int) $combo->max_applications_per_order);
+        }
+
+        // Chưa mua đủ tổ hợp món -> báo rõ cần mua gì thay vì chỉ nói "không áp dụng được"
+        if ($applications <= 0) {
+            $required = $promotion->comboItems
+                ->map(fn($ci) => $ci->quantity . ' ' . ($ci->product->name ?? 'sản phẩm'))
+                ->implode(' + ');
+            throw ValidationException::withMessages([
+                'coupon_code' => "Mã này yêu cầu mua {$required}. Giỏ hàng của bạn chưa đủ.",
+            ]);
+        }
+
+        // Phần thưởng 1: giảm tiền, tính trên tổng tiền của đúng các món nằm trong combo
+        $discount = 0.0;
+        if ($combo->hasDiscount()) {
+            $eligibleSubtotal = 0.0;
+            foreach ($promotion->comboItems as $comboItem) {
+                $eligibleSubtotal += ($priceByProduct[$comboItem->product_id] ?? 0) * $comboItem->quantity * $applications;
+            }
+            $discount = $this->comboDiscountAmount($combo, $eligibleSubtotal, $applications);
+        }
+
+        // Phần thưởng 2: tặng món, số lượng nhân theo số bộ combo khách mua được
+        $gifts = [];
+        if ($combo->hasGift() && $combo->giftProduct) {
+            $giftQty = $applications * (int) $combo->gift_quantity;
+            if ($giftQty > 0) {
+                $gifts[] = [
+                    'promotion' => $promotion,
+                    'applications' => $applications,
+                    'combo_items' => $promotion->comboItems,
+                    'gift_product' => $combo->giftProduct,
+                    'granted_quantity' => $giftQty,
+                ];
+            }
+        }
+
+        return ['promotion' => $promotion, 'discount' => $discount, 'gifts' => $gifts];
     }
 
     // Tính số tiền giảm giá thực tế của một khuyến mãi trên giỏ hàng
@@ -133,7 +166,7 @@ class PromotionService
         return min($discount, $eligibleSubtotal);
     }
 
-    // Tính tổng thành tiền của các sản phẩm nằm trong phạm vi áp dụng khuyến mãi
+    // tổng tiền của phần sản phẩm trong giỏ hàng thực sự được áp dụng 1 khuyến mãi cụ thể
     public function eligibleSubtotal(Promotion $promotion, Collection $items): float
     {
         return match ($promotion->scope) {
@@ -146,7 +179,7 @@ class PromotionService
         };
     }
 
-    // Tính tổng thành tiền riêng cho danh sách các sản phẩm áp dụng trực tiếp
+    // TÍNH TỔNG TIỀN DS SP
     private function eligibleSubtotalForProducts(Promotion $promotion, Collection $items): float
     {
         // Rút ra mảng danh sách ID sản phẩm được áp dụng
@@ -158,7 +191,7 @@ class PromotionService
             ->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
 
-    // Tính tổng thành tiền riêng cho các sản phẩm thuộc danh mục áp dụng
+    // TÍNH TỔNG TIỀN RIÊNG CHO SP THUỘC DANH MỤC
     private function eligibleSubtotalForCategories(Promotion $promotion, Collection $items): float
     {
         // Rút ra mảng danh sách ID danh mục được áp dụng
@@ -170,133 +203,34 @@ class PromotionService
             ->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
 
-    // Xử lý và tính toán tất cả các phần thưởng Combo (giảm giá & tặng quà) cho giỏ hàng
-    public function resolveComboRewards(Collection $items, string $channel, ?array $autoDiscountResult = null): array
+    // Các mã COMBO mà giỏ hàng hiện tại đã mua ĐỦ tổ hợp món, dùng để hiện chip "Mã khả dụng" ở trang
+    // thanh toán. Chưa đủ món thì không hiện, cho giống hệt cách các mã giảm giá khác được lọc.
+    public function applicableCombos(Collection $items, string $channel): Collection
     {
         $now = now();
 
-        $combos = Promotion::query()
+        // Đếm số lượng từng món đang có trong giỏ, dùng chung cho mọi combo bên dưới
+        $inCart = [];
+        foreach ($items as $item) {
+            $inCart[$item->product_id] = ($inCart[$item->product_id] ?? 0) + (int) $item->quantity;
+        }
+
+        return Promotion::query()
             ->where('scope', 'combo')
             ->where('is_active', true)
             ->whereIn('applies_to', ['all', $channel])
+            // Mã cần nhân viên xác nhận thì không gợi ý cho khách tự bấm
+            ->where('requires_staff_verification', false)
+            ->where(function ($q) {
+                $q->whereNull('usage_limit')->orWhereColumn('used_count', '<', 'usage_limit');
+            })
+            ->whereNotNull('code')
             ->with(['combo.giftProduct', 'comboItems.product'])
             ->get()
-            // Lọc các combo hợp lệ và đang trong khung giờ
-            ->filter(fn(Promotion $p) => $p->combo && $p->comboItems->isNotEmpty() && $this->isWithinTimeWindow($p, $now));
-
-        // Khởi tạo bể chứa số lượng còn lại của từng món trong giỏ để kiểm tra điều kiện combo
-        $remaining = [];
-        $priceByProduct = [];
-        foreach ($items as $item) {
-            $remaining[$item->product_id] = ($remaining[$item->product_id] ?? 0) + (int) $item->quantity;
-            if (!isset($priceByProduct[$item->product_id])) {
-                $priceByProduct[$item->product_id] = (float) ($item->calculated_unit_price ?? $item->unit_price);
-            }
-        }
-
-        // Lấy thông tin mã giảm giá tự động đang chạy song song để so sánh trùng lặp
-        $autoPromotion = $autoDiscountResult['promotion'] ?? null;
-        $autoDiscount = (float) ($autoDiscountResult['discount'] ?? 0.0);
-
-        if ($autoPromotion) {
-            $autoEligibleSubtotal = $this->eligibleSubtotal($autoPromotion, $items); // Tính tổng tiền sản phẩm áp dụng mã tự động
-        } else {
-            $autoEligibleSubtotal = 0.0;
-        }
-
-        if ($autoEligibleSubtotal > 0) {
-            $autoEffectiveRate = $autoDiscount / $autoEligibleSubtotal;
-        } else {
-            $autoEffectiveRate = 0.0;
-        }
-
-        if ($autoPromotion) {
-            // Gọi hàm lấy mảng ID sản phẩm thuộc mã giảm giá kia
-            $autoProductIds = $this->eligibleProductIdsForPromotion($autoPromotion); // Lấy danh sách ID sản phẩm được áp mã tự động
-        } else {
-            $autoProductIds = [];
-        }
-
-        $autoDiscountRemoved = 0.0;
-
-        // Ước tính giá trị và sắp xếp ưu tiên combo có giá trị cao hơn xử lý trước
-        $sorted = $combos->sortByDesc(function (Promotion $p) use ($remaining, $priceByProduct) {
-            return $this->comboProspectiveValue($p, $remaining, $priceByProduct); // Tính toán giá trị ước tính để sắp xếp thứ tự ưu tiên
-        })->values();
-
-        $results = [];
-        foreach ($sorted as $promotion) {
-            $combo = $promotion->combo;
-            // Tính số lần combo được áp dụng dựa trên số lượng hàng còn lại
-            $applications = $this->comboApplications($promotion, $remaining); // Tính số lần combo có thể áp dụng dựa vào lượng tồn món
-            if ($combo->max_applications_per_order) {
-                $applications = min($applications, $combo->max_applications_per_order);
-            }
-            if ($applications <= 0) {
-                continue;
-            }
-
-            $eligibleSubtotal = 0.0;
-            foreach ($promotion->comboItems as $comboItem) {
-                $eligibleSubtotal += ($priceByProduct[$comboItem->product_id] ?? 0) * $comboItem->quantity * $applications;
-            }
-
-            $granted = false;
-
-            if ($combo->hasDiscount()) {
-                // Tính tiền giảm giá thô của combo
-                $discount = $this->comboDiscountAmount($combo, $eligibleSubtotal, $applications);
-                if ($discount > 0 && $autoPromotion) {
-                    // Xử lý so sánh tranh chấp giá trị với mã giảm giá tự động
-                    $discount = $this->comboDiscountAfterOverlap( // Tính toán giảm giá sau khi trừ lượng trùng lặp với mã tự động
-                        $promotion,
-                        $discount,
-                        $applications,
-                        $priceByProduct,
-                        $autoProductIds,
-                        $autoEffectiveRate,
-                        $autoDiscountRemoved
-                    );
-                }
-                if ($discount > 0) {
-                    $results[] = [
-                        'type' => 'discount',
-                        'promotion' => $promotion,
-                        'applications' => $applications,
-                        'combo_items' => $promotion->comboItems,
-                        'discount_amount' => $discount,
-                    ];
-                    $granted = true;
-                }
-            }
-
-            if ($combo->hasGift() && $combo->auto_add_gift) {
-                $giftQty = $applications * $combo->gift_quantity;
-                if ($giftQty > 0) {
-                    $results[] = [
-                        'type' => 'gift',
-                        'promotion' => $promotion,
-                        'applications' => $applications,
-                        'combo_items' => $promotion->comboItems,
-                        'gift_product' => $combo->giftProduct,
-                        'granted_quantity' => $giftQty,
-                    ];
-                    $granted = true;
-                }
-            }
-
-            if ($granted) {
-                // Trừ bớt số lượng món đã dùng cho combo này khỏi bể chứa hàng
-                foreach ($promotion->comboItems as $comboItem) {
-                    $remaining[$comboItem->product_id] = ($remaining[$comboItem->product_id] ?? 0) - $comboItem->quantity * $applications;
-                }
-            }
-        }
-
-        return [
-            'entries' => $results,
-            'auto_discount' => max(0.0, $autoDiscount - $autoDiscountRemoved),
-        ];
+            ->filter(fn(Promotion $p) => $p->combo && $p->comboItems->isNotEmpty() && $this->isWithinTimeWindow($p, $now))
+            // Chỉ giữ combo mà giỏ ghép được ít nhất 1 bộ đầy đủ món
+            ->filter(fn(Promotion $p) => $this->comboApplications($p, $inCart) > 0)
+            ->values();
     }
 
     // Tính số lần tối đa mà giỏ hàng đủ điều kiện áp dụng Combo
@@ -314,36 +248,6 @@ class PromotionService
             }
         }
         return (int) ($applications ?? 0);
-    }
-
-    // Ước tính tổng giá trị thưởng của Combo để sắp xếp thứ tự ưu tiên xử lý
-    private function comboProspectiveValue(Promotion $promotion, array $remaining, array $priceByProduct): float
-    {
-        $combo = $promotion->combo;
-        // Gọi hàm tính số lần combo có thể nhận
-        $applications = $this->comboApplications($promotion, $remaining);
-        if ($combo->max_applications_per_order) {
-            $applications = min($applications, $combo->max_applications_per_order);
-        }
-        if ($applications <= 0) {
-            return 0.0;
-        }
-
-        $value = 0.0;
-        if ($combo->hasDiscount()) {
-            $eligibleSubtotal = 0.0;
-            foreach ($promotion->comboItems as $comboItem) {
-                $eligibleSubtotal += ($priceByProduct[$comboItem->product_id] ?? 0) * $comboItem->quantity * $applications;
-            }
-            // Gọi hàm tính số tiền giảm của phần giảm giá
-            $value += $this->comboDiscountAmount($combo, $eligibleSubtotal, $applications);
-        }
-        if ($combo->hasGift() && $combo->auto_add_gift && $combo->giftProduct) {
-            // Cộng thêm giá trị sản phẩm quà tặng vào tổng giá trị combo
-            $value += (float) $combo->giftProduct->base_price * $combo->gift_quantity * $applications;
-        }
-
-        return $value;
     }
 
     // Tính toán số tiền giảm giá chính xác của một Khuyến mãi Combo
@@ -364,53 +268,6 @@ class PromotionService
         }
 
         return min($discount, $eligibleSubtotal);
-    }
-
-    // Xử lý tranh chấp giảm giá khi 1 sản phẩm trong giỏ hàng vừa thuộc Combo vừa được áp dụng mã giảm giá tự động
-    private function comboDiscountAfterOverlap(Promotion $promotion, float $discount, int $applications, array $priceByProduct, ?array $autoProductIds, float $autoEffectiveRate, float &$autoDiscountRemoved): float
-    {
-        $comboProductIds = $promotion->comboItems->pluck('product_id')->all();
-        // Lấy danh sách sản phẩm bị trùng ưu đãi
-        if (is_null($autoProductIds)) {
-            // Mã giảm giá kia áp dụng toàn đơn hàng -> Tất cả sản phẩm trong combo đều tính là trùng
-            $overlapProductIds = $comboProductIds;
-        } else {
-            // Lấy các sản phẩm chung xuất hiện ở cả Combo và Mã giảm giá kia
-            $overlapProductIds = array_values(array_intersect($comboProductIds, $autoProductIds));
-        }
-
-        if (empty($overlapProductIds)) {
-            return $discount;
-        }
-
-        $overlapSubtotal = 0.0;
-        foreach ($promotion->comboItems as $comboItem) {
-            if (in_array($comboItem->product_id, $overlapProductIds, true)) {
-                $overlapSubtotal += ($priceByProduct[$comboItem->product_id] ?? 0) * $comboItem->quantity * $applications;
-            }
-        }
-
-        $otherValueOnOverlap = $overlapSubtotal * $autoEffectiveRate;
-        if ($discount <= $otherValueOnOverlap) {
-            return 0.0;
-        }
-
-        // Khấu trừ phần tiền giảm trùng khỏi mã giảm giá kia
-        $autoDiscountRemoved += $otherValueOnOverlap;
-        return $discount;
-    }
-
-    // Lấy ra danh sách tất cả ID của các sản phẩm được áp dụng mã khuyến mãi này
-    private function eligibleProductIdsForPromotion(Promotion $promotion): ?array
-    {
-        return match ($promotion->scope) {
-            'product' => $promotion->products->pluck('id')->all(),
-            // Query lấy danh sách ID sản phẩm thuộc danh mục khuyến mãi
-            'category' => Product::query()
-                ->whereIn('category_id', $promotion->categories->pluck('id')->all())
-                ->pluck('id')->all(),
-            default => null,
-        };
     }
 
     // Kiểm tra xem khuyến mãi có đang nằm trong khung giờ hiệu lực hay không

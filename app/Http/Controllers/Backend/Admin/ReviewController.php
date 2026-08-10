@@ -8,16 +8,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-/**
- * Controller quản lý đánh giá (reviews) ở khu vực Backend (admin).
- * Chứa các hành động: liệt kê, thêm, sửa, xóa, thay đổi hiển thị, xóa ảnh.
- * Mọi chú thích trong file được viết bằng tiếng Việt để dễ hiểu.
- */
+
 class ReviewController
 {
-    /**
-     * Hiển thị danh sách đánh giá với chức năng lọc, sắp xếp và phân trang.
-     */
+    //Hiển thị danh sách đánh giá với chức năng lọc, sắp xếp và phân trang.
     public function index(Request $request)
     {
         // Khởi tạo query và eager-load quan hệ `user` và `product` để tránh N+1
@@ -81,9 +75,7 @@ class ReviewController
         return  view('backend.admin.reviews.index', compact('reviews', 'totalReviews', 'activeReviews', 'hiddenReviews'));
     }
 
-    /**
-     * Chuyển đổi trạng thái hiển thị của đánh giá (toggle visible/hidden).
-     */
+    //Chuyển đổi trạng thái hiển thị của đánh giá
     public function toggleVisibility(Request $request, $id)
     {
         $review = Review::findOrFail($id);
@@ -93,9 +85,7 @@ class ReviewController
         return redirect()->back()->with('success', 'Trạng thái đánh giá đã được cập nhật!');
     }
 
-    /**
-     * Hiển thị form tạo đánh giá mới (thường dùng cho admin nếu cần).
-     */
+  // Hiển thị form tạo đánh giá mới (thường dùng cho admin nếu cần).
     public function create()
     {
         // Thường admin không tự tạo đánh giá, nhưng để có form CRUD chuẩn
@@ -104,9 +94,8 @@ class ReviewController
         return  view('backend.admin.reviews.create', compact('products', 'users'));
     }
 
-    /**
-     * Xử lý lưu đánh giá mới vào cơ sở dữ liệu, kèm upload ảnh (nếu có).
-     */
+
+    // Xử lý lưu đánh giá mới vào cơ sở dữ liệu, kèm upload ảnh (nếu có).
     public function store(Request $request)
     {
         $request->validate([
@@ -145,18 +134,14 @@ class ReviewController
         return redirect()->route('admin.reviews.index')->with('success', 'Thêm đánh giá thành công!');
     }
 
-    /**
-     * Hiển thị form chỉnh sửa một đánh giá cụ thể.
-     */
+    //Hiển thị form chỉnh sửa một đánh giá cụ thể
     public function edit($id)
     {
         $review = Review::findOrFail($id);
         return  view('backend.admin.reviews.edit', compact('review'));
     }
 
-    /**
-     * Cập nhật dữ liệu đánh giá, xử lý xóa/ thêm ảnh và lưu thay đổi.
-     */
+    // Cập nhật dữ liệu đánh giá, xử lý xóa/thêm ảnh và lưu thay đổi
     public function update(Request $request, $id)
     {
         $review = Review::findOrFail($id);
@@ -169,10 +154,11 @@ class ReviewController
             'delete_images' => 'nullable|array',
         ]);
 
+        // Ảnh hiện tại đang lưu dạng mảng JSON trong cột image
         $images = $review->image ? json_decode($review->image, true) : [];
         if (!is_array($images)) $images = [];
 
-        // Delete requested images
+        // Xóa các ảnh admin tick chọn — cả trong mảng lẫn file thật trên disk
         if ($request->has('delete_images') && is_array($request->delete_images)) {
             foreach ($request->delete_images as $delImg) {
                 if (($key = array_search($delImg, $images)) !== false) {
@@ -184,12 +170,12 @@ class ReviewController
             }
         }
 
-        // Add new images (enforce max 5 limit)
+        // Thêm ảnh mới, chặn không cho vượt quá tổng 5 ảnh/đánh giá
         if ($request->hasFile('new_images')) {
             $currentCount = count($images);
             foreach ($request->file('new_images') as $file) {
                 if ($currentCount >= 5) {
-                    break; // Stop accepting new images if we hit 5
+                    break; // Đủ 5 ảnh thì dừng, bỏ qua các file còn lại
                 }
 
                 if ($file->isValid()) {
@@ -202,6 +188,7 @@ class ReviewController
             }
         }
 
+        // array_values() để đánh lại index liên tục sau khi xóa (tránh mảng bị "thủng")
         $images = array_values($images);
         $imageJson = empty($images) ? null : json_encode($images);
 
@@ -215,9 +202,7 @@ class ReviewController
         return redirect()->route('admin.reviews.index')->with('success', 'Cập nhật đánh giá thành công!');
     }
 
-    /**
-     * Xóa một ảnh liên kết với đánh giá (xóa file trên disk và cập nhật DB).
-     */
+    //Xóa một ảnh liên kết với đánh giá 
     public function deleteImage(Request $request, $id)
     {
         $review = Review::findOrFail($id);
@@ -250,10 +235,8 @@ class ReviewController
         return redirect()->route('admin.reviews.edit', $review->id)->with('error', 'Ảnh không thuộc đánh giá này.');
     }
 
-    /**
-     * Xóa các file ảnh (JSON array đường dẫn) gắn với 1 đánh giá - gọi trước khi xóa DB
-     * để tránh mồ côi file trong public/images/reviews.
-     */
+
+    //xóa các file ảnh (JSON array đường dẫn) gắn với 1 đánh giá
     private function deleteReviewImageFiles(Review $review): void
     {
         $images = $review->image ? json_decode($review->image, true) : [];
@@ -279,9 +262,7 @@ class ReviewController
         return redirect()->back()->with('success', 'Xóa đánh giá thành công!');
     }
 
-    /**
-     * Xóa hàng loạt đánh giá theo mảng id truyền lên từ giao diện (chỉ các dòng đang chọn trong trang hiện tại).
-     */
+   //Xóa hàng loạt đánh giá theo mảng id truyền lên từ giao diện
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('review_ids', []);
@@ -293,7 +274,7 @@ class ReviewController
 
         $reviewsToDelete = Review::whereIn('id', $ids)->get();
         foreach ($reviewsToDelete as $review) {
-            $this->deleteReviewImageFiles($review);
+            $this->deleteReviewImageFiles($review);//xoa anh
         }
         $count = $reviewsToDelete->count();
         Review::whereIn('id', $ids)->delete();

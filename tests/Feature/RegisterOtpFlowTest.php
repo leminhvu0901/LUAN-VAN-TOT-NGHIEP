@@ -15,28 +15,28 @@ class RegisterOtpFlowTest extends TestCase
     {
         Mail::fake();
 
-        $response = $this->postJson('/register', [
+        $response = $this->post('/register', [
             'full_name' => 'Nguyen Van A',
             'email' => 'newcustomer@gmail.com',
             'password' => 'Leminhvu9124@',
             'password_confirmation' => 'Leminhvu9124@',
         ]);
 
-        $response->assertOk()->assertJson(['success' => true, 'otp_required' => true]);
+        $response->assertRedirect()->assertSessionHas('show_otp', true);
 
         $otp = session('verify_otp');
         $this->assertNotNull($otp, 'verify_otp should be in session after register');
 
         $digits = str_split((string) $otp);
 
-        $verify = $this->postJson('/verify-otp', ['otp' => $digits]);
+        $verify = $this->post('/verify-otp', ['otp' => $digits]);
 
-        $verify->assertOk()->assertJson(['success' => true]);
+        $verify->assertRedirect('/');
         $this->assertDatabaseHas('users', ['email' => 'newcustomer@gmail.com']);
         $this->assertAuthenticated();
 
-        // register.js navigates via window.location.href (a fresh page load), so the confirmation
-        // must survive as a flash message for the home page to pick up and show as a toast.
+        // postVerifyOtp() redirects straight to '/' after a successful full-page form submit, so the
+        // confirmation must survive as a flash message for the home page to pick up and show as a toast.
         $this->assertNotEmpty(session('success'));
     }
 
@@ -44,12 +44,12 @@ class RegisterOtpFlowTest extends TestCase
     {
         Mail::fake();
 
-        $this->postJson('/register', [
+        $this->post('/register', [
             'full_name' => 'Nguyen Van B',
             'email' => 'expired@gmail.com',
             'password' => 'Leminhvu9124@',
             'password_confirmation' => 'Leminhvu9124@',
-        ])->assertOk();
+        ])->assertRedirect();
 
         $otp = session('verify_otp');
         $digits = str_split((string) $otp);
@@ -57,7 +57,9 @@ class RegisterOtpFlowTest extends TestCase
         // Rewind the stored issue time well past the allowed window.
         session(['verify_otp_time' => now()->subMinutes(30)]);
 
-        $this->postJson('/verify-otp', ['otp' => $digits])->assertStatus(422);
+        $this->post('/verify-otp', ['otp' => $digits])
+            ->assertRedirect()
+            ->assertSessionHasErrors('otp_error');
         $this->assertDatabaseMissing('users', ['email' => 'expired@gmail.com']);
         $this->assertGuest();
     }
@@ -73,21 +75,19 @@ class RegisterOtpFlowTest extends TestCase
     {
         Mail::fake();
 
-        $this->postJson('/register', [
+        $this->post('/register', [
             'full_name' => 'Nguyen Van D',
             'email' => 'stringtime@gmail.com',
             'password' => 'Leminhvu9124@',
             'password_confirmation' => 'Leminhvu9124@',
-        ])->assertOk();
+        ])->assertRedirect();
 
         $otp = session('verify_otp');
         $digits = str_split((string) $otp);
 
         session(['verify_otp_time' => now()->toDateTimeString()]);
 
-        $this->postJson('/verify-otp', ['otp' => $digits])
-            ->assertOk()
-            ->assertJson(['success' => true]);
+        $this->post('/verify-otp', ['otp' => $digits])->assertRedirect('/');
 
         $this->assertDatabaseHas('users', ['email' => 'stringtime@gmail.com']);
         $this->assertAuthenticated();
@@ -97,19 +97,21 @@ class RegisterOtpFlowTest extends TestCase
     {
         Mail::fake();
 
-        $this->postJson('/register', [
+        $this->post('/register', [
             'full_name' => 'Nguyen Van E',
             'email' => 'stringexpired@gmail.com',
             'password' => 'Leminhvu9124@',
             'password_confirmation' => 'Leminhvu9124@',
-        ])->assertOk();
+        ])->assertRedirect();
 
         $otp = session('verify_otp');
         $digits = str_split((string) $otp);
 
         session(['verify_otp_time' => now()->subMinutes(30)->toDateTimeString()]);
 
-        $this->postJson('/verify-otp', ['otp' => $digits])->assertStatus(422);
+        $this->post('/verify-otp', ['otp' => $digits])
+            ->assertRedirect()
+            ->assertSessionHasErrors('otp_error');
         $this->assertDatabaseMissing('users', ['email' => 'stringexpired@gmail.com']);
         $this->assertGuest();
     }
@@ -118,12 +120,12 @@ class RegisterOtpFlowTest extends TestCase
     {
         Mail::fake();
 
-        $this->postJson('/register', [
+        $this->post('/register', [
             'full_name' => 'Nguyen Van C',
             'email' => 'racecondition@gmail.com',
             'password' => 'Leminhvu9124@',
             'password_confirmation' => 'Leminhvu9124@',
-        ])->assertOk();
+        ])->assertRedirect();
 
         $otp = session('verify_otp');
         $digits = str_split((string) $otp);
@@ -133,9 +135,9 @@ class RegisterOtpFlowTest extends TestCase
         // constraint on email instead of succeeding.
         User::factory()->create(['email' => 'racecondition@gmail.com']);
 
-        $response = $this->postJson('/verify-otp', ['otp' => $digits]);
+        $response = $this->post('/verify-otp', ['otp' => $digits]);
 
-        $response->assertStatus(422);
+        $response->assertRedirect()->assertSessionHasErrors('otp_error');
         $this->assertGuest();
     }
 }

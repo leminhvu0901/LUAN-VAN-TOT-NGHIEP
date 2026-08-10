@@ -1,37 +1,29 @@
 <?php
-
 namespace App\Services;
-
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-// Danh sách tỉnh/thành + phường/xã CHÍNH THỨC (cấu trúc 2 cấp sau sáp nhập 2025, không còn quận/huyện)
-// từ provinces.open-api.vn/api/v2 — API công khai, miễn phí, không cần key. Đây là NGUỒN TIN CẬY CHÍNH
-// cho tỉnh/thành + phường/xã; Geoapify chỉ dùng cho tọa độ/địa chỉ tham khảo/khoảng cách (không được
-// dùng để ghi trực tiếp vào 2 trường này — xem ProfileController::resolveAdministrativeArea()).
-// Cache dài hạn vì ranh giới hành chính gần như không đổi giữa 2 lần deploy.
-//"Dịch vụ xử lý đơn vị hành chính".
 class AdministrativeDivisionService
 {
-    // Đường dẫn gốc (Base URL) của API công khai để lấy dữ liệu tỉnh/thành, phường/xã của Việt Nam
-    private const BASE_URL = 'https://provinces.open-api.vn/api/v2';
-
     // Thời gian lưu trữ dữ liệu vào Cache: 60 giây * 60 phút * 24 giờ * 7 ngày = 7 ngày (tương đương 1 tuần)
     // Vì thông tin tỉnh/thành và phường/xã rất ít khi thay đổi nên cache lâu giúp tăng hiệu năng cho hệ thống, tránh gọi API ngoài liên tục
     private const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-    /**
-     * public: Cho phép gọi hàm từ bất kỳ đâu.
-     * provinces(): Tên hàm lấy danh sách toàn bộ Tỉnh/Thành phố.
-     * Trả về kiểu dữ liệu: ?array (Có thể trả về một mảng danh sách tỉnh, hoặc null nếu gọi API lỗi).
-     */
+    // Đường dẫn gốc (Base URL) của API công khai để lấy dữ liệu tỉnh/thành, phường/xã của Việt Nam —
+    // đọc từ config/services.php (env ADMINISTRATIVE_DIVISION_BASE_URL), có giá trị mặc định sẵn.
+    private function baseUrl(): string
+    {
+        return config('services.administrative_division.base_url', 'https://provinces.open-api.vn/api/v2');
+    }
+
+    //lấy danh sách toàn bộ Tỉnh/Thành phố.
     public function provinces(): ?array
     {
         // Cache kết quả với key 'admin_division_provinces' trong vòng 7 ngày
         return Cache::remember('admin_division_provinces', self::CACHE_TTL_SECONDS, function () {
             try {
                 // Gọi API lấy danh sách tỉnh, thiết lập thời gian chờ tối đa (timeout) là 8 giây
-                $response = Http::timeout(8)->get(self::BASE_URL . '/p/');
+                $response = Http::timeout(8)->get($this->baseUrl() . '/p/');
 
                 // Nếu gọi API thất bại (status code không phải 2xx), trả về null
                 if (!$response->successful()) {
@@ -55,19 +47,14 @@ class AdministrativeDivisionService
         });
     }
 
-    /**
-     * public: Cho phép gọi hàm từ bất kỳ đâu.
-     * wardsOf(int $provinceCode): Tên hàm lấy danh sách Phường/Xã thuộc một Tỉnh/Thành cụ thể.
-     * - Tham số int $provinceCode: Mã code của Tỉnh/Thành cần lấy Phường/Xã (ví dụ: 79 là TP.HCM).
-     * Trả về kiểu dữ liệu: ?array (Có thể là mảng danh sách phường xã, hoặc null nếu lỗi).
-     */
+    // LẤY DS PHƯỜNG XÃ DỰA THEO TỈNH
     public function wardsOf(int $provinceCode): ?array
     {
         // Cache kết quả theo từng tỉnh riêng biệt bằng cách đưa mã tỉnh vào key cache: 'admin_division_wards_{provinceCode}'
         return Cache::remember("admin_division_wards_{$provinceCode}", self::CACHE_TTL_SECONDS, function () use ($provinceCode) {
             try {
                 // Gọi API lấy thông tin chi tiết của Tỉnh kèm theo danh sách Phường/Xã (depth=2)
-                $response = Http::timeout(8)->get(self::BASE_URL . "/p/{$provinceCode}", ['depth' => 2]);
+                $response = Http::timeout(8)->get($this->baseUrl() . "/p/{$provinceCode}", ['depth' => 2]);
                 if (!$response->successful()) {
                     return null;
                 }

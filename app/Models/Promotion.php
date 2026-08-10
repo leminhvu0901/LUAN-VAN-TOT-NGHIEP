@@ -54,8 +54,6 @@ class Promotion extends Model
 
 
     // KIỂM TRA MÃ GIẢM GIÁ CÓ HỢP LỆ KHÔNG
-    // $deliveryType: 'pickup' (tại quầy) hoặc 'delivery' (giao hàng) — truyền null để bỏ qua kiểm
-    // tra kênh (vd nơi gọi chưa biết ngữ cảnh đơn hàng).
     public function checkValidity($user, $subtotal, ?string $deliveryType = null, ?int $totalQuantity = null)
     {
         // 0. KIỂM TRA KÊNH ÁP DỤNG (tại quầy / giao hàng) — mã chỉ dành riêng 1 kênh thì không cho
@@ -130,23 +128,17 @@ class Promotion extends Model
             return ['valid' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.'];
         }
 
-        // 5. KIỂM TRA ĐIỀU KIỆN HẠNG THÀNH VIÊN
+        // 5. KIỂM TRA ĐIỀU KIỆN HẠNG THÀNH VIÊN — mã gắn cho ĐÚNG hạng đó, không phải "hạng đó trở lên".
+        // (VD mã "Chào mừng thành viên Mới" chỉ hạng Mới dùng được, hạng Kim cương KHÔNG được dùng ké.)
         if ($this->apply_for && $this->apply_for !== 'all') {
             // Yêu cầu phải đăng nhập nếu mã này đòi hỏi hạng thành viên cụ thể
             if (!$user) {
                 return ['valid' => false, 'message' => 'Vui lòng đăng nhập để sử dụng mã ưu đãi này.'];
             }
 
-            // Quy đổi hạng thành viên ra các mức số (1 -> 4) để so sánh cấp độ
-            $levels = ['new' => 1, 'silver' => 2, 'gold' => 3, 'diamond' => 4];
+            $userLevel = $user->membership_level ?? 'new';
 
-            // Mức của user hiện tại
-            $userLevel = $levels[$user->membership_level ?? 'new'] ?? 1;
-            // Mức mà mã khuyến mãi yêu cầu
-            $requiredLevel = $levels[$this->apply_for] ?? 1;
-
-            // Chặn nếu hạng user thấp hơn hạng quy định của mã
-            if ($userLevel < $requiredLevel) {
+            if ($userLevel !== $this->apply_for) {
                 $levelNames = [
                     'new' => 'Mới',
                     'silver' => 'Bạc',
@@ -154,22 +146,24 @@ class Promotion extends Model
                     'diamond' => 'Kim cương'
                 ];
                 $requiredName = $levelNames[$this->apply_for] ?? 'Cao cấp';
-                return ['valid' => false, 'message' => "Mã giảm giá này chỉ dành cho hạng thành viên {$requiredName} trở lên."];
+                return ['valid' => false, 'message' => "Mã giảm giá này chỉ dành riêng cho hạng thành viên {$requiredName}."];
             }
         }
 
-        // 6. KIỂM TRA MỖI NGƯỜI CHỈ ĐƯỢC DÙNG 1 LẦN
-        // Đếm xem trong bảng `orders` user này đã có đơn hàng nào xài mã này mà chưa bị huỷ không
-        if ($user) {
-            $hasUsed = Order::query()
+        // 6. KIỂM TRA GIỚI HẠN SỐ LẦN DÙNG CỦA 1 TÀI KHOẢN (usage_limit_per_user, NULL = không giới hạn)
+        // Đếm số đơn hàng user này đã dùng mã này mà chưa bị huỷ
+        if ($user && $this->usage_limit_per_user !== null) {
+            $usedCount = Order::query()
                 ->where('promotion_id', $this->id)
                 ->where('user_id', $user->id)
                 ->where('status', '!=', 'cancelled')
-                ->exists();
+                ->count();
 
-            // Nếu đã từng dùng rồi thì không cho dùng lại
-            if ($hasUsed) {
-                return ['valid' => false, 'message' => 'Bạn đã sử dụng mã giảm giá này rồi.'];
+            if ($usedCount >= $this->usage_limit_per_user) {
+                $message = $this->usage_limit_per_user == 1
+                    ? 'Bạn đã sử dụng mã giảm giá này rồi.'
+                    : "Bạn đã dùng mã này tối đa {$this->usage_limit_per_user} lần.";
+                return ['valid' => false, 'message' => $message];
             }
         }
 

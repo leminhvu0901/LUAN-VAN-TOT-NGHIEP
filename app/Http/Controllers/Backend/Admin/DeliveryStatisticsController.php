@@ -8,10 +8,7 @@ use Illuminate\Http\Request;
 
 class DeliveryStatisticsController
 {
-    /**
-     * Thống kê số đơn hàng giao thành công của từng nhân viên giao hàng theo khoảng thời gian
-     * (hôm nay/tuần này/tháng này/năm này/tùy chọn), dựa trên cột orders.completed_at.
-     */
+    //Thống kê số đơn hàng giao thành công của từng nhân viên giao hàng theo khoảng thời gian
     public function index(Request $request)
     {
         $preset = $request->input('preset', 'today');
@@ -46,12 +43,16 @@ class DeliveryStatisticsController
         $staffs = User::query()
             ->where('role', 'staff')
             ->where('staff_type', 'delivery')
-            ->withCount(['completedDeliveries as completed_orders_count' => function ($query) use ($start, $end) {
-                $query->whereBetween('completed_at', [$start, $end]);
-            }])
-            ->withCount(['failedDeliveries as failed_orders_count' => function ($query) use ($start, $end) {
-                $query->whereBetween('delivery_failed_at', [$start, $end]);
-            }])
+            ->withCount([
+                'completedDeliveries as completed_orders_count' => function ($query) use ($start, $end) {
+                    $query->whereBetween('completed_at', [$start, $end]);
+                }
+            ])
+            ->withCount([
+                'failedDeliveries as failed_orders_count' => function ($query) use ($start, $end) {
+                    $query->whereBetween('delivery_failed_at', [$start, $end]);
+                }
+            ])
             ->orderByDesc('completed_orders_count')
             ->orderBy('name')
             ->get();

@@ -29,17 +29,11 @@ class CustomerOrderController
     ) {
     }
 
-    /**
-     * Mở trang lịch sử mua hàng và danh sách các đơn hàng của khách hàng hiện tại
-     */
+    //DANH SACH ĐƠN HANG
     public function index(Request $request)
     {
-        // Lấy bộ lọc trạng thái đơn hàng từ URL query (ví dụ: ?status=pending)
         $status = $request->query('status');
-
-        // Bắt đầu truy vấn lấy các đơn hàng của người dùng hiện tại đang đăng nhập
         $query = Order::query()->with('items.product')->where('user_id', Auth::id())
-            // Chỉ hiển thị các đơn hàng thanh toán COD hoặc các đơn thanh toán online (VNPay) đã được thanh toán thành công
             ->where(fn($builder) => $builder->where('payment_method', '!=', 'vnpay')
                 ->orWhereNull('payment_method')->orWhere('payment_status', '!=', 'unpaid'));
 
@@ -68,25 +62,24 @@ class CustomerOrderController
         return view('frontend.orders.index', compact('orders', 'status', 'reviewedItems'));
     }
 
-    /**
-     * Xử lý tạo mới đơn hàng thanh toán bằng hình thức COD (giao hàng thu tiền mặt)
-     */
+   
+    // XỬ LÝ TẠO ĐƠN VỚI HÌNH THỨC THANH TOÁN COD
     public function store(Request $request)
     {
         // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi form đặt hàng
         $validated = $request->validate([
-            'address_id'          => ['required', 'integer'], // Địa chỉ giao nhận hàng
-            'coupon_code'         => ['nullable', 'string', 'max:50'], // Mã giảm giá (nếu có)
-            'note'                => ['nullable', 'string', 'max:500'], // Ghi chú thêm
-            'idempotency_key'     => ['required', 'uuid'], // Token chống gửi trùng lặp đơn hàng
-            'points_to_redeem'    => ['nullable', 'integer', 'min:0'], // Điểm thưởng quy đổi
-            'selected_item_ids'   => ['nullable', 'array'], // Danh sách các sản phẩm chọn thanh toán
+            'address_id' => ['required', 'integer'], // Địa chỉ giao nhận hàng
+            'coupon_code' => ['nullable', 'string', 'max:50'], // Mã giảm giá (nếu có)
+            'note' => ['nullable', 'string', 'max:500'], // Ghi chú thêm
+            'idempotency_key' => ['required', 'uuid'], // Token chống gửi trùng lặp đơn hàng
+            'points_to_redeem' => ['nullable', 'integer', 'min:0'], // Điểm thưởng quy đổi
+            'selected_item_ids' => ['nullable', 'array'], // Danh sách các sản phẩm chọn thanh toán
             'selected_item_ids.*' => ['integer', 'min:1'],
         ]);
 
         // Kiểm tra xem Token thanh toán có khớp với Session hiện hành để tránh spam hoặc đặt trùng lặp
         $this->assertCheckoutToken($validated['idempotency_key']);
-        
+
         // Kiểm tra xem cửa hàng hiện tại có đang mở cửa và nhận đơn hàng hay không
         $this->assertStoreOpen();
 
@@ -106,29 +99,18 @@ class CustomerOrderController
         session()->forget('checkout_token');
         session()->forget('selected_cart_item_ids');
 
-        // Nếu request gửi lên là AJAX (JSON): Trả về JSON chứa URL redirect để JS tự chuyển hướng
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'redirect_url' => route('orders'),
-            ]);
-        }
-
         // Chuyển hướng về trang lịch sử đơn hàng kèm theo thông báo thành công
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
 
-    /**
-     * Đặt lại đơn hàng cũ (thêm các sản phẩm của đơn hàng cũ vào lại giỏ hàng)
-     */
+
+    // MUA LẠI
     public function reorder(Order $order)
     {
         // Đảm bảo đơn hàng này đúng là của người dùng hiện tại đang đăng nhập
         abort_unless($order->user_id === Auth::id(), 404);
-        
         // Nạp thông tin chi tiết các món nước trong đơn cũ
         $order->load('items');
-
         // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu khi thêm nhiều sản phẩm vào giỏ
         DB::transaction(function () use ($order) {
             // Lấy giỏ hàng hiện tại hoặc tự tạo mới nếu người dùng chưa có giỏ
@@ -179,7 +161,7 @@ class CustomerOrderController
                 $added++;
             }
 
-            // Nếu không có bất kỳ sản phẩm nào được thêm lại (do tất cả đã ngưng kinh doanh) thì báo lỗi
+            // Nếu không có bất kỳ sản phẩm nào được thêm lại
             if ($added === 0)
                 throw ValidationException::withMessages(['order' => 'Các sản phẩm trong đơn này hiện không còn kinh doanh.']);
         });
@@ -188,9 +170,7 @@ class CustomerOrderController
         return redirect()->route('checkout')->with('success', 'Đã thêm lại các sản phẩm còn bán vào giỏ hàng.');
     }
 
-    /**
-     * Hủy đơn hàng đang chờ xác nhận (xử lý cả hoàn tiền tự động nếu đã thanh toán online)
-     */
+    // HỦY ĐƠN HÀNG
     public function cancel(Order $order, Request $request, OrderWorkflowService $workflow)
     {
         // Đảm bảo đây đúng là đơn hàng của khách hàng hiện tại
@@ -200,17 +180,14 @@ class CustomerOrderController
         if ($order->status !== 'pending') {
             return $this->cancelError('Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
         }
-
         // Lấy lý do hủy đơn từ người dùng nhập vào
         $reason = $request->input('cancel_reason', 'Khách hàng tự hủy đơn hàng.');
         if (mb_strlen(trim($reason)) < 5) {
             $reason = 'Khách hàng tự hủy đơn hàng.';
         }
-
-        // Nếu đơn hàng ĐÃ THANH TOÁN online thành công (VNPay) nhưng shop chưa bấm xác nhận nhận đơn:
-        // Tiến hành tự động gọi API hoàn tiền sang cổng thanh toán tương ứng trước khi cập nhật hủy trên hệ thống.
+        // HOÀN TIỀN
         if ($order->payment_status === 'paid' && $order->payment_method === 'vnpay') {
-            return $this->refundAndCancelForCustomer($order, $request, $reason);
+            return $this->refundAndCancelForCustomer($order, $request, $reason);// TỰ ĐỘNG HOÀN TIỆN
         }
 
         try {
@@ -225,9 +202,7 @@ class CustomerOrderController
         }
     }
 
-    /**
-     * Tự động hoàn tiền và hủy đơn hàng đối với các đơn thanh toán trực tuyến (VNPay)
-     */
+    // TỰ ĐỘNG HOÀN TIỆN
     private function refundAndCancelForCustomer(Order $order, Request $request, string $reason)
     {
         // Đảm bảo đơn có chứa mã giao dịch gốc để hoàn tiền

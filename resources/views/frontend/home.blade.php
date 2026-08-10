@@ -137,11 +137,11 @@
                     <span class="hero-banner__stat-num home-hero__stat-num">{{ number_format($avgRating, 1) }}★</span>
                     <span class="hero-banner__stat-label home-hero__stat-label">Đánh giá</span>
                 </div>
-                <div>
-                    {{-- them o day  --}}
-                </div>
                 <div class="hero-banner__stat-divider home-hero__stat-divider"></div>
-
+                <div class="hero-banner__stat home-hero__stat">
+                    <span class="hero-banner__stat-num home-hero__stat-num">{{ number_format($todayVisitCount) }}</span>
+                    <span class="hero-banner__stat-label home-hero__stat-label">Lượt truy cập hôm nay</span>
+                </div>
             </div>
         </div>
     </section>
@@ -241,6 +241,7 @@
             </div>
         </div>
 
+        {{-- ds san pham pho bien --}}
         <div class="home-products-grid">
             @php
                 $popularProducts = \App\Models\Product::query()
@@ -460,17 +461,20 @@
 
     @push('scripts')
         <script>
+            // Các nút Tất cả / Bán chạy / Mới / Giảm giá phía trên lưới sản phẩm trang chủ.
             (function() {
                 var pillButtons = document.querySelectorAll('#home-pill-filters .home-popular__filter-btn');
                 var grid = document.querySelector('.home-products-grid');
-                var currentFilter = 'all';
+                var currentFilter = 'all'; // Bộ lọc đang chọn: all | hot | new | sale
 
+                // Sắp xếp lại + ẩn/hiện thẻ sản phẩm trong lưới theo currentFilter hiện tại
                 function applyHomeFilter() {
                     if (!grid) return;
 
                     var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
                     var visibleCount = 0;
 
+                    // Sắp xếp thẻ sản phẩm
                     cards.sort(function(a, b) {
                         if (currentFilter === 'hot') {
                             return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute(
@@ -487,10 +491,12 @@
                         }
                     });
 
+                    // Duyệt qua từng thẻ theo đúng thứ tự vừa sắp xếp
                     var shown = 0;
                     cards.forEach(function(card) {
                         grid.appendChild(card);
 
+                        // Chỉ thẻ khớp đúng tiêu chí bộ lọc mới được tính vào giới hạn hiển thị
                         var isMatch = true;
                         if (currentFilter === 'hot') {
                             isMatch = card.getAttribute('data-is-hot') === '1';
@@ -508,6 +514,7 @@
                             card.style.display = 'none';
                         }
 
+                        // Đổi nhãn badge hiển thị trên thẻ theo bộ lọc đang chọn
                         var hotBadge = card.querySelector('.home-prod-card__badge--hot');
                         var newBadge = card.querySelector('.home-prod-card__badge--new');
                         var saleBadge = card.querySelector('.home-prod-card__badge--sale');
@@ -530,6 +537,8 @@
                         }
                     });
 
+                    // Nếu không còn sản phẩm nào khớp bộ lọc, tự tạo (hoặc hiện lại) 1 dòng thông báo
+                    // trống; ngược lại thì ẩn dòng thông báo này đi nếu trước đó đã từng hiện.
                     var emptyMsg = document.getElementById('home-empty-msg');
                     if (visibleCount === 0) {
                         if (!emptyMsg) {
@@ -548,6 +557,7 @@
                     }
                 }
 
+                // Bấm vào 1 nút pill: đổi trạng thái active + đổi bộ lọc + chạy lại applyHomeFilter()
                 pillButtons.forEach(function(btn) {
                     btn.addEventListener('click', function() {
                         pillButtons.forEach(function(b) {
@@ -555,44 +565,58 @@
                         });
                         this.classList.add('home-popular__filter-btn--active');
                         currentFilter = this.getAttribute('data-filter');
-                        applyHomeFilter();
+                        applyHomeFilter(); //xep lai
                     });
                 });
 
-                applyHomeFilter();
+                applyHomeFilter(); // Chạy 1 lần lúc tải trang để áp dụng bộ lọc mặc định ("Tất cả")
             })();
 
-            (function() {
-                function animateCounter(el, target, suffix, decimals, duration) {
-                    var startTime = null;
+            // =========================================================================
+            // KHỐI 2: HIỆU ỨNG ĐẾM SỐ CHẠY DẦN (COUNTER ANIMATION) CHO CÁC CHỈ SỐ HERO BANNER
+            // Ví dụ: "30+ Món đồ uống", "4.6★ Đánh giá", "120 Lượt truy cập hôm nay" - thay vì
+            // hiện số ngay lập tức, số sẽ chạy tăng dần từ 0 lên giá trị thật trong ~1.6 giây để
+            // tạo hiệu ứng bắt mắt khi người dùng vừa tải trang.
+            // =========================================================================
+            // (function() {
+            //     // Chạy hiệu ứng đếm từ 0 tới target trong khoảng thời gian duration (ms), dùng
+            //     // easeOutCubic (chậm dần về cuối) để chuyển động tự nhiên hơn là chạy đều tuyến tính.
+            //     function animateCounter(el, target, suffix, decimals, duration) {
+            //         var startTime = null;
 
-                    function step(timestamp) {
-                        if (!startTime) startTime = timestamp;
-                        var progress = Math.min((timestamp - startTime) / duration, 1);
-                        var eased = 1 - Math.pow(1 - progress, 3);
-                        var current = eased * target;
-                        el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current)) + suffix;
-                        if (progress < 1) requestAnimationFrame(step);
-                    }
-                    requestAnimationFrame(step);
-                }
+            //         function step(timestamp) {
+            //             if (!startTime) startTime = timestamp;
+            //             var progress = Math.min((timestamp - startTime) / duration, 1);
+            //             var eased = 1 - Math.pow(1 - progress, 3);
+            //             var current = eased * target;
+            //             el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current)) + suffix;
+            //             if (progress < 1) requestAnimationFrame(step);
+            //         }
+            //         requestAnimationFrame(step);
+            //     }
 
-                function startCounters() {
-                    document.querySelectorAll('.home-hero__stat-num').forEach(function(el) {
-                        var raw = el.textContent.trim();
-                        var match = raw.match(/^([\d.]+)(.*)$/);
-                        if (!match) return;
-                        var num = parseFloat(match[1]);
-                        var suffix = match[2];
-                        var decimals = (match[1].split('.')[1] || '').length;
-                        el.textContent = (decimals > 0 ? (0).toFixed(decimals) : '0') + suffix;
-                        animateCounter(el, num, suffix, decimals, 1600);
-                    });
-                }
+            //     // Đọc số thật đã render sẵn từ Blade (vd "30+", "4.6★"), tách phần số và phần hậu
+            //     // tố (đơn vị/ký hiệu) bằng regex, tạm reset về 0 rồi chạy hiệu ứng đếm lên lại đúng
+            //     // số ban đầu - nhờ vậy không cần biết trước giá trị số qua JS, chỉ cần đọc từ HTML.
+            //     function startCounters() {
+            //         document.querySelectorAll('.home-hero__stat-num').forEach(function(el) {
+            //             var raw = el.textContent.trim();
+            //             var match = raw.match(/^([\d.]+)(.*)$/); // Nhóm 1: phần số, nhóm 2: hậu tố còn lại
+            //             if (!match) return;
+            //             var num = parseFloat(match[1]);
+            //             var suffix = match[2];
+            //             var decimals = (match[1].split('.')[1] || '').length; // Số chữ số thập phân cần giữ
+            //             el.textContent = (decimals > 0 ? (0).toFixed(decimals) : '0') + suffix;
+            //             animateCounter(el, num, suffix, decimals, 1600);
+            //         });
+            //     }
 
-                setTimeout(startCounters, 800);
-            })();
+            //     setTimeout(startCounters, 800); // Trễ 800ms để hiệu ứng chạy sau khi banner đã hiện ra
+            // })();
 
+            // Thêm class "navbar--scrolled" khi người dùng cuộn trang xuống quá 20px, dùng để CSS đổi
+            // nền/đổ bóng cho thanh điều hướng (tạo cảm giác nổi lên khi cuộn, thay vì trong suốt như
+            // lúc ở đầu trang). passive: true để trình duyệt không phải chờ JS trước khi cuộn mượt.
             const navbar = document.querySelector('.happy-navbar');
             if (navbar) {
                 window.addEventListener('scroll', function() {
@@ -606,6 +630,7 @@
                 });
             }
 
+            // KHỐI 3: SLIDER ẢNH BANNER TRANG CHỦ
             (function() {
                 var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
                 var heroTitle = document.getElementById('hero-title');
@@ -614,6 +639,7 @@
                 var currentIdx = 0;
                 var slideInterval = null;
 
+                // Chuyển tới một banner cụ thể trong băng chuyền
                 function showSlide(nextIdx) {
                     if (nextIdx === currentIdx) return;
                     var prevIdx = currentIdx;
@@ -662,6 +688,7 @@
                     }
                 }
 
+                // Hẹn giờ tự động chuyển sang ảnh kế tiếp
                 function startAutoSlide() {
                     stopAutoSlide();
                     slideInterval = setInterval(function() {
@@ -670,12 +697,15 @@
                     }, 4000);
                 }
 
+                // Tắt chế độ tự động chuyển banner (dừng khi khách rê chuột vào)
                 function stopAutoSlide() {
                     if (slideInterval) {
                         clearInterval(slideInterval);
                     }
                 }
 
+                // Bấm vào 1 chấm tròn: nhảy thẳng tới slide tương ứng rồi reset lại đồng hồ tự động
+                // chuyển slide (để không bị nhảy tiếp ngay sau khi người dùng vừa tự chọn slide)
                 dots.forEach(function(dot) {
                     dot.addEventListener('click', function() {
                         var targetIdx = parseInt(this.getAttribute('data-slide-index'));
@@ -687,12 +717,15 @@
                 startAutoSlide();
             })();
 
+            // KHỐI 4: THANH CUỘN TÙY BIẾN CHO HÀNG DANH MỤC SẢN PHẨM (NGANG)
             (function() {
                 var track = document.getElementById('home-categories');
                 var scrollbar = document.getElementById('home-categories-scrollbar');
                 var thumb = document.getElementById('home-categories-scrollbar-thumb');
                 if (!track || !scrollbar || !thumb) return;
 
+                // Tính lại độ rộng và vị trí của "thumb" thanh cuộn dựa theo tỉ lệ giữa phần đang
+                // hiển thị (clientWidth) và tổng chiều rộng nội dung (scrollWidth) của hàng danh mục
                 function updateThumb() {
                     var scrollableWidth = track.scrollWidth - track.clientWidth;
 

@@ -13,10 +13,7 @@ class AdministrativeDivisionController
     {
     }
 
-    /**
-     * Trả về danh sách tất cả Tỉnh/Thành phố.
-     * Route: GET /administrative/provinces
-     */
+    // LẤY TỈNH THÀNH PHỐ
     public function provinces()
     {
         $provinces = $this->service->provinces(); // Gọi service lấy danh sách tỉnh
@@ -29,14 +26,10 @@ class AdministrativeDivisionController
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => $provinces]); // checkout.js - loadProvinces()
+        return response()->json(['success' => true, 'data' => $provinces]);
     }
 
-    /**
-     * Trả về danh sách Phường/Xã thuộc một Tỉnh/Thành phố cụ thể.
-     * Route: GET /administrative/provinces/{provinceCode}/wards
-     * $provinceCode: mã số tỉnh do JS gửi lên khi user chọn tỉnh
-     */
+   // LẤY DS QUẬN HUYỆN 
     public function wards(int $provinceCode)
     {
         $wards = $this->service->wardsOf($provinceCode); // Lọc phường/xã theo mã tỉnh

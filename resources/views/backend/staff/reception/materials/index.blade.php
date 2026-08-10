@@ -201,19 +201,23 @@
         (function () {
             "use strict";
 
+            // Mở hộp thoại theo id truyền vào
             function openModal(id) {
                 document.getElementById(id)?.classList.remove("hidden");
             }
 
+            // Đóng hộp thoại và dọn trạng thái đang giữ
             function closeModal(id) {
                 document.getElementById(id)?.classList.add("hidden");
             }
 
+            // Tìm thẻ chứa dòng báo lỗi gắn với ô nhập đó
             function getFieldErrorElement(input) {
                 if (!input?.id) return null;
                 return document.querySelector(`[data-error-for="${input.id}"]`);
             }
 
+            // Hiện/ẩn dòng lỗi đỏ ngay dưới ô nhập, không cần chờ submit
             function setFieldError(input, message = "", blockSubmission = true) {
                 if (!input) return;
 
@@ -233,12 +237,14 @@
                 }
             }
 
+            // Dựng trước chuỗi SẼ thành sau khi chèn ký tự tại vị trí con trỏ, để biết có nên chặn hay không
             function getProposedValue(input, insertedText) {
                 const start = input.selectionStart ?? input.value.length;
                 const end = input.selectionEnd ?? start;
                 return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
             }
 
+            // Bắt sự kiện beforeinput để chặn ký tự sai NGAY TRƯỚC KHI nó hiện ra (kể cả khi dán), tránh hiện rồi mới xóa gây nhấp nháy
             function guardInsertedContent(input, getValidationMessage) {
                 input.addEventListener("beforeinput", function (event) {
                     if (
@@ -269,6 +275,7 @@
                 });
             }
 
+            // Sinh câu thông báo lỗi tiếng Việt tương ứng với loại vi phạm của ô chữ
             function getTextValidationMessage(input, value) {
                 const valueLength = Array.from(value).length;
                 const maxLength = Number(input.dataset.maxLength);
@@ -298,6 +305,7 @@
                 return "";
             }
 
+            // Làm sạch chuỗi nhập vào; riêng ô đơn vị tính cho giữ nguyên giá trị cũ đã lưu
             function getSanitizedTextValue(input, value) {
                 let sanitizedValue = value;
                 const allowedExistingValue = input.dataset.allowedExistingValue;
@@ -319,6 +327,7 @@
                 return sanitizedValue;
             }
 
+            // Kiểm tra giá trị hiện tại của ô chữ có hợp lệ không
             function validateTextInput(input) {
                 if (!input) return true;
 
@@ -330,6 +339,7 @@
                 return message === "";
             }
 
+            // Gắn toàn bộ xử lý kiểm tra ký tự vào một ô nhập chữ
             function bindTextValidation(root = document) {
                 root.querySelectorAll("[data-max-length], [data-material-unit]").forEach((input) => {
                     if (input.dataset.textValidationBound === "true") return;
@@ -337,6 +347,7 @@
                     input.dataset.textValidationBound = "true";
                     guardInsertedContent(input, (value) => getTextValidationMessage(input, value));
 
+                    // Chạy mỗi lần gõ vào ô chữ: làm sạch giá trị và cập nhật thông báo lỗi
                     function handleTextInput(event) {
                         if (event?.isComposing) return;
 
@@ -365,6 +376,7 @@
                 });
             }
 
+            // Nạp giá trị có sẵn vào ô tiền khi mở form sửa (đồng bộ lần đầu, chưa có thao tác gõ)
             function syncCurrencyValue(formattedInput, rawInput, value) {
                 const numericValue = Number(value) || 0;
                 rawInput.value = numericValue;
@@ -373,6 +385,7 @@
                 setFieldError(formattedInput);
             }
 
+            // Trả về thông báo lỗi cho ô tiền (vượt hạn mức, bằng 0, bỏ trống...)
             function getCurrencyValidation(input, value) {
                 if (/[^\d.,\s]/u.test(value)) {
                     return {
@@ -394,9 +407,11 @@
                 };
             }
 
+            // Gắn xử lý tiền tệ vào ô nhập: dùng 2 input song song, ô hiện số đã format cho người xem và ô ẩn giữ số thô để gửi server
             function bindCurrencyInput(formattedInput, rawInput) {
                 if (!formattedInput || !rawInput || formattedInput.dataset.currencyBound === "true") return;
 
+                // Ghi giá trị vào cả 2 ô: ô thô nhận số nguyên, ô hiển thị nhận chuỗi đã chấm phân cách kiểu Việt Nam
                 function setCurrencyValue(digits) {
                     rawInput.value = digits;
                     formattedInput.value =
@@ -404,6 +419,7 @@
                     formattedInput.dataset.lastValidDigits = digits;
                 }
 
+                // Chạy mỗi lần gõ vào ô tiền: lọc bỏ ký tự không phải số rồi format lại
                 function handleCurrencyInput(event) {
                     if (event?.isComposing) return;
 
@@ -435,6 +451,7 @@
                 }
             }
 
+            // Hỏi xác nhận trước khi thực hiện thao tác không hoàn tác được
             function confirmAction(title, text) {
                 return new Promise(function (resolve) {
                     window.AdminAlert.confirm(text, function () { resolve(true); }, title);

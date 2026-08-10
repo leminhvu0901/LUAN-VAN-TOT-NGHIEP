@@ -132,6 +132,7 @@
             let channelChart = null;
             let channelOrdersChart = null;
 
+            // Khởi tạo lịch chọn khoảng ngày cho bộ lọc báo cáo
             function initFlatpickr() {
                 if (typeof flatpickr !== 'undefined') {
                     flatpickr('#date_from', {
@@ -151,6 +152,7 @@
 
             initFlatpickr();
 
+            // Vẽ biểu đồ doanh thu theo ngày
             function initRevenueChart(data) {
                 const ctx = document.getElementById('revenue-chart');
                 if (!ctx) return;
@@ -268,6 +270,7 @@
                 });
             }
 
+            // Vẽ biểu đồ tròn tỷ lệ đơn hàng theo trạng thái
             function initStatusChart(data) {
                 const ctx = document.getElementById('status-chart');
                 if (!ctx) return;
@@ -330,10 +333,12 @@
                 });
             }
 
+            // Làm tròn số cho nhãn hiển thị trên biểu đồ
             function roundTo(num, decimals) {
                 return +(Math.round(num + "e+" + decimals)  + "e-" + decimals);
             }
 
+            // Vẽ biểu đồ doanh thu chia theo kênh bán (online / tại quầy)
             function initChannelChart(data) {
                 const ctx = document.getElementById('channel-chart');
                 if (!ctx) return;
@@ -394,6 +399,7 @@
                 });
             }
 
+            // Vẽ biểu đồ số lượng đơn theo từng kênh bán
             function initChannelOrdersChart(data) {
                 const ctx = document.getElementById('channel-orders-chart');
                 if (!ctx) return;
@@ -467,6 +473,7 @@
             }
 
             if (exportBtn) {
+                // Ghép URL xuất Excel kèm đúng tham số thời gian đang lọc, để file tải về khớp với những gì đang xem
                 function buildExportUrl() {
                     const url = new URL(window.reportsConfig.exportUrl, window.location.origin);
                     if (filterForm) {
@@ -475,6 +482,7 @@
                     return url.toString();
                 }
 
+                // Kích hoạt tải file Excel, có hiện màn hình chờ trong lúc server dựng file
                 function downloadReport() {
                     window.location.href = buildExportUrl();
                 }

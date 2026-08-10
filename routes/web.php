@@ -341,11 +341,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     Route::get('delivery-statistics', [App\Http\Controllers\Backend\Admin\DeliveryStatisticsController::class, 'index'])->name('delivery_statistics.index');
 });
 
-/*
-|--------------------------------------------------------------------------
-| 7. NHÂN VIÊN - LỄ TÂN (STAFF RECEPTIONIST ROUTES)
-|--------------------------------------------------------------------------
-*/
+
+// |--------------------------------------------------------------------------
+// | 7. NHÂN VIÊN - LỄ TÂN (STAFF RECEPTIONIST ROUTES)
+// |--------------------------------------------------------------------------
+
 Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', \App\Http\Middleware\IsReceptionist::class])->group(function () {
 
     // Trang tổng quan của nhân viên lễ tân
@@ -422,11 +422,11 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     Route::post('/cod-settlement/staff/{deliveryStaff}/settle-all', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'settleAll'])->name('cod_settlement.settle_all');
 });
 
-/*
-|--------------------------------------------------------------------------
-| 8. NHÂN VIÊN - GIAO HÀNG (STAFF DELIVERY/SHIPPER ROUTES)
-|--------------------------------------------------------------------------
-*/
+
+// |--------------------------------------------------------------------------
+// | 8. NHÂN VIÊN - GIAO HÀNG (STAFF DELIVERY/SHIPPER ROUTES)
+// |--------------------------------------------------------------------------
+
 Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \App\Http\Middleware\IsDelivery::class])->group(function () {
 
     // Trang tổng quan của nhân viên shipper giao hàng

@@ -14,23 +14,15 @@ use Illuminate\Support\Str;
 
 class ReviewController
 {
-    // Khách chỉ được sửa lại đánh giá trong vòng 7 ngày kể từ lúc gửi (created_at gốc, không tính
-    // theo lần sửa gần nhất — tránh khách sửa sát hạn để "gia hạn" thêm 7 ngày nữa).
+    // Khách chỉ được sửa lại đánh giá trong vòng 7 ngày
     private const EDIT_WINDOW_DAYS = 7;
 
-    /**
-     * Hiển thị giao diện viết đánh giá hoặc xem/sửa đánh giá cũ của sản phẩm thuộc đơn hàng
-     */
+    // HIỂN THỊ TRANG ĐÁNH GIÁ SẢN PHẨM
     public function create($orderId, $productId, Request $request)
     {
-        // 1. Kiểm tra đăng nhập
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
         $userId = Auth::id();
 
-        // 2. Xác minh đơn hàng có thuộc về user này và ở trạng thái hoàn thành (completed) hay không
+        // 1. Xác minh đơn hàng có thuộc về user này và ở trạng thái hoàn thành (completed) hay không
         $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -41,7 +33,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không tìm thấy đơn hàng hợp lệ để đánh giá.');
         }
 
-        // 3. Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
+        // 2. Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
         $orderItem = OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -51,14 +43,14 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Sản phẩm này không thuộc đơn hàng của bạn.');
         }
 
-        // 4. Tìm kiếm đánh giá hiện có của sản phẩm trong đơn hàng này (nếu đã từng đánh giá trước đó)
+        // 3. Tìm kiếm đánh giá hiện có của sản phẩm trong đơn hàng này (nếu đã từng đánh giá trước đó)
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
             ->first();
 
-        // 5. Lấy thông tin sản phẩm và trung bình điểm số, số lượt đánh giá
+        // 4. Lấy thông tin sản phẩm và trung bình điểm số, số lượt đánh giá
         $product = Product::query()
             ->select(
                 'products.*',
@@ -75,7 +67,7 @@ class ReviewController
             abort(404);
         }
 
-        // 6. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản
+        // 5. Lấy danh sách các đánh giá khác đang hiển thị công khai để vẽ bảng thông tin tổng quan sản
         // phẩm bên lề — áp dụng bộ lọc sao/có ảnh (nút lọc trên trang giờ là link GET thật).
         $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
@@ -119,19 +111,12 @@ class ReviewController
         return view('frontend.products.review', compact('order', 'product', 'reviews', 'ratingDistribution', 'hasImageCount', 'existingReview', 'canEditReview', 'editWindowDays', 'isFiltered'));
     }
 
-    /**
-     * Lưu mới đánh giá sản phẩm của người dùng
-     */
+    // LƯU ĐÁNH GIÁ SẢN PHẨM
     public function store(Request $request, $orderId, $productId)
     {
-        // 1. Kiểm tra đăng nhập
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
         $userId = Auth::id();
 
-        // 2. Kiểm tra tính hợp lệ của dữ liệu gửi lên (số sao, nội dung, hình ảnh tải lên)
+        // 1. Kiểm tra tính hợp lệ của dữ liệu gửi lên (số sao, nội dung, hình ảnh tải lên)
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -149,7 +134,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // 3. Xác minh đơn hàng và món nước một lần nữa
+        // 2. Xác minh đơn hàng và món nước một lần nữa
         $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -165,7 +150,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không thể đánh giá sản phẩm này.');
         }
 
-        // 4. Kiểm tra chắc chắn xem sản phẩm này đã được người dùng đánh giá chưa
+        // 3. Kiểm tra chắc chắn xem sản phẩm này đã được người dùng đánh giá chưa
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -176,7 +161,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
         }
 
-        // 5. Xử lý lưu các hình ảnh tải lên của đánh giá
+        // 4. Xử lý lưu các hình ảnh tải lên của đánh giá
         $imageNames = [];
         $files = $request->file('images');
 
@@ -198,7 +183,7 @@ class ReviewController
         // Lưu trữ danh sách ảnh dưới dạng mảng JSON trong DB
         $imageJson = empty($imageNames) ? null : json_encode($imageNames);
 
-        // 6. Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
+        // 5. Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
         // Sử dụng khối try/catch bắt lỗi khóa ngoại/duplicate UNIQUE đề phòng trường hợp gửi request song song (race condition).
         try {
             Review::query()->insert([
@@ -226,19 +211,12 @@ class ReviewController
         return redirect()->route('orders', ['status' => 'completed']);
     }
 
-    /**
-     * Cập nhật/Chỉnh sửa đánh giá cũ (Chỉ được phép thực hiện 1 lần duy nhất trong vòng 7 ngày)
-     */
+   // CẬP NHẬT ĐÁNH GIÁ
     public function update(Request $request, $orderId, $productId)
     {
-        // 1. Kiểm tra đăng nhập
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
         $userId = Auth::id();
 
-        // 2. Kiểm tra nhanh (không lock) để chặn sớm các yêu cầu sửa đổi không hợp lệ
+        // 1. Kiểm tra nhanh (không lock) để chặn sớm các yêu cầu sửa đổi không hợp lệ
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -259,7 +237,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Đã quá ' . self::EDIT_WINDOW_DAYS . ' ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.');
         }
 
-        // 3. Thực hiện validate dữ liệu đầu vào cập nhật
+        // 2. Thực hiện validate dữ liệu đầu vào cập nhật
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -277,7 +255,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // 4. Xử lý tải hình ảnh mới lên trước khi bắt đầu Lock dữ liệu trong Database (tối ưu hóa tốc độ Lock)
+        // 3. Xử lý tải hình ảnh mới lên trước khi bắt đầu Lock dữ liệu trong Database (tối ưu hóa tốc độ Lock)
         $newImageNames = [];
         $files = $request->file('images');
         if ($files) {
@@ -294,7 +272,7 @@ class ReviewController
             }
         }
 
-        // 5. Mở Transaction và thực hiện khóa dòng dữ liệu (lockForUpdate) để tránh ghi đè/spam đồng thời
+        // 4. Mở Transaction và thực hiện khóa dòng dữ liệu (lockForUpdate) để tránh ghi đè/spam đồng thời
         $result = DB::transaction(function () use ($orderId, $productId, $userId, $request, $newImageNames) {
             $locked = Review::query()
                 ->where('order_id', $orderId)
@@ -349,17 +327,13 @@ class ReviewController
         return redirect()->route('orders', ['status' => 'completed']);
     }
 
-    /**
-     * Kiểm tra xem đánh giá có còn nằm trong thời hạn cho phép chỉnh sửa hay không (trong vòng 7 ngày)
-     */
+    // KIỂM TRA 7 NGÀY
     private function withinEditWindow(Review $review): bool
     {
         return now()->lte($review->created_at->copy()->addDays(self::EDIT_WINDOW_DAYS));
     }
 
-    /**
-     * Xác minh xem người dùng có thể thực hiện chỉnh sửa đánh giá này hay không
-     */
+    //XÁC MINH NGƯỜI DUNG CÓ THỂ CHỈNH SỬA ĐÁNH GIÁ ĐƯỢC HAY KHÔNG
     private function canStillEdit(Review $review): bool
     {
         return !$review->edited_at && $this->withinEditWindow($review);

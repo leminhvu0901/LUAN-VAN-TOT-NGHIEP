@@ -254,10 +254,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const bulkDeleteForm = document.getElementById("bulk-delete-form");
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
 
+    // Lấy mảng id của các dòng đang được tích chọn trong bảng
     function getCheckedIds() {
         return Array.from(document.querySelectorAll(".row-checkbox:checked")).map((cb) => cb.value);
     }
 
+    // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
     function updateBulkDeleteButton() {
         const count = getCheckedIds().length;
         if (bulkDeleteContainer) bulkDeleteContainer.classList.toggle("hidden", count === 0);
@@ -265,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (selectedCountSpan) selectedCountSpan.textContent = count;
     }
 
+    // Đồng bộ ô "chọn tất cả" ở đầu bảng với trạng thái thực tế của các dòng bên dưới
     function syncSelectAllCheckboxes() {
         const allCheckboxes = document.querySelectorAll(".row-checkbox");
         const isAllChecked = allCheckboxes.length > 0 && document.querySelectorAll(".row-checkbox:checked").length === allCheckboxes.length;
@@ -313,6 +316,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+// Mã hóa ký tự đặc biệt trước khi chèn chuỗi vào HTML, chống lỗi XSS
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")

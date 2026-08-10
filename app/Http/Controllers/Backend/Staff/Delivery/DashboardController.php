@@ -5,16 +5,9 @@ namespace App\Http\Controllers\Backend\Staff\Delivery;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
-/**
- * Controller Bảng điều khiển (Dashboard) dành cho Nhân viên giao hàng (Shipper).
- * Tổng hợp các chỉ số liên quan đến chuyến giao hàng: số đơn chờ lấy, số đơn đang giao, 
- * tổng số tiền COD đang cầm trong tay và danh sách các đơn được phân công gần nhất.
- */
 class DashboardController
 {
-    /**
-     * Hiển thị trang Dashboard tổng quan của Shipper.
-     */
+    // Hiển thị trang Dashboard tổng quan của Shipper
     public function index()
     {
         $staffId = Auth::id(); // Lấy ID tài khoản Shipper đang đăng nhập
@@ -34,12 +27,12 @@ class DashboardController
         $codCollectedTotal = (float) Order::where('delivery_staff_id', $staffId)
             ->where('status', 'completed')->where('payment_method', 'cod')->sum('final_amount');
 
-        // Trong số đã thu, chia làm 2 phần: 
+        // Trong số đã thu, chia làm 2 phần:
         // - Số tiền COD shipper chưa nộp lại cho quầy (chưa đối soát - cod_settled_at bằng null)
         $codUnsettledTotal = (float) Order::where('delivery_staff_id', $staffId)
             ->where('status', 'completed')->where('payment_method', 'cod')
             ->whereNull('cod_settled_at')->sum('final_amount');
-            
+
         // - Số tiền COD shipper đã nộp lại cho quầy thành công (đã đối soát)
         $codSettledTotal = $codCollectedTotal - $codUnsettledTotal;
 

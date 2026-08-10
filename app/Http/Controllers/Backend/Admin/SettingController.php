@@ -11,13 +11,10 @@ use Illuminate\Support\Str;
 
 class SettingController
 {
-    /**
-     * Display settings page.
-     *
-     * @return \Illuminate\View\View
-     */
+   // Trang cấu hình thông số và thiết lập hệ thống
     public function index()
     {
+        // Đọc toàn bộ cấu hình đã lưu trong DB thành mảng key => value
         $settings = [];
         try {
             if (Schema::hasTable('settings')) {
@@ -27,10 +24,10 @@ class SettingController
                 }
             }
         } catch (\Exception $e) {
-            // Table doesn't exist yet — fall through to defaults below
+            // Bảng chưa tồn tại (mới cài đặt, chưa chạy migrate) -> bỏ qua, dùng giá trị mặc định bên dưới
         }
 
-        // Build default values if not exists in database
+        // Giá trị mặc định cho lần đầu cài đặt hoặc key nào đó chưa từng được lưu vào DB
         $defaults = [
             'store_name' => 'Happy Tea',
             'store_logo' => '/images/logo/black.png',
@@ -74,7 +71,7 @@ class SettingController
             'notification_email' => 'admin@happytea.com',
         ];
 
-        // Merge defaults
+        // Key nào chưa có trong DB thì bù bằng giá trị mặc định ở trên
         foreach ($defaults as $key => $val) {
             if (!isset($settings[$key])) {
                 $settings[$key] = Setting::getValue($key, $val);
@@ -87,7 +84,7 @@ class SettingController
             $settings['loyalty_point_value'] = '1';
         }
 
-        // Check configured payment credentials for the sandbox testing environment (mask keys status)
+        // Chỉ kiểm tra ĐÃ có cấu hình VNPay sandbox hay chưa, không lộ giá trị thật ra view
         $vnpayEnvConfig = config("services.vnpay.sandbox", []);
         $paymentStatus = [
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
@@ -111,17 +108,14 @@ class SettingController
         return  view('backend.admin.settings.index', compact('settings', 'paymentStatus', 'existingLogos'));
     }
 
-    /**
-     * Update settings by section.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+     // Cập nhật giá trị các thiết lập hệ thống
     public function update(Request $request)
     {
+        // Form cấu hình chia theo từng tab (store/orders/shipping/payment/loyalty/notifications), mỗi
+        // lần submit chỉ lưu ĐÚNG 1 tab đang mở, không đụng tới các tab khác
         $section = $request->input('section');
 
-        // Validation rules per section
+        // Rule validate riêng cho từng tab, gán bên dưới theo switch($section)
         $rules = [];
         $messages = [
             'required' => 'Trường :attribute không được để trống.',
@@ -136,6 +130,7 @@ class SettingController
             'date_format' => 'Trường :attribute định dạng thời gian H:i không hợp lệ.'
         ];
 
+        // Danh sách key hợp lệ của từng tab — chỉ những key trong đúng $section mới được ghi vào DB
         $allowedKeys = [
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
             'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
@@ -145,6 +140,7 @@ class SettingController
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
         ];
 
+        // Kiểu dữ liệu để Setting::setValue() ép kiểu đúng lúc lưu (Setting.value trong DB luôn là chuỗi)
         $types = [
             'store_name' => 'string',
             'store_logo' => 'string',
@@ -259,14 +255,14 @@ class SettingController
             return back()->withErrors($validator)->withInput()->with('error_section', $section);
         }
 
-        // Guard against missing table
+        // Chặn sớm nếu bảng settings chưa tồn tại, tránh lỗi SQL khó hiểu ở bước ghi bên dưới
         if (!Schema::hasTable('settings')) {
             return back()->with('error', 'Bảng cấu hình chưa tồn tại. Vui lòng chạy php artisan migrate để tạo bảng settings trước.')->with('error_section', $section);
         }
 
         $fields = $allowedKeys[$section] ?? [];
 
-        // Save keys inside a database transaction
+        // Ghi từng key trong 1 transaction — nếu 1 key lỗi giữa chừng thì rollback hết, không lưu dở dang
         DB::transaction(function () use ($fields, $section, $types, $request) {
             // Các trường giờ hoạt động: nếu bỏ trống thì giữ nguyên giá trị cũ trong DB
             $timeFields = ['store_open_time', 'store_close_time'];
@@ -287,7 +283,7 @@ class SettingController
             }
         });
 
-        // Handle Shop Logo Upload separately
+        // Logo là file upload, không nằm trong $allowedKeys/$types nên xử lý tách riêng khỏi vòng lặp trên
         $logoPath = null;
         if ($section === 'store') {
             if ($request->hasFile('store_logo')) {
@@ -302,7 +298,7 @@ class SettingController
                 $file->move(public_path('images/logo'), $fileName);
                 $logoPath = '/images/logo/' . $fileName;
 
-                // Delete old logo file safely
+                // Xóa file logo cũ, trừ các logo mẫu đi kèm mã nguồn (không được xóa nhầm)
                 $oldLogo = Setting::getValue('store_logo');
                 $presetLogos = ['/images/logo/black.png', '/images/logo/black1.svg', '/images/logo/black2.png'];
                 if ($oldLogo && !in_array($oldLogo, $presetLogos) && file_exists(public_path($oldLogo))) {

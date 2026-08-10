@@ -189,6 +189,7 @@
     </div>
 
     <script>
+        // Chọn nhanh hôm nay/tuần này/tháng này; chọn "tùy chọn" mới hiện 2 ô nhập ngày thủ công
         function deliveryStatsHandlePresetChange(select) {
             const isCustom = select.value === 'custom';
             document.getElementById('date-from-container').classList.toggle('hidden', !isCustom);

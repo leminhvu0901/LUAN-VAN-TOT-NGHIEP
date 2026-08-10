@@ -22,14 +22,15 @@ use Tests\TestCase;
  * qua fetch() (AJAX) - dùng postJson()/getJson() để giả lập request thật của JS lúc đó. Dự án sau đó
  * đã làm ngược lại: bỏ AJAX, quay về form POST/GET + redirect + full-page-reload truyền thống ở hầu
  * hết các endpoint (chỉ còn giữ AJAX có chủ đích ở một số nơi: giỏ hàng/yêu thích, bản đồ + phí ship +
- * coupon + tỉnh/phường lúc checkout, một số thao tác lặp lại nhanh ở màn POS lễ tân, và các form
- * đăng nhập/đăng ký/OTP vẫn CÓ THỂ nhận JSON dù JS không còn gọi tới - giữ lại y nguyên phần hành vi
- * expectsJson() cũ chỉ để không phá vỡ các test bên dưới, không phải vì còn JS nào dùng).
+ * coupon + tỉnh/phường lúc checkout, một số thao tác lặp lại nhanh ở màn POS lễ tân). Nhóm đăng nhập/
+ * đăng ký/OTP/quên-đặt lại mật khẩu từng giữ lại nhánh expectsJson() chỉ để không phá test, dù JS
+ * không còn gọi tới - nhánh đó đã bị xoá khỏi AuthController, nên các test dưới đây giờ dùng post()/
+ * get() thường và assert theo redirect + session flash, giống mọi endpoint đã bỏ AJAX khác.
  *
  * Vì vậy các test bên dưới chia làm 2 nhóm:
- *  - Nhóm còn dùng postJson()/getJson(): endpoint đó VẪN hỗ trợ trả JSON thật (đăng nhập/đăng ký/OTP/
- *    quên-đặt lại mật khẩu, checkout, và validate lỗi tự động của Laravel cho mọi request có Accept:
- *    application/json bất kể controller có code riêng cho JSON hay không).
+ *  - Nhóm còn dùng postJson()/getJson(): endpoint đó VẪN hỗ trợ trả JSON thật (checkout, và validate
+ *    lỗi tự động của Laravel cho mọi request có Accept: application/json bất kể controller có code
+ *    riêng cho JSON hay không).
  *  - Nhóm đã đổi sang post()/put()/get() thường: endpoint đó KHÔNG còn nhánh JSON nào nữa, chỉ còn
  *    redirect + session flash - test phải giả lập đúng như trình duyệt thật gửi form.
  */
@@ -60,22 +61,22 @@ class FrontendAjaxTest extends TestCase
 
     // ───────────────────────── Checkout ─────────────────────────
 
-    public function test_checkout_ajax_returns_json_error_when_store_closed(): void
+    public function test_checkout_returns_error_when_store_closed(): void
     {
         Setting::setValue('orders_enabled', '0');
         $user = User::factory()->create();
         $token = (string) Str::uuid();
 
         $response = $this->actingAs($user)->withSession(['checkout_token' => $token])
-            ->postJson('/checkout', ['address_id' => 1, 'idempotency_key' => $token]);
+            ->post('/checkout', ['address_id' => 1, 'idempotency_key' => $token]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.checkout.0', 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['checkout' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
 
         Setting::setValue('orders_enabled', '1');
     }
 
-    public function test_checkout_ajax_success_returns_redirect_url_and_creates_order(): void
+    public function test_checkout_success_redirects_and_creates_order(): void
     {
         $this->travelTo(Carbon::parse('14:00:00'));
         Setting::setValue('orders_enabled', '1');
@@ -93,11 +94,10 @@ class FrontendAjaxTest extends TestCase
         $token = (string) Str::uuid();
 
         $response = $this->actingAs($user)->withSession(['checkout_token' => $token])
-            ->postJson('/checkout', ['address_id' => $address->id, 'idempotency_key' => $token]);
+            ->post('/checkout', ['address_id' => $address->id, 'idempotency_key' => $token]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
-        $this->assertNotNull($response->json('redirect_url'));
+        $response->assertRedirect(route('orders'));
+        $response->assertSessionHas('success');
         $this->assertDatabaseHas('orders', ['user_id' => $user->id, 'payment_method' => 'cod']);
     }
 
@@ -161,37 +161,37 @@ class FrontendAjaxTest extends TestCase
         $response->assertJsonValidationErrors('phone');
     }
 
-    public function test_change_password_ajax_success(): void
+    public function test_change_password_success(): void
     {
         $user = User::create([
             'name' => 'Test', 'email' => 'ajax-pass@test.com', 'password' => bcrypt('oldpassword'),
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/profile/change-password', [
+        $response = $this->actingAs($user)->post('/profile/change-password', [
             'current_password' => 'oldpassword', 'new_password' => 'newpassword123',
             'new_password_confirmation' => 'newpassword123',
         ]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true]);
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpassword123', $user->fresh()->password));
     }
 
-    public function test_change_password_ajax_returns_422_on_wrong_current_password(): void
+    public function test_change_password_returns_error_on_wrong_current_password(): void
     {
         $user = User::create([
             'name' => 'Test', 'email' => 'ajax-pass2@test.com', 'password' => bcrypt('oldpassword'),
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/profile/change-password', [
+        $response = $this->actingAs($user)->post('/profile/change-password', [
             'current_password' => 'wrongpassword', 'new_password' => 'newpassword123',
             'new_password_confirmation' => 'newpassword123',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.current_password.0', 'Mật khẩu hiện tại không chính xác.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['current_password' => 'Mật khẩu hiện tại không chính xác.']);
     }
 
     // ───────────────────────── Orders cancel ─────────────────────────
@@ -714,84 +714,84 @@ class FrontendAjaxTest extends TestCase
 
     // ───────────────────────── Auth: login/register/forgot-password/otp ─────────────────────────
 
-    public function test_login_ajax_returns_422_on_wrong_credentials(): void
+    public function test_login_returns_error_on_wrong_credentials(): void
     {
-        $response = $this->postJson('/login', ['email' => 'nobody@test.com', 'password' => 'wrong']);
+        $response = $this->post('/login', ['email' => 'nobody@test.com', 'password' => 'wrong']);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.login_error.0', 'Thông tin đăng nhập không chính xác.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['login_error' => 'Thông tin đăng nhập không chính xác.']);
     }
 
-    public function test_login_ajax_success_returns_redirect_url(): void
+    public function test_login_success_redirects_home(): void
     {
         $user = User::create([
             'name' => 'Test', 'email' => 'ajax-login@test.com', 'password' => bcrypt('password123'),
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->postJson('/login', ['email' => 'ajax-login@test.com', 'password' => 'password123']);
+        $response = $this->post('/login', ['email' => 'ajax-login@test.com', 'password' => 'password123']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true, 'redirect_url' => url('/')]);
+        $response->assertRedirect(url('/'));
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_login_ajax_rejects_locked_account(): void
+    public function test_login_rejects_locked_account(): void
     {
         User::create([
             'name' => 'Locked', 'email' => 'locked@test.com', 'password' => bcrypt('password123'),
             'role' => 'customer', 'is_active' => 0, 'lock_reason' => 'Vi phạm điều khoản',
         ]);
 
-        $response = $this->postJson('/login', ['email' => 'locked@test.com', 'password' => 'password123']);
+        $response = $this->post('/login', ['email' => 'locked@test.com', 'password' => 'password123']);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.login_error.0', 'Tài khoản của bạn đã bị khóa: Vi phạm điều khoản');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['login_error' => 'Tài khoản của bạn đã bị khóa: Vi phạm điều khoản']);
         $this->assertGuest();
     }
 
-    public function test_register_ajax_returns_422_when_email_exists(): void
+    public function test_register_returns_error_when_email_exists(): void
     {
         User::create([
             'name' => 'Existing', 'email' => 'exists@test.com', 'password' => bcrypt('password'),
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->postJson('/register', [
+        $response = $this->post('/register', [
             'full_name' => 'New User', 'email' => 'exists@test.com',
             'password' => 'Passw0rd!', 'password_confirmation' => 'Passw0rd!',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.register_error.0', 'Email đã được sử dụng.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['register_error' => 'Email đã được sử dụng.']);
     }
 
-    public function test_register_ajax_success_signals_otp_required(): void
+    public function test_register_success_shows_otp_modal(): void
     {
         \Illuminate\Support\Facades\Mail::fake();
 
-        $response = $this->postJson('/register', [
+        $response = $this->post('/register', [
             'full_name' => 'New User', 'email' => 'newuser@test.com',
             'password' => 'Passw0rd!', 'password_confirmation' => 'Passw0rd!',
         ]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true, 'otp_required' => true, 'email' => 'newuser@test.com']);
+        $response->assertRedirect();
+        $response->assertSessionHas('show_otp', true);
+        $this->assertSame('newuser@test.com', session('verify_email'));
     }
 
-    public function test_verify_otp_ajax_returns_422_on_wrong_code(): void
+    public function test_verify_otp_returns_error_on_wrong_code(): void
     {
         $response = $this->withSession([
             'verify_email' => 'newuser@test.com',
             'verify_otp' => '1234',
             'verify_otp_time' => now(),
-        ])->postJson('/verify-otp', ['otp' => ['9', '9', '9', '9']]);
+        ])->post('/verify-otp', ['otp' => ['9', '9', '9', '9']]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.otp_error.0', 'Mã OTP không chính xác. Vui lòng thử lại.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['otp_error' => 'Mã OTP không chính xác. Vui lòng thử lại.']);
     }
 
-    public function test_verify_otp_ajax_success_creates_user_and_logs_in(): void
+    public function test_verify_otp_success_creates_user_and_logs_in(): void
     {
         $response = $this->withSession([
             'verify_email' => 'newuser2@test.com',
@@ -801,23 +801,22 @@ class FrontendAjaxTest extends TestCase
                 'name' => 'New User 2', 'email' => 'newuser2@test.com', 'phone' => null,
                 'password' => bcrypt('Passw0rd!'), 'role' => 'customer', 'is_active' => 1,
             ],
-        ])->postJson('/verify-otp', ['otp' => ['1', '2', '3', '4']]);
+        ])->post('/verify-otp', ['otp' => ['1', '2', '3', '4']]);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true, 'redirect_url' => url('/')]);
+        $response->assertRedirect(url('/'));
         $this->assertDatabaseHas('users', ['email' => 'newuser2@test.com']);
         $this->assertAuthenticated();
     }
 
-    public function test_forgot_password_ajax_returns_422_when_email_not_found(): void
+    public function test_forgot_password_returns_error_when_email_not_found(): void
     {
-        $response = $this->postJson('/forgot-password', ['recovery_contact' => 'nobody@test.com']);
+        $response = $this->post('/forgot-password', ['recovery_contact' => 'nobody@test.com']);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.forgot_error.0', 'Email không tồn tại trong hệ thống.');
+        $response->assertRedirect('/');
+        $response->assertSessionHasErrors(['forgot_error' => 'Email không tồn tại trong hệ thống.']);
     }
 
-    public function test_forgot_password_ajax_success_signals_otp_required(): void
+    public function test_forgot_password_success_shows_otp_modal(): void
     {
         \Illuminate\Support\Facades\Mail::fake();
         User::create([
@@ -825,17 +824,17 @@ class FrontendAjaxTest extends TestCase
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $response = $this->postJson('/forgot-password', ['recovery_contact' => 'forgot@test.com']);
+        $response = $this->post('/forgot-password', ['recovery_contact' => 'forgot@test.com']);
 
-        $response->assertOk();
-        $response->assertJson(['success' => true, 'otp_required' => true, 'email' => 'forgot@test.com']);
+        $response->assertRedirect();
+        $response->assertSessionHas('show_otp', true);
+        $this->assertSame('forgot@test.com', session('verify_email'));
     }
 
     /**
-     * Reset-password used to be its own full page (GET /reset-password) that verify-otp.js navigated
-     * to via redirect_url. It's now a modal included on every page, opened directly by JS
-     * (window.openResetPasswordModal()) - so postVerifyOtp() must signal that with show_reset_password
-     * instead of a redirect_url, and postResetPassword() must accept JSON like the other auth forms.
+     * Reset-password used to be its own full page (GET /reset-password). It's now a modal included on
+     * every page, opened via the show_reset_password flash flag - reset-password.blade.php reads that
+     * flag itself on page load and pops the modal open, no JS-driven navigation involved.
      */
     public function test_forgot_password_full_flow_signals_reset_modal_instead_of_redirect(): void
     {
@@ -845,22 +844,21 @@ class FrontendAjaxTest extends TestCase
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $this->postJson('/forgot-password', ['recovery_contact' => 'fullflow@test.com'])->assertOk();
+        $this->post('/forgot-password', ['recovery_contact' => 'fullflow@test.com'])->assertRedirect();
 
         $otp = session('verify_otp');
         $digits = str_split((string) $otp);
 
-        $verify = $this->postJson('/verify-otp', ['otp' => $digits]);
-        $verify->assertOk()->assertJson(['success' => true, 'show_reset_password' => true]);
-        $this->assertArrayNotHasKey('redirect_url', $verify->json());
+        $verify = $this->post('/verify-otp', ['otp' => $digits]);
+        $verify->assertRedirect()->assertSessionHas('show_reset_password', true);
         $this->assertGuest();
 
-        $reset = $this->postJson('/reset-password', [
+        $reset = $this->post('/reset-password', [
             'password' => 'NewPassword1@',
             'password_confirmation' => 'NewPassword1@',
         ]);
 
-        $reset->assertOk()->assertJson(['success' => true, 'redirect_url' => url('/')]);
+        $reset->assertRedirect(url('/'));
         $this->assertAuthenticated();
         $this->assertSame('fullflow@test.com', auth()->user()->email);
         $this->assertNotEmpty(session('success'));
@@ -880,11 +878,15 @@ class FrontendAjaxTest extends TestCase
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $this->postJson('/forgot-password', ['recovery_contact' => 'lingering@test.com'])->assertOk();
+        $this->post('/forgot-password', ['recovery_contact' => 'lingering@test.com'])->assertRedirect();
         $digits = str_split((string) session('verify_otp'));
-        $this->postJson('/verify-otp', ['otp' => $digits])->assertOk();
+        $this->post('/verify-otp', ['otp' => $digits])->assertRedirect();
 
-        // Permission is granted, but the one-shot "open it now" flash has already been consumed.
+        // The verify-otp response flashes show_reset_password for the very next request only (the
+        // page the browser lands on right after submitting the OTP form) - burn through that one-shot
+        // request here so the assertion below reflects a LATER page load, once the flash is gone but
+        // the long-lived can_reset_password permission flag is still sitting in the session.
+        $this->get('/');
         $this->assertTrue(session()->has('can_reset_password'));
 
         $this->get('/')->assertOk()->assertDontSee('data-show-reset-password="true"', false);
@@ -898,7 +900,7 @@ class FrontendAjaxTest extends TestCase
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $this->postJson('/forgot-password', ['recovery_contact' => 'resendflow@test.com'])->assertOk();
+        $this->post('/forgot-password', ['recovery_contact' => 'resendflow@test.com'])->assertRedirect();
 
         $this->followingRedirects()->get('/resend-otp')
             ->assertOk()
@@ -913,17 +915,17 @@ class FrontendAjaxTest extends TestCase
             'role' => 'customer', 'is_active' => 1,
         ]);
 
-        $this->postJson('/forgot-password', ['recovery_contact' => 'staleperm@test.com'])->assertOk();
+        $this->post('/forgot-password', ['recovery_contact' => 'staleperm@test.com'])->assertRedirect();
         $digits = str_split((string) session('verify_otp'));
-        $this->postJson('/verify-otp', ['otp' => $digits])->assertOk();
+        $this->post('/verify-otp', ['otp' => $digits])->assertRedirect();
 
         // Rewind the grant well past the allowed window.
         session(['can_reset_password_at' => now()->subHour()->toDateTimeString()]);
 
-        $this->postJson('/reset-password', [
+        $this->post('/reset-password', [
             'password' => 'NewPassword1@',
             'password_confirmation' => 'NewPassword1@',
-        ])->assertStatus(422);
+        ])->assertRedirect();
 
         $this->assertGuest();
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('OldPassword1@', User::where('email', 'staleperm@test.com')->first()->password));
@@ -931,13 +933,13 @@ class FrontendAjaxTest extends TestCase
 
     public function test_reset_password_rejects_direct_access_without_otp_verification(): void
     {
-        $response = $this->postJson('/reset-password', [
+        $response = $this->post('/reset-password', [
             'password' => 'NewPassword1@',
             'password_confirmation' => 'NewPassword1@',
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonPath('errors.reset_error.0', 'Phiên xác thực đã hết hạn, vui lòng thực hiện lại thao tác quên mật khẩu.');
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['reset_error' => 'Phiên xác thực đã hết hạn, vui lòng thực hiện lại thao tác quên mật khẩu.']);
         $this->assertGuest();
     }
 }

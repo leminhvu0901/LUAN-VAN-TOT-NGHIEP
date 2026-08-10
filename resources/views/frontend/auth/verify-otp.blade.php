@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
         startTimer();
     }
 
+    // Đếm ngược thời gian hiệu lực của mã OTP; hết giờ mới cho bấm gửi lại, tránh spam email
     function startTimer() {
         if (countdownInterval) clearInterval(countdownInterval);
         

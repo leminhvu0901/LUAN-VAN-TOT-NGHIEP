@@ -711,6 +711,7 @@
         {{-- Nạp thư viện hỗ trợ cắt ảnh tỉ lệ vuông (Cropper.js) --}}
         <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
         <script>
+            // Hiệu ứng scale nhẹ khung input khi focus/blur (class leaf-indicator)
             document.querySelectorAll('input:not([type="file"]):not([type="hidden"]):not([type="checkbox"])').forEach(input => {
                 input.addEventListener('focus', () => {
                     if (input.parentElement && input.parentElement.classList) {
@@ -725,12 +726,13 @@
                 });
             });
 
+            // Hiệu ứng bấm lõm (scale-95) cho nút chính, gắn cả mouse lẫn touch
             const primaryBtns = document.querySelectorAll(
                 'button[type="submit"], button.bg-primary-container, button.bg-primary');
             primaryBtns.forEach(btn => {
                 btn.addEventListener('mousedown', () => btn.classList.add('scale-95'));
                 btn.addEventListener('mouseup', () => btn.classList.remove('scale-95'));
-                btn.addEventListener('mouseleave', () => btn.classList.remove('scale-95'));
+                btn.addEventListener('mouseleave', () => btn.classList.remove('scale-95')); // Nhả chuột ra ngoài nút vẫn phải reset lại
                 btn.addEventListener('touchstart', () => btn.classList.add('scale-95'), {
                     passive: true
                 });
@@ -739,12 +741,15 @@
                 });
             });
 
+            // Instance Cropper.js dùng chung cho preview/cắt/đóng modal ảnh (desktop + mobile)
             let cropper;
 
+            // Đọc ảnh vừa chọn để hiện lên modal cắt, chưa upload/submit gì
             function previewAvatar(event) {
                 const input = event.target;
                 if (input.files && input.files[0]) {
                     const file = input.files[0];
+                    // Chặn ảnh >5MB phía client trước khi tốn băng thông upload
                     if (file.size > 5 * 1024 * 1024) {
                         if (window.FrontendAlert) {
                             window.FrontendAlert.error('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
@@ -753,18 +758,20 @@
                                 'Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
                             else alert('Dung lượng ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.');
                         }
-                        input.value = '';
+                        input.value = ''; // Xóa file đã chọn khỏi input để user chọn lại từ đầu
                         return;
                     }
 
+                    // Đọc file thành base64 để preview, không cần upload lên server
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         document.getElementById('imageToCrop').src = e.target.result;
                         document.getElementById('cropperModal').style.display = 'flex';
 
+                        // Hủy phiên cắt ảnh cũ nếu có, tránh rò rỉ bộ nhớ
                         if (cropper) cropper.destroy();
                         cropper = new Cropper(document.getElementById('imageToCrop'), {
-                            aspectRatio: 1,
+                            aspectRatio: 1, // Ép khung cắt luôn là hình vuông (khớp avatar tròn)
                             viewMode: 1,
                             dragMode: 'move',
                             autoCropArea: 1,
@@ -781,6 +788,7 @@
                 }
             }
 
+            // Đóng modal, hủy Cropper.js, xóa file đã chọn ở input gốc
             function closeCropperModal() {
                 document.getElementById('cropperModal').style.display = 'none';
                 if (cropper) {
@@ -790,6 +798,7 @@
                 document.getElementById('avatarInput').value = '';
             }
 
+            // Cắt ảnh thành base64 300x300, gán vào input ẩn để gửi kèm form submit
             function cropImage() {
                 if (!cropper) return;
 
@@ -802,6 +811,7 @@
 
                 const base64Image = canvas.toDataURL('image/jpeg', 0.9);
 
+                // Cập nhật preview ở cả 2 bản giao diện, phòng khi user đổi kích thước/xoay màn hình
                 if (document.getElementById('avatarPreview')) {
                     document.getElementById('avatarPreview').src = base64Image;
                 }
@@ -809,6 +819,7 @@
                     document.getElementById('avatarPreviewMobile').src = base64Image;
                 }
 
+                // 2 input hidden riêng vì đây là 2 <form> khác nhau (desktop/mobile)
                 const croppedInputDesktop = document.getElementById('croppedAvatarInput');
                 if (croppedInputDesktop) croppedInputDesktop.value = base64Image;
                 const croppedInputMobile = document.getElementById('croppedAvatarInputMobile');
@@ -817,6 +828,7 @@
                 closeCropperModal();
             }
 
+            // Chuyển tab "Thông tin"/"Đổi mật khẩu" cho cả desktop lẫn mobile, không tải lại trang
             function showTab(tab) {
                 const deskProfile = document.getElementById('desktop-profile-content');
                 const deskPass = document.getElementById('desktop-password-content');
@@ -836,25 +848,28 @@
                 if (mobProfile) mobProfile.classList.add('hidden');
                 if (mobPass) mobPass.classList.add('hidden');
 
+                // Ghi đè cả className cho gọn, vì link active có bộ class khác hẳn link thường
                 function resetLink(link) {
                     if (!link) return;
                     link.className =
                         "text-on-surface-variant hover:bg-surface-container-low px-6 py-3 flex items-center gap-3 transition-all duration-200 font-label-md text-label-md";
                     const icon = link.querySelector('.material-symbols-outlined');
-                    if (icon) icon.style.fontVariationSettings = "";
+                    if (icon) icon.style.fontVariationSettings = ""; // Trả icon về nét rỗng (không tô đặc)
                 }
 
+                // Đổi mục menu bên trái sang kiểu hiển thị đang được chọn
                 function activeLink(link) {
                     if (!link) return;
                     link.className =
                         "bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md";
                     const icon = link.querySelector('.material-symbols-outlined');
-                    if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+                    if (icon) icon.style.fontVariationSettings = "'FILL' 1"; // Icon Material Symbols dạng tô đặc (filled) khi active
                 }
 
                 resetLink(profileLink);
                 resetLink(passwordLink);
 
+                // Cập nhật URL hash để F5 lại trang vẫn giữ đúng tab (đọc lại ở DOMContentLoaded)
                 if (tab === 'password') {
                     if (deskPass) deskPass.classList.remove('hidden');
                     if (mobPass) mobPass.classList.remove('hidden');
@@ -869,6 +884,7 @@
                     window.location.hash = 'profile';
                 }
 
+                // Nút back: ở tab phụ thì quay về tab chính, ở tab chính thì trả lại href gốc để thoát trang
                 if (tab !== 'profile') {
                     if (backBtn) {
                         backBtn.href = "#profile";
@@ -886,22 +902,26 @@
             }
 
             document.addEventListener('DOMContentLoaded', function() {
+                // Lưu href gốc của nút back trước khi showTab() ghi đè nó
                 const backBtn = document.getElementById('mobile-back-btn');
                 if (backBtn) {
                     backBtn.dataset.prevUrl = backBtn.getAttribute('href');
                 }
 
+                // Mở đúng tab theo URL hash lúc tải trang (vd bookmark .../profile#password)
                 if (window.location.hash === '#password' || window.location.hash === '#change-password') {
                     showTab('password');
                 } else {
                     showTab('profile');
                 }
 
+                // Đồng bộ giá trị input mật khẩu mới/xác nhận giữa 2 form desktop/mobile khi gõ
                 const newPassDesk = document.getElementById('new_password_desk');
                 const newPassMob = document.getElementById('new_password_mob');
                 const confirmPassDesk = document.getElementById('new_password_confirmation_desk');
                 const confirmPassMob = document.getElementById('new_password_confirmation_mob');
 
+                // Đồng bộ giá trị + hiện checklist độ mạnh mật khẩu (chỉ UX, server vẫn validate lại)
                 function checkPasswordStrength() {
                     const val = this.value;
                     if (this === newPassDesk && newPassMob) newPassMob.value = val;
@@ -921,6 +941,7 @@
                     const hasNumberOrSymbol = /[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password);
                     const matches = password === confirmVal && password.length > 0;
 
+                    // Điểm mạnh mật khẩu 0-3, mỗi tiêu chí đạt được +1 điểm (chỉ tính khi đã gõ gì đó)
                     let score = 0;
                     if (password.length > 0) {
                         if (hasLength) score++;
@@ -936,6 +957,7 @@
                     updateStrengthMeter(score, password.length > 0);
                 }
 
+                // Đổi màu + icon 1 dòng checklist, áp dụng cho cả id "-desk" và "-mob"
                 function updateIndicator(idPrefix, isValid) {
                     ['desk', 'mob'].forEach(suffix => {
                         const el = document.getElementById(`${idPrefix}-${suffix}`);
@@ -961,6 +983,7 @@
                     });
                 }
 
+                // Đổi thanh + nhãn độ mạnh theo điểm số; chưa gõ gì thì hiện "Chưa nhập" thay vì "Yếu"
                 function updateStrengthMeter(score, hasInput) {
                     const labels = {
                         0: {
@@ -1018,6 +1041,7 @@
                 });
             });
 
+            // Gán ra window để các onclick="showTab(...)" inline trong HTML gọi được
             window.showTab = showTab;
         </script>
 
@@ -1025,6 +1049,7 @@
             {{-- Tự mở lại tab Đổi mật khẩu sau khi tải lại trang: hoặc do lỗi nhập mật khẩu, hoặc vừa đổi mật
 khẩu thành công (URL hash #password không được gửi lên server nên không tự giữ được). --}}
             <script>
+                // Ghi đè lại về tab "password" khi có lỗi/flag từ server sau khi F5
                 document.addEventListener('DOMContentLoaded', function() {
                     showTab('password');
                 });

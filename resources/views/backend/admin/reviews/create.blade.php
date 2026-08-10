@@ -267,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const commentError = document.getElementById('comment-error');
 
     if (commentTextarea && commentCounter) {
+        // Đếm số ký tự đã nhập trong ô nội dung
         const updateCounter = () => {
             const len = commentTextarea.value.length;
             commentCounter.textContent = `${len}/200`;

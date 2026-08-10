@@ -282,6 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Tô sáng số sao khi khách rê chuột hoặc bấm chọn
     function highlightStars(val) {
         stars.forEach(star => {
             if (star.getAttribute('data-value') <= val) {
@@ -298,6 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Chuyển giữa chế độ xem và chế độ sửa đánh giá đã gửi
     function toggleReviewEditMode(showEdit) {
         const viewMode = document.getElementById('review-view-mode');
         const editMode = document.getElementById('review-edit-mode');
@@ -307,6 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.toggleReviewEditMode = toggleReviewEditMode;
 
+    // Xem trước các ảnh vừa chọn để đính kèm đánh giá
     function previewImages(input) {
         const previewContainer = document.getElementById('image-preview-container');
         previewContainer.innerHTML = '';
@@ -360,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const thumb = document.getElementById('review-filters-scrollbar-thumb');
     if (!track || !scrollbar || !thumb) return;
 
+    // Cập nhật chỉ báo cuộn cho dải ảnh đính kèm
     function updateScrollIndicator() {
         const scrollWidth = track.scrollWidth;
         const clientWidth = track.clientWidth;

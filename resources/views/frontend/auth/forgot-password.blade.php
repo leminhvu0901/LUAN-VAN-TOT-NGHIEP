@@ -12,7 +12,8 @@
 
             {{-- Nút biểu tượng mũi tên quay lại màn hình đăng nhập --}}
             <button id="switch-to-login-from-forgot" type="button" class="l-back-btn" aria-label="Quay lại Đăng nhập">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
@@ -20,7 +21,8 @@
 
             {{-- Nút biểu tượng chữ X để đóng Modal --}}
             <button id="close-forgot" type="button" class="l-close-btn" aria-label="Đóng">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -43,7 +45,7 @@
             <form action="{{ route('forgot-password.post') }}" method="post" novalidate>
                 {{-- Token bảo mật CSRF bắt buộc của Laravel để chống tấn công giả mạo yêu cầu --}}
                 @csrf
-                
+
                 {{-- Hiển thị thông báo lỗi chung nếu việc gửi yêu cầu quên mật khẩu bị lỗi trên server.
                 Luôn render sẵn (ẩn mặc định) vì form submit qua fetch (xem forgot-password.js). --}}
                 <div id="forgot-error-alert" class="l-error-alert {{ $errors->has('forgot_error') ? '' : 'hidden' }}">
@@ -54,7 +56,8 @@
                 <div class="l-form-group">
                     <label for="recoveryContact" class="l-label">Email</label>
                     {{-- old('recovery_contact') giữ lại email đã nhập nếu submit form gặp lỗi để user không phải gõ lại --}}
-                    <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email của bạn" class="l-input" required value="{{ old('recovery_contact') }}" />
+                    <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email của bạn"
+                        class="l-input" required value="{{ old('recovery_contact') }}" />
                     {{-- Hiển thị thông báo lỗi xác thực riêng của trường email --}}
                     @error('recovery_contact')
                         <div class="l-field-error-large">
@@ -66,7 +69,9 @@
                 {{-- Nút submit gửi yêu cầu lấy lại mật khẩu --}}
                 <button type="submit" class="l-submit-btn">
                     Gửi mã xác nhận
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                        stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                         <path d="M5 12h14" />
                         <path d="M13 6l6 6l-6 6" />
@@ -91,64 +96,63 @@
 </div>
 
 <script>
-// Xử lý sự kiện đóng/chuyển đổi modal Quên mật khẩu
-document.addEventListener('click', function(e) {
-    const forgotModal = document.getElementById('forgot-modal');
-    if (!forgotModal) return;
-
-    // Nút đóng (X)
-    const closeForgotBtn = e.target.closest('#close-forgot');
-    if (closeForgotBtn) {
-        e.preventDefault();
-        forgotModal.style.display = 'none';
-        document.body.style.overflow = '';
-        return;
-    }
-
-    // Click ra ngoài overlay
-    const overlayForgot = e.target.closest('#forgot-overlay');
-    if (overlayForgot) {
-        forgotModal.style.display = 'none';
-        document.body.style.overflow = '';
-        return;
-    }
-
-    // Chuyển sang Modal Đăng nhập
-    const switchToLoginFromForgotBtn = e.target.closest('#switch-to-login-from-forgot');
-    if (switchToLoginFromForgotBtn) {
-        e.preventDefault();
-        forgotModal.style.display = 'none';
-        const loginModal = document.getElementById('login-modal');
-        if (loginModal) {
-            loginModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        return;
-    }
-
-    // Chuyển sang Modal Đăng ký
-    const switchToRegisterFromForgotBtn = e.target.closest('#switch-to-register-from-forgot');
-    if (switchToRegisterFromForgotBtn) {
-        e.preventDefault();
-        forgotModal.style.display = 'none';
-        const registerModal = document.getElementById('register-modal');
-        if (registerModal) {
-            registerModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        return;
-    }
-});
-
-// Tự động mở Modal nếu server gửi flash session show_forgot
-document.addEventListener('DOMContentLoaded', function() {
-    @if(session('show_forgot'))
+    // Xử lý sự kiện đóng/chuyển đổi modal Quên mật khẩu
+    document.addEventListener('click', function(e) {
         const forgotModal = document.getElementById('forgot-modal');
-        if (forgotModal) {
-            forgotModal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-    @endif
-});
-</script>
+        if (!forgotModal) return;
 
+        // Nút đóng (X)
+        const closeForgotBtn = e.target.closest('#close-forgot');
+        if (closeForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        // Click ra ngoài overlay
+        const overlayForgot = e.target.closest('#forgot-overlay');
+        if (overlayForgot) {
+            forgotModal.style.display = 'none';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        // Chuyển sang Modal Đăng nhập
+        const switchToLoginFromForgotBtn = e.target.closest('#switch-to-login-from-forgot');
+        if (switchToLoginFromForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+            return;
+        }
+
+        // Chuyển sang Modal Đăng ký
+        const switchToRegisterFromForgotBtn = e.target.closest('#switch-to-register-from-forgot');
+        if (switchToRegisterFromForgotBtn) {
+            e.preventDefault();
+            forgotModal.style.display = 'none';
+            const registerModal = document.getElementById('register-modal');
+            if (registerModal) {
+                registerModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+            return;
+        }
+    });
+
+    // Tự động mở Modal nếu server gửi flash session show_forgot
+    document.addEventListener('DOMContentLoaded', function() {
+        @if (session('show_forgot'))
+            const forgotModal = document.getElementById('forgot-modal');
+            if (forgotModal) {
+                forgotModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+        @endif
+    });
+</script>

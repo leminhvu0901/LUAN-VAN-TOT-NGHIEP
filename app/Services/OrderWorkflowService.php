@@ -93,7 +93,7 @@ class OrderWorkflowService
         }, 3);
     }
 
-    // Đánh dấu đơn hàng đã thanh toán thành công qua ví điện tử
+    // Đánh dấu đơn hàng đã thanh toán thành công 
     public function markPaid(Order $order, string $transactionId, float $amount, ?\Carbon\Carbon $paidAtOverride = null): Order
     {
         $wasAlreadyPaid = false;

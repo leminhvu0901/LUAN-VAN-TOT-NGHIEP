@@ -11,19 +11,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Controller Quản lý Vật tư/Nguyên liệu dành cho Lễ tân.
- */
+
 class MaterialController
 {
     private const MAX_UNIT_PRICE = 999999999; // Hạn mức giá tối đa để tránh lỗi số quá lớn trong Database
 
     // Inject dịch vụ quản lý kho nguyên liệu và cập nhật tồn kho
-    public function __construct(private readonly InventoryService $sv_inventory) {}
+    public function __construct(private readonly InventoryService $sv_inventory)
+    {
+    }
 
-    /**
-     * Lấy danh sách Vật tư có lọc và phân trang.
-     */
+    // Lấy danh sách Vật tư có lọc và phân trang
     public function index(Request $request)
     {
         // Khởi tạo truy vấn kèm theo các lô hàng còn tồn và đếm số lô đang sử dụng/lô bị hủy
@@ -32,14 +30,14 @@ class MaterialController
                 $q->where('remaining_quantity', '>', 0); // Chỉ nạp các lô còn hàng
             }
         ])->withCount([
-            'imports as active_lots_count' => function ($q) {
-                $q->where('quantity', '>', 0)
-                    ->where('remaining_quantity', '>', 0); // Lô nhập đang còn nguyên liệu
-            },
-            'imports as disposed_count' => function ($q) {
-                $q->where('quantity', '<', 0); // Đếm các lô bị xuất hủy/bỏ
-            }
-        ]);
+                    'imports as active_lots_count' => function ($q) {
+                        $q->where('quantity', '>', 0)
+                            ->where('remaining_quantity', '>', 0); // Lô nhập đang còn nguyên liệu
+                    },
+                    'imports as disposed_count' => function ($q) {
+                        $q->where('quantity', '<', 0); // Đếm các lô bị xuất hủy/bỏ
+                    }
+                ]);
 
         $this->applyMaterialFilters($query, $request); // Áp dụng các điều kiện tìm kiếm/lọc từ giao diện gửi lên
 
@@ -72,10 +70,10 @@ class MaterialController
 
         // Số lượng lô hàng sắp hết hạn trong 30 ngày tới
         $expiringItems = MaterialImport::whereBetween('expiration_date', [now(), now()->addDays(30)])
-                                       ->where('remaining_quantity', '>', 0)->count();
+            ->where('remaining_quantity', '>', 0)->count();
         // Số lượng lô hàng đã quá hạn sử dụng mà chưa dùng hết
         $expiredItems = MaterialImport::where('expiration_date', '<', today())
-                                      ->where('remaining_quantity', '>', 0)->count();
+            ->where('remaining_quantity', '>', 0)->count();
 
         $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)->count(); // Số lần xuất hủy
         $disposedValue = abs(MaterialImport::where('quantity', '<', 0)->sum('total_price')); // Tổng giá trị tiền của lượng vật tư bị hủy
@@ -83,13 +81,19 @@ class MaterialController
         $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price')); // Tính tổng trị giá tồn kho hiện tại
 
         return view('backend.staff.reception.materials.index', compact(
-            'materials', 'totalItems', 'lowStockItems', 'outOfStockItems', 'expiringItems', 'expiredItems', 'disposedBatchesCount', 'totalValue', 'disposedValue'
+            'materials',
+            'totalItems',
+            'lowStockItems',
+            'outOfStockItems',
+            'expiringItems',
+            'expiredItems',
+            'disposedBatchesCount',
+            'totalValue',
+            'disposedValue'
         ));
     }
 
-    /**
-     * Hiển thị Lịch sử Nhập/Xuất của một Vật tư cụ thể.
-     */
+    // Hiển thị Lịch sử Nhập/Xuất của một Vật tư cụ thể
     public function imports(Material $material)
     {
         $imports = $material->imports()->latest()->get(); // Lấy lịch sử nhập/xuất của nguyên liệu này
@@ -101,9 +105,7 @@ class MaterialController
         return view('backend.staff.reception.materials.imports', compact('material', 'imports', 'activeLotsCount'));
     }
 
-    /**
-     * Tạo Phiếu Nhập Kho Mới cho một nguyên liệu cụ thể.
-     */
+    // Tạo Phiếu Nhập Kho Mới cho một nguyên liệu cụ thể
     public function storeImport(Request $request, Material $material)
     {
         $request->merge(['_form_context' => 'import-create']);
@@ -125,10 +127,7 @@ class MaterialController
         return redirect()->route('staff.reception.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
 
-    /**
-     * Xuất kho trực tiếp từ một lô hàng cụ thể.
-     * Dùng khi lấy nguyên liệu ra pha chế tại quầy (tính hao hụt nguyên vật liệu).
-     */
+    // Xuất kho trực tiếp từ một lô hàng cụ thể — dùng khi lấy nguyên liệu ra pha chế tại quầy (tính hao hụt nguyên vật liệu)
     public function consumeBatch(Request $request, MaterialImport $import)
     {
         $request->merge([
@@ -193,26 +192,25 @@ class MaterialController
             ]);
 
             // Ghi nhận biến động vào bảng chi tiết biến động kho nếu có bảng inventory_movements
-            if (Schema::hasTable('inventory_movements')) DB::table('inventory_movements')->insert([
-                'material_id' => $material->id,
-                'material_import_id' => $lockedImport->id,
-                'order_id' => null,
-                'type' => 'adjustment',
-                'quantity' => -$consumeQty,
-                'unit_cost' => $unitPrice,
-                'note' => $reason,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            if (Schema::hasTable('inventory_movements'))
+                DB::table('inventory_movements')->insert([
+                    'material_id' => $material->id,
+                    'material_import_id' => $lockedImport->id,
+                    'order_id' => null,
+                    'type' => 'adjustment',
+                    'quantity' => -$consumeQty,
+                    'unit_cost' => $unitPrice,
+                    'note' => $reason,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             $this->sv_inventory->recalculateMaterialCost($material->id); // Gọi hàm tính toán lại đơn giá trung bình cho nguyên liệu
         });
 
         return redirect()->route('staff.reception.materials.imports', $import->material_id)->with('success', 'Đã ghi nhận xuất kho từ lô hàng thành công!');
     }
 
-    /**
-     * Xác thực validate thông tin nhập kho vật tư gửi lên.
-     */
+    // Xác thực validate thông tin nhập kho vật tư gửi lên
     private function validateImportData(Request $request, string $importDate): array
     {
         $request->merge([
@@ -240,9 +238,7 @@ class MaterialController
         ]);
     }
 
-    /**
-     * Bộ lọc tìm kiếm nguyên liệu nâng cao (Lọc theo Tên/Mã vật tư, Trạng thái sắp hết/quá hạn/đã hủy).
-     */
+    // Bộ lọc tìm kiếm nguyên liệu nâng cao (Lọc theo Tên/Mã vật tư, Trạng thái sắp hết/quá hạn/đã hủy)
     private function applyMaterialFilters($query, Request $request): void
     {
         if ($request->filled('search')) {
@@ -281,7 +277,7 @@ class MaterialController
             });
         } elseif ($status === 'disposed') {
             $query->whereHas('imports', function ($subQuery) {
-                $subQuery->where('quantity', '<', 0);
+                $subQuery->where('quantity', '<', 0); // Lọc nguyên liệu có ít nhất 1 lô đã bị xuất hủy
             });
         }
     }

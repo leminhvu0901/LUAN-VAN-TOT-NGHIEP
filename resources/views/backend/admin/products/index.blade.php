@@ -197,10 +197,12 @@
 
 @push('scripts')
 <script>
+// Tìm phần tử đang cuộn để giữ nguyên vị trí cuộn sau khi thao tác
 function getScrollContainer() {
     return document.getElementById("main-content-area");
 }
 
+// Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
 function updateBulkDeleteButton() {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
@@ -230,6 +232,7 @@ function updateBulkDeleteButton() {
     }
 }
 
+// Tích/bỏ tích toàn bộ dòng trong trang khi bấm ô "chọn tất cả"
 function handleSelectAll(checked) {
     document.querySelectorAll(".product-checkbox").forEach((checkbox) => {
         checkbox.checked = checked;
@@ -237,12 +240,14 @@ function handleSelectAll(checked) {
     updateBulkDeleteButton();
 }
 
+// Đồng bộ ô "chọn tất cả" ở đầu bảng với trạng thái thực tế của các dòng bên dưới
 function syncSelectAllCheckboxes() {
     const checkboxes = document.querySelectorAll(".product-checkbox");
     const allChecked = checkboxes.length > 0 && document.querySelectorAll(".product-checkbox:checked").length === checkboxes.length;
     document.querySelectorAll(".js-select-all").forEach((el) => (el.checked = allChecked));
 }
 
+// Gom id đã chọn, hỏi xác nhận rồi gửi form xóa hàng loạt lên server
 function submitBulkDelete() {
     const ids = Array.from(document.querySelectorAll(".product-checkbox:checked")).map((cb) => cb.value);
     if (ids.length === 0) return;
@@ -265,6 +270,7 @@ function submitBulkDelete() {
     bulkDeleteForm.submit();
 }
 
+// Hỏi xác nhận trước khi xóa một sản phẩm
 function confirmDeleteProduct(event, formElement) {
     if (!confirm("Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?")) {
         event.preventDefault();
@@ -274,6 +280,7 @@ function confirmDeleteProduct(event, formElement) {
     return true;
 }
 
+// Gắn sự kiện cho bảng danh sách sản phẩm (chọn dòng, xóa, chuyển trang)
 function initProductTableEvents(tableContainer) {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");

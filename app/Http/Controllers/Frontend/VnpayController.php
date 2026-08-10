@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Frontend;
 
-use App\Http\Controllers\Frontend\Concerns\CreatesOnlinePaymentOrder;
-use App\Http\Controllers\Frontend\Concerns\HandlesCheckoutResponse;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\CartItemTopping;
@@ -11,17 +9,22 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Promotion;
 use App\Models\Setting;
+use App\Models\UserAddress;
+use App\Services\CartPricingService;
+use App\Services\OrderService;
 use App\Services\OrderWorkflowService;
+use App\Services\PromotionService;
+use App\Services\ShippingQuoteService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class VnpayController
 {
-    use HandlesCheckoutResponse, CreatesOnlinePaymentOrder;
-
     // ─── Cấu hình VNPay (Môi trường thử nghiệm Sandbox) ──
     private string $tmnCode;
     private string $hashSecret;
@@ -29,8 +32,13 @@ class VnpayController
     private string $refundEndpoint;
     private bool $configValid;
 
-    public function __construct(private readonly OrderWorkflowService $orderWorkflow)
-    {
+    public function __construct(
+        private readonly OrderWorkflowService $orderWorkflow,
+        private readonly CartPricingService $cartPricing,
+        private readonly PromotionService $promotions,
+        private readonly ShippingQuoteService $shipping,
+        private readonly OrderService $orderService,
+    ) {
         $vnpayConfig = config('services.vnpay.sandbox', []);
         $tmn = Setting::getValue('vnpay_tmn_code');
         $this->tmnCode = !empty($tmn) ? (string) $tmn : (string) ($vnpayConfig['tmn_code'] ?? '');
@@ -47,14 +55,249 @@ class VnpayController
         $this->configValid = !empty($this->tmnCode) && !empty($this->hashSecret);
     }
 
-    /**
-     * Được gọi khi khách chọn VNPay và bấm "Đặt hàng".
-     * Tạo đơn hàng trong DB (payment_status = unpaid, dùng chung createPendingOrderForOnlinePayment()
-     * với MoMo) rồi điều hướng sang cổng VNPay.
-     */
+   //Trả lỗi đúng định dạng theo kiểu request.
+    private function checkoutError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+        return redirect()->back()->with('error', $message)->withInput();
+    }
+
+    //Hàm này xử lý redirect sau khi checkout VNPay thành công
+    private function checkoutRedirect(Request $request, string $url)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'redirect_url' => $url]);
+        }
+        return redirect()->away($url);
+    }
+
+    //Tạo đơn hàng tạm, tính toàn bộ giá/phí/giảm giá trước khi chuyển sang cổng thanh toán
+    private function createPendingOrderForOnlinePayment(Request $request, string $paymentMethod)
+    {
+        if (!Auth::check()) {
+            return $this->checkoutRedirect($request, route('login'));
+        }
+
+        if (!$this->configValid) {
+            return $this->checkoutError($request, 'Chưa cấu hình cổng thanh toán cho môi trường chính thức. Vui lòng liên hệ quản trị viên.');
+        }
+
+        $userId = Auth::id();
+
+        // ── 0a. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản trị Admin (giống OrderService::create())
+        $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
+        if (!$receiveEnabled) {
+            return $this->checkoutError($request, 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.');
+        }
+
+        // ── 0b. Kiểm tra giờ hoạt động — đọc từ Settings (admin cấu hình), dùng chung logic với COD
+        // (OrderService::create()) thay vì hard-code cứng 07:00-23:00 như bản cũ, tránh lệch giờ mở
+        // cửa thật giữa 2 phương thức thanh toán.
+        $open = Setting::getValue('store_open_time', '08:00');
+        $close = Setting::getValue('store_close_time', '22:00');
+        $nowStr = now()->format('H:i');
+
+        if ($open < $close) {
+            $isOpen = ($nowStr >= $open && $nowStr <= $close);
+        } else { // Khung giờ mở qua đêm (vd 22:00 -> 03:00 sáng hôm sau), hoặc 00:00-00:00 nghĩa là mở 24/7
+            $isOpen = ($nowStr >= $open || $nowStr <= $close);
+        }
+
+        if (!$isOpen) {
+            return $this->checkoutError($request, "Cửa hàng hiện đã đóng cửa! Giờ hoạt động của chúng tôi là từ {$open} đến {$close} hàng ngày.");
+        }
+
+        // ── 1. Validate ────────────────────────────────────────────────────────
+        // distance_km/weather_fee KHÔNG còn nhận từ client nữa — ShippingQuoteService tự tính lại ở
+        // bước 5, cùng nguồn với luồng COD, tránh bị giả mạo khoảng cách/phụ phí thời tiết từ request.
+        $request->validate([
+            'address_id' => 'required',
+            'payment_method' => 'required|in:' . $paymentMethod,
+            'coupon_code' => 'nullable|string',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        // ── 2. Lấy địa chỉ ────────────────────────────────────────────────────
+        $address = UserAddress::query()
+            ->where('id', $request->input('address_id'))
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$address) {
+            return $this->checkoutError($request, 'Địa chỉ giao hàng không hợp lệ.');
+        }
+
+        // ── 3. Xóa đơn cùng cổng thanh toán còn pending/unpaid (user đã hủy trước đó) ─────
+        $oldPendingOrders = Order::query()
+            ->where('user_id', $userId)
+            ->where('payment_method', $paymentMethod)
+            ->where('payment_status', 'unpaid')
+            ->where('status', 'pending')
+            ->get();
+
+        foreach ($oldPendingOrders as $oldOrder) {
+            // Xóa đơn TRƯỚC rồi mới hoàn lượt mã giảm giá: nếu đơn đã bị luồng khác xóa mất (2 tab cùng
+            // bấm thanh toán, hoặc IPN chạy song song) thì delete() trả 0 và ta bỏ qua — tránh trừ
+            // used_count nhiều lần cho cùng 1 đơn, khiến mã bị dùng vượt quá usage_limit.
+            if (Order::query()->where('id', $oldOrder->id)->delete() === 0) {
+                continue;
+            }
+            OrderItem::query()->where('order_id', $oldOrder->id)->delete();
+            if ($oldOrder->promotion_id) {
+                Promotion::query()->where('id', $oldOrder->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
+            }
+        }
+
+        // ── 4. Lấy giỏ hàng + tính giá thật (dùng chung CartPricingService với COD) ───────
+        $cart = Cart::query()->where('user_id', $userId)->first();
+        if (!$cart) {
+            return $this->checkoutError($request, 'Giỏ hàng của bạn đang trống.');
+        }
+
+        $selectedIds = session('selected_cart_item_ids');
+        $selectedIds = !empty($selectedIds) ? $selectedIds : null;
+
+        $user = Auth::user();
+
+        try {
+            // pricedItems() tự kiểm tra giỏ rỗng/sản phẩm ngừng bán/size-topping không hợp lệ, và ném
+            // ValidationException nếu có vấn đề — thay cho các bước kiểm tra thủ công trước đây.
+            $items = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
+        } catch (ValidationException $e) {
+            return $this->checkoutError($request, collect($e->errors())->flatten()->first());
+        }
+
+        $subtotal = $this->cartPricing->subtotal($items);
+        $totalQuantity = (int) $items->sum('quantity');
+
+        // ── 5. Phí vận chuyển + phụ thu thời tiết — tính lại từ tọa độ địa chỉ (ShippingQuoteService),
+        // KHÔNG tin distance_km/weather_fee do client gửi lên như bản cũ.
+        $quote = $this->shipping->quote($address, $subtotal, $user);
+        $maxDistance = (float) Setting::getValue('shipping_max_distance_km', ShippingQuoteService::MAX_DELIVERY_KM);
+        if ($quote['distance_km'] > $maxDistance) {
+            return $this->checkoutError($request, "Địa chỉ vượt quá phạm vi giao hàng {$maxDistance} km.");
+        }
+
+        // ── 6. Chuẩn bị các giá trị không phụ thuộc mã giảm giá, dùng chung cho việc tạo đơn bên dưới
+        $manualCode = trim((string) $request->input('coupon_code'));
+        $manualCode = $manualCode !== '' ? $manualCode : null;
+        $fullAddress = $address->specific_address . ', ' . $address->ward . ', ' . $address->district . ', ' . $address->province;
+        $estimatedTime = now()->addMinutes(45);
+        $orderCode = 'HPY-' . strtoupper(bin2hex(random_bytes(4)));
+
+        // ── 7. Khóa + tính mã giảm giá + lưu đơn hàng — TẤT CẢ trong CÙNG 1 transaction (giống
+        // OrderService::create() của COD). Mã giảm giá + đơn hàng PHẢI nằm chung 1 transaction với
+        // resolveBestDiscount(..., lock: true): nếu tách riêng như bản cũ, 2 request VNPay cùng dùng
+        // 1 mã sắp hết lượt (usage_limit) có thể CÙNG LÚC đọc thấy còn lượt (chưa ai increment kịp),
+        // rồi cả 2 cùng được duyệt — mã bị dùng vượt quá giới hạn cho phép.
+        DB::beginTransaction();
+        try {
+            $promotion = null;
+            $couponDiscount = 0.0;
+            $giftEntries = [];
+            if ($manualCode !== null) {
+                $autoResult = $this->promotions->resolveBestDiscount($items, $subtotal, $user, 'delivery', $totalQuantity, $manualCode, lock: true);
+                $promotion = $autoResult['promotion'];
+                $couponDiscount = $autoResult['discount'];
+                // Mã combo kèm sẵn phần quà tặng ở đây; các loại mã khác luôn rỗng.
+                $giftEntries = $autoResult['gifts'] ?? [];
+            }
+
+            $membershipDiscount = $this->orderService->membershipDiscount($user, $subtotal);
+            $discountAmount = min($subtotal, $couponDiscount + $membershipDiscount);
+            $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discountAmount);
+
+            $orderId = Order::query()->insertGetId([
+                'order_code' => $orderCode,
+                'user_id' => $userId,
+                'customer_name' => $address->fullname,
+                'customer_phone' => $address->phone,
+                'delivery_address' => $fullAddress,
+                'delivery_latitude' => $address->latitude,
+                'delivery_longitude' => $address->longitude,
+                'total_amount' => $subtotal,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount,
+                'payment_status' => 'unpaid',
+                'payment_method' => $paymentMethod,
+                'status' => 'pending',
+                'coupon_code' => $promotion?->code,
+                'promotion_id' => $promotion?->id,
+                'delivery_type' => 'delivery',
+                'estimated_time' => $estimatedTime,
+                'distance_km' => $quote['distance_km'],
+                'weather_fee' => $quote['weather_fee'],
+                'peak_hour_fee' => 0,
+                'shipping_fee' => $quote['shipping_fee'],
+                'customer_note' => $request->input('note'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            foreach ($items as $item) {
+                $toppingsList = json_encode($item->calculated_toppings->pluck('name')->all(), JSON_UNESCAPED_UNICODE);
+
+                OrderItem::query()->insert([
+                    'order_id' => $orderId,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->name,
+                    'product_sku' => $item->product->sku,
+                    'product_image' => $item->product->image,
+                    'size_name' => $item->size_name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->calculated_unit_price,
+                    'sugar_level' => $item->sugar_level,
+                    'ice_level' => $item->ice_level,
+                    'options' => $toppingsList,
+                    'note' => null,
+                ]);
+            }
+
+            // Món quà tặng của mã combo khách đã áp — lưu thành dòng đơn giá 0đ, giống OrderService::create()
+            foreach ($giftEntries as $entry) {
+                $comboItemNames = $entry['combo_items']->map(fn($ci) => $ci->quantity . ' ' . $ci->product->name)->implode(' + ');
+
+                OrderItem::create([
+                    'order_id' => $orderId,
+                    'product_id' => $entry['gift_product']->id,
+                    'product_name' => $entry['gift_product']->name,
+                    'product_sku' => $entry['gift_product']->sku,
+                    'product_image' => $entry['gift_product']->image,
+                    'size_name' => null,
+                    'quantity' => $entry['granted_quantity'],
+                    'unit_price' => 0,
+                    'sugar_level' => null,
+                    'ice_level' => null,
+                    'options' => [],
+                    'note' => 'Quà tặng combo: Mua ' . $comboItemNames . ' tặng ' . $entry['granted_quantity'] . ' ' . $entry['gift_product']->name,
+                    'is_gift' => true,
+                    'source_promotion_id' => $entry['promotion']->id,
+                ]);
+            }
+
+            if ($promotion) {
+                $promotion->increment('used_count');
+            }
+
+            DB::commit();
+        } catch (ValidationException $e) {
+            // Mã giảm giá không hợp lệ/hết lượt: trả đúng thông báo của PromotionService cho khách.
+            DB::rollBack();
+            return $this->checkoutError($request, collect($e->errors())->flatten()->first());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->checkoutError($request, 'Có lỗi khi tạo đơn hàng: ' . $e->getMessage());
+        }
+
+        return Order::query()->find($orderId);
+    }
+
+    // TAO ĐƠN VNPAY
     public function createPayment(Request $request)
     {
-        $result = $this->createPendingOrderForOnlinePayment($request, 'vnpay');//tạo một đơn hàng tạm thời
+        $result = $this->createPendingOrderForOnlinePayment($request, 'vnpay'); //Tạo đơn hàng tạm, tính toàn bộ giá/phí/giảm giá trước khi chuyển sang cổng thanh toán
         if (!($result instanceof Order)) {
             return $result;
         }
@@ -63,11 +306,7 @@ class VnpayController
         return $this->checkoutRedirect($request, $paymentUrl);
     }
 
-    /**
-     * Build URL thanh toán VNPay đã ký chữ ký — KHÁC MoMo: không gọi API mạng nào, tự build query
-     * string có chữ ký rồi redirect thẳng trình duyệt sang đó. Theo đúng thuật toán trong tài liệu
-     * tích hợp chính thức VNPay (sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html).
-     */
+    //tạo ra URL thanh toán để redirect khách sang cổng VNPay:
     private function buildPaymentUrl(Order $order, Request $request): string
     {
         $inputData = [
@@ -105,26 +344,21 @@ class VnpayController
         return $this->vnpUrl . '?' . $query . '&vnp_SecureHash=' . $secureHash;
     }
 
-    /**
-     * Gọi API hoàn tiền VNPay cho một đơn đã thanh toán. Public (không private) vì
-     * Delivery\OrderController cũng cần gọi trực tiếp cho case "hàng hư hỏng" — cùng tiền lệ với
-     * MomoController::requestRefund(). Chữ ký ký theo chuỗi nối bằng "|" (KHÁC hẳn query-string "&"
-     * ở bước thanh toán) — theo đúng tài liệu API hoàn tiền/tra soát VNPay
-     * (/merchant_webapi/api/transaction).
-     *
-     * @return array{success: bool, transId: ?string, message: string}
-     */
+
+    //Gọi API hoàn tiền VNPay cho một đơn đã thanh toán
     public function requestRefund(Order $order): array
     {
+        // Định danh riêng cho lần gọi hoàn tiền này, không liên quan tới mã đơn hàng
         $requestId = 'RF' . $order->order_code . '_' . time();
-        $amountStr = (string) ((int) round((float) $order->final_amount) * 100);
-        $transactionNo = (string) $order->payment_transaction_id;
+        $amountStr = (string) ((int) round((float) $order->final_amount) * 100); // VNPay tính bằng đơn vị "xu" (x100)
+        $transactionNo = (string) $order->payment_transaction_id; // Mã giao dịch gốc lúc thanh toán, VNPay cần để đối chiếu
         $transactionDate = $order->paid_at ? $order->paid_at->format('YmdHis') : now()->format('YmdHis');
         $orderInfo = 'Hoan tien don hang ' . $order->order_code;
         $createDate = now()->timezone('Asia/Ho_Chi_Minh')->format('YmdHis');
         $ipAddr = request()?->ip() ?: '127.0.0.1';
         $createBy = 'system';
 
+        // Chuỗi ký nối bằng "|" theo đúng thứ tự tham số quy định của API hoàn tiền VNPay
         $hashData = implode('|', [
             $requestId,
             '2.1.0',
@@ -161,12 +395,14 @@ class VnpayController
         ];
 
         try {
+            // withoutVerifying(): sandbox VNPay dùng SSL tự ký, bỏ qua verify cert cho môi trường demo
             $httpClient = Http::timeout(30)->withoutVerifying();
             $response = $httpClient->post($this->refundEndpoint, $payload);
             $result = $response->json();
 
             Log::info('VNPay refund response', $result ?? []);
 
+            // '00' là mã phản hồi thành công theo tài liệu VNPay, khác các mã lỗi khác đều coi là thất bại
             if ((string) ($result['vnp_ResponseCode'] ?? '') === '00') {
                 return [
                     'success' => true,
@@ -181,21 +417,21 @@ class VnpayController
                 'message' => (string) ($result['vnp_Message'] ?? 'Lỗi không xác định từ VNPay.'),
             ];
         } catch (\Exception $e) {
+            // Lỗi mạng/timeout khi gọi API — không phải VNPay từ chối, mà không kết nối được
             Log::error('VNPay refund API error: ' . $e->getMessage());
             return ['success' => false, 'transId' => null, 'message' => 'Không thể kết nối cổng thanh toán VNPay.'];
         }
     }
 
-    /**
-     * Lễ tân/admin bấm "Hoàn tiền & Hủy đơn" cho một đơn VNPay đã thanh toán — copy y hệt logic
-     * MomoController::refundOrder(), chỉ đổi guard/message theo VNPay.
-     */
+
+    // Lễ tân/admin bấm "Hoàn tiền & Hủy đơn" — gọi API VNPay hoàn tiền thật rồi mới cập nhật DB
     public function refundOrder(Request $request, Order $order)
     {
         if (!$this->configValid) {
             return $this->refundError($request, 'Chưa cấu hình VNPay cho môi trường chính thức. Vui lòng liên hệ quản trị viên.');
         }
 
+        // Bắt buộc nhập lý do hủy, tối thiểu 5 ký tự
         $validated = $request->validate([
             'cancel_reason' => ['required', 'string', 'min:5', 'max:500'],
         ], [
@@ -203,16 +439,20 @@ class VnpayController
             'cancel_reason.min' => 'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự).',
         ]);
 
+        // Chỉ hoàn tiền được đơn VNPay đã thanh toán thật
         if ($order->payment_method !== 'vnpay' || $order->payment_status !== 'paid') {
             return $this->refundError($request, 'Đơn hàng này không cần hoàn tiền VNPay.');
         }
+        // Đơn đã giao/hoàn thành/hủy rồi thì không được hoàn tiền nữa
         if (!in_array($order->status, ['pending', 'confirmed'], true)) {
             return $this->refundError($request, 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.');
         }
+        // Không có mã giao dịch gốc thì VNPay không biết hoàn tiền cho giao dịch nào
         if (!$order->payment_transaction_id) {
             return $this->refundError($request, 'Không tìm thấy mã giao dịch gốc để hoàn tiền.');
         }
 
+        // Gọi API hoàn tiền thật của VNPay
         $result = $this->requestRefund($order);
 
         if (!$result['success']) {
@@ -220,6 +460,7 @@ class VnpayController
             return $this->refundError($request, 'Hoàn tiền VNPay thất bại: ' . $result['message']);
         }
 
+        // VNPay hoàn tiền thành công -> cập nhật đơn sang refunded + cancelled, hoàn kho/lượt mã giảm giá
         try {
             $this->orderWorkflow->refundAndCancel($order, $result['transId'], $validated['cancel_reason']);
         } catch (ValidationException $e) {
@@ -232,10 +473,7 @@ class VnpayController
         return back()->with('success', 'Đã hoàn tiền và hủy đơn hàng thành công!');
     }
 
-    /**
-     * Trả lỗi hoàn tiền JSON (nếu gọi qua AJAX) hoặc redirect back kèm thông báo — dùng chung cho
-     * cả 2 route gọi vào đây (admin.orders.refund / staff.reception.orders.refund).
-     */
+    //Trả lỗi hoàn tiền JSON
     private function refundError(Request $request, string $message, array $errors = [])
     {
         if ($request->expectsJson()) {
@@ -244,10 +482,7 @@ class VnpayController
         return back()->withErrors(['refund' => $message]);
     }
 
-    /**
-     * Lễ tân bấm "Thanh toán VNPay" cho một đơn tại quầy đã tồn tại — copy logic
-     * MomoController::payExistingOrder(), gọi buildPaymentUrl() thay vì requestPayUrl().
-     */
+     //Lễ tân bấm "Thanh toán VNPay" cho một đơn tại quầy đã tồn tại.
     public function payExistingOrder(Request $request, Order $order)
     {
         if (!$this->configValid) {
@@ -257,26 +492,26 @@ class VnpayController
         if ($order->payment_method !== 'vnpay' || $order->payment_status === 'paid') {
             return $this->checkoutError($request, 'Đơn hàng này không cần thanh toán qua VNPay.');
         }
-
+           //buildPaymentUrl() tạo link thanh toán VNPay cho $order, rồi checkoutRedirect() đưa link đó ra cho client 
         return $this->checkoutRedirect($request, $this->buildPaymentUrl($order, $request));
     }
 
-    /**
-     * Xác thực chữ ký VNPay gửi kèm (dùng chung cho cả redirect về trình duyệt và IPN server-to-server).
-     * Bỏ vnp_SecureHash/vnp_SecureHashType, ksort() phần còn lại, rebuild query string y hệt cách ký
-     * ở buildPaymentUrl(), so sánh bằng hash_equals().
-     */
+    // xác nhận chữ ký
     private function verifySignature(array $data): bool
     {
+        // Không có chữ ký gửi kèm -> chắc chắn không hợp lệ, khỏi cần tính toán gì thêm
         if (empty($data['vnp_SecureHash'])) {
             return false;
         }
 
         $receivedHash = (string) $data['vnp_SecureHash'];
+        // Bỏ 2 trường này ra vì chúng không tham gia vào chuỗi được ký lúc đầu
         unset($data['vnp_SecureHash'], $data['vnp_SecureHashType']);
 
+        // Sắp key theo alphabet — đúng thứ tự VNPay dùng khi ký (giống buildPaymentUrl())
         ksort($data);
 
+        // Build lại chuỗi key=value nối bằng "&", y hệt thuật toán ở buildPaymentUrl()
         $hashData = '';
         $first = true;
         foreach ($data as $key => $value) {
@@ -287,15 +522,14 @@ class VnpayController
             $first = false;
         }
 
+        // Tự tính lại hash bằng secret key của mình, để so sánh với hash VNPay gửi kèm
         $expectedHash = hash_hmac('sha512', $hashData, $this->hashSecret);
 
+        // hash_equals() so sánh an toàn (chống timing attack), không dùng === thường
         return hash_equals($expectedHash, $receivedHash);
     }
 
-    /**
-     * Xóa CHỈ những cart_items đã được đưa vào đơn hàng này (dựa theo product_id) — dùng chung cho
-     * cả handleReturn/handleIpn, y hệt logic MomoController.
-     */
+   //Hàm này dọn giỏ hàng của khách sau khi đặt hàng VNPay thành công
     private function clearOrderedCartItems(Order $order): void
     {
         $cart = Cart::query()->where('user_id', $order->user_id)->first();
@@ -314,11 +548,7 @@ class VnpayController
         }
     }
 
-    /**
-     * Xử lý sau khi khách thanh toán xong và VNPay redirect về trình duyệt. VNPay ký cả redirect này
-     * (không chỉ IPN) nên có thể xác thực chữ ký và tin cậy để cập nhật DB — cần thiết vì môi trường
-     * demo/local thường không có URL public để VNPay gọi IPN server-to-server.
-     */
+    // NHẬN PHẢN HỒI THANH TOÁN VN PAY
     public function handleReturn(Request $request)
     {
         $data = $request->query();
@@ -343,9 +573,11 @@ class VnpayController
 
         if ((string) $responseCode === '00') {
             $amount = ((float) ($data['vnp_Amount'] ?? 0)) / 100;
-            $paidAt = $this->parseVnpPayDate($data['vnp_PayDate'] ?? null);
+            // chuyển chuỗi ngày giờ VNPay gửi thành
+            $paidAt = $this->parseVnpPayDate($data['vnp_PayDate'] ?? null);// chuyển chuỗi ngày giờ dạng VNPay gửi về thành object
 
             try {
+                // chuyển đơn sang trạng thái paid chính thức
                 $this->orderWorkflow->markPaid($order, (string) ($data['vnp_TransactionNo'] ?? ''), $amount, $paidAt);
             } catch (ValidationException $e) {
                 Log::warning('VNPay return: amount mismatch', ['orderId' => $orderId]);
@@ -369,32 +601,34 @@ class VnpayController
         }
 
         if (in_array($order->payment_status, ['unpaid', 'failed'])) {
-            OrderItem::query()->where('order_id', $order->id)->delete();
-            Order::query()->where('id', $order->id)->delete();
+            // Xóa trước, chỉ hoàn lượt mã nếu chính request này xóa được đơn — IPN có thể đã xử lý
+            // cùng đơn này song song, hoàn lượt 2 lần sẽ làm used_count âm = mã dùng vượt giới hạn.
+            if (Order::query()->where('id', $order->id)->delete() > 0) {
+                OrderItem::query()->where('order_id', $order->id)->delete();
 
-            if ($order->promotion_id) {
-                Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
+                if ($order->promotion_id) {
+                    Promotion::query()->where('id', $order->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
+                }
             }
         }
 
         return redirect()->route('checkout')->with('error', 'Bạn đã hủy thanh toán VNPay. Giỏ hàng của bạn vẫn được giữ nguyên.');
     }
 
-    /**
-     * IPN (Instant Payment Notification) - VNPay gọi ngầm vào đây (GET) sau giao dịch. Đây là nơi cập
-     * nhật trạng thái DB chính thức và đáng tin cậy nhất. KHÁC MoMo: PHẢI luôn trả JSON
-     * {"RspCode":...,"Message":...} với HTTP 200 — sai định dạng khiến VNPay retry vô hạn.
-     */
+   // VNPay gọi về (server-to-server) để xác nhận thanh toán thành công
+   // hay thất bại cho một đơn, rồi cập nhật trạng thái đơn tương ứng
     public function handleIpn(Request $request)
     {
         $data = $request->query();
-        Log::info('VNPay IPN received', $data);
+        Log::info('VNPay IPN received', $data); // Ghi log mọi lần gọi tới, kể cả khi bị từ chối ở bước sau
 
+        // Chữ ký sai -> không tin request này, có thể là giả mạo
         if (!$this->verifySignature($data)) {
             Log::warning('VNPay IPN: Invalid signature', $data);
             return response()->json(['RspCode' => '97', 'Message' => 'Invalid signature']);
         }
 
+        // Không tìm thấy đơn khớp mã vnp_TxnRef -> báo VNPay biết, không xử lý gì thêm
         $orderId = $data['vnp_TxnRef'] ?? null;
         $order = $orderId ? Order::query()->where('order_code', $orderId)->first() : null;
         if (!$order) {
@@ -402,6 +636,7 @@ class VnpayController
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
         }
 
+        // Đối chiếu số tiền VNPay báo về với số tiền đơn hàng thật — sai lệch (quá 0.01đ do làm tròn) thì từ chối
         $vnpAmount = ((float) ($data['vnp_Amount'] ?? 0)) / 100;
         if (abs((float) $order->final_amount - $vnpAmount) > 0.01) {
             Log::warning('VNPay IPN: amount mismatch', ['orderId' => $orderId]);
@@ -411,6 +646,7 @@ class VnpayController
         $responseCode = (string) ($data['vnp_ResponseCode'] ?? '');
         $transactionStatus = (string) ($data['vnp_TransactionStatus'] ?? '');
 
+        // Cả 2 mã đều phải là '00' mới coi là thanh toán thành công
         if ($responseCode === '00' && $transactionStatus === '00') {
             if ($order->payment_status === 'paid') {
                 // Idempotent replay — VNPay tự động gọi lại IPN nhiều lần cho tới khi nhận được RspCode
@@ -419,33 +655,39 @@ class VnpayController
                 return response()->json(['RspCode' => '02', 'Message' => 'Order already confirmed']);
             }
 
-            $paidAt = $this->parseVnpPayDate($data['vnp_PayDate'] ?? null);
+            $paidAt = $this->parseVnpPayDate($data['vnp_PayDate'] ?? null);//chuyển chuỗi ngày giờ dạng VNPay gửi về thành object
 
             try {
+                // Đây là nơi thực sự chuyển đơn sang trạng thái 'paid' chính thức
                 $this->orderWorkflow->markPaid($order, (string) ($data['vnp_TransactionNo'] ?? ''), $vnpAmount, $paidAt);
             } catch (ValidationException $e) {
                 Log::warning('VNPay IPN: amount mismatch on markPaid', ['orderId' => $orderId]);
                 return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount']);
             }
 
-            $this->clearOrderedCartItems($order);
+            $this->clearOrderedCartItems($order); // Xóa các sản phẩm đã đặt khỏi giỏ hàng
 
             Log::info("VNPay IPN: Order {$orderId} marked as PAID");
         } elseif ($order->delivery_type === 'pickup') {
+            // Đơn tại quầy: giữ nguyên đơn để lễ tân tự xử lý tiếp, không xóa
             Log::info("VNPay IPN: Pickup order {$orderId} payment failed (responseCode={$responseCode}), kept for retry.");
         } else {
-            OrderItem::query()->where('order_id', $order->id)->delete();
-            Order::query()->where('id', $order->id)->delete();
+            // Đơn giao hàng thanh toán thất bại: xóa hẳn đơn tạm + hoàn lượt dùng mã giảm giá (nếu có).
+            // Chỉ hoàn lượt khi chính request này xóa được đơn — handleReturn() có thể chạy song song.
+            if (Order::query()->where('id', $order->id)->delete() > 0) {
+                OrderItem::query()->where('order_id', $order->id)->delete();
 
-            if ($order->promotion_id) {
-                Promotion::query()->where('id', $order->promotion_id)->decrement('used_count');
+                if ($order->promotion_id) {
+                    Promotion::query()->where('id', $order->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
+                }
             }
             Log::info("VNPay IPN: Order {$orderId} marked as FAILED (responseCode={$responseCode})");
         }
 
+        // Luôn trả RspCode 00 ở cuối (dù đơn thất bại) — báo cho VNPay biết ĐÃ XỬ LÝ XONG, đừng gọi lại nữa
         return response()->json(['RspCode' => '00', 'Message' => 'Confirm Success']);
     }
-
+    // chuyển chuỗi ngày giờ dạng VNPay gửi về thành object
     private function parseVnpPayDate(?string $vnpPayDate): ?Carbon
     {
         if (!$vnpPayDate) {

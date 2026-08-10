@@ -340,12 +340,14 @@
 
     @push('scripts')
         <script>
+        // Thay bằng ảnh mặc định khi ảnh sản phẩm bị lỗi hoặc đã bị xóa khỏi máy chủ
         function applyFallbackImage(image) {
             if (image.dataset.fallbackApplied === "true") return;
             image.dataset.fallbackApplied = "true";
             image.src = image.dataset.fallbackSrc;
         }
 
+        // Bắt buộc nhập lý do hủy qua hộp thoại rồi mới gửi form, không cho hủy đơn suông
         function askCancelReasonAndSubmit(btn, form, reasonInput, message) {
             const reason = prompt(message);
             if (reason === null) return;
@@ -359,6 +361,7 @@
             form.submit();
         }
 
+        // Khởi tạo trang chi tiết đơn hàng
         function initOrderShowPage() {
             const printButton = document.getElementById("order-print-btn");
             if (printButton) {

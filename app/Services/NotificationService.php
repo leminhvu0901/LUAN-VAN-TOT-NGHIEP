@@ -11,11 +11,7 @@ use Illuminate\Support\Facades\Mail;
 //"Dịch vụ gửi thông báo (Email)".
 class NotificationService
 {
-    /**
-     * public: Cho phép gọi từ bên ngoài.
-     * orderPlaced(Order $order): Gửi toàn bộ thông báo liên quan khi một đơn hàng mới được đặt thành công.
-     * - Tham số Order $order: Đối tượng đơn hàng vừa được tạo.
-     */
+    // GỬI THÔNG BÁO
     public function orderPlaced(Order $order): void
     {
         $this->sendCustomerConfirmation($order); // Gọi hàm gửi mail xác nhận cho khách hàng

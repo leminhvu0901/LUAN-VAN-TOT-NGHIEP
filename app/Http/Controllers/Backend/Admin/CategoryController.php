@@ -133,9 +133,7 @@ class CategoryController
             ->with('success', 'Đã cập nhật danh mục thành công!');
     }
 
-    /**
-     * XÓA DANH MỤC
-     */
+    //XÓA DANH MỤC
     public function destroy(Category $category)
     {
         // Kiểm tra xem có sản phẩm nào thuộc danh mục này không
@@ -147,9 +145,7 @@ class CategoryController
         return redirect()->back()->with('success', 'Đã xóa danh mục thành công!');
     }
 
-    /**
-     * XÓA NHIỀU DANH MỤC (chỉ các dòng đang chọn trong trang hiện tại)
-     */
+    //XÓA NHIỀU DANH MỤC 
     public function bulkDelete(Request $request)
     {
         $request->validate([

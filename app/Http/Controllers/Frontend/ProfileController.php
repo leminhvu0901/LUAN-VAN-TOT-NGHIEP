@@ -17,9 +17,7 @@ use Illuminate\Support\Str;
 
 class ProfileController
 {
-    /**
-     * Mở trang Hồ sơ cá nhân (Profile)
-     */
+    // HIỂN THỊ THÔNG TIN CÁ NHÂN
     public function index()
     {
         $userId = Auth::id();
@@ -29,7 +27,7 @@ class ProfileController
             ->orderByDesc('id')
             ->get();
 
-        // Lấy số lượng đơn hàng thực tế của user từ database (loại bỏ đơn VNPay chưa thanh toán bị lỗi/hủy)
+        // Lấy số lượng đơn hàng thực tế của user từ database
         $ordersCount = Order::query()
             ->where('user_id', $userId)
             ->where(function ($q) {
@@ -42,9 +40,7 @@ class ProfileController
         return view('frontend.profile', compact('addresses', 'ordersCount'));
     }
 
-    /**
-     * Cập nhật thông tin cơ bản của User (Tên, SĐT, Địa chỉ, Avatar)
-     */
+    // CẬP NHẬT THÔNG TIN TÀI KHOẢN
     public function update(Request $request)
     {
         // 1. Validate (Kiểm tra) dữ liệu người dùng nhập vào
@@ -104,10 +100,7 @@ class ProfileController
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
     }
 
-    /**
-     * Bật/Tắt tính năng Yêu Thích Sản Phẩm (Nút Thả Tim)
-     * Trả về dữ liệu dạng JSON cho AJAX (Javascript) xử lý giao diện
-     */
+    // BẬT TẮT NÚT YÊU THÍCH SẢN PHẨM
     public function toggleFavorite(Request $request)
     {
         $productId = $request->input('product_id');
@@ -168,7 +161,7 @@ class ProfileController
             'status' => $status,
             'items' => $favorites,
             'count' => count($favorites)
-        ]); // main.js - toggleFavorite() / main.js - removeFromWishlist()
+        ]);
     }
 
     /**
@@ -178,9 +171,7 @@ class ProfileController
     // coi là "quá mơ hồ" -> yêu cầu khách kiểm tra lại / chọn bản đồ (đặc tả mục 4).
     private const GEOCODE_MIN_CONFIDENCE = 0.3;
 
-    // Validate chung cho store + update. province_code/ward_code là mã hành chính khách CHỌN từ 2
-    // select (không còn ô nhập tay) — tên tỉnh/phường thật sự dùng để lưu do BACKEND tự tra lại từ
-    // AdministrativeDivisionService (xem resolveAdministrativeArea), không tin tên frontend gửi.
+    // KIỂM TRA NỘI DUNG
     private function addressValidationRules(): array
     {
         return [
@@ -196,7 +187,7 @@ class ProfileController
             'formatted_address' => 'nullable|string|max:500',
         ];
     }
-
+    // NOI DUNG THONG BAO
     private function addressValidationMessages(): array
     {
         return [
@@ -214,7 +205,7 @@ class ProfileController
         $provinceCode = (int) $request->input('province_code');
         $wardCode = (int) $request->input('ward_code');
 
-        $provinces = $service->provinces();
+        $provinces = $service->provinces(); //lây ds thành phó tỉnh
         if ($provinces === null) {
             return ['error' => 'Không thể xác thực dữ liệu địa chỉ. Vui lòng thử lại.', 'field' => 'province_code'];
         }
@@ -223,7 +214,7 @@ class ProfileController
             return ['error' => 'Tỉnh/Thành phố không hợp lệ. Vui lòng chọn lại.', 'field' => 'province_code'];
         }
 
-        $wards = $service->wardsOf($provinceCode);
+        $wards = $service->wardsOf($provinceCode);//lay ds phường xa
         if ($wards === null) {
             return ['error' => 'Không thể xác thực dữ liệu địa chỉ. Vui lòng thử lại.', 'field' => 'ward_code'];
         }
@@ -273,13 +264,13 @@ class ProfileController
         ];
     }
 
-    //lưu địa chỉ giao hàng mới
+    // LƯU ĐỊA CHỈ MỚI
     public function storeAddress(Request $request)
     {
         // 1. Kiểm tra thông tin nhập vào
         $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
 
-        // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức (không tin tên frontend gửi).
+        // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức
         $area = $this->resolveAdministrativeArea($request);
         if (isset($area['error'])) {
             return $this->addressError($request, $area['field'], $area['error']);
@@ -331,9 +322,7 @@ class ProfileController
         return redirect()->route('checkout')->with('success', 'Đã thêm địa chỉ giao hàng mới!');
     }
 
-    /**
-     * Cập nhật 1 Địa chỉ giao hàng đã có
-     */
+    // CẬP NHẬT ĐỊA CHỈ
     public function updateAddress(Request $request, $id)
     {
         // 1. Kiểm tra dữ liệu (giống hệt hàm Store)
@@ -397,9 +386,7 @@ class ProfileController
         return redirect()->route('checkout')->withErrors([$field => $message])->withInput();
     }
 
-    /**
-     * Xóa Địa chỉ giao hàng
-     */
+    // XÓA ĐỊA CHỈ 
     public function deleteAddress(Request $request, $id)
     {
         $userId = Auth::id();
@@ -428,31 +415,14 @@ class ProfileController
         return redirect()->route('checkout')->with('success', 'Đã xóa địa chỉ giao hàng.');
     }
 
-    /**
-     * Đặt một địa chỉ làm địa chỉ mặc định (khi bấm nút "Thiết lập mặc định")
-     */
-    public function setDefaultAddress($id)
-    {
-        $userId = Auth::id();
-        // Bước 1: Xóa trạng thái mặc định của tất cả địa chỉ
-        UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
-        
-        // Bước 2: Set riêng địa chỉ có ID được chọn thành mặc định
-        UserAddress::query()->where('id', $id)->where('user_id', $userId)->update(['is_default' => true]);
-
-        return response()->json(['success' => true]); // Không dùng trực tiếp ở JS (hoặc dự phòng)
-    }
-
-    /**
-     * Đổi mật khẩu tài khoản
-     */
+    // Đổi mật khẩu tài khoản
     public function changePassword(Request $request)
     {
         // 1. Validate dữ liệu nhập vào (Bắt buộc phải nhập Mật khẩu cũ và Mật khẩu mới)
         $request->validate([
             'current_password' => 'required',
             // Mật khẩu mới phải >= 6 ký tự và có field `new_password_confirmation` nhập trùng khớp
-            'new_password' => 'required|string|min:6|confirmed', 
+            'new_password' => 'required|string|min:6|confirmed',
         ], [
             'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
             'new_password.required' => 'Vui lòng nhập mật khẩu mới.',
@@ -465,12 +435,12 @@ class ProfileController
 
         // 2. Kiểm tra Mật khẩu cũ có đúng không (dùng Hash::check vì pass lưu trong DB đã bị mã hóa)
         if (!Hash::check($request->input('current_password'), $user->password)) {
-            return $this->passwordError($request, 'current_password', 'Mật khẩu hiện tại không chính xác.');
+            return $this->passwordError('current_password', 'Mật khẩu hiện tại không chính xác.');
         }
 
         // 3. Mật khẩu mới không được giống hệt mật khẩu cũ
         if ($request->input('current_password') === $request->input('new_password')) {
-            return $this->passwordError($request, 'new_password', 'Mật khẩu mới phải khác mật khẩu hiện tại.');
+            return $this->passwordError('new_password', 'Mật khẩu mới phải khác mật khẩu hiện tại.');
         }
 
         // 4. Mã hóa (Hash) mật khẩu mới và lưu xuống Database
@@ -480,26 +450,14 @@ class ProfileController
                 'password' => Hash::make($request->input('new_password')),
                 'updated_at' => now(),
             ]);
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Đổi mật khẩu thành công!']); // profile.js - submitProfileForm()
-        }
-
-        // Cờ riêng để Blade biết mở lại đúng tab "Đổi mật khẩu" sau khi tải lại trang — URL hash
-        // (#password) không được trình duyệt gửi lên server nên không thể dựa vào đó.
         return redirect()->back()->with('success', 'Đổi mật khẩu thành công!')->with('active_tab', 'password');
     }
 
     /**
-     * Trả lỗi đổi mật khẩu đúng định dạng theo kiểu request: JSON 422 cho fetch (form submit qua
-     * AJAX, xem profile.js) để JS hiện lỗi tại chỗ không cần tải lại trang; redirect-back cổ điển
-     * (kèm withInput()) cho request thường.
+     * Trả lỗi đổi mật khẩu: quay lại tab Đổi mật khẩu kèm thông báo lỗi và giữ lại input đã nhập.
      */
-    private function passwordError(Request $request, string $field, string $message)
+    private function passwordError(string $field, string $message)
     {
-        if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'errors' => [$field => [$message]]], 422); // profile.js - submitProfileForm()
-        }
         return redirect()->back()->withErrors([$field => $message])->withInput();
     }
 }

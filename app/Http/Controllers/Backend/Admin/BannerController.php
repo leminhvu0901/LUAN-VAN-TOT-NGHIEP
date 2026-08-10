@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class BannerController
 {
-    /**
-     * HIỂN THỊ DANH SÁCH BANNER
-     */
+    //HIỂN THỊ DANH SÁCH BANNER
     public function index(Request $request)
     {
         $query = Banner::query();
@@ -111,17 +109,13 @@ class BannerController
         ));
     }
 
-    /**
-     * FORM THÊM MỚI
-     */
+    //FORM THÊM MỚI
     public function create()
     {
         return view('backend.admin.banners.create');
     }
 
-    /**
-     * LƯU BANNER MỚI
-     */
+   // LƯU BANNER MỚI
     public function store(Request $request)
     {
         $request->validate([
@@ -166,17 +160,13 @@ class BannerController
             ->with('success', 'Đã tạo banner thành công!');
     }
 
-    /**
-     * FORM CHỈNH SỬA
-     */
+    //FORM CHỈNH SỬA
     public function edit(Banner $banner)
     {
         return view('backend.admin.banners.edit', compact('banner'));
     }
 
-    /**
-     * CẬP NHẬT BANNER
-     */
+    //CẬP NHẬT BANNER
     public function update(Request $request, Banner $banner)
     {
         $request->validate([
@@ -223,9 +213,7 @@ class BannerController
             ->with('success', 'Đã cập nhật banner thành công!');
     }
 
-    /**
-     * XÓA BANNER
-     */
+    //XÓA BANNER
     public function destroy(Banner $banner)
     {
         if ($banner->image_url) {
@@ -240,9 +228,7 @@ class BannerController
         return redirect()->route('admin.banners.index')->with('success', 'Đã xóa banner thành công!');
     }
 
-    /**
-     * XÓA NHIỀU BANNER (chỉ các dòng đang chọn trong trang hiện tại)
-     */
+    // XÓA NHIỀU BANNER (chỉ các dòng đang chọn trong trang hiện tại)
     public function bulkDelete(Request $request)
     {
         $request->validate([
@@ -267,9 +253,7 @@ class BannerController
         return redirect()->route('admin.banners.index')->with('success', "Đã xóa {$deletedCount} banner thành công.");
     }
 
-    /**
-     * BẬT/TẮT TRẠNG THÁI NHANH
-     */
+    // BẬT/TẮT TRẠNG THÁI NHANH
     public function toggleStatus(Request $request, $id)
     {
         $banner = Banner::findOrFail($id);
@@ -279,9 +263,7 @@ class BannerController
         return redirect()->route('admin.banners.index')->with('success', 'Cập nhật trạng thái banner thành công!');
     }
 
-    /**
-     * Helper lưu ảnh banner
-     */
+   //Helper lưu ảnh banner
     private function storeImage($file, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());

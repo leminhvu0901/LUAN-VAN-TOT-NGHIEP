@@ -14,9 +14,7 @@ use Illuminate\Support\Str;
 
 class PromotionController
 {
-    /**
-     * HIỂN THỊ DANH SÁCH KHUYẾN MÃI
-     */
+    //HIỂN THỊ DANH SÁCH KHUYẾN MÃI
     public function index(Request $request)
     {
         $query = Promotion::query();
@@ -108,9 +106,7 @@ class PromotionController
         ));
     }
 
-    /**
-     * FORM THÊM MỚI
-     */
+    //FORM THÊM MỚI
     public function create()
     {
         return view('backend.admin.promotions.create', [
@@ -119,9 +115,7 @@ class PromotionController
         ]);
     }
 
-    // Không gửi 'scope' -> mặc định 'order' (giảm toàn đơn), khớp với giá trị mặc định của cột trong
-    // DB. Giữ tương thích ngược cho mọi nơi gọi cũ chưa biết tới khái niệm phạm vi (form/API/test
-    // trước khi có tính năng này), thay vì bắt buộc và làm hỏng chúng.
+    //tự gán mặc định scope = 'order'
     private function applyDefaultScope(Request $request): void
     {
         if (!$request->filled('scope')) {
@@ -129,8 +123,7 @@ class PromotionController
         }
     }
 
-    // Validate chung cho store + update. $promotionId dùng để loại trừ chính bản ghi khi kiểm tra
-    // unique code lúc sửa.
+    //trả về bộ quy tắc validate dùng chung cho cả tạo mới lẫn sửa khuyến mãi
     private function validationRules(?int $promotionId = null): array
     {
         $codeUnique = 'unique:promotions,code' . ($promotionId ? ",{$promotionId}" : '');
@@ -146,6 +139,7 @@ class PromotionController
             'min_quantity' => 'nullable|integer|min:1',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'usage_limit' => 'nullable|integer|min:1',
+            'usage_limit_per_user' => 'nullable|integer|min:1',
             'start_at' => 'nullable|date',
             'end_at' => 'nullable|date|after_or_equal:start_at',
             'description' => 'nullable|string|max:100',
@@ -183,6 +177,7 @@ class PromotionController
         ];
     }
 
+    // ghi đè thông báo lỗi tiếng Việt cho một số rule trong
     private function validationMessages(): array
     {
         return [
@@ -202,15 +197,15 @@ class PromotionController
         ];
     }
 
-    // Validate các quy tắc riêng của combo mà rule string không diễn đạt được: 2 mảng
-    // sản phẩm/số lượng phải cùng độ dài, và phải bật ít nhất 1 trong 2 thành phần thưởng
-    // (giảm giá / tặng quà) — không cho lưu combo "rỗng" không có thưởng gì.
+    //kiểm tra thêm mấy luật riêng cho Combo mà rule string thường không làm được, chỉ chạy khi scope = 'combo':
     private function validateComboRules($validator, Request $request): void
     {
+        // Chỉ áp dụng cho combo, các scope khác bỏ qua
         if ($request->input('scope') !== 'combo') {
             return;
         }
 
+        // 2 mảng sản phẩm/số lượng phải cùng độ dài
         $productIds = $request->input('combo_product_ids', []);
         $quantities = $request->input('combo_quantities', []);
         if (count($productIds) !== count($quantities)) {
@@ -220,10 +215,12 @@ class PromotionController
         $hasDiscount = $request->boolean('combo_has_discount');
         $hasGift = $request->boolean('combo_has_gift');
 
+        // Phải bật ít nhất 1 trong 2 thành phần thưởng, không cho lưu combo rỗng
         if (!$hasDiscount && !$hasGift) {
             $validator->errors()->add('combo_has_discount', 'Combo phải có ít nhất giảm giá hoặc tặng quà.');
         }
 
+        // Bật giảm giá thì bắt buộc điền loại + giá trị, percent không vượt quá 100
         if ($hasDiscount) {
             if (!$request->filled('discount_type')) {
                 $validator->errors()->add('discount_type', 'Vui lòng chọn loại giảm giá cho combo.');
@@ -235,6 +232,7 @@ class PromotionController
             }
         }
 
+        // Bật tặng quà thì bắt buộc chọn sản phẩm + số lượng
         if ($hasGift) {
             if (!$request->filled('gift_product_id')) {
                 $validator->errors()->add('gift_product_id', 'Vui lòng chọn sản phẩm tặng.');
@@ -245,25 +243,18 @@ class PromotionController
         }
     }
 
-    // store()/update() dùng chung: $request->validate() không hỗ trợ ->after(), nên phải tự
-    // dựng Validator để gắn thêm validateComboRules() (kiểm tra chéo nhiều field không diễn đạt
-    // được bằng rule string).
+    //  hàm gộp, gọi tuần tự 3 bước validate
     private function validateRequest(Request $request, ?int $promotionId = null): void
     {
-        $this->dropEmptyComboRows($request);
+        $this->dropEmptyComboRows($request);////dọn sạch các dòng combo chưa chọn sản phẩm
 
+        ////trả về bộ quy tắc validate dùng chung cho cả tạo mới lẫn sửa khuyến mãi
         $validator = Validator::make($request->all(), $this->validationRules($promotionId), $this->validationMessages());
-        $validator->after(fn($v) => $this->validateComboRules($v, $request));
+        $validator->after(fn($v) => $this->validateComboRules($v, $request));  //kiểm tra thêm mấy luật riêng cho Combo
         $validator->validate();
     }
 
-    // Form khuyến mãi LUÔN render sẵn 1 dòng combo trống, kể cả khi phạm vi không phải combo — khối
-    // #scope-combo-fields chỉ bị ẩn bằng class CSS 'hidden' nên select vẫn nằm trong form và vẫn được
-    // gửi lên với value ''. Không lọc trước thì rule 'combo_product_ids.*' => integer sẽ bắt lỗi
-    // "must be an integer" và chặn cả những khuyến mãi chẳng liên quan gì tới combo (scope order/
-    // product/category). Bỏ các dòng chưa chọn sản phẩm, giữ combo_quantities khớp đúng theo cặp.
-    // Khi scope=combo mà không còn dòng nào hợp lệ, mảng rỗng sẽ rơi vào required_if và báo đúng
-    // thông báo tiếng Việt "Vui lòng chọn ít nhất 1 sản phẩm cho combo."
+    //dọn sạch các dòng combo chưa chọn sản phẩm
     private function dropEmptyComboRows(Request $request): void
     {
         $productIds = $request->input('combo_product_ids');
@@ -315,9 +306,7 @@ class PromotionController
         ];
     }
 
-    // Cắt các field không thuộc cột trực tiếp của bảng promotions (mảng chọn sản phẩm/danh mục,
-    // cấu hình mua-tặng) ra khỏi $data trước khi mass-assign — Eloquent sẽ lỗi nếu cố insert thẳng
-    // 1 mảng vào cột không tồn tại. Đồng thời chuẩn hóa các cột còn lại theo scope đã chọn.
+    //dọn sạch mảng dữ liệu form trước khi ghi vào bảng promotions
     private function normalizePromotionData(array $data): array
     {
         unset($data['product_ids'], $data['category_ids']);
@@ -336,10 +325,6 @@ class PromotionController
         );
 
         if ($data['scope'] === 'combo') {
-            // type/value không có ý nghĩa với Combo (giảm giá tiền của combo nằm ở
-            // promotion_combos.discount_type/discount_value) — cột `type` trong DB là NOT NULL nên
-            // đặt giá trị trung tính, không nơi nào trong hệ thống đọc lại 2 giá trị này khi
-            // scope=combo (PromotionService loại scope này khỏi mọi phép tính giảm giá tiền thường).
             $data['type'] = 'fixed';
             $data['value'] = 0;
         }
@@ -347,9 +332,7 @@ class PromotionController
         return $data;
     }
 
-    // Đồng bộ quan hệ sản phẩm/danh mục/cấu hình combo theo ĐÚNG scope hiện tại — dọn sạch dữ
-    // liệu quan hệ cũ không còn phù hợp khi admin đổi loại khuyến mãi (vd từ "theo sản phẩm" sang
-    // "theo danh mục" thì phải xóa hết sản phẩm đã chọn trước đó).
+    // Đồng bộ quan hệ sản phẩm/danh mục/cấu hình combo theo ĐÚNG scope hiện tại
     private function syncScopeRelations(Promotion $promotion, Request $request): void
     {
         $promotion->products()->sync($request->input('scope') === 'product' ? $request->input('product_ids', []) : []);
@@ -399,14 +382,13 @@ class PromotionController
         }
     }
 
-    /**
-     * LƯU KHUYẾN MÃI MỚI
-     */
+    //LƯU KHUYẾN MÃI MỚI
     public function store(Request $request)
     {
-        $this->applyDefaultScope($request);
-        $this->validateRequest($request);
+        $this->applyDefaultScope($request);////tự gán mặc định scope = 'order'
+        $this->validateRequest($request);////  hàm gộp, gọi tuần tự 3 bước validate
 
+        //  //dọn sạch mảng dữ liệu form trước khi ghi vào bảng promotions/ // Các field không phải cột trực tiếp của bảng promotions
         $data = $this->normalizePromotionData($request->except($this->comboOnlyFields()));
 
         // Tự sinh mã code nếu người dùng để trống
@@ -437,16 +419,14 @@ class PromotionController
 
         DB::transaction(function () use ($request, $data) {
             $promotion = Promotion::create($data);
-            $this->syncScopeRelations($promotion, $request);
+            $this->syncScopeRelations($promotion, $request);// // Đồng bộ quan hệ sản phẩm/danh mục/cấu hình combo theo ĐÚNG scope hiện tại
         });
 
         return redirect()->route('admin.promotions.index')
             ->with('success', 'Đã tạo khuyến mãi thành công!');
     }
 
-    /**
-     * FORM CHỈNH SỬA
-     */
+    //FORM CHỈNH SỬA
     public function edit(Promotion $promotion)
     {
         $promotion->load(['products', 'categories', 'combo.giftProduct', 'comboItems.product']);
@@ -458,13 +438,11 @@ class PromotionController
         ]);
     }
 
-    /**
-     * CẬP NHẬT KHUYẾN MÃI
-     */
+   //CẬP NHẬT KHUYẾN MÃI
     public function update(Request $request, Promotion $promotion)
     {
-        $this->applyDefaultScope($request);
-        $this->validateRequest($request, $promotion->id);
+        $this->applyDefaultScope($request);////tự gán mặc định scope = 'order'
+        $this->validateRequest($request, $promotion->id);// //  hàm gộp, gọi tuần tự 3 bước validate
 
         $data = $this->normalizePromotionData($request->except($this->comboOnlyFields()));
 
@@ -493,20 +471,16 @@ class PromotionController
 
         DB::transaction(function () use ($request, $promotion, $data) {
             $promotion->update($data);
-            $this->syncScopeRelations($promotion, $request);
+            $this->syncScopeRelations($promotion, $request);// // Đồng bộ quan hệ sản phẩm/danh mục/cấu hình combo theo ĐÚNG scope hiện tại
         });
 
         return redirect()->route('admin.promotions.index')
             ->with('success', 'Đã cập nhật khuyến mãi thành công!');
     }
 
-    /**
-     * XÓA KHUYẾN MÃI
-     */
+   // XÓA KHUYẾN MÃI
     public function destroy(Promotion $promotion)
     {
-        // promotion_products/promotion_categories/promotion_combos/promotion_combo_items đều
-        // cascadeOnDelete theo promotion_id nên tự dọn sạch quan hệ khi xóa, không cần code riêng.
         DB::transaction(function () use ($promotion) {
             $promotion->delete();
         });
@@ -514,9 +488,7 @@ class PromotionController
         return redirect()->route('admin.promotions.index')->with('success', 'Đã xóa khuyến mãi thành công!');
     }
 
-    /**
-     * XÓA NHIỀU KHUYẾN MÃI (chỉ các dòng đang chọn trong trang hiện tại)
-     */
+    //XÓA NHIỀU KHUYẾN MÃI (chỉ các dòng đang chọn trong trang hiện tại)
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('promotion_ids', []);

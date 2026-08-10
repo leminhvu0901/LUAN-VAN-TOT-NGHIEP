@@ -12,12 +12,11 @@ use Illuminate\Support\Str;
 
 class SecureOrderController
 {
-    public function __construct(private readonly OrderWorkflowService $orderWorkflow) {}
+    public function __construct(private readonly OrderWorkflowService $orderWorkflow)
+    {
+    }
 
-    /**
-     * Hàm lấy danh sách và hiển thị tất cả đơn hàng lên trang quản trị (Trang Index).
-     * Hỗ trợ các bộ lọc nâng cao (trạng thái, ngày bắt đầu, ngày kết thúc, từ khóa tìm kiếm) và phân trang.
-     */
+    //Hàm lấy danh sách và hiển thị tất cả đơn hàng lên trang quản trị
     public function index(Request $request)
     {
         $status = $request->query('status'); // Lấy tham số trạng thái từ đường dẫn URL (query string)
@@ -82,44 +81,37 @@ class SecureOrderController
             'pending_orders' => Order::where('status', 'pending')->count(),
             'cancelled_orders' => Order::where('status', 'cancelled')->count(),
         ];
-        return  view('backend.admin.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status); // Trả về trang index chính thức
+        return view('backend.admin.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status); // Trả về trang index chính thức
     }
 
-    /**
-     * Hàm hiển thị thông tin chi tiết của một đơn hàng cụ thể.
-     * Thực hiện truy vấn thông tin đơn hàng và liên kết (Left Join) lấy tên, hình ảnh sản phẩm 
-     * thực tế để đề phòng trường hợp sản phẩm gốc bị xóa khỏi hệ thống.
-     */
+
+    //Hàm hiển thị thông tin chi tiết của một đơn hàng cụ thể.
     public function show($id)
     {
         $order = Order::find($id); // Tìm đơn hàng theo ID
-        if (!$order) return redirect()->route('admin.orders.index')->with('error', 'Không tìm thấy đơn hàng!');
+        if (!$order)
+            return redirect()->route('admin.orders.index')->with('error', 'Không tìm thấy đơn hàng!');
         $items = OrderItem::query()->leftJoin('products', 'order_items.product_id', '=', 'products.id')
             ->where('order_items.order_id', $id)->select('order_items.*') // Lấy danh sách sản phẩm nằm trong đơn hàng
             ->selectRaw('COALESCE(order_items.product_name, products.name) as product_name')
             ->selectRaw('COALESCE(order_items.product_image, products.image) as product_image')->get();
-        return  view('backend.admin.orders.show', compact('order', 'items')); // Load giao diện chi tiết đơn hàng
+        return view('backend.admin.orders.show', compact('order', 'items')); // Load giao diện chi tiết đơn hàng
     }
 
-    /**
-     * Hàm cập nhật trạng thái xử lý của đơn hàng (Confirmed, Shipping, Completed, Cancelled).
-     * Gọi qua OrderWorkflowService để kiểm tra tính hợp lệ trạng thái và thực hiện trừ/hoàn kho tự động.
-     */
+    //Hàm cập nhật trạng thái xử lý của đơn hàng
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([ // Kiểm tra và xác thực các tham số đầu vào của trạng thái cập nhật gửi lên
             'status' => ['required', 'in:pending,confirmed,shipping,completed,cancelled'],
             'cancel_reason' => ['nullable', 'string', 'max:500'],
         ]);
+        //
         $this->orderWorkflow->transition(Order::findOrFail($id), $validated['status'], $validated['cancel_reason'] ?? null); // Gọi OrderWorkflowService để thực thi nghiệp vụ chuyển đổi trạng thái đơn hàng và ghi nhận lý do nếu hủy đơn
 
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }
 
-    /**
-     * Admin phê duyệt đơn hàng giá trị lớn đang chờ xác nhận.
-     * Xóa cờ needs_admin_approval và chuyển trạng thái sang confirmed.
-     */
+    // Admin phê duyệt đơn hàng giá trị lớn đang chờ xác nhận.
     public function approveOrder(Request $request, $id)
     {
         $order = Order::findOrFail($id);
@@ -138,9 +130,7 @@ class SecureOrderController
         return back()->with('success', 'Đã phê duyệt đơn hàng ' . $order->order_code . ' thành công!');
     }
 
-    /**
-     * Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
-     */
+   //Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
     public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id); // Tìm đơn hàng theo ID hoặc ném lỗi 404
@@ -149,9 +139,7 @@ class SecureOrderController
         return back()->with('success', 'Đã xóa đơn hàng thành công!');
     }
 
-    /**
-     * Hàm xử lý xóa hàng loạt các đơn hàng đang được tích chọn trong trang hiện tại.
-     */
+    //Hàm xử lý xóa hàng loạt các đơn hàng đang được tích chọn trong trang hiện tại.
     public function bulkDelete(Request $request)
     {
         $ids = $request->validate(['order_ids' => ['required', 'array'], 'order_ids.*' => ['integer', 'exists:orders,id']])['order_ids'];
@@ -160,39 +148,5 @@ class SecureOrderController
         Order::whereIn('id', $ids)->delete(); // Thực thi câu lệnh SQL DELETE xóa hàng loạt các đơn hàng được chọn khỏi Database
 
         return back()->with('success', "Đã xóa {$count} đơn hàng thành công."); // Chuyển hướng quay lại và thông báo kết quả cho người dùng
-    }
-
-    /**
-     * Hàm xuất file báo cáo đơn hàng dạng CSV (Excel) dựa theo các tiêu chí tìm kiếm/lọc hiện có.
-     * Sử dụng streamDownload để trả về file tải xuống dạng luồng (stream), tránh đầy bộ nhớ đệm máy chủ.
-     */
-    public function export(Request $request)
-    {
-        $query = Order::query()->latest();
-        if (in_array($request->input('status'), ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
-            $query->where('status', $request->input('status')); // Lọc theo trạng thái xuất báo cáo
-        }
-        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->input('date_from'));
-        if ($request->filled('date_to')) $query->whereDate('created_at', '<=', $request->input('date_to'));
-
-        return response()->streamDownload(function () use ($query) { // Thực hiện xuất file luồng tải xuống trực tiếp từ máy chủ
-            $output = fopen('php://output', 'w'); // Mở luồng đầu ra php://output để ghi dữ liệu trực tiếp vào bộ nhớ đệm tải xuống
-            fwrite($output, "\xEF\xBB\xBF"); // Ghi mã UTF-8 BOM vào đầu tệp để Excel đọc được tiếng Việt có dấu không bị lỗi font chữ
-            fputcsv($output, ['Mã đơn', 'Khách hàng', 'Điện thoại', 'Tổng tiền', 'Thanh toán', 'Trạng thái', 'Ngày tạo']); // Ghi tiêu đề (Header) cho các cột báo cáo
-            $query->chunk(500, function ($orders) use ($output) { // Chia nhỏ truy vấn DB lấy mỗi lần 500 đơn hàng nhằm tránh làm quá tải bộ nhớ RAM
-                foreach ($orders as $order) {
-                    fputcsv($output, [
-                        $order->order_code,
-                        $order->customer_name,
-                        $order->customer_phone,
-                        $order->final_amount,
-                        $order->payment_status,
-                        $order->status,
-                        $order->created_at
-                    ]); // Ghi thông tin chi tiết từng đơn hàng thành một dòng trong CSV
-                }
-            });
-            fclose($output); // Đóng kết nối luồng ghi tệp sau khi đã hoàn thành
-        }, 'orders-' . now()->format('Ymd-His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']); // Thiết lập tải xuống file dạng .csv kèm mốc thời gian hiện tại
     }
 }

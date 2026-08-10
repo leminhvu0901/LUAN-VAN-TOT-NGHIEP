@@ -55,4 +55,9 @@ return [
         'key' => env('GEOAPIFY_API_KEY'),
     ],
 
+    // Cấu hình API công khai lấy dữ liệu Tỉnh/Thành, Phường/Xã Việt Nam
+    'administrative_division' => [
+        'base_url' => env('ADMINISTRATIVE_DIVISION_BASE_URL', 'https://provinces.open-api.vn/api/v2'),
+    ],
+
 ];

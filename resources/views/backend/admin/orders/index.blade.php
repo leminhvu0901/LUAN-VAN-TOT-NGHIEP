@@ -114,12 +114,14 @@
         <script>
         let tableContainer;
 
+        // Xóa sạch lựa chọn hiện tại, dùng sau khi lọc lại danh sách
         function resetOrderSelection() {
             if (!window.selectedOrderIds) return;
             window.selectedOrderIds.clear();
             updateBulkDeleteButton();
         }
 
+        // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
         function updateBulkDeleteButton() {
             const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
             const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
@@ -147,6 +149,7 @@
             }
         }
 
+        // Gom id đã chọn, hỏi xác nhận rồi gửi form xóa hàng loạt lên server
         function submitBulkDelete() {
             if (window.selectedOrderIds.size === 0) return;
             if (!confirm(`Bạn chuẩn bị xóa ${window.selectedOrderIds.size} đơn hàng đã chọn. Tiếp tục?`)) return;
@@ -165,6 +168,7 @@
             bulkDeleteForm.submit();
         }
 
+        // Gắn sự kiện cho ô tìm kiếm và các bộ lọc trên trang danh sách đơn
         function initSearchAndFilters() {
             if (typeof flatpickr !== 'undefined') {
                 flatpickr(".orders-date-picker", {
@@ -180,6 +184,7 @@
             }
         }
 
+        // Gắn sự kiện cho bảng đơn hàng (tích chọn, mở chi tiết)
         function initTableEvents() {
             tableContainer = document.getElementById("table-container");
             const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
@@ -262,7 +267,4 @@
         });
         </script>
     @endpush
-@endsection
-
-
 @endsection

@@ -419,6 +419,7 @@ navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
 <script>
 // Quản lý ngăn kéo Yêu thích, Giỏ hàng, Menu Mobile và Popup đóng cửa
 (function () {
+    // Hàm rút gọn thay cho document.getElementById, chỉ dùng nội bộ trong file này
     const $ = (id) => document.getElementById(id);
 
     // Mở/Đóng Ngăn kéo Yêu thích
@@ -434,6 +435,7 @@ navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
         document.body.style.overflow = 'hidden';
     };
 
+    // Đóng popup danh sách yêu thích
     const closeWishlist = () => {
         const drawer = $('wishlist-drawer');
         const overlay = $('wishlist-overlay');
@@ -462,6 +464,7 @@ navbar.js xử lý: hamburger toggle, wishlist drawer, cart drawer
         document.body.style.overflow = 'hidden';
     };
 
+    // Đóng popup giỏ hàng
     const closeCart = () => {
         const drawer = $('cart-drawer');
         const overlay = $('cart-overlay');

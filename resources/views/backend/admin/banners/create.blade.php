@@ -156,10 +156,12 @@
 // XỬ LÝ CHỌN ẢNH & HIỂN THỊ XEM TRƯỚC CHO FORM BANNER (CREATE)
 // =========================================================================
 
+// Bấm vào khung ảnh thì mở hộp thoại chọn file (thẻ input file gốc bị ẩn cho đẹp)
 function triggerFileInput() {
     document.getElementById('image-input').click();
 }
 
+// Hiện ảnh xem trước ngay sau khi chọn file, chưa cần tải lên máy chủ
 function previewSelectedImage(input) {
     if (input.files && input.files[0]) {
         if (input.files[0].size > 10 * 1024 * 1024) {
@@ -182,6 +184,7 @@ function previewSelectedImage(input) {
     }
 }
 
+// Bỏ ảnh vừa chọn và trả khung về trạng thái trống
 function removeImagePreview() {
     document.getElementById('image-input').value = '';
     document.getElementById('image-preview').setAttribute('src', '#');

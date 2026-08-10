@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Promotion;
 use App\Models\PromotionCombo;
@@ -238,21 +239,34 @@ class PromotionScopeTest extends TestCase
         return $promotion;
     }
 
-    private function comboEntries(\Illuminate\Support\Collection $items, string $channel = 'delivery'): array
+    // Áp mã combo đúng như khách thao tác thật: tự bấm chip hoặc gõ mã ở trang thanh toán.
+    // Combo KHÔNG còn tự động áp, nên mọi test dưới đây đều phải đi qua đường nhập mã.
+    private function applyCombo(Promotion $combo, \Illuminate\Support\Collection $items, ?User $user = null): array
     {
-        return $this->service()->resolveComboRewards($items, $channel)['entries'];
+        $subtotal = (float) $items->sum(fn($i) => (float) $i->calculated_unit_price * (int) $i->quantity);
+
+        return $this->service()->resolveBestDiscount(
+            $items,
+            $subtotal,
+            $user,
+            'delivery',
+            (int) $items->sum('quantity'),
+            $combo->code
+        );
     }
 
-    public function test_combo_buy_one_when_two_required_grants_nothing(): void
+    public function test_combo_buy_one_when_two_required_is_rejected(): void
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
         $items = $this->pricedCart($user, [[$coffee, 1]]);
 
-        $this->assertEmpty($this->comboEntries($items));
+        // Chưa mua đủ tổ hợp -> báo lỗi ngay khi bấm mã, không im lặng bỏ qua như cơ chế tự động cũ.
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->applyCombo($combo, $items, $user);
     }
 
     public function test_combo_buy_two_grants_one_gift(): void
@@ -260,14 +274,13 @@ class PromotionScopeTest extends TestCase
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 2]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 2]]), $user);
 
-        $this->assertCount(1, $entries);
-        $this->assertSame('gift', $entries[0]['type']);
-        $this->assertSame($tea->id, $entries[0]['gift_product']->id);
-        $this->assertSame(1, $entries[0]['granted_quantity']);
+        $this->assertCount(1, $result['gifts']);
+        $this->assertSame($tea->id, $result['gifts'][0]['gift_product']->id);
+        $this->assertSame(1, $result['gifts'][0]['granted_quantity']);
     }
 
     public function test_combo_buy_four_grants_two_gifts(): void
@@ -275,11 +288,11 @@ class PromotionScopeTest extends TestCase
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 4]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 4]]), $user);
 
-        $this->assertSame(2, $entries[0]['granted_quantity']);
+        $this->assertSame(2, $result['gifts'][0]['granted_quantity']);
     }
 
     // Mua 5 với công thức mua 2 tặng 1 -> floor(5/2)=2 lần, vẫn chỉ tặng 2 (không làm tròn lên).
@@ -288,11 +301,11 @@ class PromotionScopeTest extends TestCase
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 5]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 5]]), $user);
 
-        $this->assertSame(2, $entries[0]['granted_quantity']);
+        $this->assertSame(2, $result['gifts'][0]['granted_quantity']);
     }
 
     public function test_max_applications_per_order_limits_gift_quantity(): void
@@ -300,12 +313,12 @@ class PromotionScopeTest extends TestCase
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
         $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1], maxApplications: 1);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1], maxApplications: 1);
 
         // Mua 4 = đủ 2 lần, nhưng giới hạn 1 lần/đơn -> chỉ tặng 1.
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 4]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 4]]), $user);
 
-        $this->assertSame(1, $entries[0]['granted_quantity']);
+        $this->assertSame(1, $result['gifts'][0]['granted_quantity']);
     }
 
     // Mua và tặng CÙNG 1 sản phẩm: mua 4 với công thức mua 2 tặng 1 -> tặng 2, không lặp vô hạn.
@@ -313,31 +326,16 @@ class PromotionScopeTest extends TestCase
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $coffee, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$coffee, 2]], gift: ['product' => $coffee, 'quantity' => 1]);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 4]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 4]]), $user);
 
-        $this->assertCount(1, $entries);
-        $this->assertSame($coffee->id, $entries[0]['gift_product']->id);
-        $this->assertSame(2, $entries[0]['granted_quantity']);
+        $this->assertCount(1, $result['gifts']);
+        $this->assertSame($coffee->id, $result['gifts'][0]['gift_product']->id);
+        $this->assertSame(2, $result['gifts'][0]['granted_quantity']);
     }
 
-    // Giảm số lượng món mua xuống dưới điều kiện -> quà tự biến mất (resolveComboRewards tính lại mỗi lần).
-    public function test_reducing_purchased_quantity_removes_gift(): void
-    {
-        $user = User::factory()->create();
-        $coffee = $this->makeProduct(['base_price' => 30000]);
-        $tea = $this->makeProduct(['base_price' => 20000]);
-        $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
-
-        $this->assertCount(1, $this->comboEntries($this->pricedCart($user, [[$coffee, 2]])));
-
-        // Giỏ mới chỉ còn 1 ly -> không còn quà.
-        $otherUser = User::factory()->create();
-        $this->assertEmpty($this->comboEntries($this->pricedCart($otherUser, [[$coffee, 1]])));
-    }
-
-    // Combo nhiều sản phẩm khác nhau - phải mua ĐỦ TẤT CẢ mới tính là đã mua combo.
+    // Combo nhiều sản phẩm khác nhau - phải mua ĐỦ TẤT CẢ mới áp được mã.
     public function test_combo_with_multiple_products_requires_all_of_them(): void
     {
         $user = User::factory()->create();
@@ -345,16 +343,17 @@ class PromotionScopeTest extends TestCase
         $tea = $this->makeProduct(['base_price' => 20000]);
         $cake = $this->makeProduct(['base_price' => 15000]);
         $gift = $this->makeProduct(['base_price' => 5000]);
-        $this->makeCombo([[$coffee, 1], [$tea, 1], [$cake, 1]], gift: ['product' => $gift, 'quantity' => 1]);
-
-        // Thiếu bánh -> chưa đủ combo.
-        $this->assertEmpty($this->comboEntries($this->pricedCart($user, [[$coffee, 1], [$tea, 1]])));
+        $combo = $this->makeCombo([[$coffee, 1], [$tea, 1], [$cake, 1]], gift: ['product' => $gift, 'quantity' => 1]);
 
         // Đủ cả 3 -> được tặng.
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 1], [$tea, 1], [$cake, 1]]), $user);
+        $this->assertCount(1, $result['gifts']);
+        $this->assertSame(1, $result['gifts'][0]['granted_quantity']);
+
+        // Thiếu bánh -> bấm mã bị từ chối.
         $otherUser = User::factory()->create();
-        $entries = $this->comboEntries($this->pricedCart($otherUser, [[$coffee, 1], [$tea, 1], [$cake, 1]]));
-        $this->assertCount(1, $entries);
-        $this->assertSame(1, $entries[0]['granted_quantity']);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->applyCombo($combo, $this->pricedCart($otherUser, [[$coffee, 1], [$tea, 1]]), $otherUser);
     }
 
     // Số lượng yêu cầu khác nhau từng sản phẩm: cần 2xA+1xB, giỏ có 5xA+3xB -> applications=min(2,3)=2, không phải 3.
@@ -364,13 +363,13 @@ class PromotionScopeTest extends TestCase
         $productA = $this->makeProduct(['base_price' => 10000]);
         $productB = $this->makeProduct(['base_price' => 10000]);
         $gift = $this->makeProduct(['base_price' => 5000]);
-        $this->makeCombo([[$productA, 2], [$productB, 1]], gift: ['product' => $gift, 'quantity' => 1]);
+        $combo = $this->makeCombo([[$productA, 2], [$productB, 1]], gift: ['product' => $gift, 'quantity' => 1]);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$productA, 5], [$productB, 3]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$productA, 5], [$productB, 3]]), $user);
 
-        $this->assertCount(1, $entries);
-        $this->assertSame(2, $entries[0]['applications']);
-        $this->assertSame(2, $entries[0]['granted_quantity']);
+        $this->assertCount(1, $result['gifts']);
+        $this->assertSame(2, $result['gifts'][0]['applications']);
+        $this->assertSame(2, $result['gifts'][0]['granted_quantity']);
     }
 
     // Combo CHỈ giảm giá % - tính trên đúng giá trị các sản phẩm trong combo, giới hạn bởi max_discount_amount.
@@ -380,15 +379,14 @@ class PromotionScopeTest extends TestCase
         $coffee = $this->makeProduct(['base_price' => 40000]);
         $tea = $this->makeProduct(['base_price' => 30000]);
         $other = $this->makeProduct(['base_price' => 100000]);
-        $this->makeCombo([[$coffee, 1], [$tea, 1]], discount: ['type' => 'percent', 'value' => 20, 'max' => 10000]);
+        $combo = $this->makeCombo([[$coffee, 1], [$tea, 1]], discount: ['type' => 'percent', 'value' => 20, 'max' => 10000]);
 
         // Giỏ có thêm sản phẩm KHÔNG thuộc combo -> không được tính vào giảm giá combo.
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 1], [$tea, 1], [$other, 1]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 1], [$tea, 1], [$other, 1]]), $user);
 
-        $this->assertCount(1, $entries);
-        $this->assertSame('discount', $entries[0]['type']);
+        $this->assertEmpty($result['gifts']);
         // 20% của (40.000+30.000)=70.000 = 14.000, nhưng bị trần max_discount_amount=10.000.
-        $this->assertSame(10000.0, $entries[0]['discount_amount']);
+        $this->assertSame(10000.0, $result['discount']);
     }
 
     // Combo CHỈ giảm tiền cứng - nhân theo số lần đủ combo (applications), không vượt quá eligible subtotal.
@@ -396,16 +394,16 @@ class PromotionScopeTest extends TestCase
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 40000]);
-        $this->makeCombo([[$coffee, 1]], discount: ['type' => 'fixed', 'value' => 5000]);
+        $combo = $this->makeCombo([[$coffee, 1]], discount: ['type' => 'fixed', 'value' => 5000]);
 
         // Mua 2 -> applications=2 -> giảm 5.000*2=10.000 (không vượt eligible subtotal 80.000).
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 2]]));
+        $result = $this->applyCombo($combo, $this->pricedCart($user, [[$coffee, 2]]), $user);
 
-        $this->assertSame(10000.0, $entries[0]['discount_amount']);
+        $this->assertSame(10000.0, $result['discount']);
     }
 
-    // Combo bật CẢ 2 thành phần (giảm giá + tặng quà) -> sinh đúng 2 kết quả cùng lúc.
-    public function test_combo_with_both_discount_and_gift_yields_two_entries(): void
+    // Combo bật CẢ 2 thành phần -> áp 1 mã là nhận cùng lúc cả tiền giảm lẫn quà.
+    public function test_combo_with_both_discount_and_gift_gives_both_rewards(): void
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 40000]);
@@ -416,92 +414,241 @@ class PromotionScopeTest extends TestCase
             gift: ['product' => $gift, 'quantity' => 1]
         );
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$coffee, 1]]));
+        $result = $this->applyCombo($promotion, $this->pricedCart($user, [[$coffee, 1]]), $user);
 
-        $this->assertCount(2, $entries);
-        $types = collect($entries)->pluck('type')->sort()->values()->all();
-        $this->assertSame(['discount', 'gift'], $types);
-        foreach ($entries as $entry) {
-            $this->assertSame($promotion->id, $entry['promotion']->id);
-        }
+        $this->assertSame(3000.0, $result['discount']);
+        $this->assertCount(1, $result['gifts']);
+        $this->assertSame($promotion->id, $result['promotion']->id);
+        $this->assertSame($promotion->id, $result['gifts'][0]['promotion']->id);
     }
 
-    // 2 combo khác nhau cùng cần chung 1 sản phẩm, kho/giỏ không đủ cho cả 2 -> chỉ combo giá trị cao
-    // hơn được cấp, không được cả 2 cùng "thấy" đủ hàng trên cùng 1 đơn vị hàng thật.
-    public function test_two_combos_competing_for_same_product_only_higher_value_one_granted(): void
+    // Combo KHÔNG bao giờ tự áp: không nhập mã thì dù giỏ đủ món vẫn không có giảm giá/quà nào.
+    public function test_combo_is_never_applied_automatically(): void
     {
         $user = User::factory()->create();
-        $shared = $this->makeProduct(['base_price' => 10000]);
-        $cheapGift = $this->makeProduct(['base_price' => 5000]);
-        $expensiveGift = $this->makeProduct(['base_price' => 50000]);
+        $coffee = $this->makeProduct(['base_price' => 40000]);
+        $gift = $this->makeProduct(['base_price' => 5000]);
+        $this->makeCombo(
+            [[$coffee, 1]],
+            discount: ['type' => 'fixed', 'value' => 3000],
+            gift: ['product' => $gift, 'quantity' => 1]
+        );
 
-        // Cả 2 combo đều chỉ cần 1x sản phẩm chung, giỏ chỉ có đúng 1 -> chỉ 1 combo được cấp.
-        $this->makeCombo([[$shared, 1]], gift: ['product' => $cheapGift, 'quantity' => 1]);
-        $this->makeCombo([[$shared, 1]], gift: ['product' => $expensiveGift, 'quantity' => 1]);
+        $items = $this->pricedCart($user, [[$coffee, 1]]);
+        $result = $this->service()->resolveBestDiscount($items, 40000, $user, 'delivery', 1);
 
-        $entries = $this->comboEntries($this->pricedCart($user, [[$shared, 1]]));
-
-        $this->assertCount(1, $entries);
-        $this->assertSame($expensiveGift->id, $entries[0]['gift_product']->id);
+        $this->assertNull($result['promotion']);
+        $this->assertSame(0.0, $result['discount']);
+        $this->assertEmpty($result['gifts']);
     }
 
-    // Combo giảm giá trùng sản phẩm với 1 mã giảm giá order/product/category khác đang áp dụng ->
-    // chỉ bên có lợi hơn thắng trên phần trùng nhau; PHẦN TẶNG QUÀ của combo không bị ảnh hưởng.
-    public function test_combo_discount_loses_to_more_beneficial_overlapping_coupon_but_gift_still_granted(): void
+    // Mỗi đơn chỉ giữ 1 mã: đổi từ mã combo sang mã thường thì quà + giảm giá của combo mất hẳn,
+    // thay bằng đúng ưu đãi của mã mới.
+    public function test_switching_from_combo_code_to_normal_code_drops_combo_rewards(): void
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 100000]);
         $gift = $this->makeProduct(['base_price' => 5000]);
 
-        // Mã giảm 50% sản phẩm Coffee (giảm 50.000đ) rõ ràng lợi hơn combo giảm 5.000đ cố định.
-        $coupon = Promotion::create([
-            'code' => 'BIGDEAL', 'scope' => 'product', 'type' => 'percent', 'value' => 50,
+        $combo = $this->makeCombo(
+            [[$coffee, 1]],
+            discount: ['type' => 'fixed', 'value' => 5000],
+            gift: ['product' => $gift, 'quantity' => 1]
+        );
+        Promotion::create([
+            'code' => 'BIGDEAL', 'scope' => 'order', 'type' => 'percent', 'value' => 50,
             'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
         ]);
-        $coupon->products()->sync([$coffee->id]);
-        $this->makeCombo([[$coffee, 1]], discount: ['type' => 'fixed', 'value' => 5000], gift: ['product' => $gift, 'quantity' => 1]);
 
         $items = $this->pricedCart($user, [[$coffee, 1]]);
-        $autoResult = $this->service()->resolveBestDiscount($items, 100000, $user, 'delivery', 1);
-        $this->assertSame(50000.0, $autoResult['discount']);
 
-        $combo = $this->service()->resolveComboRewards($items, 'delivery', $autoResult);
+        // Chọn mã combo trước: được 5.000đ + 1 quà.
+        $comboResult = $this->applyCombo($combo, $items, $user);
+        $this->assertSame(5000.0, $comboResult['discount']);
+        $this->assertCount(1, $comboResult['gifts']);
 
-        // Combo mất phần giảm giá (mã coupon thắng)...
-        $types = collect($combo['entries'])->pluck('type')->all();
-        $this->assertNotContains('discount', $types);
-        // ...nhưng phần tặng quà vẫn được cấp bình thường, không bị ảnh hưởng.
-        $this->assertContains('gift', $types);
-        // Mã giảm giá gốc vẫn giữ nguyên giá trị vì combo không "thắng" được phần nào của nó.
-        $this->assertSame(50000.0, $combo['auto_discount']);
+        // Đổi sang mã thường: chỉ còn ưu đãi của mã mới, quà combo biến mất.
+        $switched = $this->service()->resolveBestDiscount($items, 100000, $user, 'delivery', 1, 'BIGDEAL');
+        $this->assertSame('BIGDEAL', $switched['promotion']->code);
+        $this->assertSame(50000.0, $switched['discount']);
+        $this->assertEmpty($switched['gifts']);
     }
 
-    // Ngược lại: combo giảm giá CÓ LỢI HƠN mã coupon khác -> combo thắng, mã coupon kia bị thu hẹp giá
-    // trị giảm tương ứng phần đã "nhường" cho combo.
-    public function test_combo_discount_wins_over_less_beneficial_overlapping_coupon(): void
+    // ===== 3.5 HẠNG THÀNH VIÊN (apply_for) — mã gắn ĐÚNG hạng, không phải "hạng đó trở lên" =====
+
+    // Hạng cao hơn KHÔNG được dùng ké mã dành riêng cho hạng thấp hơn (VD: Kim cương không dùng được
+    // mã "chào mừng thành viên Mới").
+    public function test_higher_tier_member_cannot_use_code_restricted_to_lower_tier(): void
+    {
+        $diamond = User::factory()->create(['membership_level' => 'diamond']);
+        $promotion = Promotion::create([
+            'code' => 'CHAOMOI', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
+            'apply_for' => 'new', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+        ]);
+
+        $result = $promotion->checkValidity($diamond, 100000, 'delivery', 1);
+
+        $this->assertFalse($result['valid']);
+    }
+
+    // Hạng thấp hơn cũng không dùng được mã dành cho hạng cao hơn.
+    public function test_lower_tier_member_cannot_use_code_restricted_to_higher_tier(): void
+    {
+        $newMember = User::factory()->create(['membership_level' => 'new']);
+        $promotion = Promotion::create([
+            'code' => 'VIPGOLD', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
+            'apply_for' => 'gold', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+        ]);
+
+        $result = $promotion->checkValidity($newMember, 100000, 'delivery', 1);
+
+        $this->assertFalse($result['valid']);
+    }
+
+    // Đúng hạng thì dùng được.
+    public function test_exact_tier_match_can_use_the_code(): void
+    {
+        $gold = User::factory()->create(['membership_level' => 'gold']);
+        $promotion = Promotion::create([
+            'code' => 'VIPGOLD', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
+            'apply_for' => 'gold', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+        ]);
+
+        $result = $promotion->checkValidity($gold, 100000, 'delivery', 1);
+
+        $this->assertTrue($result['valid']);
+    }
+
+    // ===== 3.6 GIỚI HẠN LƯỢT DÙNG / 1 TÀI KHOẢN (usage_limit_per_user) =====
+
+    // Mặc định usage_limit_per_user = 1 (migration backfill) -> dùng 1 đơn rồi thì đơn thứ 2 bị chặn.
+    public function test_default_usage_limit_per_user_blocks_second_order(): void
     {
         $user = User::factory()->create();
-        $coffee = $this->makeProduct(['base_price' => 100000]);
-
-        // Mã giảm chỉ 1% Coffee (1.000đ) - rất kém so với combo giảm cố định 20.000đ.
-        $coupon = Promotion::create([
-            'code' => 'TINY', 'scope' => 'product', 'type' => 'percent', 'value' => 1,
+        $promotion = Promotion::create([
+            'code' => 'ONCE10', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
             'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'usage_limit_per_user' => 1,
         ]);
-        $coupon->products()->sync([$coffee->id]);
-        $this->makeCombo([[$coffee, 1]], discount: ['type' => 'fixed', 'value' => 20000]);
+        Order::create([
+            'order_code' => 'HPY-' . strtoupper(uniqid()), 'user_id' => $user->id, 'promotion_id' => $promotion->id,
+            'customer_name' => 'A', 'customer_phone' => '0900000000', 'total_amount' => 100000,
+            'discount_amount' => 10000, 'final_amount' => 90000, 'payment_status' => 'unpaid',
+            'payment_method' => 'cod', 'status' => 'pending', 'delivery_type' => 'delivery',
+        ]);
 
-        $items = $this->pricedCart($user, [[$coffee, 1]]);
-        $autoResult = $this->service()->resolveBestDiscount($items, 100000, $user, 'delivery', 1);
-        $this->assertSame(1000.0, $autoResult['discount']);
+        $result = $promotion->checkValidity($user, 100000, 'delivery', 1);
 
-        $combo = $this->service()->resolveComboRewards($items, 'delivery', $autoResult);
+        $this->assertFalse($result['valid']);
+        $this->assertSame('Bạn đã sử dụng mã giảm giá này rồi.', $result['message']);
+    }
 
-        $this->assertCount(1, $combo['entries']);
-        $this->assertSame('discount', $combo['entries'][0]['type']);
-        $this->assertSame(20000.0, $combo['entries'][0]['discount_amount']);
-        // Mã coupon kia bị thu hẹp về 0 vì toàn bộ eligible subtotal của nó (đúng 1 ly Coffee) đã bị combo "nhường" mất.
-        $this->assertSame(0.0, $combo['auto_discount']);
+    // Admin nới usage_limit_per_user lên 3 -> cùng 1 tài khoản dùng được nhiều đơn, chỉ chặn ở lần thứ 4.
+    public function test_admin_can_raise_usage_limit_per_user_to_allow_repeat_use(): void
+    {
+        $user = User::factory()->create();
+        $promotion = Promotion::create([
+            'code' => 'REPEAT3', 'scope' => 'order', 'type' => 'fixed', 'value' => 5000,
+            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'usage_limit_per_user' => 3,
+        ]);
+
+        for ($i = 0; $i < 3; $i++) {
+            $before = $promotion->checkValidity($user, 100000, 'delivery', 1);
+            $this->assertTrue($before['valid'], "Lượt thứ " . ($i + 1) . " phải còn hợp lệ");
+
+            Order::create([
+                'order_code' => 'HPY-' . strtoupper(uniqid()), 'user_id' => $user->id, 'promotion_id' => $promotion->id,
+                'customer_name' => 'A', 'customer_phone' => '0900000000', 'total_amount' => 100000,
+                'discount_amount' => 5000, 'final_amount' => 95000, 'payment_status' => 'unpaid',
+                'payment_method' => 'cod', 'status' => 'pending', 'delivery_type' => 'delivery',
+            ]);
+        }
+
+        // Lượt thứ 4 -> vượt giới hạn 3 -> bị chặn.
+        $fourth = $promotion->checkValidity($user, 100000, 'delivery', 1);
+        $this->assertFalse($fourth['valid']);
+        $this->assertSame('Bạn đã dùng mã này tối đa 3 lần.', $fourth['message']);
+    }
+
+    // usage_limit_per_user = NULL -> không giới hạn số lần/tài khoản (chỉ còn usage_limit tổng chặn).
+    public function test_null_usage_limit_per_user_means_unlimited(): void
+    {
+        $user = User::factory()->create();
+        $promotion = Promotion::create([
+            'code' => 'UNLIMITED', 'scope' => 'order', 'type' => 'fixed', 'value' => 5000,
+            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'usage_limit_per_user' => null,
+        ]);
+
+        for ($i = 0; $i < 5; $i++) {
+            Order::create([
+                'order_code' => 'HPY-' . strtoupper(uniqid()), 'user_id' => $user->id, 'promotion_id' => $promotion->id,
+                'customer_name' => 'A', 'customer_phone' => '0900000000', 'total_amount' => 100000,
+                'discount_amount' => 5000, 'final_amount' => 95000, 'payment_status' => 'unpaid',
+                'payment_method' => 'cod', 'status' => 'pending', 'delivery_type' => 'delivery',
+            ]);
+        }
+
+        $result = $promotion->checkValidity($user, 100000, 'delivery', 1);
+        $this->assertTrue($result['valid']);
+    }
+
+    // Đơn đã HỦY không tính vào số lượt đã dùng của tài khoản.
+    public function test_cancelled_orders_do_not_count_toward_per_user_limit(): void
+    {
+        $user = User::factory()->create();
+        $promotion = Promotion::create([
+            'code' => 'ONCE10B', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
+            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'usage_limit_per_user' => 1,
+        ]);
+        Order::create([
+            'order_code' => 'HPY-' . strtoupper(uniqid()), 'user_id' => $user->id, 'promotion_id' => $promotion->id,
+            'customer_name' => 'A', 'customer_phone' => '0900000000', 'total_amount' => 100000,
+            'discount_amount' => 10000, 'final_amount' => 90000, 'payment_status' => 'unpaid',
+            'payment_method' => 'cod', 'status' => 'cancelled', 'delivery_type' => 'delivery',
+        ]);
+
+        $result = $promotion->checkValidity($user, 100000, 'delivery', 1);
+        $this->assertTrue($result['valid']);
+    }
+
+    // Đơn vừa đặt xong đang "chờ xác nhận" (status=pending, CHƯA ai duyệt) đã phải tính là "đã dùng"
+    // ngay lập tức — cả usage_limit tổng lẫn usage_limit_per_user, không cần chờ đơn được xác nhận.
+    public function test_pending_order_counts_as_used_immediately_without_confirmation(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+        $product = $this->makeProduct(['base_price' => 100000]);
+        $address = \App\Models\UserAddress::create([
+            'user_id' => $user->id, 'fullname' => 'Nguyễn Văn A', 'phone' => '0911222333',
+            'province' => 'Thành phố Hồ Chí Minh', 'district' => 'Quận 8', 'ward' => 'Phường Chánh Hưng',
+            'specific_address' => '180 Cao Lỗ', 'latitude' => 10.7383043, 'longitude' => 106.6788227,
+        ]);
+        $promotion = Promotion::create([
+            'code' => 'PENDNOW', 'scope' => 'order', 'type' => 'fixed', 'value' => 10000,
+            'apply_for' => 'all', 'applies_to' => 'all', 'is_active' => true, 'is_recurring' => false,
+            'usage_limit' => 5, 'usage_limit_per_user' => 1,
+        ]);
+
+        $cart = Cart::create(['user_id' => $user->id]);
+        CartItem::create(['cart_id' => $cart->id, 'product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100000]);
+
+        $order = app(\App\Services\OrderService::class)->create($user, [
+            'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+            'address_id' => $address->id,
+            'coupon_code' => 'PENDNOW',
+        ], 'cod');
+
+        // Đơn vừa tạo còn nguyên trạng thái "chờ xác nhận" — chưa ai bấm duyệt gì cả.
+        $this->assertSame('pending', $order->status);
+
+        // usage_limit tổng đã tăng ngay (2. → 1 lượt đã dùng).
+        $this->assertSame(1, $promotion->fresh()->used_count);
+
+        // usage_limit_per_user cũng đã chặn ngay cho lượt tiếp theo của CHÍNH user này.
+        $result = $promotion->fresh()->checkValidity($user->fresh(), 100000, 'delivery', 1);
+        $this->assertFalse($result['valid'], 'Đơn đang chờ xác nhận đã phải tính là đã dùng mã');
     }
 
     // ===== 4. TRẠNG THÁI / THỜI GIAN / GIỚI HẠN =====
@@ -594,8 +741,8 @@ class PromotionScopeTest extends TestCase
         $this->service()->resolveBestDiscount($items, 50000, $user, 'delivery', 1, 'USEDUP');
     }
 
-    // Mã Combo không phải mã giảm tiền -> không nhập tay ở ô mã giảm giá được.
-    public function test_combo_code_cannot_be_used_as_discount_code(): void
+    // Mã combo giờ nhập/bấm được ở ô mã giảm giá như mọi mã khác, miễn là giỏ đã đủ tổ hợp món.
+    public function test_combo_code_can_be_applied_from_the_coupon_box(): void
     {
         $user = User::factory()->create();
         $coffee = $this->makeProduct(['base_price' => 30000]);
@@ -603,8 +750,25 @@ class PromotionScopeTest extends TestCase
         $promotion = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
         $items = $this->pricedCart($user, [[$coffee, 2]]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
-        $this->service()->resolveBestDiscount($items, 60000, $user, 'delivery', 2, $promotion->code);
+        $result = $this->service()->resolveBestDiscount($items, 60000, $user, 'delivery', 2, $promotion->code);
+
+        $this->assertSame($promotion->id, $result['promotion']->id);
+        $this->assertCount(1, $result['gifts']);
+    }
+
+    // Combo đã hết lượt dùng thì không còn nằm trong danh sách chip gợi ý cho khách bấm.
+    public function test_exhausted_combo_is_not_listed_as_applicable(): void
+    {
+        $user = User::factory()->create();
+        $coffee = $this->makeProduct(['base_price' => 30000]);
+        $tea = $this->makeProduct(['base_price' => 20000]);
+        $promotion = $this->makeCombo([[$coffee, 2]], gift: ['product' => $tea, 'quantity' => 1]);
+        $items = $this->pricedCart($user, [[$coffee, 2]]);
+
+        $this->assertCount(1, $this->service()->applicableCombos($items, 'delivery'));
+
+        $promotion->update(['usage_limit' => 1, 'used_count' => 1]);
+        $this->assertCount(0, $this->service()->applicableCombos($items, 'delivery'));
     }
 
     // ===== 5. KHÔNG ÂM TIỀN + TƯƠNG THÍCH NGƯỢC =====

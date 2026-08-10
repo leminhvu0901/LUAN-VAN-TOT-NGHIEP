@@ -9,11 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController
 {
-    /**
-     * Hàm lấy danh sách khách hàng và hiển thị trên giao diện quản trị (Trang Index).
-     * Hỗ trợ các chức năng lọc dữ liệu nâng cao (tìm kiếm tên/email/sđt, lọc theo hạng thành viên, 
-     * lọc trạng thái hoạt động), sắp xếp dữ liệu, và phân trang.
-     */
+    //Hàm lấy danh sách khách hàng và hiển thị, lọc
     public function index(Request $request)
     {
         $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng (role = customer)
@@ -23,8 +19,8 @@ class CustomerController
             $search = $request->input('search');
             $query->where(function ($q) use ($search) { // Lọc tìm kiếm theo Tên, Email hoặc Số điện thoại
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -66,7 +62,7 @@ class CustomerController
 
         // Các thống kê cho thẻ phía trên
         $totalCustomers = User::where('role', 'customer')->count(); // Đếm tổng số lượng khách hàng trong DB
-        
+
         $membershipCounts = User::where('role', 'customer')
             ->select('membership_level', DB::raw('count(*) as total'))
             ->groupBy('membership_level')
@@ -76,33 +72,28 @@ class CustomerController
         $goldCount = $membershipCounts['gold'] ?? 0;
         $silverCount = $membershipCounts['silver'] ?? 0;
         $newCount = $membershipCounts['new'] ?? 0;
-        
+
         $inactiveCount = User::where('role', 'customer')->where('is_active', 0)->count(); // Đếm số lượng tài khoản khách hàng đang bị khóa
 
-        return  view('backend.admin.customers.index', compact( // Load giao diện trang quản lý khách hàng
-            'customers', 
-            'totalCustomers', 
-            'diamondCount', 
-            'goldCount', 
-            'silverCount', 
-            'newCount', 
+        return view('backend.admin.customers.index', compact( // Load giao diện trang quản lý khách hàng
+            'customers',
+            'totalCustomers',
+            'diamondCount',
+            'goldCount',
+            'silverCount',
+            'newCount',
             'inactiveCount'
         ));
     }
 
-    /**
-     * Hàm hiển thị giao diện form để thêm mới một tài khoản khách hàng.
-     */
+    // thêm tài khoẳn khách hàng
     public function create()
     {
-        return  view('backend.admin.customers.create'); // Load giao diện form thêm mới khách hàng
+        return view('backend.admin.customers.create'); // Load giao diện form thêm mới khách hàng
     }
 
-    /**
-     * Hàm xử lý lưu thông tin khách hàng mới vào Database.
-     * Thực hiện chuẩn hóa dữ liệu (trim khoảng trắng, hạ email chữ thường), xác thực dữ liệu 
-     * (Validation) chống trùng lặp, xử lý upload lưu trữ ảnh đại diện (avatar) nếu có.
-     */
+
+    //Hàm xử lý lưu thông tin khách hàng mới vào Database.
     public function store(Request $request)
     {
         // 1. Name: trim khoảng trắng đầu/cuối và nhiều khoảng trắng liên tiếp
@@ -139,7 +130,7 @@ class CustomerController
 
         $data = $request->except(['avatar', 'password_confirmation']);
         $data['role'] = 'customer';
-        
+
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
@@ -153,19 +144,15 @@ class CustomerController
         return redirect()->route('admin.customers.index')->with('success', 'Thêm khách hàng thành công!'); // Chuyển hướng về trang danh sách kèm thông báo
     }
 
-    /**
-     * Hàm hiển thị trang hồ sơ chi tiết của một khách hàng cụ thể.
-     * Lấy thông tin tài khoản, thống kê tổng số đơn hàng đã đặt, tính tổng số tiền đã mua, 
-     * và truy vấn danh sách 5 đơn hàng gần đây nhất để quản trị viên theo dõi.
-     */
+    //Hàm hiển thị trang hồ sơ chi tiết của một khách hàng cụ thể.
     public function show($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID, ném lỗi 404 nếu không tồn tại
-        
+
         // Lấy số lượng đơn hàng (giả sử model User có qh orders, nếu chưa có thì dùng Query Builder)
         $totalOrders = DB::table('orders')->where('user_id', $id)->count(); // Đếm tổng số đơn hàng đã đặt
         $totalSpent = DB::table('orders')->where('user_id', $id)->where('status', '!=', 'cancelled')->sum('total_amount'); // Tính tổng số tiền đã mua (trừ đơn hủy)
-        
+
         // Lấy 5 đơn hàng gần nhất
         $recentOrders = DB::table('orders') // Lấy chi tiết 5 đơn hàng gần đây nhất để hiển thị ở trang cá nhân khách
             ->where('user_id', $id)
@@ -173,13 +160,10 @@ class CustomerController
             ->limit(5)
             ->get();
 
-        return  view('backend.admin.customers.show', compact('customer', 'totalOrders', 'totalSpent', 'recentOrders')); // Load giao diện hồ sơ khách hàng
+        return view('backend.admin.customers.show', compact('customer', 'totalOrders', 'totalSpent', 'recentOrders')); // Load giao diện hồ sơ khách hàng
     }
 
-    /**
-     * Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động của tài khoản khách hàng.
-     * Nếu Khóa (is_active = 0) thì bắt buộc lưu thêm lý do khóa tài khoản để minh bạch thông tin.
-     */
+    //Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động của tài khoản khách hàng.
     public function toggleStatus(Request $request, $id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
@@ -197,11 +181,7 @@ class CustomerController
         return redirect()->route('admin.customers.index')->with('success', 'Cập nhật trạng thái thành công!');
     }
 
-    /**
-     * Hàm xử lý xóa hàng loạt khách hàng đã chọn thông qua checkbox ở giao diện.
-     * Sử dụng cơ chế kiểm soát an toàn: Nếu khách hàng đã có lịch sử đặt hàng/đánh giá
-     * (báo lỗi khóa ngoại từ DB), hệ thống sẽ tự động chuyển họ sang trạng thái KHÓA tài khoản để bảo toàn dữ liệu.
-     */
+    //xoa hang loat khách hang dược chọn
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('ids', []);
@@ -238,21 +218,17 @@ class CustomerController
 
         return redirect()->route('admin.customers.index')->with('success', 'Đã xóa thành công các khách hàng đã chọn!');
     }
-    
+
     /**
      * Hàm hiển thị giao diện form chỉnh sửa thông tin cho một khách hàng cụ thể.
      */
     public function edit($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần sửa đổi
-        return  view('backend.admin.customers.edit', compact('customer')); // Load giao diện form sửa đổi thông tin khách hàng
+        return view('backend.admin.customers.edit', compact('customer')); // Load giao diện form sửa đổi thông tin khách hàng
     }
 
-    /**
-     * Hàm xử lý cập nhật các thông tin khách hàng đã chỉnh sửa vào Database.
-     * Bao gồm chuẩn hóa dữ liệu, xác thực trùng lặp (trừ ID hiện tại), xử lý cập nhật mật khẩu mới 
-     * (nếu có nhập) và thực hiện xóa ảnh đại diện cũ trên ổ đĩa khi upload ảnh mới.
-     */
+    // Hàm xử lý cập nhật các thông tin khách hàng
     public function update(Request $request, $id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id);
@@ -290,7 +266,7 @@ class CustomerController
         ]);
 
         $data = $request->except(['password', 'password_confirmation', 'avatar']);
-        
+
         if ($request->filled('password')) {
             $data['password'] = $request->password; // Will be hashed automatically by User model casts
         }
@@ -303,7 +279,7 @@ class CustomerController
                     @unlink($oldPath);
                 }
             }
-            
+
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(public_path('images/avatars'), $filename);
@@ -314,12 +290,8 @@ class CustomerController
 
         return redirect()->route('admin.customers.index')->with('success', 'Cập nhật khách hàng thành công!'); // Chuyển hướng về trang quản lý khách hàng
     }
-    
-    /**
-     * Hàm xử lý xóa một khách hàng cụ thể ra khỏi hệ thống dựa theo ID.
-     * Cơ chế an toàn khóa ngoại tương tự xóa hàng loạt: Nếu khách hàng đã có giao dịch, 
-     * thay vì xóa cứng sẽ chuyển trạng thái tài khoản về Khóa (is_active = 0).
-     */
+
+    // Hàm xử lý xóa một khách hàng cụ thể ra khỏi hệ thống
     public function destroy($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần xóa

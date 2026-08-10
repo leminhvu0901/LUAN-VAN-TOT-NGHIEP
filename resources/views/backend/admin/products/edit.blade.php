@@ -183,6 +183,7 @@
 (function () {
     const maxImageBytes = 2 * 1024 * 1024;
 
+    // Hiện thông báo lỗi trên form sản phẩm
     function showError(message) {
         if (window.Swal) {
             Swal.fire({ 
@@ -196,6 +197,7 @@
         }
     }
 
+    // Sinh một dòng size mới (tên size + phụ phí) khi bấm nút thêm
     function createSizeRow() {
         const row = document.createElement('div');
         row.className = 'product-size-row grid grid-cols-[1fr_1fr_40px] gap-2';
@@ -208,6 +210,7 @@
         return row;
     }
 
+    // Khởi tạo khu vực quản lý size với nút thêm và xóa dòng
     function initSizes() {
         const container = document.getElementById('product-sizes');
         const addButton = document.getElementById('add-product-size');
@@ -234,6 +237,7 @@
         });
     }
 
+    // Xử lý chọn và xem trước ảnh chính cùng album ảnh phụ
     function initImages() {
         const trigger = document.querySelector('.js-image-upload-trigger');
         const input = document.getElementById('image-upload');
@@ -292,6 +296,7 @@
         }
     }
 
+    // Định dạng ô giá bán theo kiểu tiền Việt Nam trong lúc gõ
     function initPrice() {
         const display = document.getElementById('display_price');
         const raw = document.getElementById('raw_price');
@@ -310,6 +315,7 @@
         });
     }
 
+    // Xử lý nút xóa từng ảnh phụ đã lưu trước đó
     function initGalleryDelete() {
         document.addEventListener('click', function (event) {
             const button = event.target.closest('.js-delete-gallery-image');
@@ -339,6 +345,7 @@
         });
     }
 
+    // Khởi tạo ô chọn danh mục sản phẩm
     function initCategorySelect() {
         const categorySelects = document.querySelectorAll('.product-category-select');
         if (categorySelects.length > 0 && typeof Choices !== 'undefined') {

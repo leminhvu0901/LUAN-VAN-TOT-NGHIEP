@@ -7,14 +7,10 @@ use App\Models\Order;
 use App\Models\Material;
 use App\Models\MaterialImport;
 
-/**
- * Controller Bảng điều khiển (Dashboard) dành cho Lễ tân.
- */
+
 class DashboardController
 {
-    /**
-     * Hiển thị trang Dashboard tổng quan của quầy Lễ tân.
-     */
+    //Hiển thị trang Dashboard tổng quan của quầy Lễ tân.
     public function index()
     {
         // 1. Thống kê số lượng đơn hàng theo từng trạng thái cần chú ý
@@ -28,9 +24,7 @@ class DashboardController
             ->whereNull('delivery_staff_id')
             ->count();
 
-        // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ tính tiền đã thực thu (payment_status=paid, paid_at hôm nay)
-        // Tiền mặt gộp cả 'cash' (thu tại quầy) và 'cod' (thu khi giao, cũng là tiền mặt)
-        // Chuyển khoản chỉ có 'vnpay' (thanh toán điện tử qua cổng VNPay)
+        // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ tính tiền đã thực thu 
         $todayRange = [today(), today()->endOfDay()]; // Khai báo khoảng thời gian từ 00:00:00 đến 23:59:59 ngày hôm nay
 
         $cashRevenueToday = (float) Order::whereIn('payment_method', ['cash', 'cod']) // Lấy các đơn trả bằng tiền mặt/tiền COD

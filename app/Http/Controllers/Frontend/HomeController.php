@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Category;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
-use Illuminate\Support\Facades\DB;
+use App\Models\Setting;
 
 class HomeController extends Controller
 {
@@ -16,22 +15,9 @@ class HomeController extends Controller
     public function index()
     {
         $now = now();
-
-        // Số liệu thật cho khối thống kê ở hero banner (thay vì số cố định)
         $productCount = Product::where('is_active', 1)->count();
-
-        // Làm tròn LÊN đến 1 chữ số thập phân (vd: 4.61 -> 4.7) để điểm hiển thị luôn có phần thập phân
         $avgRating = ceil((float) (Review::where('is_visible', 1)->avg('rating') ?? 5) * 10) / 10;
-
-        // Tính trung bình bằng Carbon (thay vì TIMESTAMPDIFF chỉ MySQL mới có) để chạy được cả trên
-        // SQLite (môi trường test) lẫn MySQL (thật) mà không cần rẽ nhánh theo driver.
-        $completedDeliveries = Order::where('delivery_type', 'delivery')
-            ->where('status', 'completed')
-            ->whereNotNull('completed_at')
-            ->get(['created_at', 'completed_at']);
-        $avgDeliveryMinutes = $completedDeliveries->isEmpty()
-            ? 30
-            : (int) round($completedDeliveries->avg(fn ($order) => $order->created_at->diffInMinutes($order->completed_at)));
+        $todayVisitCount = (int) Setting::getValue('daily_visits:' . today()->toDateString(), 0);
 
         // Lấy các banner đang active và còn trong thời gian hiển thị
         $banners = Banner::where('is_active', 1)
@@ -44,15 +30,14 @@ class HomeController extends Controller
             ->orderBy('display_order', 'asc')
             ->get();
 
-        // Lấy danh mục đang active, kèm số lượng sản phẩm trong mỗi danh mục
-        $categories = Category::query()
-            ->leftJoin('products', 'categories.id', '=', 'products.category_id')
-            ->select('categories.id', 'categories.name', DB::raw('COUNT(products.id) as product_count'))
-            ->where('categories.is_active', 1)
-            ->groupBy('categories.id', 'categories.name', 'categories.display_order')
-            ->orderBy('categories.display_order')
+        // Lấy danh mục đang active, kèm số lượng sản phẩm ĐANG KINH DOANH
+        $categories = Category::where('is_active', 1)
+            ->withCount(['products as product_count' => function ($query) {
+                $query->where('is_active', 1);
+            }])
+            ->orderBy('display_order')
             ->get();
 
-        return view('frontend.home', compact('banners', 'categories', 'productCount', 'avgRating', 'avgDeliveryMinutes'));
+        return view('frontend.home', compact('banners', 'categories', 'productCount', 'avgRating', 'todayVisitCount'));
     }
 }

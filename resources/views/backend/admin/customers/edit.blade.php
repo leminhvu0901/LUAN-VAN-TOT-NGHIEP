@@ -269,6 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const passwordConfirmInput = document.getElementById('password_confirmation');
     const passwordMatchError = document.getElementById('password-match-error');
 
+    // So khớp ô mật khẩu và ô nhập lại, báo lệch ngay lúc gõ
     function checkPasswordMatch() {
         if (passwordConfirmInput && passwordConfirmInput.value.length > 0 && passwordInput && passwordInput.value !== passwordConfirmInput.value) {
             passwordMatchError.textContent = 'Xác nhận mật khẩu không khớp.';
