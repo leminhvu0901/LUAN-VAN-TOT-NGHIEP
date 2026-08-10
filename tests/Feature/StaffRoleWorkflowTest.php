@@ -2548,7 +2548,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $staff = User::where('email', 'nv-avatar@happytea.com')->firstOrFail();
         $this->assertNotNull($staff->avatar);
-        $this->assertStringNotContainsString('/', $staff->avatar);
+        $this->assertStringStartsWith('uploads/avatars/', $staff->avatar);
         $path = avatar_path($staff->avatar);
         $this->assertFileExists($path);
         @unlink($path);
@@ -2582,7 +2582,7 @@ class StaffRoleWorkflowTest extends TestCase
         $staff = $staff->fresh();
         $this->assertNotEquals($oldAvatarName, $staff->avatar);
         $this->assertFileDoesNotExist($oldPath);
-        $this->assertStringNotContainsString('/', $staff->avatar);
+        $this->assertStringStartsWith('uploads/avatars/', $staff->avatar);
         $newPath = avatar_path($staff->avatar);
         $this->assertFileExists($newPath);
         @unlink($newPath);

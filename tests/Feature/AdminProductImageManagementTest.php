@@ -64,13 +64,13 @@ class AdminProductImageManagementTest extends TestCase
         $response->assertSessionHasNoErrors();
         $product = Product::firstOrFail();
 
-        $this->assertStringStartsWith('products/', $product->image);
+        $this->assertStringStartsWith('uploads/products/', $product->image);
         $this->assertFileExists(upload_path($product->image));
 
         $product->load('images');
         $this->assertCount(2, $product->images);
         foreach ($product->images as $galleryImage) {
-            $this->assertStringStartsWith('products/gallery/', $galleryImage->image_path);
+            $this->assertStringStartsWith('uploads/products/gallery/', $galleryImage->image_path);
             $this->assertFileExists(upload_path($galleryImage->image_path));
         }
     }

@@ -90,17 +90,24 @@ class SettingController
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
         ];
 
-        // Quét logo có sẵn trong public/images/logo (mẫu đi kèm mã nguồn lẫn logo admin tự tải lên).
+        // Quét logo ở 2 nơi: logo mẫu đi kèm mã nguồn (images/logo) và logo admin tự tải lên
+        // (images/uploads/logo - thư mục được gắn ổ đĩa bền vững khi chạy trên Railway).
         $existingLogos = [];
         $allowedLogoExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
-        $logoDir = public_path('images/logo');
-        if (is_dir($logoDir)) {
+        $logoDirs = [
+            public_path('images/logo') => '/images/logo/',
+            upload_dir('logo') => '/images/uploads/logo/',
+        ];
+        foreach ($logoDirs as $logoDir => $urlPrefix) {
+            if (!is_dir($logoDir)) {
+                continue;
+            }
             foreach (scandir($logoDir) as $file) {
                 if ($file === '.' || $file === '..')
                     continue;
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                 if (in_array($ext, $allowedLogoExts)) {
-                    $existingLogos[] = '/images/logo/' . $file;
+                    $existingLogos[] = $urlPrefix . $file;
                 }
             }
         }
@@ -295,8 +302,8 @@ class SettingController
 
                 // Giá trị lưu DB là đường dẫn tuyệt đối nên asset($shopLogo) ở các view dùng lại
                 // được y nguyên, không cần qua upload_url().
-                $file->move(public_path('images/logo'), $fileName);
-                $logoPath = '/images/logo/' . $fileName;
+                $file->move(upload_dir('logo'), $fileName);
+                $logoPath = '/images/' . upload_rel('logo', $fileName);
 
                 // Xóa file logo cũ, trừ các logo mẫu đi kèm mã nguồn (không được xóa nhầm)
                 $oldLogo = Setting::getValue('store_logo');

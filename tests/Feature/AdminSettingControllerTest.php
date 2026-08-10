@@ -84,7 +84,7 @@ class AdminSettingControllerTest extends TestCase
             'store_logo' => UploadedFile::fake()->image('logo1.png'),
         ]));
         $firstLogo = Setting::getValue('store_logo');
-        $this->assertStringStartsWith('/images/logo/', $firstLogo);
+        $this->assertStringStartsWith('/images/uploads/logo/', $firstLogo);
         $this->assertFileExists(public_path($firstLogo));
 
         $this->actingAs($admin)->put('/admin/settings', array_merge($this->baseStorePayload(), [

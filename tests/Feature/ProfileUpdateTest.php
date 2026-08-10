@@ -67,7 +67,7 @@ class ProfileUpdateTest extends TestCase
         $fresh = $user->fresh();
         $this->assertNotNull($fresh->avatar);
         // avatar_path() ghép tên file trần với public/images/avatars/.
-        $this->assertStringNotContainsString('/', $fresh->avatar);
+        $this->assertStringStartsWith('uploads/avatars/', $fresh->avatar);
         $this->assertFileExists(avatar_path($fresh->avatar));
         $this->assertStringContainsString($fresh->avatar, avatar_url($fresh->avatar));
 

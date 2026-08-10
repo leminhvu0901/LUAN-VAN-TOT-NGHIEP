@@ -284,9 +284,10 @@ class HardenedProductController
     private function storeImage($file, string $directory, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        $file->move(public_path('images/' . $directory), $filename);
-        $uploaded[] = $directory . '/' . $filename;
-        return $directory . '/' . $filename;
+        $file->move(upload_dir($directory), $filename);
+        $relative = upload_rel($directory, $filename);
+        $uploaded[] = $relative;
+        return $relative;
     }
 
     private function storeGallery(Product $product, array $files, array &$uploaded): void

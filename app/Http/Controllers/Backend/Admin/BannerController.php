@@ -267,8 +267,9 @@ class BannerController
     private function storeImage($file, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
-        $file->move(public_path('images/banners'), $filename);
-        $uploaded[] = 'banners/' . $filename;
-        return 'banners/' . $filename;
+        $file->move(upload_dir('banners'), $filename);
+        $relative = upload_rel('banners', $filename);
+        $uploaded[] = $relative;
+        return $relative;
     }
 }

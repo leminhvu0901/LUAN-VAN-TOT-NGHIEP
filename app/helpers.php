@@ -23,11 +23,42 @@ if (!function_exists('upload_url')) {
     }
 }
 
+if (!function_exists('upload_dir')) {
+    /**
+     * Thư mục VẬT LÝ để ghi file do người dùng tải lên.
+     *
+     * Vì sao tách riêng thành public/images/uploads/ thay vì ghi thẳng vào public/images/?
+     * Trên Railway, mọi thứ nằm trong container đều bị dựng lại từ mã nguồn sau mỗi lần deploy —
+     * file người dùng tải lên sẽ mất sạch. Muốn giữ lại thì phải gắn một ổ đĩa bền vững (volume)
+     * vào đúng thư mục chứa chúng. Nhưng public/images/ lại đang chứa sẵn ảnh mẫu đi kèm mã nguồn,
+     * mà gắn volume lên một thư mục đã có dữ liệu thì toàn bộ dữ liệu đó bị che mất.
+     * Vì vậy ảnh tải lên được đẩy xuống thư mục con riêng để gắn volume vào đó:
+     *   public/images/          <- ảnh mẫu, đi theo mã nguồn
+     *   public/images/uploads/  <- ảnh người dùng tải lên, gắn volume ở đây
+     */
+    function upload_dir(string $subdir = ''): string
+    {
+        return public_path(rtrim('images/uploads/' . trim($subdir, '/'), '/'));
+    }
+}
+
+if (!function_exists('upload_rel')) {
+    /**
+     * Giá trị đem lưu vào DB cho file vừa ghi bằng upload_dir(). Luôn tương đối so với
+     * public/images/ để upload_url()/upload_path() dùng lại được mà không cần sửa gì.
+     */
+    function upload_rel(string $subdir, string $filename): string
+    {
+        return 'uploads/' . trim($subdir, '/') . '/' . $filename;
+    }
+}
+
 if (!function_exists('avatar_url')) {
     /**
-     * URL ảnh đại diện. Cột users.avatar có 2 dạng tuỳ nguồn:
+     * URL ảnh đại diện. Cột users.avatar có 3 dạng tuỳ nguồn:
      * - URL đầy đủ (đăng nhập Google): "https://lh3.googleusercontent.com/..." -> dùng nguyên
-     * - Tên file trần "1234_abc.jpeg" (không có thư mục) -> nằm ở public/images/avatars/
+     * - Đường dẫn tương đối "uploads/avatars/1234_abc.jpg" (ảnh tải lên từ nay về sau)
+     * - Tên file trần "1234_abc.jpeg" (dữ liệu cũ) -> nằm ở public/images/avatars/
      * Trả về null nếu chưa có avatar để nơi gọi tự quyết định ảnh mặc định.
      */
     function avatar_url(?string $avatar): ?string
@@ -40,7 +71,10 @@ if (!function_exists('avatar_url')) {
             return $avatar;
         }
 
-        return asset('images/avatars/' . $avatar);
+        // Có dấu "/" nghĩa là đã kèm sẵn thư mục, chỉ cần ghép gốc images/
+        return str_contains($avatar, '/')
+            ? asset('images/' . $avatar)
+            : asset('images/avatars/' . $avatar);
     }
 }
 
@@ -55,7 +89,9 @@ if (!function_exists('avatar_path')) {
             return null;
         }
 
-        return public_path('images/avatars/' . $avatar);
+        return str_contains($avatar, '/')
+            ? public_path('images/' . $avatar)
+            : public_path('images/avatars/' . $avatar);
     }
 }
 

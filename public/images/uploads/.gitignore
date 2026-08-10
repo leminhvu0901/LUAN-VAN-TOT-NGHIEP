@@ -1,0 +1,6 @@
+# Ảnh do người dùng tải lên - KHÔNG commit vào mã nguồn.
+# Trên Railway thư mục này được gắn ổ đĩa lưu trữ bền vững (volume) nên dữ liệu
+# không bị mất sau mỗi lần deploy. Giữ lại chính file .gitignore này để thư mục
+# luôn tồn tại trong repo, nếu không Railway sẽ không có chỗ để gắn volume vào.
+*
+!.gitignore

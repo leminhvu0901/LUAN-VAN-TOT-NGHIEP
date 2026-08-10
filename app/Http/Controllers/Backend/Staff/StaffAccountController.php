@@ -117,8 +117,8 @@ class StaffAccountController
             $file = $request->file('avatar');
             // Ghép timestamp vào tên gốc để tránh trùng tên nếu 2 người cùng upload file cùng tên
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $avatarFilename = $filename;
+            $file->move(upload_dir('avatars'), $filename);
+            $avatarFilename = upload_rel('avatars', $filename);
         }
 
         User::create([
@@ -210,8 +210,8 @@ class StaffAccountController
             }
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $staff->avatar = $filename;
+            $file->move(upload_dir('avatars'), $filename);
+            $staff->avatar = upload_rel('avatars', $filename);
         }
         $staff->save();
 

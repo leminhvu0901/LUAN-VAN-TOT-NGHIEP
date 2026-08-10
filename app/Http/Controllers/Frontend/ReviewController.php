@@ -174,9 +174,9 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    // Di chuyển file ảnh vào thư mục public/images/reviews
-                    $image->move(public_path('images/reviews'), $imageName);
-                    $imageNames[] = 'reviews/' . $imageName;
+                    // Di chuyển ảnh vào thư mục upload (nơi gắn ổ đĩa bền vững trên Railway)
+                    $image->move(upload_dir('reviews'), $imageName);
+                    $imageNames[] = upload_rel('reviews', $imageName);
                 }
             }
         }
@@ -266,8 +266,8 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    $image->move(public_path('images/reviews'), $imageName);
-                    $newImageNames[] = 'reviews/' . $imageName;
+                    $image->move(upload_dir('reviews'), $imageName);
+                    $newImageNames[] = upload_rel('reviews', $imageName);
                 }
             }
         }

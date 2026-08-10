@@ -70,7 +70,7 @@ class AdminReviewControllerTest extends TestCase
         $review = Review::firstOrFail();
         $images = json_decode($review->image, true);
         $this->assertCount(1, $images);
-        $this->assertStringStartsWith('reviews/', $images[0]);
+        $this->assertStringStartsWith('uploads/reviews/', $images[0]);
         $this->assertFileExists(upload_path($images[0]));
     }
 

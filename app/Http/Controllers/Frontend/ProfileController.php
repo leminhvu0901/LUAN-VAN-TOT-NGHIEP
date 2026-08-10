@@ -79,13 +79,12 @@ class ProfileController
                     if ($decodedData !== false) {
                         // Đặt tên file ảnh ngẫu nhiên để tránh trùng lặp
                         $filename = time() . '_' . Str::random(10) . '.' . $type;
-                        $dir = public_path('images/avatars');
+                        $dir = upload_dir('avatars');
                         if (!is_dir($dir)) {
                             mkdir($dir, 0755, true);
                         }
                         file_put_contents($dir . '/' . $filename, $decodedData);
-                        // avatar_url()/avatar_path() tự ghép tiền tố 'images/avatars/' - chỉ lưu tên file trần.
-                        $updateData['avatar'] = $filename;
+                        $updateData['avatar'] = upload_rel('avatars', $filename);
                     }
                 }
             }

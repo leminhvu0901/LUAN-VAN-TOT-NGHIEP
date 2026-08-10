@@ -391,11 +391,11 @@
                                     </div>
 
                                     <!-- Right: Map — hiện ở CẢ 3 mode (kể cả 'manual'): trước đây mode 'manual' ẩn bản đồ,
-                                        gửi mù toạ độ để backend tự dò khi lưu -> khách không biết hệ thống có hiểu đúng
-                                        địa chỉ hay không, dẫn tới tính sai khoảng cách/phí ship. Giờ gõ địa chỉ xong, hệ
-                                        thống tự dò và ghim lên bản đồ ngay để khách nhìn thấy + kéo chỉnh nếu sai, giống
-                                        hệt cách mode "Chọn trên bản đồ" đã làm (xem scheduleManualForwardGeocode() ở
-                                        checkout.js). -->
+                                            gửi mù toạ độ để backend tự dò khi lưu -> khách không biết hệ thống có hiểu đúng
+                                            địa chỉ hay không, dẫn tới tính sai khoảng cách/phí ship. Giờ gõ địa chỉ xong, hệ
+                                            thống tự dò và ghim lên bản đồ ngay để khách nhìn thấy + kéo chỉnh nếu sai, giống
+                                            hệt cách mode "Chọn trên bản đồ" đã làm (xem scheduleManualForwardGeocode() ở
+                                            checkout.js). -->
                                     <div id="mapColumn" class="flex flex-col h-full space-y-3">
                                         <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản
                                             đồ</label>
@@ -576,10 +576,16 @@
                                                         $parts[] =
                                                             $cfg->discount_type === 'percent'
                                                                 ? 'giảm ' . (float) $cfg->discount_value . '%'
-                                                                : 'giảm ' . number_format($cfg->discount_value, 0, ',', '.') . 'đ';
+                                                                : 'giảm ' .
+                                                                    number_format($cfg->discount_value, 0, ',', '.') .
+                                                                    'đ';
                                                     }
                                                     if ($cfg->hasGift() && $cfg->giftProduct) {
-                                                        $parts[] = 'tặng ' . $cfg->gift_quantity . ' ' . $cfg->giftProduct->name;
+                                                        $parts[] =
+                                                            'tặng ' .
+                                                            $cfg->gift_quantity .
+                                                            ' ' .
+                                                            $cfg->giftProduct->name;
                                                     }
                                                     $label = 'Combo: ' . implode(', ', $parts);
                                                 } elseif ($promo->type === 'percent') {
@@ -614,7 +620,8 @@
                                                 class="coupon-chip group flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary text-xs font-semibold text-primary transition-all active:scale-95"
                                                 data-code="{{ $promo->code }}"
                                                 title="{{ $label }}{{ $condition ? ' · ' . $condition : '' }}{{ $memberReq ? ' · Hạng ' . $memberReq : '' }}">
-                                                <span class="material-symbols-outlined text-[14px]">{{ $isCombo ? 'redeem' : 'local_offer' }}</span>
+                                                <span
+                                                    class="material-symbols-outlined text-[14px]">{{ $isCombo ? 'redeem' : 'local_offer' }}</span>
                                                 <span>{{ $promo->code }}</span>
                                                 <span class="text-primary/70 font-normal hidden sm:inline">—
                                                     {{ $label }}</span>
@@ -1015,7 +1022,7 @@
                         if (!props || props.lat === undefined || props.lon === undefined) {
                             setLocStatus('notfound',
                                 'Không tìm thấy vị trí cho địa chỉ này. Vui lòng kiểm tra lại hoặc chạm/kéo ghim trên bản đồ bên dưới để chọn thủ công.'
-                                );
+                            );
                             return;
                         }
 
@@ -1035,7 +1042,7 @@
                         if (flagOutOfRange(lat, lng)) {} else if (confidence < MANUAL_GEOCODE_MIN_CONFIDENCE) {
                             setLocStatus('locating',
                                 'Chưa chắc chắn vị trí này đúng — vui lòng nhìn kỹ ghim trên bản đồ, kéo lại nếu chưa đúng.'
-                                );
+                            );
                         } else {
                             setLocStatus('ok', 'Đã xác định vị trí — kiểm tra ghim trên bản đồ, kéo chỉnh nếu chưa đúng.');
                         }
@@ -1346,12 +1353,12 @@
 
                 if (data.description) {
                     lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.description) +
-                    '</p>');
+                        '</p>');
                 }
 
                 if (data.scope_label) {
                     lines.push('<p class="text-on-surface-variant font-normal mt-0.5">' + escapeHtml(data.scope_label) +
-                    '</p>');
+                        '</p>');
                 }
 
                 if (data.end_at) {
@@ -2386,7 +2393,8 @@
                     if (!addressId) return;
 
                     fetch(
-                            `/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`)
+                            `/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`
+                            )
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
@@ -2418,7 +2426,7 @@
                         if (activeAddressName) activeAddressName.innerText = radio.dataset.fullname;
                         if (activeAddressPhone) activeAddressPhone.innerText = radio.dataset.phone;
                         if (activeAddressDetails) activeAddressDetails.innerText = radio.dataset
-                        .address;
+                            .address;
 
                         updateDistanceForAddress(radio.value);
 

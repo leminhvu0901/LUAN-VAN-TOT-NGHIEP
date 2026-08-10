@@ -134,9 +134,8 @@ class CustomerController
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            // avatar_url()/avatar_path() tự ghép tiền tố 'images/avatars/' - chỉ lưu tên file trần.
-            $data['avatar'] = $filename;
+            $file->move(upload_dir('avatars'), $filename);
+            $data['avatar'] = upload_rel('avatars', $filename);
         }
 
         User::create($data); // Lưu thông tin khách hàng mới vào Database thông qua Eloquent Model
@@ -282,8 +281,8 @@ class CustomerController
 
             $file = $request->file('avatar');
             $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('images/avatars'), $filename);
-            $data['avatar'] = $filename;
+            $file->move(upload_dir('avatars'), $filename);
+            $data['avatar'] = upload_rel('avatars', $filename);
         }
 
         $customer->update($data); // Thực hiện cập nhật các thay đổi mới vào CSDL

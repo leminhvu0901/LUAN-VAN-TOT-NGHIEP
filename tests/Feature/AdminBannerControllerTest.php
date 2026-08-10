@@ -31,7 +31,7 @@ class AdminBannerControllerTest extends TestCase
         $response->assertSessionHasNoErrors();
 
         $banner = Banner::firstOrFail();
-        $this->assertStringStartsWith('banners/', $banner->image_url);
+        $this->assertStringStartsWith('uploads/banners/', $banner->image_url);
         $this->assertFileExists(upload_path($banner->image_url));
     }
 
