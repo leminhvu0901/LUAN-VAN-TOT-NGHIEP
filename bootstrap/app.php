@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Dùng '*' vì địa chỉ IP proxy biên của Railway không cố định để liệt kê sẵn.
         $middleware->trustProxies(at: '*');
 
+        // Đếm lượt truy cập trong ngày. Phải append vào nhóm 'web' (chạy SAU khi session đã khởi
+        // tạo) vì middleware dựa vào session để mỗi phiên chỉ tính 1 lượt/ngày.
+        $middleware->web(append: [
+            \App\Http\Middleware\TrackDailyVisit::class,
+        ]);
+
         // Loại trừ kiểm tra CSRF cho các đường dẫn test trên Postman và MoMo IPN
         $middleware->validateCsrfTokens(except: [
             'checkout/momo/ipn',
