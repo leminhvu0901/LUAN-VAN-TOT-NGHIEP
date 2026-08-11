@@ -60,16 +60,9 @@
                 </label>
                 <div class="space-y-4">
                     @php
-                        $bannerUrl = $banner->image_url;
-                        if (file_exists(public_path($bannerUrl))) {
-                            $fullImageUrl = asset($bannerUrl);
-                        } elseif (file_exists(public_path('storage/' . $bannerUrl))) {
-                            $fullImageUrl = asset('storage/' . $bannerUrl);
-                        } elseif (strpos($bannerUrl, 'banners/') === 0) {
-                            $fullImageUrl = asset('images/banners/' . basename($bannerUrl));
-                        } else {
-                            $fullImageUrl = asset($bannerUrl);
-                        }
+                        // Dùng upload_url() dùng chung: nó xử lý đúng cả ảnh cũ ("banners/x.jpg")
+                        // lẫn ảnh mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn.
+                        $fullImageUrl = upload_url($banner->image_url);
                     @endphp
 
                     <!-- Preview Container -->

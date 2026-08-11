@@ -5,27 +5,14 @@
 
 @section('content')
 
-    {{-- Helper function to safely resolve banner URL --}}
+    {{-- Dựng URL ảnh banner. Dùng upload_url() dùng chung thay vì tự ghép đường dẫn: bản cũ cắt
+         basename() rồi ghép cứng 'images/banners/' nên làm mất phần thư mục con, ảnh mới tải lên
+         (nằm trong images/uploads/banners/) sẽ trỏ sai chỗ và vỡ ảnh. --}}
     @php
         if (!function_exists('getBannerUrl')) {
             function getBannerUrl($path)
             {
-                if (empty($path)) {
-                    return '';
-                }
-                if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-                    return $path;
-                }
-                if (file_exists(public_path($path))) {
-                    return asset($path);
-                }
-                if (file_exists(public_path('storage/' . $path))) {
-                    return asset('storage/' . $path);
-                }
-                if (strpos($path, 'banners/') === 0) {
-                    return asset('images/banners/' . basename($path));
-                }
-                return asset($path);
+                return upload_url($path) ?? '';
             }
         }
     @endphp

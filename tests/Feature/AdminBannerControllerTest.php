@@ -9,11 +9,49 @@ use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
- * Bộ test này xác nhận toàn bộ luồng CRUD và quy ước lưu ảnh banner dưới public/images/banners.
+ * Bộ test này xác nhận toàn bộ luồng CRUD và quy ước lưu ảnh banner: ảnh mẫu đi kèm mã nguồn nằm ở
+ * public/images/banners, ảnh admin tự tải lên nằm ở public/images/uploads/banners (thư mục được gắn
+ * ổ đĩa bền vững khi chạy trên Railway).
  */
 class AdminBannerControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Trang danh sách và trang sửa phải dựng đúng URL cho CẢ 2 kiểu đường dẫn.
+     * Trước đây 2 view này tự cắt basename() rồi ghép cứng 'images/banners/' nên ảnh mới tải lên
+     * (có thêm thư mục con 'uploads/') bị mất đường dẫn và vỡ ảnh.
+     */
+    public function test_banner_pages_render_correct_image_url_for_both_old_and_new_paths(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $legacy = Banner::create([
+            'title' => 'Banner mẫu cũ',
+            'image_url' => 'banners/slider-1.png',
+            'image' => 'banners/slider-1.png',
+            'position' => 'home_slider',
+            'is_active' => 1,
+        ]);
+        $uploaded = Banner::create([
+            'title' => 'Banner mới tải lên',
+            'image_url' => 'uploads/banners/moi.png',
+            'image' => 'uploads/banners/moi.png',
+            'position' => 'home_slider',
+            'is_active' => 1,
+        ]);
+
+        $list = $this->actingAs($admin)->get('/admin/banners');
+        $list->assertOk();
+        $list->assertSee('/images/banners/slider-1.png', false);
+        $list->assertSee('/images/uploads/banners/moi.png', false);
+
+        $this->actingAs($admin)->get("/admin/banners/{$legacy->id}/edit")
+            ->assertOk()->assertSee('/images/banners/slider-1.png', false);
+
+        $this->actingAs($admin)->get("/admin/banners/{$uploaded->id}/edit")
+            ->assertOk()->assertSee('/images/uploads/banners/moi.png', false);
+    }
 
     public function test_admin_can_create_banner_with_image_stored_in_images_directory(): void
     {

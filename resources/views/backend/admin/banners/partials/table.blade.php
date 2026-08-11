@@ -46,16 +46,9 @@
                                 $statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
                             }
 
-                            $bannerUrl = $banner->image_url;
-                            if (file_exists(public_path($bannerUrl))) {
-                                $fullImageUrl = asset($bannerUrl);
-                            } elseif (file_exists(public_path('storage/' . $bannerUrl))) {
-                                $fullImageUrl = asset('storage/' . $bannerUrl);
-                            } elseif (strpos($bannerUrl, 'banners/') === 0) {
-                                $fullImageUrl = asset('images/banners/' . basename($bannerUrl));
-                            } else {
-                                $fullImageUrl = asset($bannerUrl);
-                            }
+                            // Dùng upload_url() dùng chung: xử lý đúng cả ảnh cũ ("banners/x.jpg") lẫn ảnh
+                            // mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn rồi ghép sai.
+                            $fullImageUrl = upload_url($banner->image_url);
                         @endphp
                         <tr id="banner-row-{{ $banner->id }}" class="hover:bg-gray-50/40 transition-colors select-row-tr" data-id="{{ $banner->id }}">
                             <!-- Checkbox -->
@@ -188,16 +181,9 @@
                         $statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
                     }
 
-                    $bannerUrl = $banner->image_url;
-                    if (file_exists(public_path($bannerUrl))) {
-                        $fullImageUrl = asset($bannerUrl);
-                    } elseif (file_exists(public_path('storage/' . $bannerUrl))) {
-                        $fullImageUrl = asset('storage/' . $bannerUrl);
-                    } elseif (strpos($bannerUrl, 'banners/') === 0) {
-                        $fullImageUrl = asset('images/banners/' . basename($bannerUrl));
-                    } else {
-                        $fullImageUrl = asset($bannerUrl);
-                    }
+                    // Dùng upload_url() dùng chung: xử lý đúng cả ảnh cũ ("banners/x.jpg") lẫn ảnh
+                    // mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn rồi ghép sai.
+                    $fullImageUrl = upload_url($banner->image_url);
                 @endphp
                 {{-- Không đặt overflow-wrap/word-break ở thẻ card này: nó KẾ THỪA xuống 3 nút thao tác
                      bên dưới, làm min-content của nút bằng 0 nên nút flex-1 co lại và chữ bị bẻ giữa từ
