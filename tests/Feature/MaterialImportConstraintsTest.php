@@ -7,57 +7,83 @@ use App\Models\Material;
 use App\Models\MaterialImport;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class MaterialImportConstraintsTest extends TestCase
 {
+    // Đánh dấu test này có tự tạo 4 bảng dưới đây hay không, để tearDown() biết có cần dọn không.
+    private bool $ownsSchema = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Schema::create('materials', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('unit');
-            $table->decimal('unit_price', 12, 2)->default(0);
-            $table->decimal('current_stock', 10, 2)->default(0);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
+        // Trên SQLite :memory: (khi chạy `php artisan test` cục bộ bình thường), test này không
+        // dùng RefreshDatabase nên mỗi lần chạy nhận một kết nối :memory: hoàn toàn trống — 4 bảng
+        // dưới đây luôn chưa tồn tại. Nhưng trên MySQL thật (CI, hoặc DB cục bộ đã `migrate` sẵn),
+        // các bảng này đã tồn tại từ migration thật — CI còn giữ nguyên schema đó suốt cả tiến trình
+        // vì các test khác dùng RefreshDatabase chỉ rollback DỮ LIỆU, không xoá bảng giữa các lần
+        // chạy — nên Schema::create() ở đây sẽ báo lỗi "already exists". Cấu trúc materials/
+        // material_imports thật khớp 1-1 với schema tối giản test này cần, còn products/
+        // product_materials không hề được ghi dữ liệu trực tiếp trong các test bên dưới (chỉ cần
+        // tồn tại cho code đang test truy vấn), nên dùng lại bảng thật hoàn toàn an toàn.
+        $this->ownsSchema = !Schema::hasTable('materials');
 
-        Schema::create('material_imports', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('material_id');
-            $table->decimal('quantity', 10, 2);
-            $table->decimal('remaining_quantity', 10, 2)->nullable();
-            $table->decimal('total_price', 12, 2);
-            $table->string('note')->nullable();
-            $table->date('expiration_date')->nullable();
-            $table->timestamps();
-        });
+        if ($this->ownsSchema) {
+            Schema::create('materials', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('unit');
+                $table->decimal('unit_price', 12, 2)->default(0);
+                $table->decimal('current_stock', 10, 2)->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
 
-        Schema::create('products', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+            Schema::create('material_imports', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('material_id');
+                $table->decimal('quantity', 10, 2);
+                $table->decimal('remaining_quantity', 10, 2)->nullable();
+                $table->decimal('total_price', 12, 2);
+                $table->string('note')->nullable();
+                $table->date('expiration_date')->nullable();
+                $table->timestamps();
+            });
 
-        Schema::create('product_materials', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('product_id');
-            $table->unsignedBigInteger('material_id');
-            $table->decimal('quantity_used', 10, 2)->default(0);
-            $table->timestamps();
-        });
+            Schema::create('products', function (Blueprint $table) {
+                $table->id();
+                $table->timestamps();
+            });
+
+            Schema::create('product_materials', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('product_id');
+                $table->unsignedBigInteger('material_id');
+                $table->decimal('quantity_used', 10, 2)->default(0);
+                $table->timestamps();
+            });
+        } else {
+            // Đang dùng chung bảng thật với các test khác trong cùng tiến trình -> tự bọc transaction
+            // để dữ liệu test này chèn vào không rò rỉ sang các test chạy sau (RefreshDatabase làm
+            // việc này tự động, nhưng class này không dùng RefreshDatabase).
+            DB::beginTransaction();
+        }
     }
 
     protected function tearDown(): void
     {
-        Schema::dropIfExists('product_materials');
-        Schema::dropIfExists('products');
-        Schema::dropIfExists('material_imports');
-        Schema::dropIfExists('materials');
+        if ($this->ownsSchema) {
+            Schema::dropIfExists('product_materials');
+            Schema::dropIfExists('products');
+            Schema::dropIfExists('material_imports');
+            Schema::dropIfExists('materials');
+        } else {
+            DB::rollBack();
+        }
 
         parent::tearDown();
     }
