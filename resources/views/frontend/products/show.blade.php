@@ -345,12 +345,10 @@
                         cả</a>
                     @for ($star = 5; $star >= 1; $star--)
                         <a href="{{ route('product.show', $product->slug) }}?rating={{ $star }}#reviews-section"
-                            class="pd-review-filter-btn review-filter-btn {{ request('rating') == $star ? 'is-active' : '' }}">{{ $star }}
-                            sao ({{ $ratingDistribution[$star] ?? 0 }})</a>
+                            class="pd-review-filter-btn review-filter-btn {{ request('rating') == $star ? 'is-active' : '' }}">{{ $star }} sao ({{ $ratingDistribution[$star] ?? 0 }})</a>
                     @endfor
                     <a href="{{ route('product.show', $product->slug) }}?has_image=1#reviews-section"
-                        class="pd-review-filter-btn review-filter-btn {{ request('has_image') ? 'is-active' : '' }}">Có
-                        hình ảnh ({{ $hasImageCount }})</a>
+                        class="pd-review-filter-btn review-filter-btn {{ request('has_image') ? 'is-active' : '' }}">Có hình ảnh ({{ $hasImageCount }})</a>
                 </div>
 
                 <div class="pd-review-list">

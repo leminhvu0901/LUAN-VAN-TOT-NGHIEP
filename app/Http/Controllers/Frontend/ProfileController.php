@@ -414,6 +414,24 @@ class ProfileController
         return redirect()->route('checkout')->with('success', 'Đã xóa địa chỉ giao hàng.');
     }
 
+    // Đặt một địa chỉ đã lưu làm mặc định — chỉ tác động nếu địa chỉ đó thuộc về chính user đang
+    // đăng nhập (where user_id lọc sẵn), nếu id thuộc người khác thì câu update() không khớp dòng
+    // nào, coi như bỏ qua trong im lặng thay vì báo lỗi.
+    public function setDefaultAddress(Request $request, $id)
+    {
+        $userId = Auth::id();
+
+        if (UserAddress::query()->where('id', $id)->where('user_id', $userId)->exists()) {
+            UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
+            UserAddress::query()->where('id', $id)->update(['is_default' => true]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return redirect()->route('checkout')->with('success', 'Đã đặt địa chỉ mặc định.');
+    }
+
     // Đổi mật khẩu tài khoản
     public function changePassword(Request $request)
     {
