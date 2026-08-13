@@ -11,7 +11,7 @@ return [
     // Cấu hình danh sách các kết nối cơ sở dữ liệu
     'connections' => [
 
-        // Cơ sở dữ liệu SQLite (lưu file trực tiếp trên ổ đĩa)
+        // Cơ sở dữ liệu SQLite
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
@@ -24,7 +24,7 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
-        // Cơ sở dữ liệu MySQL (phổ biến nhất)
+        // Cơ sở dữ liệu MySQL
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
@@ -45,7 +45,7 @@ return [
             ]) : [],
         ],
 
-        // Cơ sở dữ liệu MariaDB (hệ quản trị mã nguồn mở tương thích MySQL)
+        // Cơ sở dữ liệu MariaDB
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -66,7 +66,7 @@ return [
             ]) : [],
         ],
 
-        // Cơ sở dữ liệu PostgreSQL (mạnh mẽ và bảo mật cao)
+        // Cơ sở dữ liệu PostgreSQL
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
@@ -82,7 +82,7 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
-        // Cơ sở dữ liệu Microsoft SQL Server (do Microsoft phát triển)
+        // Cơ sở dữ liệu Microsoft SQL Server
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
@@ -98,7 +98,7 @@ return [
 
     ],
 
-    // Tên bảng ghi nhận lịch sử các bản cập nhật CSDL (migration)
+    // Tên bảng ghi nhận lịch sử các bản cập nhật CSDL
     'migrations' => [
         'table' => 'migrations',
         'update_date_on_publish' => true,
@@ -107,7 +107,7 @@ return [
     // Cấu hình các kết nối tới cơ sở dữ liệu RAM ảo Redis
     'redis' => [
 
-        // Client thư viện kết nối (phpredis hoặc predis)
+        // Client thư viện kết nối
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
         // Tùy chọn chung cho toàn bộ kết nối Redis

@@ -1,6 +1,6 @@
 <div class="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-x-auto custom-scrollbar relative w-full">
 @if($materials->count() > 0)
-    <!-- Giao diện Mobile (Card view) -->
+    <!-- Giao diện Mobile -->
     <div class="block md:hidden space-y-4 p-4 w-full">
         <div class="flex items-center justify-between mb-2">
             <label class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer">
@@ -40,7 +40,7 @@
                         }
                     }
 
-                    // Nếu không có lô nào gặp vấn đề (hoặc không có lô nào)
+                    // Nếu không có lô nào gặp vấn đề
                     if (empty($statuses)) {
                         if ($material->current_stock < 5) {
                             $statuses[] = ['text' => 'Sắp hết', 'color' => 'bg-orange-100 text-orange-700', 'dot' => 'bg-orange-500'];
@@ -116,7 +116,7 @@
     </div>
 @endif
 
-<!-- Giao diện Desktop (Table view) -->
+<!-- Giao diện Desktop -->
 <div class="hidden md:block">
     <table class="w-full text-left border-collapse relative">
         <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
@@ -172,7 +172,7 @@
                             }
                         }
 
-                        // Nếu không có lô nào gặp vấn đề (hoặc không có lô nào)
+                        // Nếu không có lô nào gặp vấn đề
                         if (empty($statuses)) {
                             if ($material->current_stock < 5) {
                                 $statuses[] = ['text' => 'Sắp hết', 'color' => 'bg-orange-100 text-orange-700', 'dot' => 'bg-orange-500'];

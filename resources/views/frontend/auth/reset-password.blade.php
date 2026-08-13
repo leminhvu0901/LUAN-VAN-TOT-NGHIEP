@@ -1,15 +1,8 @@
-{{-- Khung Modal Đặt lại mật khẩu (Mặc định được ẩn bằng CSS, tự động hiển thị nếu Session đánh dấu
-đã xác thực OTP quên mật khẩu thành công). Trước đây đây là 1 TRANG RIÊNG (route GET /reset-password)
-điều hướng cả trang - giờ chuyển thành modal giống hệt Đăng nhập/Đăng ký để không phải rời trang. --}}
-{{-- Mở modal theo cờ FLASH 'show_reset_password' HOẶC khi vừa submit lỗi (reset_error) — cả 2 đều chỉ
-sống đúng 1 request nên an toàn, giống hệt cách modal Đăng nhập/Đăng ký đang làm. TUYỆT ĐỐI KHÔNG dùng
-session('can_reset_password') ở đây: đó là cờ QUYỀN, tồn tại lâu trong session cho tới khi bị xoá - nếu
-dùng nó, chỉ cần tải lại trang bất kỳ (vd bấm "Gửi lại" mã OTP) là modal tự bung ra, cho phép đặt lại
-mật khẩu mà KHÔNG cần nhập đúng OTP. Đây là lỗ hổng bảo mật thật đã từng xảy ra - xem test
-test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
+
+
 <div id="reset-password-modal" data-show-reset-password="{{ (session('show_reset_password') || $errors->has('reset_error') || $errors->has('password')) ? 'true' : 'false' }}">
 
-    {{-- Lớp nền tối mờ phía sau Modal (Overlay) --}}
+    {{-- Lớp nền tối mờ phía sau Modal --}}
     <div id="reset-password-overlay"></div>
 
     {{-- Khung căn giữa màn hình cho nội dung Modal --}}
@@ -42,7 +35,7 @@ test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
                 </div>
             </div>
 
-            {{-- Tiêu đề chính của form và phần văn bản mô tả quy định độ phức tạp mật khẩu --}}
+            {{-- Tiêu đề chính của form và phần văn bản mô tả quy --}}
             <h2 class="reset-main-title">Mật khẩu mới</h2>
             <p class="reset-desc">
                 Mật khẩu của bạn phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
@@ -53,8 +46,7 @@ test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
                 {{-- Token bảo mật tránh tấn công giả mạo yêu cầu chéo CSRF --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi chung (vd phiên xác thực hết hạn, không tìm thấy tài khoản,
-                mật khẩu không đủ mạnh) khi server trả về lỗi sau khi submit form thật. --}}
+                
                 <div id="reset-password-error-alert" class="l-error-alert {{ $errors->has('reset_error') ? '' : 'hidden' }}">
                     {{ $errors->first('reset_error') }}
                 </div>
@@ -65,7 +57,7 @@ test_reset_modal_does_not_auto_open_from_lingering_permission_flag. --}}
                     <div class="l-input-wrap">
                         <input type="password" id="reset_password" name="password" class="l-input has-password-toggle"
                             placeholder="Nhập mật khẩu mới" required>
-                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js) --}}
+                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="reset_password" aria-label="Hiện/ẩn mật khẩu">
                             <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
                         </button>

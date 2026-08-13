@@ -18,11 +18,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * Bổ sung test cho các hành động phía khách hàng trước đây chưa có: yêu thích sản phẩm (favorite
- * toggle), giỏ hàng (thêm tất cả từ yêu thích/đổi số lượng/chọn sản phẩm để thanh toán), sổ địa chỉ
- * (sửa/xóa/đặt mặc định - trước đây chỉ có test cho "thêm mới"), và đặt lại đơn cũ (reorder).
- */
+// Bổ sung test cho các hành động phía khách hàng trước đây chưa có: yêu thích sản phẩm (favorite
+// toggle), giỏ hàng (thêm tất cả từ yêu thích/đổi số lượng/chọn sản phẩm để thanh toán), sổ địa chỉ
+// (sửa/xóa/đặt mặc định - trước đây chỉ có test cho "thêm mới"), và đặt lại đơn cũ (reorder).
 class FrontendCustomerActionsTest extends TestCase
 {
     use RefreshDatabase;
@@ -161,10 +159,8 @@ class FrontendCustomerActionsTest extends TestCase
         $this->assertSame(1, (int) $item->fresh()->quantity);
     }
 
-    /**
-     * "Xóa đã chọn" (cart.remove-many) - trước đây giỏ hàng không có cách nào xóa nhiều sản phẩm
-     * cùng lúc, phải xóa từng món một. Chỉ được xóa item thuộc CHÍNH giỏ hàng của mình.
-     */
+    // "Xóa đã chọn" (cart.remove-many) - trước đây giỏ hàng không có cách nào xóa nhiều sản phẩm
+    // cùng lúc, phải xóa từng món một. Chỉ được xóa item thuộc CHÍNH giỏ hàng của mình.
     public function test_cart_remove_many_deletes_only_specified_items_from_own_cart(): void
     {
         $owner = User::factory()->create(['role' => 'customer']);
@@ -196,9 +192,7 @@ class FrontendCustomerActionsTest extends TestCase
         $this->actingAs($user)->postJson('/cart/remove-many', ['item_ids' => []])->assertStatus(422);
     }
 
-    /**
-     * "Xóa tất cả" (cart.clear) - chỉ xóa sạch giỏ hàng của CHÍNH mình, không đụng giỏ hàng người khác.
-     */
+    // "Xóa tất cả" (cart.clear) - chỉ xóa sạch giỏ hàng của CHÍNH mình, không đụng giỏ hàng người khác.
     public function test_cart_clear_empties_only_own_cart(): void
     {
         $owner = User::factory()->create(['role' => 'customer']);
@@ -418,11 +412,9 @@ class FrontendCustomerActionsTest extends TestCase
         $this->actingAs($user)->post("/orders/{$order->id}/reorder")->assertStatus(404);
     }
 
-    /**
-     * Nút "Mua lại" trên trang danh sách đơn từng bị khóa "hidden md:inline-block" - ẩn hoàn toàn
-     * trên di động, chỉ hiện trên desktop. Khóa lại bằng cách kiểm tra nút KHÔNG còn nằm trong 1
-     * phần tử mang class "hidden" (Tailwind ẩn hẳn khỏi layout, không phải chỉ thu nhỏ).
-     */
+    // Nút "Mua lại" trên trang danh sách đơn từng bị khóa "hidden md:inline-block" - ẩn hoàn toàn
+    // trên di động, chỉ hiện trên desktop. Khóa lại bằng cách kiểm tra nút KHÔNG còn nằm trong 1
+    // phần tử mang class "hidden" (Tailwind ẩn hẳn khỏi layout, không phải chỉ thu nhỏ).
     public function test_reorder_button_is_visible_on_mobile_not_just_desktop(): void
     {
         $user = User::factory()->create(['role' => 'customer']);

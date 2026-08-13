@@ -46,7 +46,7 @@ class GeoapifyService
         }
     }
 
-    // Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ - kinh độ)
+    // Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ
     public function geocodeAddress(string $address, ?float $biasLat = null, ?float $biasLng = null): ?array
     {
         $key = $this->apiKey(); // Lấy API Key phục vụ gọi API bên ngoài
@@ -63,7 +63,7 @@ class GeoapifyService
                 'apiKey' => $key,
             ];
 
-            // Thêm tham số định vị ưu tiên theo khu vực quanh tọa độ mốc nếu có
+            // Thêm tham số định vị ưu tiên theo khu vực quanh tọa độ
             if ($biasLat !== null && $biasLng !== null) {
                 $params['bias'] = 'proximity:' . $biasLng . ',' . $biasLat;
             }

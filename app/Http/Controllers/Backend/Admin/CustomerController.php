@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController
 {
-    //Hàm lấy danh sách khách hàng và hiển thị, lọc
+    // Hàm lấy danh sách khách hàng và hiển thị, lọc
     public function index(Request $request)
     {
         $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng (role = customer)
@@ -93,10 +93,10 @@ class CustomerController
     }
 
 
-    //Hàm xử lý lưu thông tin khách hàng mới vào Database.
+    // Hàm xử lý lưu thông tin khách hàng mới vào Database.
     public function store(Request $request)
     {
-        // 1. Name: trim khoảng trắng đầu/cuối và nhiều khoảng trắng liên tiếp
+        // 1. Name: trim khoảng trắng đầu/cuối và nhiều khoảng
         if ($request->has('name')) {
             $request->merge(['name' => preg_replace('/\s+/', ' ', trim($request->name))]);
         }
@@ -143,12 +143,12 @@ class CustomerController
         return redirect()->route('admin.customers.index')->with('success', 'Thêm khách hàng thành công!'); // Chuyển hướng về trang danh sách kèm thông báo
     }
 
-    //Hàm hiển thị trang hồ sơ chi tiết của một khách hàng cụ thể.
+    // Hàm hiển thị trang hồ sơ chi tiết của một khách hàng cụ thể.
     public function show($id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID, ném lỗi 404 nếu không tồn tại
 
-        // Lấy số lượng đơn hàng (giả sử model User có qh orders, nếu chưa có thì dùng Query Builder)
+        // Lấy số lượng đơn hàng (giả sử model User có qh orders,
         $totalOrders = DB::table('orders')->where('user_id', $id)->count(); // Đếm tổng số đơn hàng đã đặt
         $totalSpent = DB::table('orders')->where('user_id', $id)->where('status', '!=', 'cancelled')->sum('total_amount'); // Tính tổng số tiền đã mua (trừ đơn hủy)
 
@@ -162,7 +162,7 @@ class CustomerController
         return view('backend.admin.customers.show', compact('customer', 'totalOrders', 'totalSpent', 'recentOrders')); // Load giao diện hồ sơ khách hàng
     }
 
-    //Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động của tài khoản khách hàng.
+    // Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động
     public function toggleStatus(Request $request, $id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
@@ -180,7 +180,7 @@ class CustomerController
         return redirect()->route('admin.customers.index')->with('success', 'Cập nhật trạng thái thành công!');
     }
 
-    //xoa hang loat khách hang dược chọn
+    // xoa hang loat khách hang dược chọn
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('ids', []);

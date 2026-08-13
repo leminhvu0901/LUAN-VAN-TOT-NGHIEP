@@ -18,9 +18,9 @@ class OrderWorkflowService
     ];
 
 
-    // Đơn tại quầy (pickup) không có bước giao hàng — khách nhận trực tiếp nên bỏ qua "shipping",
+    // Đơn tại quầy (pickup) không có bước giao hàng — khách
     // xác nhận xong là hoàn thành luôn. Giữ 'shipping' => ['completed', 'cancelled'] để tương thích
-    // ngược cho các đơn pickup cũ (nếu có) đã lỡ ở trạng thái này từ trước khi đổi luồng.
+    // ngược cho các đơn pickup cũ (nếu có) đã lỡ ở trạng
     private const PICKUP_TRANSITIONS = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['completed', 'cancelled'],
@@ -32,7 +32,7 @@ class OrderWorkflowService
     // Khởi tạo dịch vụ xử lý quy trình đơn hàng
     public function __construct(private readonly NotificationService $notifications) {}
 
-    // Chuyển trạng thái đơn hàng và xử lý các điều kiện nghiệp vụ đi kèm
+    // Chuyển trạng thái đơn hàng và xử lý các điều kiện
     public function transition(Order $order, string $newStatus, ?string $cancelReason = null): Order
     {
         return DB::transaction(function () use ($order, $newStatus, $cancelReason) {
@@ -56,7 +56,7 @@ class OrderWorkflowService
                 throw ValidationException::withMessages(['status' => "Không thể chuyển từ {$locked->status} sang {$newStatus}."]);
             }
 
-            // Đơn tiền mặt tại quầy phải thu tiền trước khi xác nhận đơn hàng
+            // Đơn tiền mặt tại quầy phải thu tiền trước khi xác nhận
             if ($newStatus === 'confirmed' && $locked->payment_method === 'cash' && $locked->payment_status !== 'paid') {
                 throw ValidationException::withMessages(['status' => 'Cần xác nhận đã thu tiền mặt trước khi xác nhận đơn hàng.']);
             }
@@ -93,7 +93,7 @@ class OrderWorkflowService
         }, 3);
     }
 
-    // Đánh dấu đơn hàng đã thanh toán thành công 
+    // Đánh dấu đơn hàng đã thanh toán thành công
     public function markPaid(Order $order, string $transactionId, float $amount, ?\Carbon\Carbon $paidAtOverride = null): Order
     {
         $wasAlreadyPaid = false;
@@ -272,11 +272,11 @@ class OrderWorkflowService
         }, 3);
     }
 
-    // Đối soát tiền mặt toàn bộ đơn hàng COD chưa quyết toán của nhân viên giao hàng
+    // Đối soát tiền mặt toàn bộ đơn hàng COD chưa quyết toán
     public function settleAllCodForDeliveryStaff(int $deliveryStaffId, int $settledByUserId): int
     {
         return DB::transaction(function () use ($deliveryStaffId, $settledByUserId) {
-            // Tìm danh sách tất cả các đơn COD hoàn thành chưa đối soát của shipper
+            // Tìm danh sách tất cả các đơn COD hoàn thành chưa đối
             $orders = Order::query()
                 ->where('delivery_staff_id', $deliveryStaffId)
                 ->where('payment_method', 'cod')
@@ -294,7 +294,7 @@ class OrderWorkflowService
         }, 3);
     }
 
-    // Tự động hủy các đơn hàng online bị treo quá lâu không thanh toán
+    // Tự động hủy các đơn hàng online bị treo quá lâu không
     public function cancelStalePendingPayments(int $minutes = 15): int
     {
         // Lấy danh sách các đơn VNPay quá hạn chưa thanh toán
@@ -319,7 +319,7 @@ class OrderWorkflowService
         return $cancelledCount;
     }
 
-    // Hoàn lại lượt dùng khuyến mãi và điểm tích lũy của khách hàng khi hủy đơn
+    // Hoàn lại lượt dùng khuyến mãi và điểm tích lũy của
     private function applyCancelCleanup(Order $locked, string $cancelReason): void
     {
         // Hoàn trả lượt dùng mã khuyến mãi nếu đơn có áp dụng
@@ -335,12 +335,12 @@ class OrderWorkflowService
         $locked->cancel_reason = trim($cancelReason);
     }
 
-    // Khóa đơn hàng đang giao và kiểm tra tính hợp lệ trước khi shipper báo lỗi
+    // Khóa đơn hàng đang giao và kiểm tra tính hợp lệ trước
     private function lockShippingOrderAndValidate(Order $order, string $reason): Order
     {
         $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
 
-        // Chỉ cho phép báo lỗi đối với đơn hàng đang trong trạng thái giao
+        // Chỉ cho phép báo lỗi đối với đơn hàng đang trong trạng
         if ($locked->status !== 'shipping') {
             throw ValidationException::withMessages([
                 'status' => 'Chỉ đơn đang giao mới được đánh dấu giao thất bại.',
@@ -357,7 +357,7 @@ class OrderWorkflowService
         return $locked;
     }
 
-    // Cập nhật thông tin giao hàng thất bại và hoàn trả ưu đãi cho đơn hàng
+    // Cập nhật thông tin giao hàng thất bại và hoàn trả ưu
     private function applyDeliveryFailedCleanup(Order $locked, string $reason, string $failureType): void
     {
         // Hoàn lại lượt dùng mã khuyến mãi
@@ -382,10 +382,10 @@ class OrderWorkflowService
         ]);
     }
 
-    // Tự động cộng điểm tích lũy thành viên dựa trên giá trị đơn hàng hoàn thành
+    // Tự động cộng điểm tích lũy thành viên dựa trên giá trị
     private function awardPointsOnce(Order $order): void
     {
-        // Không cộng điểm nếu đơn không có tài khoản thành viên hoặc đã được cộng rồi
+        // Không cộng điểm nếu đơn không có tài khoản thành viên
         if (!$order->user_id || (int) $order->loyalty_points_awarded > 0) {
             return;
         }

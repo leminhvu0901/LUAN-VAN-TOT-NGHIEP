@@ -1,22 +1,17 @@
-{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
+{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web --}}
 @extends('frontend.layouts.app')
 
-{{-- Đặt tên class CSS riêng cho thẻ body của trang quản lý đơn hàng. Thêm "orders-page-body" để
-     bật lại navbar chung (search/yêu thích/giỏ hàng/tài khoản) trên mobile — mặc định class
-     "profile-body" ẩn navbar chung để dùng header riêng, nhưng trang Đơn hàng muốn dùng navbar
-     chung giống trang Sản phẩm (xem override trong users.css). --}}
 @section('body_class', 'profile-body orders-page-body')
 
-
 @section('content')
-    {{-- Khung chứa chính của trang web. Nếu có mã đơn hàng từ session (ví dụ sau khi đặt hàng/đánh giá xong), thuộc tính data-open-order-id sẽ truyền dữ liệu cho JS tự động mở chi tiết --}}
+    {{-- Khung chứa chính của trang web --}}
     <div class="min-h-screen md:flex bg-background text-on-surface md:text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container relative pb-24 md:pb-0"
         data-open-order-id="{{ session('open_order_id') }}">
 
         <!-- Khu vực hiển thị nội dung chính -->
         <main class="flex-1 pt-4 md:pt-stack_lg px-4 md:px-stack_lg pb-stack_lg w-full max-w-6xl mx-auto relative z-10">
             <div class="w-full">
-                {{-- Hiển thị thông báo thành công từ Session (ví dụ khi hủy đơn, đánh giá thành công) --}}
+                {{-- Hiển thị thông báo thành công từ Session --}}
                 @if (session('success'))
                     <div
                         class="bg-secondary-container text-on-secondary-container border border-outline-variant px-4 py-3 rounded-xl mb-6 shadow-sm flex items-center gap-2">
@@ -45,13 +40,13 @@
                     </div>
                 @endif
 
-                <!-- DESKTOP: Tiêu đề trang dành cho màn hình lớn -->
+                <!-- Tiêu đề trang -->
                 <div class="hidden md:block mb-stack_lg">
                     <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Đơn hàng của tôi</h1>
                     <p class="font-body-md text-body-md text-on-surface-variant">Xem lại lịch sử các đơn hàng bạn đã đặt</p>
                 </div>
 
-                <!-- Thanh lọc đơn hàng theo trạng thái (Tất cả, Chờ xác nhận, Đang giao,...) -->
+                <!-- Thanh lọc đơn hàng theo trạng thái -->
                 <div
                     class="flex gap-2 md:gap-4 mb-6 md:mb-8 overflow-x-auto pb-2 hide-scrollbar sticky md:static top-16 z-10 bg-background/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none pt-2 md:pt-0">
                     <a href="{{ route('orders') }}"
@@ -80,7 +75,7 @@
                         <div
                             class="bg-white rounded-2xl md:rounded-xl border border-outline-variant p-4 md:p-6 shadow-sm md:shadow-none md:order-card-hover transition-all duration-300">
 
-                            <!-- Phần đầu của mỗi Thẻ Đơn hàng (Mã đơn hàng, ngày đặt, trạng thái đơn) -->
+                            <!-- Phần đầu của mỗi Thẻ Đơn hàng -->
                             <div
                                 class="flex justify-between items-start mb-3 md:mb-6 border-b border-gray-100 md:border-outline-variant pb-3 md:pb-4">
                                 <div>
@@ -141,10 +136,10 @@
                                 @endswitch
                             </div>
 
-                            <!-- Phần thân Thẻ Đơn hàng (Hình ảnh minh họa sản phẩm, Tên món, Tổng tiền, Nút tương tác) -->
+                            <!-- Phần thân Thẻ Đơn hàng -->
                             <div class="flex flex-col md:flex-row md:items-center justify-between">
                                 <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-0 flex-1 min-w-0">
-                                    {{-- Giao diện di động: Chỉ hiển thị hình ảnh của sản phẩm đầu tiên --}}
+                                    {{-- Giao diện di động: Chỉ hiển thị hình ảnh của sản --}}
                                     <div
                                         class="md:hidden w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border border-outline-variant">
                                         @if ($order->items->first())
@@ -157,7 +152,7 @@
                                         @endif
                                     </div>
 
-                                    {{-- Giao diện máy tính: Xếp lớp ảnh đại diện các sản phẩm nếu có nhiều món --}}
+                                    {{-- Giao diện máy tính: Xếp lớp ảnh đại diện các sản --}}
                                     <div class="hidden md:flex -space-x-3 overflow-hidden">
                                         @foreach ($order->items->take(2) as $item)
                                             <img alt="{{ $item->product_name }}"
@@ -172,7 +167,7 @@
                                         @endif
                                     </div>
 
-                                    {{-- Tên sản phẩm và tóm tắt thông số đơn hàng (Số lượng, size, đường, đá) --}}
+                                    {{-- Tên sản phẩm và tóm tắt thông số đơn hàng --}}
                                     <div class="flex-1 min-w-0">
                                         <h3 class="font-bold text-gray-900 md:text-on-surface text-base truncate">
                                             {{ $order->items->first()->product_name ?? 'Sản phẩm đồ uống' }}
@@ -220,10 +215,7 @@
                                         <button type="button" data-toggle-order="{{ $order->id }}"
                                             class="px-4 py-1.5 md:px-6 md:py-2.5 border border-primary text-primary font-bold text-xs md:text-base rounded-full md:rounded-lg hover:bg-primary/5 transition-all active:scale-95 whitespace-nowrap">Chi
                                             tiết</button>
-                                        {{-- Đơn "Chờ xác nhận" luôn được khách tự hủy, kể cả đã thanh toán online:
-                                     với đơn đã trả tiền, hệ thống tự gọi API hoàn tiền của cổng thanh toán
-                                     rồi mới hủy (CustomerOrderController::refundAndCancelForCustomer()).
-                                     data-paid-online để JS cảnh báo đúng nội dung trước khi xác nhận. --}}
+                                        {{-- Hủy đơn hàng --}}
                                         @if ($order->status === 'pending')
                                             @php
                                                 $paidOnline =
@@ -247,7 +239,7 @@
                                 </div>
                             </div>
 
-                            <!-- Phần chi tiết thông tin đơn hàng bị ẩn đi (Chỉ hiện ra khi bấm nút Chi tiết) -->
+                            <!-- Phần chi tiết thông tin đơn hàng bị ẩn đi -->
                             <div id="order-details-{{ $order->id }}"
                                 class="hidden mt-6 pt-6 border-t border-dashed border-outline-variant/60 transition-all duration-300">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
@@ -273,7 +265,7 @@
                                         @endif
                                     </div>
 
-                                    <!-- Cột 2: Bảng chi tiết tính toán tiền thanh toán (Tạm tính, Ship, phụ phí, giảm giá...) -->
+                                    <!-- Cột 2: Bảng chi tiết tính toán tiền thanh toán -->
                                     <div class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/60">
                                         <h4
                                             class="font-bold text-on-surface text-sm border-b border-outline-variant pb-2 mb-3 flex items-center gap-1.5">
@@ -362,7 +354,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Danh sách chi tiết từng sản phẩm đã mua cùng nút Đánh giá món ăn -->
+                                <!-- Đánh giá của khách hàng -->
                                 <div class="mt-6 pt-4 border-t border-outline-variant/60">
                                     <h4 class="font-bold text-on-surface text-sm mb-3 flex items-center gap-1.5">
                                         <span class="material-symbols-outlined text-primary text-lg">local_cafe</span>
@@ -380,7 +372,7 @@
                                                             onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'"
                                                             class="w-full h-full object-cover">
                                                     </div>
-                                                    {{-- Tên và các tùy chọn (Size, đường, đá, topping) --}}
+                                                    {{-- Tên và các tùy chọn --}}
                                                     <div>
                                                         <span
                                                             class="font-bold text-on-surface text-sm block">{{ $item->product_name }}</span>
@@ -409,7 +401,7 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- Số lượng, Đơn giá và nút Đánh giá/Đã đánh giá (nếu đơn hàng đã hoàn thành) --}}
+                                                {{-- Số lượng, Đơn giá và nút Đánh giá/Đã đánh giá --}}
                                                 <div class="text-right flex flex-col items-end justify-center">
                                                     <div>
                                                         <span
@@ -440,7 +432,7 @@
                             </div>
                         </div>
                         @empty
-                            {{-- Trạng thái danh sách rỗng (Chưa có đơn hàng nào) --}}
+                            {{-- Trạng thái danh sách rỗng --}}
                             <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl md:rounded-xl border border-outline-variant p-6"
                                 id="empty-state">
                                 <span
@@ -455,7 +447,7 @@
                         @endforelse
                     </div>
 
-                    <!-- Phân trang danh sách đơn hàng (Pagination) -->
+                    <!-- Phân trang danh sách đơn hàng -->
                     @if ($orders->lastPage() > 1)
                         <div class="mt-8 md:mt-12 flex justify-center items-center gap-2 pb-6 md:pb-0">
                             @if ($orders->onFirstPage())
@@ -498,14 +490,14 @@
             </main>
 
             @include('frontend.components.bottom-nav')
-            {{-- Form ẩn dùng để gửi yêu cầu hủy đơn hàng --}}
+            {{-- Form --}}
             <form id="cancel-order-form" method="POST" action="" class="hidden">
                 @csrf
                 <input type="hidden" name="cancel_reason" id="cancel-reason-input">
             </form>
         </div>
     @endsection
-    {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực chứa script của layout --}}
+    {{-- Đẩy tệp tin JavaScript chuyên biệt vào khu vực --}}
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -564,13 +556,13 @@
                     minLength: 5,
                     confirmText: paidOnline ? 'Hủy & hoàn tiền' : 'Hủy đơn',
                 }).then(function(result) {
-                    // isConfirmed=false nghĩa là khách bấm Hủy/đóng hộp thoại - không làm gì thêm.
+                    // IsConfirmed=false nghĩa là khách bấm Hủy/đóng hộp thoại - không làm gì thêm.
                     if (!result.isConfirmed) return;
                     submitCancelOrder(orderId, result.value.trim());
                 });
             };
 
-            // Điền động action (route theo đúng orderId) và lý do hủy vào form ẩn
+            // Điền động action và lý do hủy vào form ẩn
             function submitCancelOrder(orderId, cleanReason) {
                 const form = document.getElementById('cancel-order-form');
                 const input = document.getElementById('cancel-reason-input');

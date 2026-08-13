@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-//"Dịch vụ gửi thông báo (Email)".
+// "Dịch vụ gửi thông báo (Email)".
 class NotificationService
 {
     // GỬI THÔNG BÁO
@@ -25,7 +25,7 @@ class NotificationService
      */
     private function sendCustomerConfirmation(Order $order): void
     {
-        // Kiểm tra cấu hình hệ thống: Nếu tính năng gửi email xác nhận bị tắt thì dừng lại không gửi
+        // Kiểm tra cấu hình hệ thống: Nếu tính năng gửi email
         if (Setting::getValue('order_confirmation_email_enabled', '1') != '1') {
             return;
         }
@@ -87,7 +87,7 @@ class NotificationService
      */
     private function buildOrderItemsSection(Order $order): string
     {
-        // Load danh sách sản phẩm trong đơn kèm tên sản phẩm (eager load tránh N+1 query)
+        // Load danh sách sản phẩm trong đơn kèm tên sản phẩm
         $items = $order->items()->with('product')->get();
 
         $section = "------------------------------\n"
@@ -106,7 +106,7 @@ class NotificationService
             if ($item->ice_level)
                 $details[] = 'Đá: ' . $item->ice_level;
 
-            // Topping lưu trong cột options (JSON) là mảng string thuần: ["Trân châu đen", "Trân châu trắng"]
+            // Topping lưu trong cột options (JSON) là mảng string
             $toppings = collect($item->options ?? [])
                 ->filter()
                 ->implode(', ');
@@ -135,12 +135,12 @@ class NotificationService
      */
     private function sendAdminNewOrderAlert(Order $order): void
     {
-        // Kiểm tra cấu hình: Nếu tính năng thông báo admin bị tắt thì dừng
+        // Kiểm tra cấu hình: Nếu tính năng thông báo admin bị
         if (Setting::getValue('new_order_admin_notification_enabled', '1') != '1') {
             return;
         }
 
-        // Lấy email nhận thông báo của Admin từ cấu hình (mặc định là admin@happytea.com nếu chưa thiết lập)
+        // Lấy email nhận thông báo của Admin từ cấu hình (mặc
         $email = Setting::getValue('notification_email', 'admin@happytea.com');
         if (!$email) {
             return;
@@ -166,13 +166,12 @@ class NotificationService
     private function send(string $to, string $subject, string $body): void
     {
         try {
-            // Sử dụng Mail::raw để gửi email dạng văn bản thuần túy (Plain Text)
+            // Sử dụng Mail::raw để gửi email dạng văn bản thuần túy
             Mail::raw($body, function ($message) use ($to, $subject) { // Gọi API Mail::raw gửi thư qua cấu hình SMTP
                 $message->to($to)->subject($subject);
             });
         } catch (\Throwable $e) {
-            // Bắt mọi lỗi xảy ra khi gửi mail (ví dụ: cấu hình SMTP sai, server mail bị chặn mạng)
-            // Ghi lỗi vào log để Admin kiểm tra và xử lý, tránh việc gửi mail lỗi làm crash chương trình đặt hàng
+            // Bắt mọi lỗi xảy ra khi gửi mail (ví dụ: cấu hình SMTP
             Log::error('NotificationService: failed to send email', [
                 'to' => $to,
                 'subject' => $subject,

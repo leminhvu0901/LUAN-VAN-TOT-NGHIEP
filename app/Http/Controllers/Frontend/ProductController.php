@@ -33,17 +33,17 @@ class ProductController
             ->where('products.slug', $slug)
             ->first();
 
-        // Nếu không tìm thấy sản phẩm, quăng lỗi 404 (Không tìm thấy trang)
+        // Nếu không tìm thấy sản phẩm, quăng lỗi 404 (Không tìm
         if (!$product) {
             abort(404);
         }
-        // 2. Lấy danh sách các kích cỡ (Sizes) của sản phẩm này và sắp xếp theo mức giá chênh lệch tăng dần
+        // 2. Lấy danh sách các kích cỡ (Sizes) của sản phẩm này
         $sizes = ProductSize::query()
             ->where('product_id', $product->id)
             ->orderBy('price_adjustment')
             ->get();
 
-        // 3. Lấy danh sách các loại Topping được liên kết với sản phẩm này (chỉ lấy topping còn khả dụng)
+        // 3. Lấy danh sách các loại Topping được liên kết với
         $toppings = Topping::query()
             ->join('product_toppings', 'toppings.id', '=', 'product_toppings.topping_id')
             ->where('product_toppings.product_id', $product->id)
@@ -71,7 +71,7 @@ class ProductController
             ->paginate(self::REVIEWS_PER_PAGE)
             ->withQueryString();
 
-        // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu lượt đánh giá 1 sao, 2 sao, ..., 5 sao)
+        // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu
         $ratingDistribution = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
@@ -80,15 +80,14 @@ class ProductController
             ->pluck('count', 'rating')
             ->toArray();
 
-        // Số đánh giá có kèm hình ảnh — dùng cho nút lọc "Có hình ảnh".
+        // Số đánh giá có kèm hình ảnh — dùng cho nút lọc "Có
         $hasImageCount = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
             ->whereNotNull('image')
             ->count();
 
-        // 6. Tìm các sản phẩm liên quan (cùng danh mục, loại trừ sản phẩm hiện tại)
-        // Sắp xếp theo mức độ phổ biến (bán chạy nhất) để gợi ý và giới hạn lấy tối đa 4 sản phẩm
+        // 6. Tìm các sản phẩm liên quan (cùng danh mục, loại trừ
         $relatedProducts = Product::query()
             ->select(
                 'products.*',
@@ -104,7 +103,7 @@ class ProductController
             ->limit(4)
             ->get();
 
-        // 7. Kiểm tra xem người dùng hiện tại đã lưu sản phẩm này vào danh sách yêu thích (Wishlist) chưa
+        // 7. Kiểm tra xem người dùng hiện tại đã lưu sản phẩm
         $isFavorite = false;
         if (Auth::check()) {
             $isFavorite = Favorite::query()
@@ -113,8 +112,7 @@ class ProductController
                 ->exists();
         }
 
-        // 8. Xác định xem sản phẩm này có phải là Bán chạy (Bestseller) hay không
-        // Lấy danh sách ID của top 6 sản phẩm bán ra với số lượng nhiều nhất
+        // 8. Xác định xem sản phẩm này có phải là Bán chạy
         $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
@@ -128,10 +126,10 @@ class ProductController
 
         // Nếu ID sản phẩm nằm trong top 6 bán chạy -> đánh dấu là HOT
         $isHot = in_array($product->id, $top6HotProductIds);
-        // Nếu sản phẩm được tạo ra cách đây dưới 15 ngày -> đánh dấu là Mới (New)
+        // Nếu sản phẩm được tạo ra cách đây dưới 15 ngày -> đánh
         $isNew = (Carbon::parse($product->created_at)->diffInDays(now()) <= 15);
 
-        // Trả về view và truyền toàn bộ dữ liệu đã tính toán sang giao diện
+        // Trả về view và truyền toàn bộ dữ liệu đã tính toán
         return view('frontend.products.show', compact(
             'product',
             'sizes',
@@ -149,7 +147,7 @@ class ProductController
     }
 
 
-    // Hiển thị danh sách tất cả sản phẩm kèm tính năng tìm kiếm, lọc theo danh mục, giá cả và xếp hạng.
+    // Hiển thị danh sách tất cả sản phẩm kèm tính năng tìm
     public function index(Request $request)
     {
         // Nhận dữ liệu đầu vào phục vụ cho việc lọc sản phẩm
@@ -160,7 +158,7 @@ class ProductController
         $maxPrice = $request->input('max_price', 600000);
         $minRating = $request->input('rating');
 
-        // Xử lý chuẩn hóa từ khóa tìm kiếm (chuyển chữ thường, bỏ khoảng trắng thừa)
+        // Xử lý chuẩn hóa từ khóa tìm kiếm (chuyển chữ thường,
         $rawSearch = $request->input('search');
         $searchQuery = '';
         if (!empty($rawSearch)) {
@@ -171,7 +169,7 @@ class ProductController
             $searchQuery = mb_strtolower($searchQuery, 'UTF-8');
         }
 
-        // 1. Lấy danh sách các danh mục sản phẩm đang mở hoạt động và sắp xếp theo thứ tự hiển thị
+        // 1. Lấy danh sách các danh mục sản phẩm đang mở hoạt
         $categories = Category::query()
             ->where('is_active', 1)
             ->orderBy('display_order')
@@ -201,12 +199,12 @@ class ProductController
             $query->where('products.base_price', '<=', $maxPrice);
         }
 
-        // Lọc theo điểm số đánh giá trung bình tối thiểu (ví dụ: từ 4 sao trở lên)
+        // Lọc theo điểm số đánh giá trung bình tối thiểu (ví dụ:
         if ($minRating !== null) {
             $query->whereRaw('COALESCE(r.avg_rating, 0) >= ?', [$minRating]);
         }
 
-        // Lọc theo từ khóa tìm kiếm (tìm kiếm không phân biệt hoa thường theo tên sản phẩm)
+        // Lọc theo từ khóa tìm kiếm (tìm kiếm không phân biệt
         if (!empty($searchQuery)) {
             $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
         }
@@ -215,7 +213,7 @@ class ProductController
         $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')
             ->paginate(15)->withQueryString();
 
-        // 3. Lấy danh sách ID các sản phẩm đã được người dùng hiện tại yêu thích (để hiển thị nút thả tim)
+        // 3. Lấy danh sách ID các sản phẩm đã được người dùng
         $favoriteProductIds = [];
         if (Auth::check()) {
             $favoriteProductIds = Favorite::query()
@@ -224,7 +222,7 @@ class ProductController
                 ->toArray();
         }
 
-        // 4. Lấy danh sách ID của top 6 sản phẩm bán chạy nhất hệ thống
+        // 4. Lấy danh sách ID của top 6 sản phẩm bán chạy nhất
         $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
@@ -240,6 +238,6 @@ class ProductController
         return view('frontend.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }
 
-    // Số đánh giá tải mỗi lần (trang đầu + mỗi lần bấm "Xem thêm đánh giá").
+    // Số đánh giá tải mỗi lần (trang đầu + mỗi lần bấm "Xem
     private const REVIEWS_PER_PAGE = 5;
 }

@@ -10,11 +10,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * Trước đây ReviewController::destroy()/bulkDelete() chỉ xóa dòng DB, KHÔNG xóa file ảnh
- * (mảng JSON đường dẫn trong cột "image") - khác với Banner/Product đã dọn file khi xóa.
- * Đã bổ sung deleteReviewImageFiles() dùng chung, test này xác nhận file ảnh biến mất theo.
- */
+// Trước đây ReviewController::destroy()/bulkDelete() chỉ xóa dòng DB, KHÔNG xóa file ảnh
+// (mảng JSON đường dẫn trong cột "image") - khác với Banner/Product đã dọn file khi xóa.
+// Đã bổ sung deleteReviewImageFiles() dùng chung, test này xác nhận file ảnh biến mất theo.
 class AdminReviewControllerTest extends TestCase
 {
     use RefreshDatabase;

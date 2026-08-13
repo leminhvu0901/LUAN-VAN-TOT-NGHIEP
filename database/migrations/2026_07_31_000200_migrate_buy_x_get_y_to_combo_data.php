@@ -4,13 +4,11 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Chuyển dữ liệu "Mua X tặng Y" cũ (scope=buy_x_get_y, bảng promotion_buy_x_get_y) sang cấu trúc
- * "Combo" mới (scope=combo, promotion_combos 1-1 + promotion_combo_items nhiều dòng) — dùng Query
- * Builder thuần (không Eloquent) để migration này vẫn chạy đúng kể cả sau khi model
- * PromotionBuyXGetY bị xoá khỏi codebase. KHÔNG xoá bảng promotion_buy_x_get_y ở đây (tách riêng
- * migration drop sau, để rollback được từng bước).
- */
+// Chuyển dữ liệu "Mua X tặng Y" cũ (scope=buy_x_get_y, bảng promotion_buy_x_get_y) sang cấu trúc
+// "Combo" mới (scope=combo, promotion_combos 1-1 + promotion_combo_items nhiều dòng) — dùng Query
+// Builder thuần (không Eloquent) để migration này vẫn chạy đúng kể cả sau khi model
+// PromotionBuyXGetY bị xoá khỏi codebase. KHÔNG xoá bảng promotion_buy_x_get_y ở đây (tách riêng
+// migration drop sau, để rollback được từng bước).
 return new class extends Migration
 {
     public function up(): void
@@ -50,12 +48,10 @@ return new class extends Migration
         }
     }
 
-    /**
-     * Best-effort: chỉ dựng lại được các combo có ĐÚNG 1 sản phẩm + có bật "Tặng quà" (khớp hình dạng
-     * schema cũ). Combo nhiều sản phẩm hoặc combo có bật "Giảm giá" (tạo SAU khi rework) không có
-     * tương đương ở schema cũ nên bị bỏ qua khi rollback — đây là giới hạn đã biết của down(), không
-     * phải bug.
-     */
+    // Best-effort: chỉ dựng lại được các combo có ĐÚNG 1 sản phẩm + có bật "Tặng quà" (khớp hình dạng
+    // schema cũ). Combo nhiều sản phẩm hoặc combo có bật "Giảm giá" (tạo SAU khi rework) không có
+    // tương đương ở schema cũ nên bị bỏ qua khi rollback — đây là giới hạn đã biết của down(), không
+    // phải bug.
     public function down(): void
     {
         if (!Schema::hasTable('promotion_buy_x_get_y') || !Schema::hasTable('promotion_combos')) {

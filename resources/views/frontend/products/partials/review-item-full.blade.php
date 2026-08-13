@@ -1,6 +1,6 @@
-{{-- 1 thẻ đánh giá kiểu "full" (dùng ở trang chi tiết sản phẩm, class pd-review-*). --}}
+{{-- Thẻ đánh giá chi tiết sản phẩm --}}
 <div class="pd-review-item">
-    {{-- Ảnh đại diện (avatar) của người đánh giá, hỗ trợ hiển thị ảnh ngoài (Google) và ảnh tải lên cục bộ --}}
+    {{-- Đánh giá của khách hàng --}}
     <div class="pd-review-avatar">
         @if($review->user_avatar)
             @if(\Illuminate\Support\Str::startsWith($review->user_avatar, 'http'))
@@ -25,14 +25,14 @@
                     <svg class="pd-star pd-star--sm {{ $i <= $review->rating ? 'pd-star--filled' : 'pd-star--empty' }}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>
                 @endfor
             </div>
-            {{-- Thời gian bình luận: chuyển sang định dạng "khoảng thời gian trước" --}}
+            {{-- Thời gian bình luận: chuyển sang định dạng --}}
             <span class="pd-review-date">{{ \Carbon\Carbon::parse($review->created_at)->diffForHumans() }}</span>
         </div>
         @if($review->comment)
         <p class="pd-review-comment">{{ $review->comment }}</p>
         @endif
 
-        {{-- Hiển thị các hình ảnh đính kèm bài đánh giá (nếu có) --}}
+        {{-- Hiển thị các hình ảnh đính kèm bài đánh giá --}}
         @if($review->image)
         @php
             $images = [];

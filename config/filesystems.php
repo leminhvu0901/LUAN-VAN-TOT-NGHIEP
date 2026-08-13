@@ -8,7 +8,7 @@ return [
     // Các ổ đĩa lưu trữ được định nghĩa
     'disks' => [
 
-        // Ổ đĩa lưu trữ nội bộ riêng tư (lưu trong storage/app/private, không công khai ra ngoài)
+        // Ổ đĩa lưu trữ nội bộ riêng tư
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
@@ -17,11 +17,11 @@ return [
             'report' => false,
         ],
 
-        // Ổ đĩa lưu trữ công khai (lưu trong storage/app/public, truy cập công khai qua symlink)
+        // Ổ đĩa lưu trữ công khai
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -43,7 +43,7 @@ return [
 
     ],
 
-    // Cấu hình liên kết thư mục (Symlink) công khai khi chạy lệnh php artisan storage:link
+    // Cấu hình liên kết thư mục công khai
     'links' => [
         public_path('storage') => storage_path('app/public'),
     ],

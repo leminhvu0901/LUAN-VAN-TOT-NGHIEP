@@ -1,5 +1,5 @@
 <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative w-full">
-    <!-- View cho màn hình lớn (Desktop Table) -->
+    <!-- View cho màn hình lớn -->
     <div class="hidden lg:block">
         <table class="w-full text-left border-collapse relative">
     <thead class="bg-gray-50 sticky top-0 z-10">
@@ -145,7 +145,7 @@
         </table>
     </div>
 
-<!-- View cho màn hình nhỏ (Mobile/Tablet Cards) -->
+<!-- View cho màn hình nhỏ -->
 <div class="block lg:hidden p-4 space-y-4 w-full">
     @if(count($orders) > 0)
         <div class="flex items-center gap-2 mb-2 px-1 w-full">
@@ -266,7 +266,7 @@
             </div>
         </div>
     @empty
-        <!-- Empty state is handled in table above for desktop, and here for mobile -->
+        <!-- Empty state is handled in table above for -->
         <div class="text-center py-10 bg-white rounded-xl border border-gray-100">
             <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
             <p class="text-gray-500 text-lg font-medium">Không tìm thấy đơn hàng nào</p>

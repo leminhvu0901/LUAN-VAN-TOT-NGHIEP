@@ -1,13 +1,11 @@
 @extends('frontend.layouts.app')
 
-{{-- Chừa khoảng trống phía dưới trên mobile để nội dung không bị thanh điều hướng dưới cùng che mất --}}
+{{-- Chừa khoảng trống phía dưới trên mobile để nội --}}
 @section('body_class', 'has-mobile-bottom-nav')
 
 @section('content')
 
-    {{-- Dựng URL ảnh banner. Dùng upload_url() dùng chung thay vì tự ghép đường dẫn: bản cũ cắt
-         basename() rồi ghép cứng 'images/banners/' nên làm mất phần thư mục con, ảnh mới tải lên
-         (nằm trong images/uploads/banners/) sẽ trỏ sai chỗ và vỡ ảnh. --}}
+    {{-- Dựng URL ảnh banner --}}
     @php
         if (!function_exists('getBannerUrl')) {
             function getBannerUrl($path)
@@ -133,19 +131,19 @@
         </div>
     </section>
 
-    {{-- ===== DANH MỤC NỔI BẬT ===== --}}
+    {{-- Danh mục nổi bật --}}
     <section class="home-section container">
         <div class="home-section__header">
             <div>
                 <p class="home-section__subtitle">Khám phá</p>
                 <h2 class="home-section__title">Danh mục nổi bật</h2>
             </div>
-            <!-- <a href="/categories" class="home-section__link">Xem tất cả →</a> -->
+            <!-- <a href="/categories" -->
         </div>
 
         <div class="home-categories" id="home-categories">
             @php
-                // Map icons and colors for specific category IDs (1: Cà phê, 2: Trà sữa, 3: Sữa chua, 4: Trà trái cây, 5: Đồ uống khác)
+                // Map icons and colors for specific category IDs
                 $catStyles = [
                     1 => [
                         'bg' => '#dcfce7',
@@ -204,15 +202,13 @@
             @endforeach
         </div>
 
-        {{-- Thanh chỉ báo vị trí cuộn ngang — chỉ hiện trên mobile/tablet (xem CSS .home-categories-scrollbar,
-        scoped trong @media max-width:1024px), vì .home-categories ẩn thanh cuộn gốc của trình duyệt
-        (scrollbar-width:none) nên không còn gợi ý nào cho biết khối này kéo/vuốt được sang phải. --}}
+        {{-- Thanh chỉ báo vị trí cuộn ngang --}}
         <div class="home-categories-scrollbar" id="home-categories-scrollbar" aria-hidden="true">
             <div class="home-categories-scrollbar__thumb" id="home-categories-scrollbar-thumb"></div>
         </div>
     </section>
 
-    {{-- ===== SẢN PHẨM PHỔ BIẾN ===== --}}
+    {{-- Sản phẩm phổ biến --}}
     <section class="home-section home-popular container" id="popular">
         <div class="home-section__header">
             <div>
@@ -228,7 +224,7 @@
             </div>
         </div>
 
-        {{-- ds san pham pho bien --}}
+        {{-- Ds san pham pho bien --}}
         <div class="home-products-grid">
             @php
                 $popularProducts = \App\Models\Product::query()
@@ -377,11 +373,9 @@
         </div>
     </section>
 
-
-    {{-- ===== TẠI SAO CHỌN CHÚNG TÔI ===== --}}
+    {{-- Tại sao chọn chúng tôi --}}
     <section class="home-features container">
-        {{-- Khoảng cách dưới tiêu đề chuyển sang CSS (.home-features .home-section__header) thay vì
-        style inline, để mobile thu gọn lại được mà không cần !important --}}
+        
         <div class="home-section__header">
             <div>
                 <p class="home-section__subtitle">Tại sao chọn chúng tôi</p>
@@ -448,42 +442,37 @@
 
     @push('scripts')
         <script>
-            // Các nút Tất cả / Bán chạy / Mới / Giảm giá phía trên lưới sản phẩm trang chủ.
+            // Xử lý bộ lọc sản phẩm nổi bật trên trang chủ
             (function() {
                 var pillButtons = document.querySelectorAll('#home-pill-filters .home-popular__filter-btn');
                 var grid = document.querySelector('.home-products-grid');
-                var currentFilter = 'all'; // Bộ lọc đang chọn: all | hot | new | sale
+                var currentFilter = 'all';
 
-                // Sắp xếp lại + ẩn/hiện thẻ sản phẩm trong lưới theo currentFilter hiện tại
+                // Lọc và sắp xếp thẻ sản phẩm theo tiêu chí đã chọn
                 function applyHomeFilter() {
                     if (!grid) return;
 
                     var cards = Array.from(grid.querySelectorAll('.home-prod-card'));
                     var visibleCount = 0;
 
-                    // Sắp xếp thẻ sản phẩm
+                    // Sắp xếp danh sách sản phẩm
                     cards.sort(function(a, b) {
                         if (currentFilter === 'hot') {
-                            return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute(
-                                'data-sold') || 0);
+                            return parseInt(b.getAttribute('data-sold') || 0) - parseInt(a.getAttribute('data-sold') || 0);
                         } else if (currentFilter === 'new') {
-                            return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute(
-                                'data-date') || 0);
+                            return parseInt(b.getAttribute('data-date') || 0) - parseInt(a.getAttribute('data-date') || 0);
                         } else if (currentFilter === 'sale') {
-                            return parseInt(b.getAttribute('data-is-sale') || 0) - parseInt(a.getAttribute(
-                                'data-is-sale') || 0);
+                            return parseInt(b.getAttribute('data-is-sale') || 0) - parseInt(a.getAttribute('data-is-sale') || 0);
                         } else {
-                            return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute(
-                                'data-score') || 0);
+                            return parseFloat(b.getAttribute('data-score') || 0) - parseFloat(a.getAttribute('data-score') || 0);
                         }
                     });
 
-                    // Duyệt qua từng thẻ theo đúng thứ tự vừa sắp xếp
+                    // Cập nhật thứ tự và trạng thái hiển thị
                     var shown = 0;
                     cards.forEach(function(card) {
                         grid.appendChild(card);
 
-                        // Chỉ thẻ khớp đúng tiêu chí bộ lọc mới được tính vào giới hạn hiển thị
                         var isMatch = true;
                         if (currentFilter === 'hot') {
                             isMatch = card.getAttribute('data-is-hot') === '1';
@@ -501,7 +490,7 @@
                             card.style.display = 'none';
                         }
 
-                        // Đổi nhãn badge hiển thị trên thẻ theo bộ lọc đang chọn
+                        // Cập nhật huy hiệu trên từng thẻ sản phẩm
                         var hotBadge = card.querySelector('.home-prod-card__badge--hot');
                         var newBadge = card.querySelector('.home-prod-card__badge--new');
                         var saleBadge = card.querySelector('.home-prod-card__badge--sale');
@@ -524,8 +513,7 @@
                         }
                     });
 
-                    // Nếu không còn sản phẩm nào khớp bộ lọc, tự tạo (hoặc hiện lại) 1 dòng thông báo
-                    // trống; ngược lại thì ẩn dòng thông báo này đi nếu trước đó đã từng hiện.
+                    // Hiển thị thông báo khi không có sản phẩm nào khớp
                     var emptyMsg = document.getElementById('home-empty-msg');
                     if (visibleCount === 0) {
                         if (!emptyMsg) {
@@ -544,7 +532,7 @@
                     }
                 }
 
-                // Bấm vào 1 nút pill: đổi trạng thái active + đổi bộ lọc + chạy lại applyHomeFilter()
+                // Gắn sự kiện click cho các nút chuyển đổi bộ lọc
                 pillButtons.forEach(function(btn) {
                     btn.addEventListener('click', function() {
                         pillButtons.forEach(function(b) {
@@ -552,58 +540,14 @@
                         });
                         this.classList.add('home-popular__filter-btn--active');
                         currentFilter = this.getAttribute('data-filter');
-                        applyHomeFilter(); //xep lai
+                        applyHomeFilter();
                     });
                 });
 
-                applyHomeFilter(); // Chạy 1 lần lúc tải trang để áp dụng bộ lọc mặc định ("Tất cả")
+                applyHomeFilter();
             })();
 
-            // =========================================================================
-            // KHỐI 2: HIỆU ỨNG ĐẾM SỐ CHẠY DẦN (COUNTER ANIMATION) CHO CÁC CHỈ SỐ HERO BANNER
-            // Ví dụ: "30+ Món đồ uống", "4.6★ Đánh giá", "120 Lượt truy cập hôm nay" - thay vì
-            // hiện số ngay lập tức, số sẽ chạy tăng dần từ 0 lên giá trị thật trong ~1.6 giây để
-            // tạo hiệu ứng bắt mắt khi người dùng vừa tải trang.
-            // =========================================================================
-            // (function() {
-            //     // Chạy hiệu ứng đếm từ 0 tới target trong khoảng thời gian duration (ms), dùng
-            //     // easeOutCubic (chậm dần về cuối) để chuyển động tự nhiên hơn là chạy đều tuyến tính.
-            //     function animateCounter(el, target, suffix, decimals, duration) {
-            //         var startTime = null;
-
-            //         function step(timestamp) {
-            //             if (!startTime) startTime = timestamp;
-            //             var progress = Math.min((timestamp - startTime) / duration, 1);
-            //             var eased = 1 - Math.pow(1 - progress, 3);
-            //             var current = eased * target;
-            //             el.textContent = (decimals > 0 ? current.toFixed(decimals) : Math.round(current)) + suffix;
-            //             if (progress < 1) requestAnimationFrame(step);
-            //         }
-            //         requestAnimationFrame(step);
-            //     }
-
-            //     // Đọc số thật đã render sẵn từ Blade (vd "30+", "4.6★"), tách phần số và phần hậu
-            //     // tố (đơn vị/ký hiệu) bằng regex, tạm reset về 0 rồi chạy hiệu ứng đếm lên lại đúng
-            //     // số ban đầu - nhờ vậy không cần biết trước giá trị số qua JS, chỉ cần đọc từ HTML.
-            //     function startCounters() {
-            //         document.querySelectorAll('.home-hero__stat-num').forEach(function(el) {
-            //             var raw = el.textContent.trim();
-            //             var match = raw.match(/^([\d.]+)(.*)$/); // Nhóm 1: phần số, nhóm 2: hậu tố còn lại
-            //             if (!match) return;
-            //             var num = parseFloat(match[1]);
-            //             var suffix = match[2];
-            //             var decimals = (match[1].split('.')[1] || '').length; // Số chữ số thập phân cần giữ
-            //             el.textContent = (decimals > 0 ? (0).toFixed(decimals) : '0') + suffix;
-            //             animateCounter(el, num, suffix, decimals, 1600);
-            //         });
-            //     }
-
-            //     setTimeout(startCounters, 800); // Trễ 800ms để hiệu ứng chạy sau khi banner đã hiện ra
-            // })();
-
-            // Thêm class "navbar--scrolled" khi người dùng cuộn trang xuống quá 20px, dùng để CSS đổi
-            // nền/đổ bóng cho thanh điều hướng (tạo cảm giác nổi lên khi cuộn, thay vì trong suốt như
-            // lúc ở đầu trang). passive: true để trình duyệt không phải chờ JS trước khi cuộn mượt.
+            // Đổi kiểu hiển thị thanh điều hướng khi cuộn trang
             const navbar = document.querySelector('.happy-navbar');
             if (navbar) {
                 window.addEventListener('scroll', function() {
@@ -617,7 +561,7 @@
                 });
             }
 
-            // KHỐI 3: SLIDER ẢNH BANNER TRANG CHỦ
+            // Xử lý chuyển đổi banner slider trang chủ
             (function() {
                 var sliderImgs = document.querySelectorAll('#hero-slider .hero-slide-img');
                 var heroTitle = document.getElementById('hero-title');
@@ -626,7 +570,7 @@
                 var currentIdx = 0;
                 var slideInterval = null;
 
-                // Chuyển tới một banner cụ thể trong băng chuyền
+                // Chuyển tới một banner cụ thể trong slider
                 function showSlide(nextIdx) {
                     if (nextIdx === currentIdx) return;
                     var prevIdx = currentIdx;
@@ -675,7 +619,7 @@
                     }
                 }
 
-                // Hẹn giờ tự động chuyển sang ảnh kế tiếp
+                // Hẹn giờ tự động chuyển banner tiếp theo
                 function startAutoSlide() {
                     stopAutoSlide();
                     slideInterval = setInterval(function() {
@@ -684,15 +628,14 @@
                     }, 4000);
                 }
 
-                // Tắt chế độ tự động chuyển banner (dừng khi khách rê chuột vào)
+                // Dừng tự động chuyển banner khi cần
                 function stopAutoSlide() {
                     if (slideInterval) {
                         clearInterval(slideInterval);
                     }
                 }
 
-                // Bấm vào 1 chấm tròn: nhảy thẳng tới slide tương ứng rồi reset lại đồng hồ tự động
-                // chuyển slide (để không bị nhảy tiếp ngay sau khi người dùng vừa tự chọn slide)
+                // Gắn sự kiện click vào các dấu chấm chọn slide
                 dots.forEach(function(dot) {
                     dot.addEventListener('click', function() {
                         var targetIdx = parseInt(this.getAttribute('data-slide-index'));
@@ -704,15 +647,14 @@
                 startAutoSlide();
             })();
 
-            // KHỐI 4: THANH CUỘN TÙY BIẾN CHO HÀNG DANH MỤC SẢN PHẨM (NGANG)
+            // Xử lý thanh cuộn tùy biến danh mục sản phẩm
             (function() {
                 var track = document.getElementById('home-categories');
                 var scrollbar = document.getElementById('home-categories-scrollbar');
                 var thumb = document.getElementById('home-categories-scrollbar-thumb');
                 if (!track || !scrollbar || !thumb) return;
 
-                // Tính lại độ rộng và vị trí của "thumb" thanh cuộn dựa theo tỉ lệ giữa phần đang
-                // hiển thị (clientWidth) và tổng chiều rộng nội dung (scrollWidth) của hàng danh mục
+                // Cập nhật kích thước và vị trí thanh cuộn danh mục
                 function updateThumb() {
                     var scrollableWidth = track.scrollWidth - track.clientWidth;
 

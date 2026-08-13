@@ -15,13 +15,13 @@ class CodController
     {
     }
 
-    // Hiển thị giao diện đối soát tiền COD cho từng nhân viên giao hàng
+    // Hiển thị giao diện đối soát tiền COD cho từng nhân
     public function index()
     {
-        // Lấy danh sách toàn bộ nhân viên giao hàng (Shipper) đang hoạt động
+        // Lấy danh sách toàn bộ nhân viên giao hàng (Shipper)
         $deliveryStaffList = User::where('role', 'staff')->where('staff_type', 'delivery')->orderBy('name')->get();
 
-        // Gom nhóm các đơn hàng hoàn thành cần nộp tiền theo từng Shipper
+        // Gom nhóm các đơn hàng hoàn thành cần nộp tiền theo
         $groups = $deliveryStaffList->map(function (User $staff) {
             $unsettledOrders = Order::where('delivery_staff_id', $staff->id) // Tìm đơn do Shipper này phụ trách
                 ->where('payment_method', 'cod') // Phương thức thanh toán khi nhận hàng
@@ -30,7 +30,7 @@ class CodController
                 ->orderBy('created_at')
                 ->get();
 
-            // Tính tổng số tiền COD mà Shipper này đã nộp quầy thành công trong ngày hôm nay
+            // Tính tổng số tiền COD mà Shipper này đã nộp quầy thành
             $settledTotalToday = (float) Order::where('delivery_staff_id', $staff->id)
                 ->where('payment_method', 'cod')
                 ->where('status', 'completed')
@@ -57,13 +57,13 @@ class CodController
         return back()->with('success', $message);
     }
 
-    // Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn treo của một Shipper cụ thể
+    // Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn
     public function settleAll(Request $request, User $deliveryStaff)
     {
-        // Ngăn chặn nếu đối tượng truyền vào không phải là tài khoản Shipper
+        // Ngăn chặn nếu đối tượng truyền vào không phải là tài
         abort_unless($deliveryStaff->role === 'staff' && $deliveryStaff->staff_type === 'delivery', 404);
 
-        // Gọi workflow service đối soát toàn bộ đơn COD của shipper này, trả về số lượng đơn được đối soát
+        // Gọi workflow service đối soát toàn bộ đơn COD của
         $count = $this->sv_orderWorkflow->settleAllCodForDeliveryStaff($deliveryStaff->id, Auth::id());
 
         if ($count === 0) {

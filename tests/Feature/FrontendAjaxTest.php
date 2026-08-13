@@ -17,23 +17,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * File test này ban đầu (tên "FrontendAjaxTest") viết cho giai đoạn các endpoint frontend còn submit
- * qua fetch() (AJAX) - dùng postJson()/getJson() để giả lập request thật của JS lúc đó. Dự án sau đó
- * đã làm ngược lại: bỏ AJAX, quay về form POST/GET + redirect + full-page-reload truyền thống ở hầu
- * hết các endpoint (chỉ còn giữ AJAX có chủ đích ở một số nơi: giỏ hàng/yêu thích, bản đồ + phí ship +
- * coupon + tỉnh/phường lúc checkout, một số thao tác lặp lại nhanh ở màn POS lễ tân). Nhóm đăng nhập/
- * đăng ký/OTP/quên-đặt lại mật khẩu từng giữ lại nhánh expectsJson() chỉ để không phá test, dù JS
- * không còn gọi tới - nhánh đó đã bị xoá khỏi AuthController, nên các test dưới đây giờ dùng post()/
- * get() thường và assert theo redirect + session flash, giống mọi endpoint đã bỏ AJAX khác.
- *
- * Vì vậy các test bên dưới chia làm 2 nhóm:
- *  - Nhóm còn dùng postJson()/getJson(): endpoint đó VẪN hỗ trợ trả JSON thật (checkout, và validate
- *    lỗi tự động của Laravel cho mọi request có Accept: application/json bất kể controller có code
- *    riêng cho JSON hay không).
- *  - Nhóm đã đổi sang post()/put()/get() thường: endpoint đó KHÔNG còn nhánh JSON nào nữa, chỉ còn
- *    redirect + session flash - test phải giả lập đúng như trình duyệt thật gửi form.
- */
+// File test này ban đầu (tên "FrontendAjaxTest") viết cho giai đoạn các endpoint frontend còn submit
+// qua fetch() (AJAX) - dùng postJson()/getJson() để giả lập request thật của JS lúc đó. Dự án sau đó
+// đã làm ngược lại: bỏ AJAX, quay về form POST/GET + redirect + full-page-reload truyền thống ở hầu
+// hết các endpoint (chỉ còn giữ AJAX có chủ đích ở một số nơi: giỏ hàng/yêu thích, bản đồ + phí ship +
+// coupon + tỉnh/phường lúc checkout, một số thao tác lặp lại nhanh ở màn POS lễ tân). Nhóm đăng nhập/
+// đăng ký/OTP/quên-đặt lại mật khẩu từng giữ lại nhánh expectsJson() chỉ để không phá test, dù JS
+// không còn gọi tới - nhánh đó đã bị xoá khỏi AuthController, nên các test dưới đây giờ dùng post()/
+// get() thường và assert theo redirect + session flash, giống mọi endpoint đã bỏ AJAX khác.
+//
+// Vì vậy các test bên dưới chia làm 2 nhóm:
+//  - Nhóm còn dùng postJson()/getJson(): endpoint đó VẪN hỗ trợ trả JSON thật (checkout, và validate
+//    lỗi tự động của Laravel cho mọi request có Accept: application/json bất kể controller có code
+//    riêng cho JSON hay không).
+//  - Nhóm đã đổi sang post()/put()/get() thường: endpoint đó KHÔNG còn nhánh JSON nào nữa, chỉ còn
+//    redirect + session flash - test phải giả lập đúng như trình duyệt thật gửi form.
 class FrontendAjaxTest extends TestCase
 {
     use RefreshDatabase;
@@ -248,10 +246,8 @@ class FrontendAjaxTest extends TestCase
         ]);
     }
 
-    /**
-     * Đơn đã thanh toán online mà shop CHƯA xác nhận: khách VẪN được tự hủy, hệ thống tự động gọi API
-     * hoàn tiền của cổng thanh toán rồi mới hủy — không bắt khách phải liên hệ cửa hàng thủ công.
-     */
+    // Đơn đã thanh toán online mà shop CHƯA xác nhận: khách VẪN được tự hủy, hệ thống tự động gọi API
+    // hoàn tiền của cổng thanh toán rồi mới hủy — không bắt khách phải liên hệ cửa hàng thủ công.
     public function test_customer_can_self_cancel_paid_vnpay_order_and_money_is_refunded_automatically(): void
     {
         config([
@@ -281,10 +277,8 @@ class FrontendAjaxTest extends TestCase
         $this->assertNotNull($order->refunded_at);
     }
 
-    /**
-     * Hoàn tiền thất bại -> KHÔNG được hủy đơn (không bao giờ hủy "chay" đơn đã trừ tiền của khách),
-     * đơn giữ nguyên paid/pending và khách nhận thông báo lỗi rõ ràng.
-     */
+    // Hoàn tiền thất bại -> KHÔNG được hủy đơn (không bao giờ hủy "chay" đơn đã trừ tiền của khách),
+    // đơn giữ nguyên paid/pending và khách nhận thông báo lỗi rõ ràng.
     public function test_customer_self_cancel_leaves_order_untouched_when_refund_fails(): void
     {
         config([
@@ -312,10 +306,8 @@ class FrontendAjaxTest extends TestCase
         $this->assertNull($order->refund_transaction_id);
     }
 
-    /**
-     * Khách không được hủy đơn của người khác (kể cả đơn đã thanh toán) — ownership check phải chặn
-     * TRƯỚC khi bất kỳ lời gọi hoàn tiền nào xảy ra.
-     */
+    // Khách không được hủy đơn của người khác (kể cả đơn đã thanh toán) — ownership check phải chặn
+    // TRƯỚC khi bất kỳ lời gọi hoàn tiền nào xảy ra.
     public function test_customer_cannot_self_cancel_someone_elses_paid_order(): void
     {
         \Illuminate\Support\Facades\Http::fake();
@@ -333,10 +325,8 @@ class FrontendAjaxTest extends TestCase
         $this->assertSame('paid', $order->fresh()->payment_status);
     }
 
-    /**
-     * Nút hủy vẫn hiện cho đơn "Chờ xác nhận" đã thanh toán (nhãn "Hủy & hoàn tiền"), không còn bắt
-     * khách liên hệ cửa hàng. Đơn đã xác nhận trở đi thì không có nút nữa.
-     */
+    // Nút hủy vẫn hiện cho đơn "Chờ xác nhận" đã thanh toán (nhãn "Hủy & hoàn tiền"), không còn bắt
+    // khách liên hệ cửa hàng. Đơn đã xác nhận trở đi thì không có nút nữa.
     public function test_my_orders_page_shows_refund_and_cancel_button_for_paid_pending_orders(): void
     {
         $user = User::factory()->create();
@@ -356,11 +346,9 @@ class FrontendAjaxTest extends TestCase
             ->assertDontSee("cancel-btn-{$confirmed->id}", false);
     }
 
-    /**
-     * Phần "Chi tiết" của đơn hàng (mở ra khi bấm nút Chi tiết) phải cho khách thấy rõ hình thức
-     * thanh toán và trạng thái thanh toán/hoàn tiền — trước đây hoàn toàn không hiển thị, khách tự
-     * hủy+hoàn tiền xong không có cách nào biết đơn đã hoàn tiền hay chưa từ chính trang của mình.
-     */
+    // Phần "Chi tiết" của đơn hàng (mở ra khi bấm nút Chi tiết) phải cho khách thấy rõ hình thức
+    // thanh toán và trạng thái thanh toán/hoàn tiền — trước đây hoàn toàn không hiển thị, khách tự
+    // hủy+hoàn tiền xong không có cách nào biết đơn đã hoàn tiền hay chưa từ chính trang của mình.
     public function test_order_details_show_payment_method_and_refund_status(): void
     {
         $user = User::factory()->create();
@@ -431,11 +419,9 @@ class FrontendAjaxTest extends TestCase
         $this->assertDatabaseHas('reviews', ['order_id' => $order->id, 'product_id' => $product->id, 'rating' => 5]);
     }
 
-    /**
-     * Trước đây truy cập lại trang đánh giá sau khi đã đánh giá rồi sẽ bị chặn (redirect kèm lỗi) —
-     * không có nơi nào để bấm "Xem đánh giá". Giờ trang phải hiển thị lại ĐÚNG nội dung đã gửi ở chế
-     * độ chỉ xem thay vì chặn, để làm đích đến cho nút "Xem đánh giá" ở trang đơn hàng.
-     */
+    // Trước đây truy cập lại trang đánh giá sau khi đã đánh giá rồi sẽ bị chặn (redirect kèm lỗi) —
+    // không có nơi nào để bấm "Xem đánh giá". Giờ trang phải hiển thị lại ĐÚNG nội dung đã gửi ở chế
+    // độ chỉ xem thay vì chặn, để làm đích đến cho nút "Xem đánh giá" ở trang đơn hàng.
     public function test_review_page_shows_readonly_content_when_already_reviewed(): void
     {
         $user = User::factory()->create();
@@ -462,9 +448,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertDontSee('Gửi đánh giá');
     }
 
-    /**
-     * Chưa đánh giá thì trang vẫn hiển thị form nhập bình thường như cũ (không đổi hành vi).
-     */
+    // Chưa đánh giá thì trang vẫn hiển thị form nhập bình thường như cũ (không đổi hành vi).
     public function test_review_page_shows_form_when_not_yet_reviewed(): void
     {
         $user = User::factory()->create();
@@ -485,9 +469,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertSee('Gửi đánh giá');
     }
 
-    /**
-     * Trong vòng 7 ngày kể từ lúc đánh giá -> trang chỉ xem có thêm nút "Chỉnh sửa đánh giá".
-     */
+    // Trong vòng 7 ngày kể từ lúc đánh giá -> trang chỉ xem có thêm nút "Chỉnh sửa đánh giá".
     public function test_review_page_shows_edit_button_within_edit_window(): void
     {
         $user = User::factory()->create();
@@ -512,9 +494,7 @@ class FrontendAjaxTest extends TestCase
         $response->assertDontSee('không thể chỉnh sửa nữa');
     }
 
-    /**
-     * Sau 7 ngày -> KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, thay bằng ghi chú đã hết hạn.
-     */
+    // Sau 7 ngày -> KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, thay bằng ghi chú đã hết hạn.
     public function test_review_page_hides_edit_button_after_edit_window_expires(): void
     {
         $user = User::factory()->create();
@@ -566,9 +546,7 @@ class FrontendAjaxTest extends TestCase
         $this->assertNotNull($review->fresh()->edited_at);
     }
 
-    /**
-     * Chỉ được sửa ĐÚNG 1 LẦN cho mỗi đánh giá — sửa lần 2 (dù vẫn còn trong hạn 7 ngày) phải bị chặn.
-     */
+    // Chỉ được sửa ĐÚNG 1 LẦN cho mỗi đánh giá — sửa lần 2 (dù vẫn còn trong hạn 7 ngày) phải bị chặn.
     public function test_review_update_redirects_with_error_on_second_edit_attempt(): void
     {
         $user = User::factory()->create();
@@ -600,10 +578,8 @@ class FrontendAjaxTest extends TestCase
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => 'Ngon hơn tôi nghĩ']);
     }
 
-    /**
-     * Đã sửa 1 lần rồi thì trang chỉ xem KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, dù vẫn còn trong hạn
-     * 7 ngày — kèm ghi chú lý do đúng ("đã dùng lượt sửa"), khác thông báo hết hạn 7 ngày.
-     */
+    // Đã sửa 1 lần rồi thì trang chỉ xem KHÔNG còn nút "Chỉnh sửa đánh giá" nữa, dù vẫn còn trong hạn
+    // 7 ngày — kèm ghi chú lý do đúng ("đã dùng lượt sửa"), khác thông báo hết hạn 7 ngày.
     public function test_review_page_hides_edit_button_after_already_edited_once(): void
     {
         $user = User::factory()->create();
@@ -679,11 +655,9 @@ class FrontendAjaxTest extends TestCase
         $response->assertJsonValidationErrors('rating');
     }
 
-    /**
-     * Trang danh sách đơn hàng: sản phẩm CHƯA đánh giá hiện nút "Đánh giá" trỏ tới review.create; sản
-     * phẩm ĐÃ đánh giá hiện link "Xem đánh giá" trỏ tới ĐÚNG cùng route đó (không còn là <span> tĩnh
-     * không bấm được như trước).
-     */
+    // Trang danh sách đơn hàng: sản phẩm CHƯA đánh giá hiện nút "Đánh giá" trỏ tới review.create; sản
+    // phẩm ĐÃ đánh giá hiện link "Xem đánh giá" trỏ tới ĐÚNG cùng route đó (không còn là <span> tĩnh
+    // không bấm được như trước).
     public function test_orders_page_shows_review_and_view_review_links_correctly(): void
     {
         $user = User::factory()->create();
@@ -831,11 +805,9 @@ class FrontendAjaxTest extends TestCase
         $this->assertSame('forgot@test.com', session('verify_email'));
     }
 
-    /**
-     * Reset-password used to be its own full page (GET /reset-password). It's now a modal included on
-     * every page, opened via the show_reset_password flash flag - reset-password.blade.php reads that
-     * flag itself on page load and pops the modal open, no JS-driven navigation involved.
-     */
+    // Reset-password used to be its own full page (GET /reset-password). It's now a modal included on
+    // every page, opened via the show_reset_password flash flag - reset-password.blade.php reads that
+    // flag itself on page load and pops the modal open, no JS-driven navigation involved.
     public function test_forgot_password_full_flow_signals_reset_modal_instead_of_redirect(): void
     {
         \Illuminate\Support\Facades\Mail::fake();
@@ -864,12 +836,10 @@ class FrontendAjaxTest extends TestCase
         $this->assertNotEmpty(session('success'));
     }
 
-    /**
-     * SECURITY REGRESSION: can_reset_password is a long-lived permission flag, not a "show the modal
-     * now" signal. Driving the modal off it meant any subsequent page load - including clicking
-     * "Gửi lại" on an expired OTP, which does a full redirect - popped the reset-password modal open,
-     * letting anyone set a new password without ever entering a correct OTP.
-     */
+    // SECURITY REGRESSION: can_reset_password is a long-lived permission flag, not a "show the modal
+    // now" signal. Driving the modal off it meant any subsequent page load - including clicking
+    // "Gửi lại" on an expired OTP, which does a full redirect - popped the reset-password modal open,
+    // letting anyone set a new password without ever entering a correct OTP.
     public function test_reset_modal_does_not_auto_open_from_lingering_permission_flag(): void
     {
         \Illuminate\Support\Facades\Mail::fake();

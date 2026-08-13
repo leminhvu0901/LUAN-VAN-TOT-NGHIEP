@@ -53,10 +53,8 @@ return new class extends Migration
         Schema::dropIfExists('promotion_products');
     }
 
-    /**
-     * Dò kiểu thật của cột id trên bảng $table: true nếu là bigint unsigned (CSDL mới, do
-     * $table->id() tạo), false nếu là int thường (CSDL production/local đã tồn tại từ trước).
-     */
+    // Dò kiểu thật của cột id trên bảng $table: true nếu là bigint unsigned (CSDL mới, do
+    // $table->id() tạo), false nếu là int thường (CSDL production/local đã tồn tại từ trước).
     private function idColumnIsBigInt(string $table): bool
     {
         if (DB::getDriverName() !== 'mysql') {

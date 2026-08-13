@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class RedirectStaffFromFrontend
 {
-    // Tự động chuyển hướng quản trị viên và nhân viên khỏi các trang dành cho khách hàng
+    // Tự động chuyển hướng quản trị viên và nhân viên khỏi
     public function handle(Request $request, Closure $next)
     {
         // Cho qua nếu là khách vãng lai chưa đăng nhập
@@ -23,7 +23,7 @@ class RedirectStaffFromFrontend
             return redirect()->route('admin.dashboard');
         }
 
-        // Chuyển hướng nhân viên về đúng Dashboard tương ứng với công việc
+        // Chuyển hướng nhân viên về đúng Dashboard tương ứng với
         if ($user->role === 'staff') {
             if ($user->staff_type === 'delivery') {
                 return redirect()->route('staff.delivery.dashboard');

@@ -7,11 +7,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Đối soát tiền COD: nhân viên vận chuyển thu tiền mặt từ khách khi hoàn thành đơn COD, sau đó
-     * phải nộp lại cho lễ tân/quầy. cod_settled_at/by ghi nhận thời điểm + người xác nhận đã nhận
-     * lại tiền — giúp lễ tân biết chính xác đơn nào shipper đã nộp, đơn nào còn giữ trong người.
-     */
+    // Đối soát tiền COD: nhân viên vận chuyển thu tiền mặt từ khách khi hoàn thành đơn COD, sau đó
+    // phải nộp lại cho lễ tân/quầy. cod_settled_at/by ghi nhận thời điểm + người xác nhận đã nhận
+    // lại tiền — giúp lễ tân biết chính xác đơn nào shipper đã nộp, đơn nào còn giữ trong người.
     public function up(): void
     {
         $usersUsesBigInt = DB::getDriverName() !== 'mysql'

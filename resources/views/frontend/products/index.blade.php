@@ -1,12 +1,12 @@
-{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
+{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web --}}
 @extends('frontend.layouts.app')
 
-{{-- Chừa khoảng trống phía dưới trên mobile để nội dung không bị thanh điều hướng dưới cùng che mất --}}
+{{-- Chừa khoảng trống phía dưới trên mobile để nội --}}
 @section('body_class', 'has-mobile-bottom-nav')
 
 @section('content')
         <div class="p-page-wrapper">
-            <!-- Breadcrumb (Đường dẫn định vị thanh tiêu đề) -->
+            <!-- Breadcrumb -->
             <nav class="p-breadcrumb" aria-label="Breadcrumb">
                 <a href="/">Trang chủ</a>
                 <span class="p-breadcrumb-sep">/</span>
@@ -14,7 +14,7 @@
             </nav>
 
             <div class="p-main-layout">
-                <!-- Sidebar Filters (Thanh bộ lọc bên sườn trái) -->
+                <!-- Sidebar Filters -->
                 <aside class="p-sidebar">
                     {{-- Nút bấm mở/đóng bộ lọc trên thiết bị di động --}}
                     <button type="button" class="p-sidebar-toggle" onclick="toggleFilter()">
@@ -25,17 +25,17 @@
                         <span class="material-symbols-outlined toggle-icon p-sidebar-toggle-arrow">expand_more</span>
                     </button>
                     
-                    {{-- Biểu mẫu (Form) lọc sản phẩm gửi các thông số qua phương thức GET --}}
+                    {{-- Biểu mẫu lọc sản phẩm gửi các thông số qua phương thức get --}}
                     <form id="filter-form" action="{{ route('products') }}" method="GET" class="p-filter-form">
                         {{-- Ô ẩn để truyền giá trị tìm kiếm hiện tại khi thực hiện lọc --}}
                         <input type="hidden" id="filter-search" name="search" value="{{ request('search') }}">
                         
-                        <!-- Nhóm lọc: Danh mục sản phẩm (Loại đồ uống) -->
+                        <!-- Nhóm lọc: Danh mục sản phẩm -->
                         <div class="p-filter-group">
                             <h3 class="p-filter-title">Bộ lọc</h3>
                             @foreach($categories as $category)
                             <label class="p-filter-item">
-                                {{-- Checkbox danh mục, khi thay đổi sẽ tự động xóa từ khóa tìm kiếm và gửi form --}}
+                                {{-- Checkbox danh mục, khi thay đổi sẽ tự động xóa từ --}}
                                 <input type="checkbox" name="category[]" value="{{ $category->id }}"
                                        onchange="clearSearchAndSubmit()"
                                        {{ in_array($category->id, $categoryIds) ? 'checked' : '' }}>
@@ -44,7 +44,7 @@
                             @endforeach
                         </div>
 
-                        <!-- Nhóm lọc: Khoảng giá sản phẩm (Sử dụng thanh kéo range slider) -->
+                        <!-- Nhóm lọc: Khoảng giá sản phẩm -->
                         <div class="p-filter-group">
                             <h3 class="p-filter-title">Giá</h3>
                             <div class="p-price-range-wrap">
@@ -52,7 +52,7 @@
                                     // Giá trị nhỏ nhất và lớn nhất của thanh kéo
                                     $sliderMin = 0;
                                     $sliderMax = 600000;
-                                    // Tính toán phần trăm thanh kéo hiện tại để đổ màu nền thanh slider (màu xanh lá)
+                                    // Tính toán phần trăm thanh kéo hiện tại để đổ màu nền thanh slider
                                     $sliderPct = round((($maxPrice - $sliderMin) / ($sliderMax - $sliderMin)) * 100, 2);
                                 @endphp
                                 <input type="range" class="p-price-slider" id="price-slider" name="max_price"
@@ -65,7 +65,7 @@
                             </div>
                         </div>
 
-                    <!-- Nhóm lọc: Đánh giá sao (Rating) -->
+                    <!-- Nhóm lọc: Đánh giá sao -->
                     <div class="p-filter-group">
                         <h3 class="p-filter-title">Đánh giá</h3>
                         {{-- Tùy chọn lọc: Từ 4 sao trở lên --}}
@@ -92,7 +92,7 @@
                             </span>
                             <span class="p-rating-label">Từ 3 sao</span>
                         </label>
-                        {{-- Tùy chọn lọc: Tất cả đánh giá (không lọc) --}}
+                        {{-- Tùy chọn lọc: Tất cả đánh giá --}}
                         <label class="p-rating-item">
                             <input type="radio" id="rating-all" name="rating" value="0" onchange="submitFilterForm();" {{ request('rating') == '0' || !request()->has('rating') ? 'checked' : '' }}>
                             <span class="p-rating-stars">
@@ -106,21 +106,16 @@
                         </label>
                     </div>
 
-                    <!-- Nút Áp dụng trên thiết bị di động (ở Desktop được ẩn đi) -->
+                    <!-- Nút Áp dụng trên thiết bị di động -->
                     <button type="submit" class="p-filter-submit-btn">Áp dụng bộ lọc</button>
                     </form>
                 </aside>
 
-                <!-- Product Area (Khu vực danh sách sản phẩm) -->
+                <!-- Product Area -->
                 <div class="p-product-area">
-                    <!-- Sort & Filter Pills (Thanh sắp xếp và nút lọc thẻ nhanh) -->
+                    <!-- Sort & Filter Pills -->
                     <div class="p-sort-bar p-sort-bar-flex">
-                        {{-- Dropdown lựa chọn tiêu chí sắp xếp.
-                        Dùng dropdown tự dựng thay vì <select> hiển thị trực tiếp: popup của <select>
-                        do trình duyệt/hệ điều hành tự vẽ, KHÔNG thể giới hạn chiều rộng bằng CSS nên
-                        trên màn hình hẹp nó tràn ra ngoài khung, vỡ layout. <select> vẫn được giữ lại
-                        (ẩn đi) làm nguồn dữ liệu duy nhất để logic sắp xếp sẵn có trong index.js
-                        (đọc sortSelect.value + nghe sự kiện 'change') chạy y nguyên, không phải sửa. --}}
+                        {{-- Sắp xếp sản phẩm --}}
                         <div class="p-sort-dropdown" id="sort-dropdown">
                             <button type="button" class="p-sort-dropdown__toggle" id="sort-dropdown-toggle"
                                 aria-haspopup="listbox" aria-expanded="false">
@@ -130,10 +125,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
                                 </svg>
                             </button>
-                            {{-- Chữ trong danh sách KHÔNG kèm tiền tố "Sắp xếp theo:" — phần tiền tố do
-                            index.js tự ghép vào nhãn của nút. Trước đây chỉ mục đầu tiên có tiền tố nên
-                            khi chọn mục khác, nút thu lại chỉ còn vài chữ (vd "Mới nhất"), vừa mất ngữ
-                            cảnh vừa làm bảng chọn (rộng theo nút) bị bóp lại khiến chữ xuống dòng lung tung. --}}
+                            
                             <ul class="p-sort-dropdown__menu" id="sort-dropdown-menu" role="listbox" hidden>
                                 <li class="p-sort-dropdown__option is-selected" role="option" aria-selected="true" data-value="popular">Phổ biến nhất</li>
                                 <li class="p-sort-dropdown__option" role="option" aria-selected="false" data-value="discount">Đang giảm giá</li>
@@ -155,23 +147,19 @@
                     </div>
 
                     @include('frontend.products.partials.grid')
-                </div><!-- end .p-product-area -->
-            </div><!-- end .p-main-layout -->
-        </div><!-- end .p-page-wrapper -->
+                </div><!-- End .p-product-area -->
+            </div><!-- End .p-main-layout -->
+        </div><!-- End .p-page-wrapper -->
 
     @include('frontend.components.bottom-nav')
 
     <script>
-    // Đóng/mở thanh sidebar Bộ lọc trên di động (gắn class "open" để CSS trượt sidebar ra/vào),
-    // trên desktop sidebar luôn hiện sẵn nên hàm này thường chỉ được gọi khi ở màn hình nhỏ.
-    function toggleFilter() {
+    // Đóng/mở thanh sidebar Bộ lọc trên di động,    function toggleFilter() {
         const sidebar = document.querySelector('.p-sidebar');
         if (sidebar) sidebar.classList.toggle('open');
     }
 
-    // Cập nhật nhãn hiển thị khoảng giá (VD "0đ – 250.000đ") và tô màu phần thanh trượt giá đã kéo
-    // qua (bên trái con trượt tô xanh, bên phải để màu xám) mỗi khi người dùng kéo thanh <input type="range">
-    function updatePriceLabel(val) {
+    // Cập nhật nhãn hiển thị khoảng giá và tô màu phần thanh    function updatePriceLabel(val) {
         const formatted = parseInt(val).toLocaleString('vi-VN');
         document.getElementById('price-label').textContent = '0đ – ' + formatted + 'đ';
 
@@ -182,18 +170,14 @@
         }
     }
 
-    // Khởi tạo nhãn + màu thanh trượt giá đúng theo giá trị đã chọn từ trước (VD sau khi submit
-    // filter và tải lại trang, giá trị slider được server giữ lại qua query string)
-    window.addEventListener('DOMContentLoaded', () => {
+    // Khởi tạo nhãn + màu thanh trượt giá đúng theo giá trị    window.addEventListener('DOMContentLoaded', () => {
         const slider = document.getElementById('price-slider');
         if (slider) {
             updatePriceLabel(slider.value);
         }
     });
 
-    // Xóa nội dung ô tìm kiếm (cả ô tìm kiếm trong sidebar lẫn ô tìm kiếm trên navbar) rồi submit
-    // lại form lọc ngay lập tức - dùng cho nút "x" xóa nhanh từ khóa tìm kiếm đang áp dụng
-    function clearSearchAndSubmit() {
+    // Xóa nội dung ô tìm kiếm rồi submit    function clearSearchAndSubmit() {
         const searchInput = document.getElementById('filter-search');
         if (searchInput) searchInput.value = '';
         const navSearchInput = document.getElementById('search-input');
@@ -201,31 +185,19 @@
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
 
-    // Submit form lọc (GET) ngay khi người dùng đổi 1 lựa chọn trong sidebar (tích danh mục, chọn
-    // sao đánh giá...) - chỉ tự submit trên màn hình > 640px (desktop/tablet); trên di động người
-    // dùng phải bấm nút "Áp dụng" thủ công, tránh submit liên tục gây giật khi đang thao tác trên sidebar trượt
-    function submitFilterForm() {
+    // Submit form lọc ngay khi người dùng đổi 1 lựa chọn    function submitFilterForm() {
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
 
     const sortSelect = document.getElementById('sort-select');
     let grid = document.getElementById('product-grid');
 
-    // =========================================================================
-    // SẮP XẾP LẠI LƯỚI SẢN PHẨM PHÍA CLIENT (không gọi lại server) khi đổi dropdown "Sắp xếp theo".
-    // Toàn bộ sản phẩm của TRANG hiện tại (đã phân trang từ backend) đã có sẵn trong DOM kèm các
-    // data-* attribute (data-sold, data-price-val, data-date, data-rating-val...); hàm này chỉ sắp
-    // xếp lại thứ tự các thẻ đã có, không lọc/phân trang lại - tương tự cơ chế bộ lọc pill ở trang chủ.
-    // =========================================================================
-    function applySortAndFilter() {
+    // Sắp xếp lại lưới sản phẩm
         if (!sortSelect || !grid) return;
         const sortBy = sortSelect.value;
         const cards = Array.from(grid.querySelectorAll('.p-product-card'));
 
-        // Tiêu chí sắp xếp tương ứng từng lựa chọn trong dropdown: phổ biến (theo lượt bán), giảm
-        // giá (ưu tiên sản phẩm đang sale trước, cùng loại thì so lượt bán), giá tăng/giảm dần, mới
-        // nhất (theo ngày tạo) và đánh giá cao nhất
-        cards.sort((a, b) => {
+        // Tiêu chí sắp xếp tương ứng từng lựa chọn trong        cards.sort((a, b) => {
             if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0);
             if (sortBy === 'discount') {
                 const hasSaleB = b.querySelector('.home-prod-card__badge--sale') ? 1 : 0;
@@ -240,15 +212,10 @@
             return 0;
         });
 
-        // appendChild trên 1 phần tử đã có sẵn trong DOM sẽ DI CHUYỂN nó tới cuối, không tạo bản
-        // sao - lặp theo đúng thứ tự vừa sort() sẽ đưa toàn bộ thẻ về đúng thứ tự hiển thị mới
-        cards.forEach(card => {
+        // AppendChild trên 1 phần tử đã có sẵn trong DOM sẽ di        cards.forEach(card => {
             grid.appendChild(card);
 
-            // Đổi badge nào được hiển thị trên thẻ sản phẩm cho khớp với tiêu chí đang sắp xếp (VD
-            // sort theo "Mới nhất" thì ưu tiên hiện badge "Mới", sort theo "Giảm giá" thì ưu tiên
-            // hiện badge "Giảm giá") - mỗi thẻ chỉ hiện tối đa 1 badge tại 1 thời điểm để đỡ rối mắt
-            const hotBadge = card.querySelector('.home-prod-card__badge--hot');
+            // Đổi badge nào được hiển thị trên thẻ sản phẩm cho khớp            const hotBadge = card.querySelector('.home-prod-card__badge--hot');
             const newBadge = card.querySelector('.home-prod-card__badge--new');
             const saleBadge = card.querySelector('.home-prod-card__badge--sale');
             if (sortBy === 'newest') {
@@ -272,15 +239,7 @@
         applySortAndFilter(); // Chạy 1 lần lúc tải trang để áp dụng đúng lựa chọn sắp xếp mặc định
     }
 
-    // =========================================================================
-    // DROPDOWN "SẮP XẾP THEO" TÙY BIẾN GIAO DIỆN
-    // Thẻ <select> gốc (#sort-select) được ẩn đi và thay bằng 1 dropdown tự vẽ bằng div/button để
-    // dễ tùy biến giao diện hơn <select> mặc định của trình duyệt. Khối này đồng bộ 2 chiều: chọn
-    // trong dropdown tùy biến sẽ cập nhật lại giá trị + bắn sự kiện "change" trên <select> gốc, để
-    // applySortAndFilter() ở trên (đang lắng nghe sự kiện change của select gốc) vẫn chạy bình thường.
-    // =========================================================================
-    (function () {
-        const dropdown = document.getElementById('sort-dropdown');
+    // // Dropdown sắp xếp tùy biến        const dropdown = document.getElementById('sort-dropdown');
         const toggle = document.getElementById('sort-dropdown-toggle');
         const menu = document.getElementById('sort-dropdown-menu');
         const label = document.getElementById('sort-dropdown-label');
@@ -307,9 +266,7 @@
             if (menu.hidden) openMenu(); else closeMenu();
         });
 
-        // Bấm chọn 1 lựa chọn trong menu: đổi trạng thái "đang chọn", đổi nhãn hiển thị, đồng bộ giá
-        // trị + bắn sự kiện change sang <select> gốc rồi đóng menu lại
-        menu.addEventListener('click', function (event) {
+        // Bấm chọn 1 lựa chọn trong menu: đổi trạng thái "đang        menu.addEventListener('click', function (event) {
             const option = event.target.closest('.p-sort-dropdown__option');
             if (!option) return;
 
@@ -335,9 +292,7 @@
         });
     })();
 
-    // Khi submit form lọc (nút "Áp dụng" trên di động), tự đóng sidebar bộ lọc lại trước khi trang
-    // tải lại - tránh trường hợp trang mới tải xong mà sidebar vẫn đang ở trạng thái mở đè lên nội dung
-    const filterForm = document.getElementById('filter-form');
+    // Khi submit form lọc, tự đóng sidebar bộ lọc lại trước    const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.addEventListener('submit', function () {
             const sidebar = document.querySelector('.p-sidebar');

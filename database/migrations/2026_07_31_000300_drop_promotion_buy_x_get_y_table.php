@@ -4,11 +4,9 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Bước cuối cùng của rework "Mua X tặng Y" -> "Combo": xoá hẳn bảng cũ, tách riêng khỏi migration
- * data (2026_07_31_000200) để rollback lần lượt từng bước được — rollback riêng migration này chỉ
- * dựng lại schema rỗng, migration data phía trước mới lo dựng lại dữ liệu.
- */
+// Bước cuối cùng của rework "Mua X tặng Y" -> "Combo": xoá hẳn bảng cũ, tách riêng khỏi migration
+// data (2026_07_31_000200) để rollback lần lượt từng bước được — rollback riêng migration này chỉ
+// dựng lại schema rỗng, migration data phía trước mới lo dựng lại dữ liệu.
 return new class extends Migration
 {
     public function up(): void

@@ -1,5 +1,5 @@
 @if ($staffs->count() > 0)
-    <!-- Giao diện Mobile (Card view) -->
+    <!-- Giao diện Mobile -->
     <div class="block md:hidden space-y-4 p-4">
         @foreach($staffs as $staff)
             <div class="bg-white p-4 rounded-2xl organic-shadow border border-gray-100 flex flex-col gap-3 relative group" id="staff-card-{{ $staff->id }}">
@@ -81,7 +81,7 @@
         @endforeach
     </div>
 
-    <!-- Giao diện Desktop (Table view) -->
+    <!-- Giao diện Desktop -->
     <div class="hidden md:block overflow-x-auto w-full">
         <table class="w-full text-left border-collapse table-fixed min-w-[880px]">
             <colgroup>
@@ -125,7 +125,7 @@
                             {{ $staff->email }}
                         </td>
 
-                        <!-- SĐT -->
+                        <!-- Sđt -->
                         <td class="px-6 py-4 text-sm text-gray-600 font-medium truncate">
                             {{ $staff->phone ?? '-' }}
                         </td>

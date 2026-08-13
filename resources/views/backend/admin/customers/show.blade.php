@@ -5,7 +5,7 @@
 @section('content')
     <div class="flex flex-col gap-6 h-full pb-4">
 
-        {{-- PHẦN 1: HEADER (Tiêu đề, Trạng thái) --}}
+        {{-- Header --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <div class="flex items-center gap-3">
@@ -40,10 +40,10 @@
             </div>
         </div>
 
-        {{-- PHẦN 2: LƯỚI GIAO DIỆN CHÍNH --}}
+        {{-- Lưới giao diện chính --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {{-- CỘT TRÁI (Chiếm 1/3 không gian): Thông Đài cá nhân & Thống kê --}}
+            {{-- CỘT trái: Thông Đài cá nhân & Thống kê --}}
             <div class="lg:col-span-1 flex flex-col gap-6">
                 
                 {{-- Card Thông tin cá nhân --}}
@@ -144,7 +144,7 @@
 
             </div>
 
-            {{-- CỘT PHẢI (Chiếm 2/3 không gian): Lịch sử đơn hàng --}}
+            {{-- CỘT PHẢI: Lịch sử đơn hàng --}}
             <div class="lg:col-span-2">
                 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden h-full">
                     <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">

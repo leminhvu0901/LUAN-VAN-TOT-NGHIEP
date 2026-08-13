@@ -1,4 +1,4 @@
-{{-- 1 thẻ đánh giá kiểu "compact" (dùng ở trang "Xem đánh giá", class Tailwind riêng). --}}
+{{-- Thẻ đánh giá gọn --}}
 <div class="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
     <div class="flex justify-between items-start mb-3">
         <div class="flex items-center gap-3">

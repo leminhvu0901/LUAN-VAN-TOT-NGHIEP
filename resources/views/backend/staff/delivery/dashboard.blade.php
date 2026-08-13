@@ -28,7 +28,7 @@
             </div>
         </div>
 
-        {{-- Đối soát COD: cần thu (đang giao), đã thu nhưng chưa nộp quầy, và đã nộp quầy --}}
+        {{-- Đối soát COD: cần thu, đã thu nhưng chưa nộp --}}
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
             <h3 class="font-bold text-gray-900">Đối soát COD của bạn</h3>
             <div class="flex items-center justify-between">

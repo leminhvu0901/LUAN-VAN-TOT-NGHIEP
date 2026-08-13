@@ -24,7 +24,7 @@ class MaterialController
     // Lấy danh sách Vật tư có lọc và phân trang
     public function index(Request $request)
     {
-        // Khởi tạo truy vấn kèm theo các lô hàng còn tồn và đếm số lô đang sử dụng/lô bị hủy
+        // Khởi tạo truy vấn kèm theo các lô hàng còn tồn và đếm
         $query = Material::with([
             'imports' => function ($q) {
                 $q->where('remaining_quantity', '>', 0); // Chỉ nạp các lô còn hàng
@@ -63,7 +63,7 @@ class MaterialController
 
         $materials = $query->paginate(10)->withQueryString(); // Phân trang 10 vật tư mỗi trang
 
-        // Thu thập số liệu thống kê chung cho các thẻ báo cáo ở đầu trang
+        // Thu thập số liệu thống kê chung cho các thẻ báo cáo ở
         $totalItems = Material::count(); // Tổng số loại vật tư trong hệ thống
         $lowStockItems = Material::where('current_stock', '<', 5)->where('current_stock', '>', 0)->count(); // Số vật tư sắp hết (dưới 5)
         $outOfStockItems = Material::where('current_stock', 0)->count(); // Số vật tư đã hết hàng hoàn toàn
@@ -111,7 +111,7 @@ class MaterialController
         $request->merge(['_form_context' => 'import-create']);
         $validated = $this->validateImportData($request, today()->toDateString()); // Validate dữ liệu nhập kho
 
-        // Ghi nhận lịch sử thao tác có định danh của tài khoản nhân viên thực hiện
+        // Ghi nhận lịch sử thao tác có định danh của tài khoản
         $operator = Auth::user();
         $auditPrefix = sprintf('[Nhân viên: %s (%s)] ', $operator->name, $operator->email);
         $note = $auditPrefix . ($validated['note'] ?? 'Nhập kho');
@@ -127,7 +127,7 @@ class MaterialController
         return redirect()->route('staff.reception.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
 
-    // Xuất kho trực tiếp từ một lô hàng cụ thể — dùng khi lấy nguyên liệu ra pha chế tại quầy (tính hao hụt nguyên vật liệu)
+    // Xuất kho trực tiếp từ một lô hàng cụ thể — dùng khi
     public function consumeBatch(Request $request, MaterialImport $import)
     {
         $request->merge([
@@ -191,7 +191,7 @@ class MaterialController
                 'current_stock' => (float) $material->current_stock - $consumeQty,
             ]);
 
-            // Ghi nhận biến động vào bảng chi tiết biến động kho nếu có bảng inventory_movements
+            // Ghi nhận biến động vào bảng chi tiết biến động kho nếu
             if (Schema::hasTable('inventory_movements'))
                 DB::table('inventory_movements')->insert([
                     'material_id' => $material->id,
@@ -238,7 +238,7 @@ class MaterialController
         ]);
     }
 
-    // Bộ lọc tìm kiếm nguyên liệu nâng cao (Lọc theo Tên/Mã vật tư, Trạng thái sắp hết/quá hạn/đã hủy)
+    // Bộ lọc tìm kiếm nguyên liệu nâng cao (Lọc theo Tên/Mã
     private function applyMaterialFilters($query, Request $request): void
     {
         if ($request->filled('search')) {

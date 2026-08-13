@@ -1,16 +1,4 @@
-{{--
-Khối chọn PHẠM VI ÁP DỤNG khuyến mãi + các trường phụ thuộc phạm vi.
-Dùng chung cho cả create.blade.php và edit.blade.php.
-
-Biến truyền vào:
-- $products, $categories: danh sách để chọn
-- $selectedScope: 'order' | 'product' | 'category' | 'combo'
-- $selectedProductIds, $selectedCategoryIds: mảng id đang chọn
-- $combo: bản ghi PromotionCombo đang có (null khi thêm mới)
-- $comboItems: Collection PromotionComboItem đang có (rỗng khi thêm mới)
-
-JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateScopeUI).
---}}
+{{-- Khối chọn PHẠM vi áp DỤNG khuyến mãi + các trường --}}
 @php
     $oldComboProductIds = old('combo_product_ids');
     $oldComboQuantities = old('combo_quantities');
@@ -59,7 +47,7 @@ JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateS
     @error('scope')
     <p class="text-red-500 text-xs mb-3">{{ $message }}</p> @enderror
 
-    {{-- Chọn sản phẩm (scope=product) --}}
+    {{-- Chọn sản phẩm --}}
     <div id="scope-product-fields" class="{{ $selectedScope === 'product' ? '' : 'hidden' }}">
         <label class="block text-sm font-semibold text-gray-700 mb-1">Sản phẩm được áp dụng <span
                 class="text-red-500">*</span></label>
@@ -81,7 +69,7 @@ JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateS
         <p class="text-xs text-gray-400 mt-1">Số tiền giảm chỉ tính trên tổng tiền của những sản phẩm được chọn.</p>
     </div>
 
-    {{-- Chọn danh mục (scope=category) --}}
+    {{-- Chọn danh mục --}}
     <div id="scope-category-fields" class="{{ $selectedScope === 'category' ? '' : 'hidden' }}">
         <label class="block text-sm font-semibold text-gray-700 mb-1">Danh mục được áp dụng <span
                 class="text-red-500">*</span></label>
@@ -101,7 +89,7 @@ JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateS
         </p>
     </div>
 
-    {{-- Cấu hình Combo (scope=combo) --}}
+    {{-- Cấu hình Combo --}}
     <div id="scope-combo-fields" class="{{ $selectedScope === 'combo' ? '' : 'hidden' }} space-y-5">
         <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Sản phẩm bắt buộc trong combo <span
@@ -137,7 +125,7 @@ JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateS
             Combo phải bật ít nhất 1 trong 2 thưởng bên dưới — có thể bật cả 2 cùng lúc.
         </div>
 
-        {{-- Thành phần 1: Giảm giá (độc lập, không loại trừ với Tặng quà) --}}
+        {{-- Thành Giảm giá --}}
         <div class="border border-gray-200 rounded-xl p-4">
             <label class="flex items-center gap-3 cursor-pointer">
                 <div class="relative">
@@ -194,7 +182,7 @@ JS ẩn/hiện các khối theo phạm vi nằm ở form-common.js (hàm updateS
             </div>
         </div>
 
-        {{-- Thành phần 2: Tặng quà (độc lập, không loại trừ với Giảm giá) --}}
+        {{-- Thành Tặng quà --}}
         <div class="border border-gray-200 rounded-xl p-4">
             <label class="flex items-center gap-3 cursor-pointer">
                 <div class="relative">

@@ -5,7 +5,7 @@
 @section('content')
     <div class="space-y-6 max-w-5xl mx-auto pb-8">
 
-        {{-- HEADER --}}
+        {{-- Header --}}
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.customers.index') }}"
                 onclick="smartGoBack(event)"
@@ -15,11 +15,11 @@
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Thêm Khách hàng</h1>
         </div>
 
-        {{-- FORM --}}
+        {{-- Form --}}
         <form action="{{ route('admin.customers.store') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             @csrf
 
-            {{-- Cột trái (Chiếm 2/3): Thông tin cá nhân --}}
+            {{-- Cột trái: Thông tin cá nhân --}}
             <div class="lg:col-span-2 space-y-6">
                 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -36,7 +36,7 @@
                             @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                         </div>
 
-                        {{-- Email & SĐT --}}
+                        {{-- Email & sđt --}}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label for="email" class="block text-sm font-semibold text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
@@ -104,7 +104,7 @@
                 </div>
             </div>
 
-            {{-- Cột phải (Chiếm 1/3): Avatar & Cấu hình phụ --}}
+            {{-- Cột phải: Avatar & Cấu hình phụ --}}
             <div class="lg:col-span-1 space-y-6">
                 
                 {{-- Ảnh đại diện --}}
@@ -185,6 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const avatarPreview = document.getElementById('avatar-preview');
     const avatarPlaceholder = document.getElementById('avatar-placeholder');
 
+    // Xem trước ảnh đại diện và kiểm tra dung lượng tối đa 2MB
     if (avatarInput) {
         avatarInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
@@ -214,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Kiểm tra độ dài tối đa tên khách hàng khi nhập
     const nameInput = document.getElementById('name');
     const nameError = document.getElementById('name-error');
     if (nameInput && nameError) {
@@ -227,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Kiểm tra định dạng email hợp lệ khi nhập
     const emailInput = document.getElementById('email');
     const emailError = document.getElementById('email-error');
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|vn|net|org|edu|info)(\.vn)?$/i;
@@ -242,6 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Xử lý bật tắt hiển thị mật khẩu
     const togglePasswordBtns = document.querySelectorAll('.toggle-password');
     togglePasswordBtns.forEach(btn => {
         btn.addEventListener('click', function () {
@@ -265,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const passwordConfirmInput = document.getElementById('password_confirmation');
     const passwordMatchError = document.getElementById('password-match-error');
 
-    // So khớp ô mật khẩu và ô nhập lại, báo lệch ngay lúc gõ
+    // Kiểm tra mật khẩu xác nhận trùng khớp với mật khẩu mới
     function checkPasswordMatch() {
         if (passwordConfirmInput && passwordConfirmInput.value.length > 0 && passwordInput && passwordInput.value !== passwordConfirmInput.value) {
             passwordMatchError.textContent = 'Xác nhận mật khẩu không khớp.';
@@ -280,6 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordConfirmInput.addEventListener('input', checkPasswordMatch);
     }
 
+    // Kiểm tra giới hạn điểm tích lũy tối đa khi nhập
     const pointsInput = document.getElementById('points');
     const pointsError = document.getElementById('points-error');
     if (pointsInput && pointsError) {

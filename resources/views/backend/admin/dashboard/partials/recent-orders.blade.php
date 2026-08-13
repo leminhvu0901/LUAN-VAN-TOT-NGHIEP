@@ -7,7 +7,7 @@
         <a href="{{ route('admin.orders.index') }}" class="text-xs text-emerald-600 hover:text-emerald-700 font-bold transition-colors">Xem tất cả</a>
     </div>
 
-    <!-- Desktop View (Table) -->
+    <!-- Desktop View -->
     <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
@@ -49,7 +49,7 @@
         </table>
     </div>
 
-    <!-- Mobile View (Card list) -->
+    <!-- Mobile View -->
     <div class="block sm:hidden space-y-3">
         @forelse ($recentOrders as $order)
             <div class="bg-gray-50/50 p-3.5 rounded-xl border border-gray-100 flex flex-col gap-2 relative">

@@ -4,7 +4,7 @@
             $now = now();
         @endphp
 
-        <!-- 1. GIAO DIỆN DESKTOP (Bảng) - Hiển thị từ màn hình lg (>= 1024px) -->
+        <!-- Giao diện desktop -->
         <div class="hidden lg:block w-full overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -46,8 +46,6 @@
                                 $statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
                             }
 
-                            // Dùng upload_url() dùng chung: xử lý đúng cả ảnh cũ ("banners/x.jpg") lẫn ảnh
-                            // mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn rồi ghép sai.
                             $fullImageUrl = upload_url($banner->image_url);
                         @endphp
                         <tr id="banner-row-{{ $banner->id }}" class="hover:bg-gray-50/40 transition-colors select-row-tr" data-id="{{ $banner->id }}">
@@ -148,7 +146,7 @@
             </table>
         </div>
 
-        <!-- 2. GIAO DIỆN MOBILE & TABLET (Cards) - Hiển thị trên màn hình < lg (< 1024px) -->
+        <!-- Giao diện mobile & tablet -->
         <div class="lg:hidden flex flex-col gap-3 p-4">
             <!-- Checkbox chọn tất cả trên Mobile -->
             <div
@@ -181,16 +179,12 @@
                         $statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
                     }
 
-                    // Dùng upload_url() dùng chung: xử lý đúng cả ảnh cũ ("banners/x.jpg") lẫn ảnh
-                    // mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn rồi ghép sai.
                     $fullImageUrl = upload_url($banner->image_url);
                 @endphp
-                {{-- Không đặt overflow-wrap/word-break ở thẻ card này: nó KẾ THỪA xuống 3 nút thao tác
-                     bên dưới, làm min-content của nút bằng 0 nên nút flex-1 co lại và chữ bị bẻ giữa từ
-                     ("Trạ/ng thá/i"). Chỉ cho phép bẻ từ ở đúng chỗ chữ do người dùng nhập (tiêu đề/nhãn). --}}
+                {{-- Không đặt overflow-wrap/word-break ở thẻ card --}}
                 <div id="banner-row-{{ $banner->id }}" class="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col gap-3 relative select-row-tr"
                     data-id="{{ $banner->id }}">
-                    <!-- Header Card: Checkbox và Trạng thái -->
+                    <!-- Header -->
                     <div class="flex items-center justify-between pb-2 border-b border-gray-100">
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" name="banner_ids[]" value="{{ $banner->id }}"
@@ -252,9 +246,7 @@
                         </div>
                     </div>
 
-                    {{-- Footer Card: 3 nút chia đều. Màn hẹp xếp icon TRÊN chữ (flex-col) để nhãn đủ chỗ
-                         nằm 1 dòng, từ sm trở lên mới xếp ngang - cùng cách đã dùng cho nút chọn cách
-                         nhập địa chỉ ở trang thanh toán. whitespace-nowrap chặn hẳn việc bẻ giữa từ. --}}
+                    {{-- Footer Card: 3 nút chia đều --}}
                     <div class="flex items-stretch gap-2 pt-2 border-t border-gray-100 mt-1">
                         <!-- Bật/Tắt nhanh -->
                         <form method="POST" action="{{ route('admin.banners.toggle_status', $banner->id) }}" class="flex-1 min-w-0">

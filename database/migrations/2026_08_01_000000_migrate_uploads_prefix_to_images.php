@@ -6,14 +6,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-/**
- * Dự án không còn deploy Railway (chỉ chạy local) nên bỏ hẳn quy ước "public/uploads/" (Railway
- * Volume bền vững qua các lần deploy) — giờ chỉ còn 1 quy ước "public/images/" (giống dữ liệu
- * seed/legacy đã có sẵn). Migration này chuyển các dòng đang lưu tiền tố "uploads/" về dạng trần,
- * đồng thời di chuyển vật lý file tương ứng từ public/uploads/... sang public/images/....
- *
- * Không dùng Eloquent (Query Builder thuần) để vẫn chạy đúng nếu model sau này đổi khác.
- */
+// Dự án không còn deploy Railway (chỉ chạy local) nên bỏ hẳn quy ước "public/uploads/" (Railway
+// Volume bền vững qua các lần deploy) — giờ chỉ còn 1 quy ước "public/images/" (giống dữ liệu
+// seed/legacy đã có sẵn). Migration này chuyển các dòng đang lưu tiền tố "uploads/" về dạng trần,
+// đồng thời di chuyển vật lý file tương ứng từ public/uploads/... sang public/images/....
+//
+// Không dùng Eloquent (Query Builder thuần) để vẫn chạy đúng nếu model sau này đổi khác.
 return new class extends Migration
 {
     private const PREFIXED_COLUMNS = [
@@ -85,12 +83,10 @@ return new class extends Migration
         }
     }
 
-    /**
-     * Best-effort: dựng lại tiền tố "uploads/" cho các dòng hiện đang trỏ vào đúng những file đã di
-     * chuyển ở up(). Giới hạn đã biết: không phân biệt được dòng nào vốn dĩ đã là legacy (bare path)
-     * từ trước khi up() chạy — nếu có dữ liệu legacy trùng tên file mới được thêm sau up(), rollback
-     * có thể gắn nhầm tiền tố cho dòng đó.
-     */
+    // Best-effort: dựng lại tiền tố "uploads/" cho các dòng hiện đang trỏ vào đúng những file đã di
+    // chuyển ở up(). Giới hạn đã biết: không phân biệt được dòng nào vốn dĩ đã là legacy (bare path)
+    // từ trước khi up() chạy — nếu có dữ liệu legacy trùng tên file mới được thêm sau up(), rollback
+    // có thể gắn nhầm tiền tố cho dòng đó.
     public function down(): void
     {
         foreach (self::PREFIXED_COLUMNS as $table => $column) {

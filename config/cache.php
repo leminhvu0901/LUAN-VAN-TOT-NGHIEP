@@ -4,19 +4,19 @@ use Illuminate\Support\Str;
 
 return [
 
-    // Bộ lưu trữ cache mặc định (database, file, redis, v.v.)
+    // Bộ lưu trữ cache mặc định
     'default' => env('CACHE_STORE', 'database'),
 
     // Danh sách các bộ lưu trữ cache được định nghĩa
     'stores' => [
 
-        // Bộ lưu trữ dạng mảng (chỉ sống trong vòng đời 1 request, dùng cho testing)
+        // Bộ lưu trữ dạng mảng
         'array' => [
             'driver' => 'array',
             'serialize' => false,
         ],
 
-        // Bộ lưu trữ trong Database (yêu cầu tạo bảng cache)
+        // Bộ lưu trữ trong Database
         'database' => [
             'driver' => 'database',
             'connection' => env('DB_CACHE_CONNECTION'),
@@ -41,7 +41,7 @@ return [
                 env('MEMCACHED_PASSWORD'),
             ],
             'options' => [
-                // Memcached::OPT_CONNECT_TIMEOUT => 2000,
+                
             ],
             'servers' => [
                 [

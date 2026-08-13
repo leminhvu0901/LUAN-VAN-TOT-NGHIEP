@@ -6,11 +6,10 @@
 <div class="min-h-screen bg-gray-50/50 py-8 px-4 pb-24 font-body-md text-on-surface">
     <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6">
 
-        <!-- LEFT COLUMN: Product & Review Form -->
+        <!-- Cột trái: Đánh giá sản phẩm -->
         <div class="w-full md:w-[340px] flex-shrink-0 flex flex-col gap-6">
 
-            {{-- Product Info Card — trên điện thoại xếp NGANG (ảnh nhỏ bên trái, tên + điểm bên phải)
-            để không chiếm gần hết màn hình như ảnh vuông cỡ lớn; từ md trở lên vẫn xếp dọc như cũ. --}}
+            {{-- Product Info Card --}}
             <div class="bg-white rounded-2xl border border-outline-variant/60 p-3 md:p-4 shadow-sm flex md:block items-center gap-3">
                 <div class="w-20 h-20 md:w-full md:h-auto md:aspect-square flex-shrink-0 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden md:mb-4 border border-outline-variant/30">
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover" onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
@@ -39,11 +38,9 @@
             <!-- Review Form Card -->
             <div class="bg-white rounded-2xl border border-outline-variant/60 p-4 md:p-5 shadow-sm">
                 @if($existingReview)
-                {{-- Đã đánh giá rồi -> mặc định chỉ xem lại nội dung đã gửi; nếu còn trong hạn 7
-                    ngày (canEditReview) thì có thêm nút "Chỉnh sửa đánh giá" chuyển sang form sửa. --}}
+                {{-- Đánh giá của khách hàng --}}
                 <div id="review-view-mode" class="{{ $errors->hasAny(['rating', 'comment', 'images', 'images.*']) ? 'hidden' : '' }}">
-                    {{-- Gộp tiêu đề + số sao lên cùng 1 hàng (trước đây 2 hàng riêng) để tiết kiệm
-                        chiều cao trên điện thoại. --}}
+                    {{-- Gộp tiêu đề + số sao lên cùng 1 hàng để tiết kiệm --}}
                     <div class="flex items-center justify-between gap-2 mb-2">
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary text-xl">check_circle</span>
@@ -57,8 +54,7 @@
                     </div>
 
                     @if($existingReview->comment)
-                    {{-- break-words: chuỗi dài không khoảng trắng (vd "hhhhhh...") mặc định
-                            không tự xuống dòng, tràn ra khỏi khung thẻ thay vì bị cắt/gói lại. --}}
+                    {{-- Break-words: chuỗi dài không khoảng trắng mặc --}}
                     <p class="text-sm text-gray-700 leading-relaxed mb-2 break-words">{{ $existingReview->comment }}</p>
                     @endif
 
@@ -76,7 +72,7 @@
                     </div>
                     @endif
 
-                    {{-- Gộp "đã gửi lúc" + "đã chỉnh sửa lúc" vào 1 dòng, ngăn bằng dấu · --}}
+                    {{-- Gộp "đã gửi lúc" + "đã chỉnh sửa lúc" vào 1 dòng, --}}
                     <p class="text-[11px] text-gray-400">
                         Gửi {{ \Carbon\Carbon::parse($existingReview->created_at)->translatedFormat('d/m/Y') }}
                         @if($existingReview->edited_at)
@@ -94,7 +90,7 @@
                     </p>
                     @endif
 
-                    {{-- 2 nút xếp NGANG (trước đây 2 nút full-width xếp dọc chiếm nhiều chiều cao) --}}
+                    {{-- Nút hành động --}}
                     <div class="flex gap-2 mt-3">
                         <a href="{{ route('orders', ['status' => 'completed']) }}" class="flex-1 text-center border border-gray-200 text-gray-700 font-bold text-sm py-2.5 rounded-xl hover:bg-gray-50 transition-all">
                             Quay lại
@@ -108,9 +104,7 @@
                 </div>
 
                 @if($canEditReview)
-                {{-- Mặc định ẩn (chỉ hiện khi bấm "Chỉnh sửa" qua JS) — nhưng nếu vừa submit form sửa
-                bị lỗi validate (rating/comment/images), trang tải lại vẫn phải MỞ SẴN khối này ra thì
-                mới thấy được thông báo lỗi bên trong, không thì lỗi coi như "biến mất". --}}
+                
                 <div id="review-edit-mode" class="{{ $errors->hasAny(['rating', 'comment', 'images', 'images.*']) ? '' : 'hidden' }}">
                     <h2 class="font-bold text-gray-900 text-base mb-4">Chỉnh sửa đánh giá</h2>
 
@@ -134,7 +128,7 @@
                         <div class="mb-4">
                             <label class="block text-xs font-semibold text-gray-700 mb-2">Cảm nhận của bạn:</label>
                             <textarea name="comment" id="comment-edit" rows="3" maxlength="150" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé...">{{ $existingReview->comment }}</textarea>
-                            {{-- Đếm ký tự trực tiếp khi gõ (xem review.js) --}}
+                            {{-- Đếm ký tự trực tiếp khi gõ --}}
                             <p class="text-[11px] text-gray-400 mt-1 text-right" id="comment-edit-counter">0/150</p>
                             @error('comment')
                             <p class="text-error text-xs mt-1">{{ $message }}</p>
@@ -189,7 +183,7 @@
                     <div class="mb-4">
                         <label class="block text-xs font-semibold text-gray-700 mb-2">Cảm nhận của bạn:</label>
                         <textarea name="comment" id="comment-new" rows="3" maxlength="150" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Bạn thấy hương vị thế nào? Chia sẻ cùng Happy nhé..."></textarea>
-                        {{-- Đếm ký tự trực tiếp khi gõ (xem review.js) --}}
+                        {{-- Đếm ký tự trực tiếp khi gõ --}}
                         <p class="text-[11px] text-gray-400 mt-1 text-right" id="comment-new-counter">0/150</p>
                         @error('comment')
                         <p class="text-error text-xs mt-1">{{ $message }}</p>
@@ -219,20 +213,18 @@
 
         </div>
 
-        <!-- RIGHT COLUMN: Customer Reviews -->
+        <!-- Cột phải: Danh sách đánh giá -->
         <div class="flex-1 bg-white rounded-2xl border border-outline-variant/60 p-4 md:p-6 shadow-sm">
             <h2 class="font-headline-md text-lg md:text-2xl font-bold text-gray-900 mb-3 md:mb-6">Đánh giá từ khách hàng</h2>
 
-            {{-- Nút lọc giờ là link GET thật (tải lại trang) — class "đang chọn" (nền xanh) tính thẳng
-            từ request() hiện tại thay vì JS toggle .is-active như trước. --}}
+            {{-- Nút lọc giờ là link get thật --}}
             @php
                 $activeFilterClass = 'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-[#00a82d] text-white text-xs md:text-sm font-bold rounded-full border border-[#00a82d]';
                 $inactiveFilterClass = 'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 bg-gray-100 text-gray-700 text-xs md:text-sm font-medium rounded-full hover:bg-gray-200 transition-colors border border-gray-200';
                 $reviewFilterBaseUrl = route('review.create', ['orderId' => $order->id, 'productId' => $product->id]);
             @endphp
             <div class="reviews-app">
-                {{-- Filters: cuộn ngang 1 hàng thay vì xuống dòng thành 3 hàng (7 nút lọc chiếm gần
-                hết màn hình điện thoại) — cùng cách thanh lọc trạng thái ở trang Đơn hàng đang làm. --}}
+                {{-- Filters: cuộn ngang 1 hàng thay vì xuống dòng thành 3 hàng --}}
                 <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1 md:flex-wrap md:overflow-visible" id="review-filters-track">
                     <a href="{{ $reviewFilterBaseUrl }}#reviews-list" class="{{ !request('rating') && !request('has_image') ? $activeFilterClass : $inactiveFilterClass }}">Tất cả</a>
                     @for($star = 5; $star >= 1; $star--)
@@ -240,9 +232,7 @@
                     @endfor
                     <a href="{{ $reviewFilterBaseUrl }}?has_image=1#reviews-list" class="{{ request('has_image') ? $activeFilterClass : $inactiveFilterClass }}">Có hình ảnh ({{ $hasImageCount }})</a>
                 </div>
-                {{-- Thanh chỉ báo vị trí cuộn ngang — hàng nút lọc ở trên ẩn thanh cuộn gốc của trình
-                duyệt (.hide-scrollbar) nên không còn gợi ý nào cho biết còn nút lọc ở bên phải để vuốt
-                sang. Cùng cơ chế đã dùng cho khối "Danh mục nổi bật" ở trang chủ (xem home.js). --}}
+                {{-- Thanh chỉ báo vị trí cuộn ngang --}}
                 <div class="review-filters-scrollbar mb-4 md:mb-8" id="review-filters-scrollbar" aria-hidden="true">
                     <div class="review-filters-scrollbar__thumb" id="review-filters-scrollbar-thumb"></div>
                 </div>
@@ -392,7 +382,6 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 @endpush
-
 
 @include('frontend.components.bottom-nav')
 @endsection

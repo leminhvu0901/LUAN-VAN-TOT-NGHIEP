@@ -5,7 +5,7 @@
 @section('content')
     <div class="dashboard-page p-4 md:p-6 space-y-6">
 
-        <!-- 1. Header trang -->
+        <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
             <div>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Tổng quan</h2>
@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <!-- 2. Khu vực cần xử lý ngay (Action Cards) -->
+        <!-- Khu vực cần xử lý ngay -->
         <div class="space-y-3">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tác vụ cần xử lý ngay</span>
@@ -26,7 +26,7 @@
             @include('backend.admin.dashboard.partials.action-cards')
         </div>
 
-        <!-- 3. Số liệu vận hành hôm nay -->
+        <!-- Số liệu vận hành hôm nay -->
         <div class="space-y-3">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Hiệu suất vận hành hôm nay</span>
@@ -102,7 +102,7 @@
             </div>
         </div>
 
-        <!-- 4. Biểu đồ vận hành 7 ngày gần nhất -->
+        <!-- Biểu đồ vận hành 7 ngày gần nhất -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <div>
                 <h3 class="font-bold text-gray-900 text-base">Hiệu suất vận hành 7 ngày gần nhất</h3>
@@ -113,9 +113,9 @@
             </div>
         </div>
 
-        <!-- 5. Khối thông tin chi tiết (2 cột trên desktop) -->
+        <!-- Khối thông tin chi tiết -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Cột trái: Đơn hàng & Đánh giá (Chiếm 2/3 không gian trên desktop) -->
+            <!-- Cột trái: Đơn hàng & Đánh giá -->
             <div class="lg:col-span-2 space-y-6">
                 <!-- Đơn hàng mới nhất -->
                 @include('backend.admin.dashboard.partials.recent-orders')
@@ -129,7 +129,7 @@
                 <!-- Cảnh báo kho -->
                 @include('backend.admin.dashboard.partials.stock-alerts')
 
-                <!-- Hoạt động gần đây (Timeline) -->
+                <!-- Hoạt động gần đây -->
                 <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                     <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                         <div>

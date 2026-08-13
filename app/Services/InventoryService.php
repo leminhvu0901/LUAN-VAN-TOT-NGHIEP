@@ -74,7 +74,7 @@ class InventoryService
         });
     }
 
-    // Tính toán lại tồn kho thực tế và giá vốn bình quân từ các lô hàng
+    // Tính toán lại tồn kho thực tế và giá vốn bình quân từ
     public function recalculateMaterialCost(int $materialId): void
     {
         // Lấy tất cả các lô hàng còn hạn sử dụng và còn số lượng tồn

@@ -1,31 +1,25 @@
 @extends('frontend.layouts.app')
 
-{{-- Khai báo class CSS riêng biệt cho thẻ body của trang này để tránh xung đột với các trang khác --}}
 @section('body_class', 'profile-body')
 
 @section('content')
 
     @php
-        // Đăng nhập Google lưu avatar là URL đầy đủ (https://lh3.googleusercontent.com/...), còn avatar tự
-        // tải lên chỉ lưu tên file trong storage cục bộ -> phải phân biệt, không thể luôn ghép
-        // asset('images/avatars/'.avatar) (khớp cách các trang admin đã xử lý ở str_starts_with pattern).
+        // Lấy ảnh đại diện của người dùng
         $userAvatarUrl = Auth::user()->avatar
             ? avatar_url(Auth::user()->avatar)
             : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=006e01&color=fff';
     @endphp
 
-    <!-- ============================================== -->
-    <!-- 1. GIAO DIỆN TRÊN MÁY TÍNH (DESKTOP VIEW)      -->
-    <!-- Chỉ hiển thị từ màn hình kích thước trung bình (md) trở lên -->
-    <!-- ============================================== -->
+    <!-- Giao diện desktop -->
     <div
         class="hidden md:flex min-h-screen bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container">
 
-        <!-- Cột Menu Điều hướng bên trái (SideNavBar) -->
+        <!-- Cột Menu Điều hướng bên trái -->
         <aside class="w-[280px] flex-shrink-0 bg-tertiary-fixed border-r border-outline-variant flex flex-col py-stack_lg">
             <div class="px-6 mb-8">
                 <div class="flex items-center gap-3 mb-4">
-                    {{-- Hiển thị Ảnh đại diện (Avatar) hình tròn của người dùng đang đăng nhập --}}
+                    {{-- Hiển thị Ảnh đại diện hình tròn của người dùng --}}
                     <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary bg-white">
                         <img alt="User profile avatar" class="w-full h-full object-cover" src="{{ $userAvatarUrl }}">
                     </div>
@@ -54,7 +48,7 @@
                 </div>
             </div>
 
-            {{-- Các tab chức năng bên Desktop: onclick="showTab(...)" dùng JS để ẩn/hiện các tab tương ứng --}}
+            {{-- Các tab chức năng bên Desktop: onclick="showTab" --}}
             <nav class="flex-1">
                 <a id="tab-profile-link"
                     class="bg-surface-container-highest text-primary border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-all duration-150 font-label-md text-label-md"
@@ -76,18 +70,18 @@
             </nav>
         </aside>
 
-        <!-- Khu vực nội dung chính bên phải (Main Content Area) -->
+        <!-- Khu vực nội dung chính bên phải -->
         <main class="flex-1 p-stack_lg">
             <div class="max-w-4xl mx-auto">
 
-                {{-- Hiển thị thông báo thành công màu xanh (nếu có từ Session Redirect) --}}
+                {{-- Hiển thị thông báo thành công màu xanh --}}
                 @if (session('success'))
                     <div class="bg-[#c1e9d5] border border-[#0aad0a] text-[#005301] px-4 py-3 rounded-xl mb-6 shadow-sm">
                         {{ session('success') }}
                     </div>
                 @endif
 
-                {{-- 1.1 TAB THÔNG TIN CÁ NHÂN (Desktop) --}}
+                {{-- Tab thông tin cá nhân --}}
                 <div id="desktop-profile-content">
                     <div class="mb-stack_lg">
                         <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Thông tin cá nhân</h1>
@@ -95,12 +89,12 @@
                             mật tài khoản</p>
                     </div>
 
-                    {{-- Form cập nhật Hồ sơ cá nhân (Dùng Multipart form-data để upload ảnh đại diện) --}}
+                    {{-- Form --}}
                     <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-stack_lg">
 
-                            <!-- Phần bên trái: Sửa ảnh đại diện (Avatar) -->
+                            <!-- Phần bên trái: Sửa ảnh đại diện -->
                             <div class="lg:col-span-1">
                                 <div
                                     class="bg-white rounded-xl border border-outline-variant p-stack_lg flex flex-col items-center justify-center text-center shadow-sm h-full">
@@ -111,7 +105,7 @@
                                             <img id="avatarPreview" alt="Large User Avatar"
                                                 class="w-full h-full object-cover rounded-full" src="{{ $userAvatarUrl }}">
                                         </div>
-                                        {{-- Nút bút chì màu xanh: Nhấp vào để kích hoạt hành động chọn file từ input ẩn --}}
+                                        {{-- Nút bút chì màu xanh: Nhấp vào để kích hoạt hành --}}
                                         <button type="button"
                                             class="absolute bottom-1 right-1 bg-primary text-on-primary w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95"
                                             onclick="document.getElementById('avatarInput').click()">
@@ -120,7 +114,7 @@
                                         {{-- Input chọn file ảnh ẩn --}}
                                         <input type="file" name="avatar" id="avatarInput" accept="image/*"
                                             class="hidden" onchange="previewAvatar(event)">
-                                        {{-- Input ẩn lưu chuỗi ảnh Base64 sau khi cắt bằng thư viện Cropper.js --}}
+                                        {{-- Input ẩn lưu chuỗi ảnh Base64 sau khi cắt bằng --}}
                                         <input type="hidden" name="cropped_avatar" id="croppedAvatarInput">
                                     </div>
                                     <h3 id="profileNameDisplayDesktop"
@@ -147,7 +141,7 @@
                                 </div>
                             </div>
 
-                            <!-- Phần bên phải: Các ô nhập văn bản (Form Fields) -->
+                            <!-- Phần bên phải: Các ô nhập văn bản -->
                             <div class="lg:col-span-2 space-y-stack_lg">
                                 <section
                                     class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm h-full">
@@ -163,9 +157,7 @@
                                                         class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-transform"
                                                         type="text" value="{{ old('name', Auth::user()->name) }}"
                                                         required>
-                                                    {{-- Luôn render sẵn (không @if/@error) + toggle bằng class "hidden" — để profile.js tìm thấy
-                                            và điền lỗi vào đây khi submit qua fetch (AJAX không tải lại trang nên @error không tự
-                                            kích hoạt được, chỉ có tác dụng cho lần tải trang đầu/submit cổ điển không JS). --}}
+                                                    {{-- Luôn render sẵn + toggle bằng class "hidden" --}}
                                                     <small id="name-error-desktop"
                                                         class="text-error mt-1 block {{ $errors->has('name') ? '' : 'hidden' }}">{{ $errors->first('name') }}</small>
                                                 </div>
@@ -182,7 +174,7 @@
                                                         class="text-error mt-1 block {{ $errors->has('phone') ? '' : 'hidden' }}">{{ $errors->first('phone') }}</small>
                                                 </div>
                                             </div>
-                                            {{-- Ô hiển thị Email (Bị khóa không cho sửa đổi trực tiếp) --}}
+                                            {{-- Ô hiển thị Email --}}
                                             <div class="space-y-1">
                                                 <label
                                                     class="font-label-md text-label-md text-on-surface-variant px-1">Email</label>
@@ -206,9 +198,7 @@
 
                 </div>
 
-
-
-                {{-- 1.2 TAB ĐỔI MẬT KHẨU (Desktop) - Ẩn mặc định (class="hidden") --}}
+                {{-- Tab đổi mật khẩu --}}
                 <div id="desktop-password-content" class="hidden">
                     <div class="mb-stack_lg">
                         <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Đổi mật khẩu</h1>
@@ -216,7 +206,7 @@
                             tài khoản của bạn</p>
                     </div>
 
-                    {{-- Nếu đăng nhập thông qua Google, không cho phép đổi mật khẩu tại đây --}}
+                    {{-- Nếu đăng nhập thông qua Google, không cho phép --}}
                     @if (session('login_method') === 'google')
                         <div class="bg-white rounded-xl border border-outline-variant p-10 shadow-sm text-center">
                             <div
@@ -233,7 +223,7 @@
                         </div>
                     @else
                         <div class="grid grid-cols-1 lg:grid-cols-5 gap-stack_lg">
-                            <!-- Ô nhập mật khẩu: Cột rộng bên trái (Col-span 3) -->
+                            <!-- Ô nhập mật khẩu: Cột rộng bên trái -->
                             <div class="lg:col-span-3">
                                 <section
                                     class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm h-full flex flex-col justify-between">
@@ -251,7 +241,7 @@
                                                     <input id="current_password_desk" name="current_password"
                                                         class="w-full bg-surface-container-low border-none rounded-lg pl-12 pr-12 py-3.5 focus:ring-2 focus:ring-primary text-body-md font-body-md outline-none transition-all duration-200"
                                                         type="password" required placeholder="Nhập mật khẩu hiện tại">
-                                                    {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu --}}
+                                                    {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                                                     <button type="button"
                                                         class="absolute right-4 text-outline hover:text-primary transition-colors focus:outline-none toggle-password-visibility"
                                                         data-target="current_password_desk">
@@ -321,7 +311,7 @@
                                 </section>
                             </div>
 
-                            <!-- Bảng kiểm tra tiêu chuẩn và độ mạnh mật khẩu (Col-span 2) -->
+                            <!-- Bảng kiểm tra tiêu chuẩn và độ mạnh mật khẩu -->
                             <div class="lg:col-span-2">
                                 <section
                                     class="bg-white rounded-xl border border-outline-variant p-stack_lg shadow-sm h-full flex flex-col justify-between space-y-6">
@@ -351,7 +341,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Danh sách checklist điều kiện (Thay đổi màu khi người dùng nhập đúng chuẩn thông qua JS) -->
+                                        <!-- Danh sách checklist điều kiện -->
                                         <div class="space-y-3.5">
                                             <div id="req-length-desk"
                                                 class="flex items-center gap-3 text-sm text-on-surface-variant font-label-md transition-colors duration-200">
@@ -398,10 +388,7 @@
         </main>
     </div>
 
-    <!-- ============================================== -->
-    <!-- 2. GIAO DIỆN TRÊN ĐIỆN THOẠI (MOBILE VIEW)     -->
-    <!-- Chỉ hiển thị trên thiết bị di động (md:hidden giúp ẩn khi trên màn hình máy tính lớn) -->
-    <!-- ============================================== -->
+    <!-- Giao diện mobile -->
     <div class="md:hidden bg-background text-on-surface font-body-md min-h-[100dvh] pb-24 relative">
 
         <!-- Thanh Header tiêu đề trên cùng điện thoại -->
@@ -426,7 +413,7 @@
 
             <div id="mobile-profile-content">
 
-                <!-- Phần Avatar & Tên (Mobile) -->
+                <!-- Phần Avatar & Tên -->
                 <section class="flex flex-col items-center mb-8">
                     <div class="relative mb-4">
                         <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md bg-white">
@@ -476,7 +463,7 @@
                     </div>
                 </section>
 
-                <!-- Form nhập thông tin cá nhân (Mobile) -->
+                <!-- Form -->
                 <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <section class="space-y-4 mb-10">
@@ -510,11 +497,7 @@
                                     type="email" value="{{ Auth::user()->email }}" disabled />
                             </div>
                         </div>
-                        {{-- Ảnh đại diện vừa cắt (JS: cropImage() trong profile.js) — nút sửa avatar ở khối
-                mobile phía trên dùng CHUNG modal cắt ảnh với bản desktop (#avatarInput/#croppedAvatarInput
-                chỉ khai báo 1 lần trong form desktop), nhưng form desktop bị ẩn trên mobile nên
-                new FormData() của form NÀY sẽ không lấy được giá trị từ input nằm ở form khác. Cần 1
-                input ẩn RIÊNG cho form mobile, được cropImage() đồng bộ giá trị song song. --}}
+                        {{-- Avatar --}}
                         <input type="hidden" name="cropped_avatar" id="croppedAvatarInputMobile">
                         <button type="submit"
                             class="w-full h-12 bg-primary-container text-white font-label-md text-label-md rounded-lg active:scale-95 transition-transform shadow-md mt-4 hover:shadow-lg">
@@ -544,8 +527,7 @@
                 </section>
             </div>
 
-
-            {{-- Form đổi mật khẩu bản Mobile (Ẩn mặc định) --}}
+            {{-- Form --}}
             <div id="mobile-password-content" class="hidden">
                 @if (session('login_method') === 'google')
                     <div class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm text-center mb-8 mt-2">
@@ -569,7 +551,7 @@
                                 Đổi mật khẩu
                             </h3>
 
-                            <!-- Mật khẩu hiện tại (Mobile) -->
+                            <!-- Mật khẩu hiện tại -->
                             <div class="space-y-1">
                                 <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Mật khẩu hiện
                                     tại</label>
@@ -590,7 +572,7 @@
                                 @enderror
                             </div>
 
-                            <!-- Mật khẩu mới (Mobile) -->
+                            <!-- Mật khẩu mới -->
                             <div class="space-y-1">
                                 <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Mật khẩu
                                     mới</label>
@@ -611,7 +593,7 @@
                                 @enderror
                             </div>
 
-                            <!-- Xác nhận mật khẩu mới (Mobile) -->
+                            <!-- Xác nhận mật khẩu mới -->
                             <div class="space-y-1">
                                 <label class="block font-label-md text-label-md text-on-surface-variant ml-1">Xác nhận mật
                                     khẩu mới</label>
@@ -688,12 +670,11 @@
         @include('frontend.components.bottom-nav')
     </div>
 
+    
+    <!-- Hộp thoại popup & kịch bản -->
+    
 
-    <!-- ============================================== -->
-    <!-- HỘP THOẠI POPUP & KỊCH BẢN (MODALS & SCRIPTS)   -->
-    <!-- ============================================== -->
-
-    {{-- Modal cắt ảnh (Cropper Modal) hiển thị dưới dạng overlay che toàn màn hình --}}
+    {{-- Modal cắt ảnh hiển thị dưới dạng overlay che toàn màn hình --}}
     <div id="cropperModal" class="cropper-modal-overlay">
         <div class="cropper-modal-content">
             <h4 class="cropper-modal-title">Chỉnh sửa ảnh đại diện</h4>
@@ -708,10 +689,10 @@
     </div>
 
     @push('scripts')
-        {{-- Nạp thư viện hỗ trợ cắt ảnh tỉ lệ vuông (Cropper.js) --}}
+        {{-- Nạp thư viện hỗ trợ cắt ảnh tỉ lệ vuông --}}
         <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
         <script>
-            // Hiệu ứng scale nhẹ khung input khi focus/blur (class leaf-indicator)
+            // Hiệu ứng scale nhẹ khung input khi focus/blur
             document.querySelectorAll('input:not([type="file"]):not([type="hidden"]):not([type="checkbox"])').forEach(input => {
                 input.addEventListener('focus', () => {
                     if (input.parentElement && input.parentElement.classList) {
@@ -726,7 +707,7 @@
                 });
             });
 
-            // Hiệu ứng bấm lõm (scale-95) cho nút chính, gắn cả mouse lẫn touch
+            // Hiệu ứng bấm lõm cho nút chính, gắn cả mouse lẫn touch
             const primaryBtns = document.querySelectorAll(
                 'button[type="submit"], button.bg-primary-container, button.bg-primary');
             primaryBtns.forEach(btn => {
@@ -741,7 +722,7 @@
                 });
             });
 
-            // Instance Cropper.js dùng chung cho preview/cắt/đóng modal ảnh (desktop + mobile)
+            // Instance Cropper.js dùng chung cho preview/cắt/đóng modal ảnh
             let cropper;
 
             // Đọc ảnh vừa chọn để hiện lên modal cắt, chưa upload/submit gì
@@ -819,7 +800,7 @@
                     document.getElementById('avatarPreviewMobile').src = base64Image;
                 }
 
-                // 2 input hidden riêng vì đây là 2 <form> khác nhau (desktop/mobile)
+                // 2 input hidden riêng vì đây là 2 <form> khác nhau
                 const croppedInputDesktop = document.getElementById('croppedAvatarInput');
                 if (croppedInputDesktop) croppedInputDesktop.value = base64Image;
                 const croppedInputMobile = document.getElementById('croppedAvatarInputMobile');
@@ -869,7 +850,7 @@
                 resetLink(profileLink);
                 resetLink(passwordLink);
 
-                // Cập nhật URL hash để F5 lại trang vẫn giữ đúng tab (đọc lại ở DOMContentLoaded)
+                // Cập nhật URL hash để F5 lại trang vẫn giữ đúng tab
                 if (tab === 'password') {
                     if (deskPass) deskPass.classList.remove('hidden');
                     if (mobPass) mobPass.classList.remove('hidden');
@@ -902,13 +883,13 @@
             }
 
             document.addEventListener('DOMContentLoaded', function() {
-                // Lưu href gốc của nút back trước khi showTab() ghi đè nó
+                // Lưu href gốc của nút back trước khi showTab ghi đè nó
                 const backBtn = document.getElementById('mobile-back-btn');
                 if (backBtn) {
                     backBtn.dataset.prevUrl = backBtn.getAttribute('href');
                 }
 
-                // Mở đúng tab theo URL hash lúc tải trang (vd bookmark .../profile#password)
+                // Mở đúng tab theo URL hash lúc tải trang
                 if (window.location.hash === '#password' || window.location.hash === '#change-password') {
                     showTab('password');
                 } else {
@@ -921,7 +902,7 @@
                 const confirmPassDesk = document.getElementById('new_password_confirmation_desk');
                 const confirmPassMob = document.getElementById('new_password_confirmation_mob');
 
-                // Đồng bộ giá trị + hiện checklist độ mạnh mật khẩu (chỉ UX, server vẫn validate lại)
+                // Đồng bộ giá trị + hiện checklist độ mạnh mật khẩu
                 function checkPasswordStrength() {
                     const val = this.value;
                     if (this === newPassDesk && newPassMob) newPassMob.value = val;
@@ -941,7 +922,7 @@
                     const hasNumberOrSymbol = /[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password);
                     const matches = password === confirmVal && password.length > 0;
 
-                    // Điểm mạnh mật khẩu 0-3, mỗi tiêu chí đạt được +1 điểm (chỉ tính khi đã gõ gì đó)
+                    // Điểm mạnh mật khẩu 0-3, mỗi tiêu chí đạt được +1 điểm
                     let score = 0;
                     if (password.length > 0) {
                         if (hasLength) score++;
@@ -1046,8 +1027,7 @@
         </script>
 
         @if ($errors->has('current_password') || $errors->has('new_password') || session('active_tab') === 'password')
-            {{-- Tự mở lại tab Đổi mật khẩu sau khi tải lại trang: hoặc do lỗi nhập mật khẩu, hoặc vừa đổi mật
-khẩu thành công (URL hash #password không được gửi lên server nên không tự giữ được). --}}
+            {{-- Tự mở lại tab Đổi mật khẩu sau khi tải lại trang: --}}
             <script>
                 // Ghi đè lại về tab "password" khi có lỗi/flag từ server sau khi F5
                 document.addEventListener('DOMContentLoaded', function() {

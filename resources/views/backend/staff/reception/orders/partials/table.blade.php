@@ -1,5 +1,5 @@
 <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative w-full">
-    <!-- View cho màn hình lớn (Desktop Table) -->
+    <!-- View cho màn hình lớn -->
     <div class="hidden lg:block">
         <table class="w-full text-left border-collapse relative">
             <thead class="bg-gray-50 sticky top-0 z-10">
@@ -70,7 +70,7 @@
                                         break;
                                 }
                             @endphp
-                            {{-- Chỉ hiển thị, không cho chỉnh tại đây — đổi trạng thái phải vào trang chi tiết đơn. --}}
+                            {{-- Chỉ hiển thị, không cho chỉnh tại đây --}}
                             <span class="badge-status {{ $badgeClass }} font-bold py-1 px-2.5 text-[11px] xl:text-xs inline-block">
                                 {{ $order['status'] }}
                             </span>
@@ -113,7 +113,7 @@
         </table>
     </div>
 
-    <!-- View cho màn hình nhỏ (Mobile/Tablet Cards) -->
+    <!-- View cho màn hình nhỏ -->
     <div class="block lg:hidden p-4 space-y-4 w-full">
         @forelse($orders as $order)
             <div class="mobile-card w-full relative group">
@@ -180,7 +180,7 @@
                                         break;
                         }
                     @endphp
-                    {{-- Chỉ hiển thị, không cho chỉnh tại đây — đổi trạng thái phải vào trang chi tiết đơn. --}}
+                    {{-- Chỉ hiển thị, không cho chỉnh tại đây --}}
                     <span class="badge-status {{ $badgeClass }} font-bold py-2 px-3 text-xs w-full text-center inline-block">
                         {{ $order['status'] }}
                     </span>

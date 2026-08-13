@@ -91,7 +91,7 @@
         <!-- Bảng thống kê -->
         <div class="bg-white rounded-xl organic-shadow border border-gray-100 overflow-hidden">
             @if ($staffs->count() > 0)
-                <!-- Giao diện Mobile (Card view) -->
+                <!-- Giao diện Mobile -->
                 <div class="block md:hidden space-y-4 p-4">
                     @foreach ($staffs as $staff)
                         @php
@@ -125,7 +125,7 @@
                     @endforeach
                 </div>
 
-                <!-- Giao diện Desktop (Table view) -->
+                <!-- Giao diện Desktop -->
                 <div class="hidden md:block overflow-x-auto w-full">
                     <table class="w-full text-left border-collapse">
                         <thead>

@@ -31,9 +31,7 @@ class StaffRoleWorkflowTest extends TestCase
         ], $overrides));
     }
 
-    /**
-     * Guest/customer không vào được bất kỳ route staff nào.
-     */
+    // Guest/customer không vào được bất kỳ route staff nào.
     public function test_guest_and_customer_cannot_access_staff_routes(): void
     {
         $customer = User::factory()->create(['role' => 'customer']);
@@ -48,11 +46,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/admin/staff-accounts')->assertStatus(403);
     }
 
-    /**
-     * Admin/nhân viên đăng nhập rồi vào trang khách hàng (trang chủ, sản phẩm, hồ sơ, đơn hàng,
-     * checkout) phải tự bị đẩy về đúng khu vực quản trị của họ — không được đứng chung giao diện
-     * khách hàng. Khách vãng lai + khách hàng thường (customer) vẫn xem bình thường.
-     */
+    // Admin/nhân viên đăng nhập rồi vào trang khách hàng (trang chủ, sản phẩm, hồ sơ, đơn hàng,
+    // checkout) phải tự bị đẩy về đúng khu vực quản trị của họ — không được đứng chung giao diện
+    // khách hàng. Khách vãng lai + khách hàng thường (customer) vẫn xem bình thường.
     public function test_admin_and_staff_are_redirected_away_from_frontend_pages(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -83,13 +79,11 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/')->assertOk(); // guest, chưa đăng nhập
     }
 
-    /**
-     * Lễ tân vẫn dùng bình thường các endpoint dùng chung với khách hàng (/cart/*,
-     * /checkout/distance, /checkout/weather-fee, /checkout/validate-coupon...) làm hạ tầng dựng đơn
-     * tại quầy — RedirectStaffFromFrontend KHÔNG được chặn nhầm các endpoint này (chỉ chặn trang render
-     * thật: '/', /profile, /orders, /checkout). Hồi quy cho lỗi đã gặp: chặn cả nhóm 'auth' làm hỏng
-     * hẳn luồng tạo đơn tại quầy vì nó dùng chung /cart/add.
-     */
+    // Lễ tân vẫn dùng bình thường các endpoint dùng chung với khách hàng (/cart/*,
+    // /checkout/distance, /checkout/weather-fee, /checkout/validate-coupon...) làm hạ tầng dựng đơn
+    // tại quầy — RedirectStaffFromFrontend KHÔNG được chặn nhầm các endpoint này (chỉ chặn trang render
+    // thật: '/', /profile, /orders, /checkout). Hồi quy cho lỗi đã gặp: chặn cả nhóm 'auth' làm hỏng
+    // hẳn luồng tạo đơn tại quầy vì nó dùng chung /cart/add.
     public function test_receptionist_can_still_use_shared_cart_endpoints_for_pos_orders(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -100,9 +94,7 @@ class StaffRoleWorkflowTest extends TestCase
             ->assertOk();
     }
 
-    /**
-     * Lễ tân vào được khu vực lễ tân, bị chặn ở khu vực vận chuyển (và ngược lại). Admin vào được cả hai.
-     */
+    // Lễ tân vào được khu vực lễ tân, bị chặn ở khu vực vận chuyển (và ngược lại). Admin vào được cả hai.
     public function test_receptionist_and_delivery_are_isolated_from_each_other(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -125,13 +117,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/admin/staff-accounts')->assertStatus(200);
     }
 
-    /**
-     * Lễ tân cập nhật trạng thái đơn hàng (PATCH) qua route reception mới.
-     */
-    /**
-     * Render toàn bộ trang chính khu vực lễ tân/vận chuyển — bắt lỗi "View not found"
-     * (vd include sai đường dẫn) mà test API-only (PATCH/POST) không phát hiện được.
-     */
+    // Lễ tân cập nhật trạng thái đơn hàng (PATCH) qua route reception mới.
+    // Render toàn bộ trang chính khu vực lễ tân/vận chuyển — bắt lỗi "View not found"
+    // (vd include sai đường dẫn) mà test API-only (PATCH/POST) không phát hiện được.
     public function test_reception_and_delivery_pages_render_without_view_errors(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -174,10 +162,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSessionHasErrors('status');
     }
 
-    /**
-     * Lễ tân phân công nhân viên vận chuyển cho đơn đã xác nhận; không phân công được nhân viên
-     * không phải staff_type=delivery (vd gán nhầm 1 lễ tân khác).
-     */
+    // Lễ tân phân công nhân viên vận chuyển cho đơn đã xác nhận; không phân công được nhân viên
+    // không phải staff_type=delivery (vd gán nhầm 1 lễ tân khác).
     public function test_receptionist_can_assign_delivery_staff_with_correct_authorization(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -204,9 +190,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNotNull($order->assigned_at);
     }
 
-    /**
-     * Nhân viên vận chuyển chỉ thấy đơn được phân công cho chính mình; không xem được đơn của người khác.
-     */
+    // Nhân viên vận chuyển chỉ thấy đơn được phân công cho chính mình; không xem được đơn của người khác.
     public function test_delivery_staff_only_sees_own_assigned_orders(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -227,9 +211,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get("/staff/delivery/orders/{$myOrder->id}")->assertStatus(200);
     }
 
-    /**
-     * Nhân viên vận chuyển nhận đơn (confirmed->shipping) và hoàn thành (shipping->completed) đúng luồng.
-     */
+    // Nhân viên vận chuyển nhận đơn (confirmed->shipping) và hoàn thành (shipping->completed) đúng luồng.
     public function test_delivery_staff_updates_shipping_and_completed_correctly(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -244,11 +226,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('completed', $order->fresh()->status);
     }
 
-    /**
-     * 3 tab của danh sách đơn giao hàng (assigned/shipping/history) phải lọc đúng theo trạng thái,
-     * mỗi đơn chỉ xuất hiện ở ĐÚNG 1 tab - trước đây chỉ được smoke-test load trang, chưa kiểm tra
-     * nội dung lọc thật sự đúng theo tab nào.
-     */
+    // 3 tab của danh sách đơn giao hàng (assigned/shipping/history) phải lọc đúng theo trạng thái,
+    // mỗi đơn chỉ xuất hiện ở ĐÚNG 1 tab - trước đây chỉ được smoke-test load trang, chưa kiểm tra
+    // nội dung lọc thật sự đúng theo tab nào.
     public function test_delivery_orders_index_tabs_filter_by_status_correctly(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -316,11 +296,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('Đã thanh toán VNPay');
     }
 
-    /**
-     * Nhân viên vận chuyển KHÔNG được thao tác (nhận đơn/hoàn thành/báo thất bại) trên đơn được phân
-     * công cho người khác - authorizeOwnership() chỉ mới được test qua show(), chưa test qua chính
-     * các action làm thay đổi trạng thái đơn.
-     */
+    // Nhân viên vận chuyển KHÔNG được thao tác (nhận đơn/hoàn thành/báo thất bại) trên đơn được phân
+    // công cho người khác - authorizeOwnership() chỉ mới được test qua show(), chưa test qua chính
+    // các action làm thay đổi trạng thái đơn.
     public function test_delivery_staff_cannot_ship_complete_or_fail_another_staffs_order(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -342,10 +320,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('shipping', $shippingOrder->fresh()->status);
     }
 
-    /**
-     * Admin được phép thao tác lên BẤT KỲ đơn giao hàng nào (authorizeOwnership() cho phép role admin
-     * đi qua, không chỉ đúng nhân viên được phân công) - phục vụ giám sát/hỗ trợ khi cần.
-     */
+    // Admin được phép thao tác lên BẤT KỲ đơn giao hàng nào (authorizeOwnership() cho phép role admin
+    // đi qua, không chỉ đúng nhân viên được phân công) - phục vụ giám sát/hỗ trợ khi cần.
     public function test_admin_can_ship_any_delivery_order_regardless_of_assigned_staff(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -357,11 +333,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('shipping', $order->fresh()->status);
     }
 
-    /**
-     * Trang tổng quan (dashboard) của nhân viên vận chuyển: 4 thẻ đếm số đơn theo trạng thái + danh
-     * sách "đơn gần đây" (tối đa 5, chỉ gồm confirmed/shipping) - trước đây chỉ được test 2 số liệu
-     * COD, chưa test các thẻ đếm đơn và danh sách đơn gần đây.
-     */
+    // Trang tổng quan (dashboard) của nhân viên vận chuyển: 4 thẻ đếm số đơn theo trạng thái + danh
+    // sách "đơn gần đây" (tối đa 5, chỉ gồm confirmed/shipping) - trước đây chỉ được test 2 số liệu
+    // COD, chưa test các thẻ đếm đơn và danh sách đơn gần đây.
     public function test_delivery_dashboard_shows_correct_order_counts_and_recent_orders(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -392,14 +366,12 @@ class StaffRoleWorkflowTest extends TestCase
         });
     }
 
-    /**
-     * order_items.product_id có restrictOnDelete() nên 1 sản phẩm đã có lịch sử đơn hàng KHÔNG BAO
-     * GIỜ bị xóa cứng được (khớp rule đã xác nhận ở HardenedProductController::destroy() - chỉ
-     * ngừng kinh doanh, không xóa) - JOIN sang bảng products vì vậy luôn khớp được. Cột snapshot
-     * (order_items.product_name/product_image) mới là cái có thể null với dữ liệu cũ; khi đó trang
-     * chi tiết đơn của nhân viên vận chuyển phải rơi về đúng tên/ảnh THẬT của sản phẩm, không hiện
-     * trống trơn hay vỡ trang.
-     */
+    // order_items.product_id có restrictOnDelete() nên 1 sản phẩm đã có lịch sử đơn hàng KHÔNG BAO
+    // GIỜ bị xóa cứng được (khớp rule đã xác nhận ở HardenedProductController::destroy() - chỉ
+    // ngừng kinh doanh, không xóa) - JOIN sang bảng products vì vậy luôn khớp được. Cột snapshot
+    // (order_items.product_name/product_image) mới là cái có thể null với dữ liệu cũ; khi đó trang
+    // chi tiết đơn của nhân viên vận chuyển phải rơi về đúng tên/ảnh THẬT của sản phẩm, không hiện
+    // trống trơn hay vỡ trang.
     public function test_delivery_order_show_page_falls_back_to_live_product_when_snapshot_missing(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -421,11 +393,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('Trà sữa trân châu (tên hiện tại)');
     }
 
-    /**
-     * Giao thất bại: bắt buộc nhập lý do + loại lý do, đơn chuyển 'cancelled' kèm delivery_failed_reason/at,
-     * kể cả khi đơn đã thanh toán trước (payment_status=paid) — với loại lý do 'customer_unreachable'
-     * (khách không nhận hàng) thì hủy thẳng KHÔNG hoàn tiền, theo quyết định nghiệp vụ đã duyệt.
-     */
+    // Giao thất bại: bắt buộc nhập lý do + loại lý do, đơn chuyển 'cancelled' kèm delivery_failed_reason/at,
+    // kể cả khi đơn đã thanh toán trước (payment_status=paid) — với loại lý do 'customer_unreachable'
+    // (khách không nhận hàng) thì hủy thẳng KHÔNG hoàn tiền, theo quyết định nghiệp vụ đã duyệt.
     public function test_delivery_staff_marks_failed_delivery_with_required_reason(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -461,10 +431,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNotNull($order->delivery_failed_at);
     }
 
-    /**
-     * Giao thất bại vì "hàng hư hỏng/đổ vỡ" trên đơn MoMo đã thanh toán -> tự động hoàn tiền MoMo
-     * trước khi hủy đơn, đơn chuyển payment_status=refunded + status=cancelled.
-     */
+    // Giao thất bại vì "hàng hư hỏng/đổ vỡ" trên đơn MoMo đã thanh toán -> tự động hoàn tiền MoMo
+    // trước khi hủy đơn, đơn chuyển payment_status=refunded + status=cancelled.
     public function test_delivery_staff_marks_failed_delivery_damaged_triggers_refund_for_vnpay(): void
     {
         config([
@@ -501,11 +469,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('damaged', $order->delivery_failure_type);
     }
 
-    /**
-     * Giao thất bại vì "hàng hư hỏng/đổ vỡ" nhưng MoMo hoàn tiền thất bại -> vẫn hủy đơn (shipper
-     * không thể kẹt ngoài đường chờ retry), nhưng KHÔNG đánh dấu đã hoàn tiền — payment_status vẫn
-     * 'paid' trên đơn 'cancelled' để lễ tân/admin biết cần xử lý hoàn tiền thủ công.
-     */
+    // Giao thất bại vì "hàng hư hỏng/đổ vỡ" nhưng MoMo hoàn tiền thất bại -> vẫn hủy đơn (shipper
+    // không thể kẹt ngoài đường chờ retry), nhưng KHÔNG đánh dấu đã hoàn tiền — payment_status vẫn
+    // 'paid' trên đơn 'cancelled' để lễ tân/admin biết cần xử lý hoàn tiền thủ công.
     public function test_delivery_staff_marks_failed_delivery_damaged_refund_failure_still_cancels(): void
     {
         \Illuminate\Support\Facades\Http::fake([
@@ -536,10 +502,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($order->refund_transaction_id);
     }
 
-    /**
-     * Giao thất bại với loại lý do "Khác" trên đơn MoMo đã thanh toán -> giống 'customer_unreachable',
-     * hủy thẳng KHÔNG hoàn tiền (chỉ 'damaged' mới tự động hoàn tiền).
-     */
+    // Giao thất bại với loại lý do "Khác" trên đơn MoMo đã thanh toán -> giống 'customer_unreachable',
+    // hủy thẳng KHÔNG hoàn tiền (chỉ 'damaged' mới tự động hoàn tiền).
     public function test_delivery_staff_marks_failed_delivery_other_reason_does_not_trigger_refund(): void
     {
         \Illuminate\Support\Facades\Http::fake();
@@ -569,9 +533,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('other', $order->delivery_failure_type);
     }
 
-    /**
-     * failure_type sai giá trị (không thuộc damaged/customer_unreachable/other) -> bị từ chối validate.
-     */
+    // failure_type sai giá trị (không thuộc damaged/customer_unreachable/other) -> bị từ chối validate.
     public function test_delivery_staff_fail_rejects_invalid_failure_type(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -586,9 +548,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('shipping', $order->fresh()->status);
     }
 
-    /**
-     * Nhân viên vận chuyển không được: xem kho, xóa đơn, sửa tổng tiền.
-     */
+    // Nhân viên vận chuyển không được: xem kho, xóa đơn, sửa tổng tiền.
     public function test_delivery_staff_cannot_access_inventory_or_destructive_actions(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -605,10 +565,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNotNull($order->fresh());
     }
 
-    /**
-     * Lễ tân và vận chuyển đều không truy cập được các trang quản trị admin-only
-     * (cài đặt hệ thống, quản lý sản phẩm/khuyến mãi có quyền ghi) — chỉ admin mới vào được.
-     */
+    // Lễ tân và vận chuyển đều không truy cập được các trang quản trị admin-only
+    // (cài đặt hệ thống, quản lý sản phẩm/khuyến mãi có quyền ghi) — chỉ admin mới vào được.
     public function test_receptionist_and_delivery_cannot_access_admin_settings(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -625,9 +583,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/admin/settings')->assertStatus(200);
     }
 
-    /**
-     * Request chuyển trạng thái trái luồng (vd shipping -> pending) phải bị từ chối bởi OrderWorkflowService.
-     */
+    // Request chuyển trạng thái trái luồng (vd shipping -> pending) phải bị từ chối bởi OrderWorkflowService.
     public function test_out_of_flow_status_transition_is_rejected(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -640,11 +596,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('shipping', $order->fresh()->status);
     }
 
-    /**
-     * Đơn MoMo/VNPay "chờ thanh toán" (pending/unpaid) treo quá 15 phút bị tự động hủy — giải phóng
-     * tồn kho đã trừ trước (đơn tại quầy). Đơn còn mới, đơn COD, đơn đã xác nhận/đã thanh toán thì
-     * KHÔNG bị đụng tới.
-     */
+    // Đơn MoMo/VNPay "chờ thanh toán" (pending/unpaid) treo quá 15 phút bị tự động hủy — giải phóng
+    // tồn kho đã trừ trước (đơn tại quầy). Đơn còn mới, đơn COD, đơn đã xác nhận/đã thanh toán thì
+    // KHÔNG bị đụng tới.
     public function test_cancel_stale_pending_payments_only_cancels_old_unpaid_online_orders(): void
     {
         $stalePickup = $this->makeOrder([
@@ -684,10 +638,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('pending', $staleButPaid->fresh()->status);
     }
 
-    /**
-     * Mở trang danh sách đơn của lễ tân cũng tự dọn luôn đơn VNPay treo quá lâu — để có hiệu quả
-     * ngay cả khi không có Task Scheduler/cron thật chạy `orders:cancel-stale-pending`.
-     */
+    // Mở trang danh sách đơn của lễ tân cũng tự dọn luôn đơn VNPay treo quá lâu — để có hiệu quả
+    // ngay cả khi không có Task Scheduler/cron thật chạy `orders:cancel-stale-pending`.
     public function test_visiting_reception_order_list_opportunistically_cancels_stale_vnpay_orders(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -703,9 +655,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('cancelled', $stalePickup->fresh()->status);
     }
 
-    /**
-     * Admin tạo tài khoản nhân viên với staff_type hợp lệ; giá trị staff_type giả bị từ chối.
-     */
+    // Admin tạo tài khoản nhân viên với staff_type hợp lệ; giá trị staff_type giả bị từ chối.
     public function test_admin_creates_staff_account_with_valid_staff_type_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -734,9 +684,7 @@ class StaffRoleWorkflowTest extends TestCase
         ]);
     }
 
-    /**
-     * Lễ tân nhập kho và ghi nhận audit log (giữ nguyên hành vi đã có, chỉ đổi route sang reception).
-     */
+    // Lễ tân nhập kho và ghi nhận audit log (giữ nguyên hành vi đã có, chỉ đổi route sang reception).
     public function test_receptionist_can_import_stock_with_audit_logging(): void
     {
         $staff = User::factory()->create([
@@ -778,13 +726,11 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(20666.6666, (float) $material->unit_price);
     }
 
-    /**
-     * Lễ tân xuất kho sử dụng (lấy hàng ra khỏi kho để dùng tại quầy, không qua đơn hàng) - LUÔN từ
-     * một lô cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), y hệt cách admin làm
-     * (MaterialController(Admin)::consumeBatch()) - không còn bản "tự động chọn lô theo hạn dùng gần
-     * nhất" như trước. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của
-     * cùng vật tư không bị đụng tới.
-     */
+    // Lễ tân xuất kho sử dụng (lấy hàng ra khỏi kho để dùng tại quầy, không qua đơn hàng) - LUÔN từ
+    // một lô cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), y hệt cách admin làm
+    // (MaterialController(Admin)::consumeBatch()) - không còn bản "tự động chọn lô theo hạn dùng gần
+    // nhất" như trước. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của
+    // cùng vật tư không bị đụng tới.
     public function test_receptionist_can_consume_stock_from_a_specific_lot_without_touching_other_lots(): void
     {
         $staff = User::factory()->create([
@@ -837,14 +783,12 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(14, (float) $material->fresh()->current_stock);
     }
 
-    /**
-     * Admin trước đây KHÔNG có đường nào để ghi nhận "Xuất kho sử dụng" (chỉ khu vực lễ tân có) dù
-     * có toàn quyền quản lý kho. Thêm MaterialController(Admin)::consumeBatch() - LUÔN xuất từ một lô
-     * cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), không có bản "tự động chọn lô" như
-     * lễ tân vì bên admin đã thấy rõ danh sách lô ngay trên trang, không cần thêm 1 con đường mơ hồ
-     * nữa. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của cùng vật tư
-     * không bị đụng tới.
-     */
+    // Admin trước đây KHÔNG có đường nào để ghi nhận "Xuất kho sử dụng" (chỉ khu vực lễ tân có) dù
+    // có toàn quyền quản lý kho. Thêm MaterialController(Admin)::consumeBatch() - LUÔN xuất từ một lô
+    // cụ thể do người dùng chọn (nút "Xuất" trên từng dòng lô), không có bản "tự động chọn lô" như
+    // lễ tân vì bên admin đã thấy rõ danh sách lô ngay trên trang, không cần thêm 1 con đường mơ hồ
+    // nữa. Điểm quan trọng nhất cần khóa lại: chỉ trừ ĐÚNG lô được chọn, các lô khác của cùng vật tư
+    // không bị đụng tới.
     public function test_admin_can_consume_stock_from_a_specific_lot_without_touching_other_lots(): void
     {
         $admin = User::factory()->create([
@@ -882,10 +826,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(2, (float) $newerLot->fresh()->remaining_quantity);
     }
 
-    /**
-     * Trang danh sách Vật tư (`materials.index`) trước đây chỉ được smoke-test (status 200), chưa
-     * kiểm tra đúng nội dung: thẻ thống kê (tổng/sắp hết/hết hàng) và bộ lọc theo trạng thái.
-     */
+    // Trang danh sách Vật tư (`materials.index`) trước đây chỉ được smoke-test (status 200), chưa
+    // kiểm tra đúng nội dung: thẻ thống kê (tổng/sắp hết/hết hàng) và bộ lọc theo trạng thái.
     public function test_materials_index_shows_correct_stats_and_filters(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -919,9 +861,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('Trân châu đen');
     }
 
-    /**
-     * AJAX (lọc/phân trang không tải lại trang) chỉ trả về đúng phần bảng, không phải cả trang HTML.
-     */
+    // AJAX (lọc/phân trang không tải lại trang) chỉ trả về đúng phần bảng, không phải cả trang HTML.
     public function test_materials_index_page_renders_full_page_with_results(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -934,10 +874,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('Trân châu trắng');
     }
 
-    /**
-     * Trang lịch sử nhập/xuất của 1 vật tư (`materials.imports`) phải hiện đúng các lô đã nhập/xuất
-     * của CHÍNH vật tư đó, không lẫn của vật tư khác.
-     */
+    // Trang lịch sử nhập/xuất của 1 vật tư (`materials.imports`) phải hiện đúng các lô đã nhập/xuất
+    // của CHÍNH vật tư đó, không lẫn của vật tư khác.
     public function test_materials_imports_history_page_shows_correct_lots(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -955,11 +893,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('Lô nhập cacao');
     }
 
-    /**
-     * Nút "Thanh toán chuyển khoản" trên trang chi tiết đơn cho phép lễ tân thử lại thanh toán MoMo
-     * cho 1 đơn ĐÃ TỒN TẠI (vd khách chọn MoMo lúc tạo đơn nhưng chưa quét mã xong) - khác với luồng
-     * redirect MoMo lúc mới TẠO đơn đã được test riêng.
-     */
+    // Nút "Thanh toán chuyển khoản" trên trang chi tiết đơn cho phép lễ tân thử lại thanh toán MoMo
+    // cho 1 đơn ĐÃ TỒN TẠI (vd khách chọn MoMo lúc tạo đơn nhưng chưa quét mã xong) - khác với luồng
+    // redirect MoMo lúc mới TẠO đơn đã được test riêng.
     public function test_receptionist_can_retry_vnpay_payment_on_existing_unpaid_order(): void
     {
         config(['services.vnpay.sandbox.tmn_code' => 'TEST', 'services.vnpay.sandbox.hash_secret' => 'TEST']);
@@ -977,9 +913,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertSame('unpaid', $order->fresh()->payment_status);
     }
 
-    /**
-     * Đơn đã thanh toán rồi thì không được thử thanh toán lại lần nữa.
-     */
+    // Đơn đã thanh toán rồi thì không được thử thanh toán lại lần nữa.
     public function test_retrying_vnpay_payment_on_already_paid_order_is_rejected(): void
     {
         $staff = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1027,12 +961,10 @@ class StaffRoleWorkflowTest extends TestCase
         ], $overrides));
     }
 
-    /**
-     * Lễ tân tạo đơn tại quầy (pickup) — không cần địa chỉ, không cần tên/SĐT khách (khách uống
-     * tại chỗ, không giao hàng); khách vãng lai (không chọn tài khoản nào) -> customer_phone phải
-     * là NULL, không được ngầm fallback về SĐT của lễ tân. Từ Giai đoạn 3: tạo đơn tiền mặt KHÔNG
-     * còn tự động đánh dấu đã thanh toán ngay — phải xác nhận riêng qua confirmCashPayment().
-     */
+    // Lễ tân tạo đơn tại quầy (pickup) — không cần địa chỉ, không cần tên/SĐT khách (khách uống
+    // tại chỗ, không giao hàng); khách vãng lai (không chọn tài khoản nào) -> customer_phone phải
+    // là NULL, không được ngầm fallback về SĐT của lễ tân. Từ Giai đoạn 3: tạo đơn tiền mặt KHÔNG
+    // còn tự động đánh dấu đã thanh toán ngay — phải xác nhận riêng qua confirmCashPayment().
     public function test_receptionist_can_create_counter_order_without_address(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1065,10 +997,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($order->paid_at);
     }
 
-    /**
-     * Giai đoạn 3: lễ tân phải nhập số tiền khách đưa + bấm "Xác nhận đã thu tiền" thì đơn tiền mặt
-     * mới thực sự chuyển 'paid' — không được thu ít hơn giá trị đơn (số tiền không đủ bị từ chối).
-     */
+    // Giai đoạn 3: lễ tân phải nhập số tiền khách đưa + bấm "Xác nhận đã thu tiền" thì đơn tiền mặt
+    // mới thực sự chuyển 'paid' — không được thu ít hơn giá trị đơn (số tiền không đủ bị từ chối).
     public function test_receptionist_confirms_cash_payment_with_amount_tendered_and_change(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1099,14 +1029,12 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(30000, (float) $order->amount_tendered - (float) $order->final_amount);
     }
 
-    /**
-     * Nút in hóa đơn/phiếu pha chế xuất hiện ngay khi đơn được XÁC NHẬN (status), không còn chờ
-     * payment_status=paid ở BƯỚC IN nữa - pha chế cần phiếu để bắt đầu làm đồ. Nhưng với đơn tiền mặt
-     * tại quầy, việc xác nhận ĐƠN tự nó lại đòi hỏi phải thu tiền trước (OrderWorkflowService::transition())
-     * - khách đứng ngay quầy nên phải đưa tiền xong mới xác nhận, tránh xác nhận rồi mới phát hiện
-     * chưa thu tiền. Vậy nên với đơn cash, in vẫn "gián tiếp" chờ thu tiền, chỉ là chờ ở bước xác nhận
-     * đơn thay vì ở bước in.
-     */
+    // Nút in hóa đơn/phiếu pha chế xuất hiện ngay khi đơn được XÁC NHẬN (status), không còn chờ
+    // payment_status=paid ở BƯỚC IN nữa - pha chế cần phiếu để bắt đầu làm đồ. Nhưng với đơn tiền mặt
+    // tại quầy, việc xác nhận ĐƠN tự nó lại đòi hỏi phải thu tiền trước (OrderWorkflowService::transition())
+    // - khách đứng ngay quầy nên phải đưa tiền xong mới xác nhận, tránh xác nhận rồi mới phát hiện
+    // chưa thu tiền. Vậy nên với đơn cash, in vẫn "gián tiếp" chờ thu tiền, chỉ là chờ ở bước xác nhận
+    // đơn thay vì ở bước in.
     public function test_print_buttons_appear_once_order_is_confirmed_regardless_of_payment(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1144,9 +1072,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('id="print-invoice-btn"', false);
     }
 
-    /**
-     * Cùng hành vi cho đơn ĐẶT ONLINE (giao hàng, COD) - không riêng gì đơn tại quầy.
-     */
+    // Cùng hành vi cho đơn ĐẶT ONLINE (giao hàng, COD) - không riêng gì đơn tại quầy.
     public function test_print_buttons_appear_for_confirmed_online_delivery_order_too(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1164,9 +1090,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('id="print-invoice-btn"', false);
     }
 
-    /**
-     * Không chọn phương thức thanh toán (hoặc chọn giá trị lạ) -> bị từ chối, không tạo đơn.
-     */
+    // Không chọn phương thức thanh toán (hoặc chọn giá trị lạ) -> bị từ chối, không tạo đơn.
     public function test_receptionist_counter_order_requires_valid_payment_method(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1182,9 +1106,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull(Order::where('created_by', $receptionist->id)->latest()->first());
     }
 
-    /**
-     * Lễ tân xem trang Khuyến mãi đang áp dụng (đọc-only).
-     */
+    // Lễ tân xem trang Khuyến mãi đang áp dụng (đọc-only).
     public function test_receptionist_can_view_promotions_readonly(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1194,9 +1116,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->get('/staff/reception/promotions')->assertStatus(200);
     }
 
-    /**
-     * Lễ tân tìm khách hàng theo tên/SĐT khi tạo đơn.
-     */
+    // Lễ tân tìm khách hàng theo tên/SĐT khi tạo đơn.
     public function test_receptionist_can_search_customers(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1209,10 +1129,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertJsonFragment(['name' => 'Nguyễn Văn Khách']);
     }
 
-    /**
-     * Nhân viên (cả 2 loại) chỉ được XEM hồ sơ cá nhân — không có quyền tự sửa (tên/SĐT/mật khẩu),
-     * kể cả khi tự gửi PUT trực tiếp tới route (route đã bị gỡ hoàn toàn, không chỉ ẩn UI).
-     */
+    // Nhân viên (cả 2 loại) chỉ được XEM hồ sơ cá nhân — không có quyền tự sửa (tên/SĐT/mật khẩu),
+    // kể cả khi tự gửi PUT trực tiếp tới route (route đã bị gỡ hoàn toàn, không chỉ ẩn UI).
     public function test_staff_can_only_view_profile_not_edit_it(): void
     {
         $receptionist = User::factory()->create([
@@ -1242,9 +1160,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('OldPassword123', $receptionist->password));
     }
 
-    /**
-     * Nhân viên vận chuyển cũng dùng chung được trang Hồ sơ cá nhân (route riêng của khu vực delivery).
-     */
+    // Nhân viên vận chuyển cũng dùng chung được trang Hồ sơ cá nhân (route riêng của khu vực delivery).
     public function test_delivery_staff_can_access_own_profile(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -1255,10 +1171,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->put('/staff/delivery/profile', ['name' => 'Hack'])->assertStatus(405);
     }
 
-    /**
-     * Dashboard vận chuyển hiển thị đúng đối soát COD: tiền cần thu (đơn đang giao)
-     * tách biệt với tiền đã thu (đơn đã hoàn thành) — chỉ tính đơn của chính nhân viên.
-     */
+    // Dashboard vận chuyển hiển thị đúng đối soát COD: tiền cần thu (đơn đang giao)
+    // tách biệt với tiền đã thu (đơn đã hoàn thành) — chỉ tính đơn của chính nhân viên.
     public function test_delivery_dashboard_shows_cod_reconciliation_totals(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -1286,9 +1200,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertViewHas('codCollectedTotal', 60000.0);
     }
 
-    /**
-     * Admin lọc danh sách nhân viên theo "Loại nhân viên" (Lễ tân/Vận chuyển).
-     */
+    // Admin lọc danh sách nhân viên theo "Loại nhân viên" (Lễ tân/Vận chuyển).
     public function test_admin_can_filter_staff_accounts_by_staff_type(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -1308,10 +1220,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('Lễ Tân A');
     }
 
-    /**
-     * Admin đổi loại nhân viên (lễ tân <-> vận chuyển); giá trị lạ bị từ chối;
-     * chỉ tác động tài khoản role=staff, không đụng customer/admin dù trùng ID.
-     */
+    // Admin đổi loại nhân viên (lễ tân <-> vận chuyển); giá trị lạ bị từ chối;
+    // chỉ tác động tài khoản role=staff, không đụng customer/admin dù trùng ID.
     public function test_admin_can_update_staff_type_with_whitelist_and_scope(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -1338,10 +1248,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($customer->fresh()->staff_type);
     }
 
-    /**
-     * Xóa nhân viên đã có lịch sử hoạt động (tạo đơn/phân công/đối soát) phải bị chặn ở server —
-     * KHÔNG được xóa ngầm — và tài khoản phải còn nguyên trong DB sau đó.
-     */
+    // Xóa nhân viên đã có lịch sử hoạt động (tạo đơn/phân công/đối soát) phải bị chặn ở server —
+    // KHÔNG được xóa ngầm — và tài khoản phải còn nguyên trong DB sau đó.
     public function test_deleting_staff_with_order_history_is_blocked(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -1356,12 +1264,10 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertModelExists($receptionist);
     }
 
-    /**
-     * Lỗi "không thể xóa vì có lịch sử hoạt động" (session('error') — KHÁC session flash 'success' và
-     * $errors validate()) phải THỰC SỰ hiện lên màn hình qua toast, không được bị nuốt mất. Bug thật:
-     * backend.partials.flash_messages trước đây chỉ đọc session('success') và $errors->any(), bỏ sót
-     * hẳn session('error') — nên lỗi có set đúng ở server nhưng người dùng không bao giờ thấy được.
-     */
+    // Lỗi "không thể xóa vì có lịch sử hoạt động" (session('error') — KHÁC session flash 'success' và
+    // $errors validate()) phải THỰC SỰ hiện lên màn hình qua toast, không được bị nuốt mất. Bug thật:
+    // backend.partials.flash_messages trước đây chỉ đọc session('success') và $errors->any(), bỏ sót
+    // hẳn session('error') — nên lỗi có set đúng ở server nhưng người dùng không bao giờ thấy được.
     public function test_staff_delete_error_message_actually_renders_as_toast(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -1383,11 +1289,9 @@ class StaffRoleWorkflowTest extends TestCase
         $page->assertSee(json_encode($errorMessage), false);
     }
 
-    /**
-     * Dashboard lễ tân tính đúng doanh thu hôm nay theo hình thức thanh toán: tiền mặt gộp cả
-     * 'cash' và 'cod', chuyển khoản là 'momo'; chỉ tính đơn đã thanh toán (paid_at) hôm nay,
-     * bỏ qua đơn chưa thanh toán và đơn đã thanh toán từ hôm qua.
-     */
+    // Dashboard lễ tân tính đúng doanh thu hôm nay theo hình thức thanh toán: tiền mặt gộp cả
+    // 'cash' và 'cod', chuyển khoản là 'momo'; chỉ tính đơn đã thanh toán (paid_at) hôm nay,
+    // bỏ qua đơn chưa thanh toán và đơn đã thanh toán từ hôm qua.
     public function test_reception_dashboard_computes_todays_revenue_by_payment_method(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1413,12 +1317,10 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertViewHas('transferRevenuePercent', 50);
     }
 
-    /**
-     * Đơn GIAO HÀNG (không phải tại quầy): lễ tân chỉ được xác nhận/hủy — không được tự ý nhảy
-     * thẳng sang "đang giao"/"hoàn thành" (bước đó chỉ nhân viên vận chuyển được làm sau khi
-     * được phân công). Đây là fix cho lỗi lễ tân bấm tắt qua bước phân công khiến đơn không bao
-     * giờ có delivery_staff_id, làm tài khoản vận chuyển không thấy đơn nào.
-     */
+    // Đơn GIAO HÀNG (không phải tại quầy): lễ tân chỉ được xác nhận/hủy — không được tự ý nhảy
+    // thẳng sang "đang giao"/"hoàn thành" (bước đó chỉ nhân viên vận chuyển được làm sau khi
+    // được phân công). Đây là fix cho lỗi lễ tân bấm tắt qua bước phân công khiến đơn không bao
+    // giờ có delivery_staff_id, làm tài khoản vận chuyển không thấy đơn nào.
     public function test_receptionist_cannot_skip_delivery_assignment_for_delivery_orders(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1440,10 +1342,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('cancelled', $order->fresh()->status);
     }
 
-    /**
-     * Đơn TẠI QUẦY (pickup): không có shipper, không có bước "đang giao" — xác nhận xong là
-     * chuyển thẳng sang hoàn thành luôn (bỏ qua "shipping" theo PICKUP_TRANSITIONS).
-     */
+    // Đơn TẠI QUẦY (pickup): không có shipper, không có bước "đang giao" — xác nhận xong là
+    // chuyển thẳng sang hoàn thành luôn (bỏ qua "shipping" theo PICKUP_TRANSITIONS).
     public function test_receptionist_can_fully_complete_pickup_order_without_delivery_staff(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1456,11 +1356,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('completed', $order->fresh()->status);
     }
 
-    /**
-     * Trang chi tiết đơn giao hàng đã xác nhận, chưa phân công: hiển thị danh sách nhân viên
-     * vận chuyển đang hoạt động để lễ tân chọn — đây là UI còn thiếu trước đây khiến lễ tân
-     * không có cách nào thật sự phân công (route/controller đã có nhưng chưa có giao diện).
-     */
+    // Trang chi tiết đơn giao hàng đã xác nhận, chưa phân công: hiển thị danh sách nhân viên
+    // vận chuyển đang hoạt động để lễ tân chọn — đây là UI còn thiếu trước đây khiến lễ tân
+    // không có cách nào thật sự phân công (route/controller đã có nhưng chưa có giao diện).
     public function test_order_show_page_offers_available_delivery_staff_for_unassigned_confirmed_order(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1476,12 +1374,10 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('Shipper Đã Khóa');
     }
 
-    /**
-     * Luồng đầy đủ: lễ tân xác nhận đơn giao hàng, phân công nhân viên vận chuyển qua đúng
-     * endpoint (không tắt qua bước status) -> nhân viên vận chuyển đó thấy ngay đơn trong danh
-     * sách "Đơn được giao" của họ. Tái hiện đúng bug người dùng báo: "đăng nhập tài khoản giao
-     * hàng không thấy đơn nào" — nguyên nhân là chưa từng phân công qua endpoint đúng.
-     */
+    // Luồng đầy đủ: lễ tân xác nhận đơn giao hàng, phân công nhân viên vận chuyển qua đúng
+    // endpoint (không tắt qua bước status) -> nhân viên vận chuyển đó thấy ngay đơn trong danh
+    // sách "Đơn được giao" của họ. Tái hiện đúng bug người dùng báo: "đăng nhập tài khoản giao
+    // hàng không thấy đơn nào" — nguyên nhân là chưa từng phân công qua endpoint đúng.
     public function test_full_reception_to_delivery_handoff_makes_order_visible_to_assigned_shipper(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1498,11 +1394,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee($order->order_code);
     }
 
-    /**
-     * Dashboard lễ tân đếm đúng số đơn giao hàng đã xác nhận nhưng CHƯA có shipper — số này phải
-     * nổi bật để lễ tân không bỏ sót đơn "kẹt" ở bước xác nhận không ai xử lý tiếp (nguyên nhân
-     * gốc của bug "nhân viên giao hàng không thấy đơn nào").
-     */
+    // Dashboard lễ tân đếm đúng số đơn giao hàng đã xác nhận nhưng CHƯA có shipper — số này phải
+    // nổi bật để lễ tân không bỏ sót đơn "kẹt" ở bước xác nhận không ai xử lý tiếp (nguyên nhân
+    // gốc của bug "nhân viên giao hàng không thấy đơn nào").
     public function test_reception_dashboard_counts_orders_needing_delivery_assignment(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1526,11 +1420,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('Chờ phân công');
     }
 
-    /**
-     * Đơn giao hàng (không phải tại quầy) tạo qua OrderService::create() phải snapshot tọa độ GPS
-     * từ địa chỉ khách đã chọn — để nhân viên vận chuyển mở đúng điểm trên bản đồ thay vì tìm theo
-     * chuỗi địa chỉ text (dễ ra nhiều kết quả trùng tên đường/khu vực).
-     */
+    // Đơn giao hàng (không phải tại quầy) tạo qua OrderService::create() phải snapshot tọa độ GPS
+    // từ địa chỉ khách đã chọn — để nhân viên vận chuyển mở đúng điểm trên bản đồ thay vì tìm theo
+    // chuỗi địa chỉ text (dễ ra nhiều kết quả trùng tên đường/khu vực).
     public function test_delivery_order_snapshots_gps_coordinates_from_address(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1570,9 +1462,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEqualsWithDelta(106.6801247, (float) $order->delivery_longitude, 0.0001);
     }
 
-    /**
-     * Đơn tại quầy (pickup) không có địa chỉ nên không snapshot tọa độ — cột phải là NULL, không lỗi.
-     */
+    // Đơn tại quầy (pickup) không có địa chỉ nên không snapshot tọa độ — cột phải là NULL, không lỗi.
     public function test_pickup_order_has_no_gps_coordinates(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1589,11 +1479,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($order->delivery_longitude);
     }
 
-    /**
-     * Đơn giao hàng đã "đang giao": lễ tân KHÔNG được hủy nữa (kể cả khi chưa thanh toán) — mọi thay
-     * đổi từ đây (hoàn thành/hủy/giao thất bại) đều thuộc về nhân viên vận chuyển. Đây là siết chặt
-     * bổ sung so với rule trước đó (trước chỉ chặn shipping/completed, chưa chặn cancelled).
-     */
+    // Đơn giao hàng đã "đang giao": lễ tân KHÔNG được hủy nữa (kể cả khi chưa thanh toán) — mọi thay
+    // đổi từ đây (hoàn thành/hủy/giao thất bại) đều thuộc về nhân viên vận chuyển. Đây là siết chặt
+    // bổ sung so với rule trước đó (trước chỉ chặn shipping/completed, chưa chặn cancelled).
     public function test_receptionist_cannot_cancel_delivery_order_once_shipping(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1609,10 +1497,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('shipping', $order->fresh()->status);
     }
 
-    /**
-     * Danh sách đơn hàng lễ tân giờ chỉ HIỂN THỊ trạng thái (badge tĩnh), không còn dropdown chỉnh
-     * được tại đây nữa — mọi thay đổi trạng thái phải vào trang chi tiết đơn.
-     */
+    // Danh sách đơn hàng lễ tân giờ chỉ HIỂN THỊ trạng thái (badge tĩnh), không còn dropdown chỉnh
+    // được tại đây nữa — mọi thay đổi trạng thái phải vào trang chi tiết đơn.
     public function test_reception_order_list_shows_readonly_status_badge_not_editable_dropdown(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1628,12 +1514,10 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertDontSee('order-status-select', false);
     }
 
-    /**
-     * Trang chi tiết đơn hiện đủ các nút hành động đổi trạng thái phù hợp theo từng trạng thái:
-     * pending -> "Xác nhận đơn"; pickup confirmed -> "Hoàn thành" thẳng (không có bước "đang giao"
-     * — khách nhận trực tiếp tại quầy). Đơn giao hàng (không pickup) đã "đang giao" thì KHÔNG có
-     * nút nào (chỉ ghi chú, chỉ nhân viên vận chuyển được cập nhật tiếp).
-     */
+    // Trang chi tiết đơn hiện đủ các nút hành động đổi trạng thái phù hợp theo từng trạng thái:
+    // pending -> "Xác nhận đơn"; pickup confirmed -> "Hoàn thành" thẳng (không có bước "đang giao"
+    // — khách nhận trực tiếp tại quầy). Đơn giao hàng (không pickup) đã "đang giao" thì KHÔNG có
+    // nút nào (chỉ ghi chú, chỉ nhân viên vận chuyển được cập nhật tiếp).
     public function test_order_show_page_offers_correct_status_actions_per_state(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1655,15 +1539,11 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('chỉ nhân viên vận chuyển được cập nhật tiếp');
     }
 
-    /**
-     * Đơn tại quầy tự động áp dụng khuyến mãi "apply_for=all" đang hoạt động và đủ điều kiện
-     * (đơn tối thiểu) mà không cần lễ tân nhập mã — vì giao diện POS không có ô nhập mã.
-     */
-    /**
-     * POS Giai đoạn 1: chọn size/topping/đường/đá khi thêm sản phẩm vào giỏ (không chỉ giá gốc số
-     * lượng 1 như trước) — đơn tại quầy phải lưu đúng biến thể và tính đúng giá (base + size +
-     * topping) x số lượng.
-     */
+    // Đơn tại quầy tự động áp dụng khuyến mãi "apply_for=all" đang hoạt động và đủ điều kiện
+    // (đơn tối thiểu) mà không cần lễ tân nhập mã — vì giao diện POS không có ô nhập mã.
+    // POS Giai đoạn 1: chọn size/topping/đường/đá khi thêm sản phẩm vào giỏ (không chỉ giá gốc số
+    // lượng 1 như trước) — đơn tại quầy phải lưu đúng biến thể và tính đúng giá (base + size +
+    // topping) x số lượng.
     public function test_pos_order_saves_size_topping_sugar_ice_and_computes_correct_price(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1700,10 +1580,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(80000, (float) $order->total_amount);
     }
 
-    /**
-     * Loại đơn Tại quầy/Mang đi (pickup_mode): mặc định 'dine_in' nếu không gửi, lưu đúng 'takeaway'
-     * khi lễ tân chọn — không ảnh hưởng đơn giao hàng (pickup_mode luôn null cho delivery_type=delivery).
-     */
+    // Loại đơn Tại quầy/Mang đi (pickup_mode): mặc định 'dine_in' nếu không gửi, lưu đúng 'takeaway'
+    // khi lễ tân chọn — không ảnh hưởng đơn giao hàng (pickup_mode luôn null cho delivery_type=delivery).
     public function test_pos_order_saves_pickup_mode_default_and_selected(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1727,10 +1605,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('takeaway', $secondOrder->pickup_mode);
     }
 
-    /**
-     * Trang "Tạo đơn tại quầy" phải cung cấp bộ lọc danh mục + dữ liệu size/topping của từng sản
-     * phẩm (để modal chọn biến thể ở frontend hoạt động) — không phải chỉ tên/giá như trước.
-     */
+    // Trang "Tạo đơn tại quầy" phải cung cấp bộ lọc danh mục + dữ liệu size/topping của từng sản
+    // phẩm (để modal chọn biến thể ở frontend hoạt động) — không phải chỉ tên/giá như trước.
     public function test_pos_create_page_provides_category_filter_and_product_variant_data(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1750,11 +1626,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('"toppings":[{"id":' . $topping->id, false);
     }
 
-    /**
-     * Sản phẩm hết hàng (is_active=false) vẫn phải xuất hiện trong lưới "Tạo đơn tại quầy" - đưa
-     * xuống CUỐI danh sách, kèm nút "Hết hàng" bị khoá - để lễ tân biết mà báo khách, thay vì món
-     * biến mất hoàn toàn khỏi màn hình như chưa từng tồn tại.
-     */
+    // Sản phẩm hết hàng (is_active=false) vẫn phải xuất hiện trong lưới "Tạo đơn tại quầy" - đưa
+    // xuống CUỐI danh sách, kèm nút "Hết hàng" bị khoá - để lễ tân biết mà báo khách, thay vì món
+    // biến mất hoàn toàn khỏi màn hình như chưa từng tồn tại.
     public function test_pos_create_page_shows_out_of_stock_products_at_the_end(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -1772,11 +1646,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertLessThan(strpos($content, 'Trà đào hết hàng'), strpos($content, 'Trà sữa còn hàng'));
     }
 
-    /**
-     * POS Giai đoạn 2: lễ tân chọn 1 khách hàng có tài khoản qua ô tìm SĐT/tên -> đơn phải đứng tên
-     * (user_id) đúng khách đó, KHÔNG phải tài khoản lễ tân — trong khi created_by vẫn ghi đúng lễ
-     * tân đã xử lý đơn (để phân biệt "ai bán" khỏi "đơn của ai").
-     */
+    // POS Giai đoạn 2: lễ tân chọn 1 khách hàng có tài khoản qua ô tìm SĐT/tên -> đơn phải đứng tên
+    // (user_id) đúng khách đó, KHÔNG phải tài khoản lễ tân — trong khi created_by vẫn ghi đúng lễ
+    // tân đã xử lý đơn (để phân biệt "ai bán" khỏi "đơn của ai").
     public function test_pos_order_attaches_to_selected_customer_not_receptionist(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1797,10 +1669,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('0911111111', $order->customer_phone);
     }
 
-    /**
-     * Không chọn khách nào (khách vãng lai) -> user_id phải là NULL, KHÔNG được ngầm định gán cho
-     * tài khoản lễ tân đang thao tác như hành vi cũ trước Giai đoạn 2.
-     */
+    // Không chọn khách nào (khách vãng lai) -> user_id phải là NULL, KHÔNG được ngầm định gán cho
+    // tài khoản lễ tân đang thao tác như hành vi cũ trước Giai đoạn 2.
     public function test_pos_order_defaults_to_walk_in_customer_when_none_selected(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1819,10 +1689,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('Khách tại quầy', $order->customer_name);
     }
 
-    /**
-     * Giảm giá theo hạng thành viên phải tính trên hạng của KHÁCH ĐƯỢC CHỌN, không phải hạng của
-     * tài khoản lễ tân (luôn là 'new' vì lễ tân không tích điểm mua hàng như khách thật).
-     */
+    // Giảm giá theo hạng thành viên phải tính trên hạng của KHÁCH ĐƯỢC CHỌN, không phải hạng của
+    // tài khoản lễ tân (luôn là 'new' vì lễ tân không tích điểm mua hàng như khách thật).
     public function test_pos_order_membership_discount_uses_selected_customers_tier(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1841,10 +1709,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(95000, (float) $order->final_amount);
     }
 
-    /**
-     * Dùng điểm tích lũy của khách đã chọn: điểm phải bị trừ đúng trên tài khoản KHÁCH đó, không
-     * phải tài khoản lễ tân — và discount_amount phải phản ánh đúng giá trị điểm quy đổi.
-     */
+    // Dùng điểm tích lũy của khách đã chọn: điểm phải bị trừ đúng trên tài khoản KHÁCH đó, không
+    // phải tài khoản lễ tân — và discount_amount phải phản ánh đúng giá trị điểm quy đổi.
     public function test_pos_order_can_redeem_selected_customers_points(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1868,10 +1734,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(0, $receptionist->fresh()->points); // Điểm của lễ tân (mặc định 0) không bị đụng tới
     }
 
-    /**
-     * Không thể dùng điểm cho khách vãng lai (không có tài khoản để trừ điểm) — phải bị từ chối rõ
-     * ràng, không được âm thầm bỏ qua hay trừ nhầm điểm của ai khác.
-     */
+    // Không thể dùng điểm cho khách vãng lai (không có tài khoản để trừ điểm) — phải bị từ chối rõ
+    // ràng, không được âm thầm bỏ qua hay trừ nhầm điểm của ai khác.
     public function test_pos_order_rejects_points_redemption_for_walk_in_customer(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1887,12 +1751,10 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
     }
 
-    /**
-     * previewTotal() (dùng để hiển thị tổng tiền TRƯỚC khi tạo đơn ở giao diện POS) phải tính và trả
-     * về đúng số tiền giảm từ điểm tích lũy khi lễ tân đã chọn khách hàng và nhập số điểm hợp lệ —
-     * trước đây field này hoàn toàn không tồn tại trong phản hồi JSON, khiến giao diện tổng tiền
-     * không bao giờ hiện được số tiền giảm từ điểm dù nhập số điểm hợp lệ.
-     */
+    // previewTotal() (dùng để hiển thị tổng tiền TRƯỚC khi tạo đơn ở giao diện POS) phải tính và trả
+    // về đúng số tiền giảm từ điểm tích lũy khi lễ tân đã chọn khách hàng và nhập số điểm hợp lệ —
+    // trước đây field này hoàn toàn không tồn tại trong phản hồi JSON, khiến giao diện tổng tiền
+    // không bao giờ hiện được số tiền giảm từ điểm dù nhập số điểm hợp lệ.
     public function test_pos_preview_total_includes_points_discount(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1915,11 +1777,9 @@ class StaffRoleWorkflowTest extends TestCase
         ]);
     }
 
-    /**
-     * Khi số điểm nhập không hợp lệ (vượt số dư), previewTotal() phải trả về points_error mô tả rõ
-     * lý do (giống hệt thông báo lúc tạo đơn thật) — để lễ tân biết ngay khi đang gõ, không cần chờ
-     * tới lúc bấm "Tạo đơn" mới phát hiện ra.
-     */
+    // Khi số điểm nhập không hợp lệ (vượt số dư), previewTotal() phải trả về points_error mô tả rõ
+    // lý do (giống hệt thông báo lúc tạo đơn thật) — để lễ tân biết ngay khi đang gõ, không cần chờ
+    // tới lúc bấm "Tạo đơn" mới phát hiện ra.
     public function test_pos_preview_total_reports_points_error_when_over_balance(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1938,9 +1798,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertJsonPath('points_error', 'Số điểm quy đổi vượt quá số dư hiện có.');
     }
 
-    /**
-     * Nhập số điểm dưới mức tối thiểu (mặc định 10) phải báo lỗi rõ ràng ngay ở bước xem trước.
-     */
+    // Nhập số điểm dưới mức tối thiểu (mặc định 10) phải báo lỗi rõ ràng ngay ở bước xem trước.
     public function test_pos_preview_total_reports_points_error_when_below_minimum(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1959,10 +1817,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertJsonPath('points_error', 'Số điểm tối thiểu để được quy đổi là 10.');
     }
 
-    /**
-     * Khi chương trình tích điểm bị quản trị viên tạm tắt (loyalty_enabled=0), preview phải báo lỗi
-     * thay vì âm thầm tính discount = 0 không rõ lý do.
-     */
+    // Khi chương trình tích điểm bị quản trị viên tạm tắt (loyalty_enabled=0), preview phải báo lỗi
+    // thay vì âm thầm tính discount = 0 không rõ lý do.
     public function test_pos_preview_total_reports_points_error_when_loyalty_disabled(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -1984,10 +1840,8 @@ class StaffRoleWorkflowTest extends TestCase
         \App\Models\Setting::setValue('loyalty_enabled', '1');
     }
 
-    /**
-     * Số điểm quy đổi vượt trần % (loyalty_max_redeem_percent) giá trị đơn phải bị từ chối kèm lý do,
-     * dù khách vẫn còn đủ số dư điểm.
-     */
+    // Số điểm quy đổi vượt trần % (loyalty_max_redeem_percent) giá trị đơn phải bị từ chối kèm lý do,
+    // dù khách vẫn còn đủ số dư điểm.
     public function test_pos_preview_total_reports_points_error_when_over_max_redeem_percent(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2011,10 +1865,8 @@ class StaffRoleWorkflowTest extends TestCase
         \App\Models\Setting::setValue('loyalty_max_redeem_percent', 100);
     }
 
-    /**
-     * Preview phải khớp với đơn thật khi kết hợp CẢ mã khuyến mãi lẫn điểm tích lũy cùng lúc (2 loại
-     * giảm giá cộng dồn) — tránh lệch giữa số hiển thị trước khi tạo đơn và số tiền thật sau khi tạo.
-     */
+    // Preview phải khớp với đơn thật khi kết hợp CẢ mã khuyến mãi lẫn điểm tích lũy cùng lúc (2 loại
+    // giảm giá cộng dồn) — tránh lệch giữa số hiển thị trước khi tạo đơn và số tiền thật sau khi tạo.
     public function test_pos_preview_total_combines_coupon_and_points_discount(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2052,12 +1904,10 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(89980, (float) $order->final_amount);
     }
 
-    /**
-     * Giao diện POS tạo đơn qua fetch (Accept: application/json) — khi tạo đơn thất bại (vd. dùng
-     * điểm cho khách vãng lai), phản hồi phải là JSON 422 kèm lỗi thay vì redirect-back cổ điển, để
-     * JS hiện thông báo mà KHÔNG tải lại trang (tránh mất trạng thái khách hàng đã chọn/điểm đã nhập
-     * — đúng nguyên nhân gây ra triệu chứng "mất thông tin khách hàng" trước đây).
-     */
+    // Giao diện POS tạo đơn qua fetch (Accept: application/json) — khi tạo đơn thất bại (vd. dùng
+    // điểm cho khách vãng lai), phản hồi phải là JSON 422 kèm lỗi thay vì redirect-back cổ điển, để
+    // JS hiện thông báo mà KHÔNG tải lại trang (tránh mất trạng thái khách hàng đã chọn/điểm đã nhập
+    // — đúng nguyên nhân gây ra triệu chứng "mất thông tin khách hàng" trước đây).
     public function test_pos_store_order_returns_json_error_for_ajax_request(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2074,10 +1924,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
     }
 
-    /**
-     * Ngược lại, khi tạo đơn thành công qua fetch, phản hồi JSON phải trả về redirect_url để JS tự
-     * điều hướng — không phải redirect HTTP cổ điển (fetch không tự follow redirect sang trang HTML).
-     */
+    // Ngược lại, khi tạo đơn thành công qua fetch, phản hồi JSON phải trả về redirect_url để JS tự
+    // điều hướng — không phải redirect HTTP cổ điển (fetch không tự follow redirect sang trang HTML).
     public function test_pos_store_order_returns_redirect_url_json_on_success(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2096,11 +1944,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertStringContainsString((string) $order->id, $response->json('redirect_url'));
     }
 
-    /**
-     * Nhân viên lễ tân đã TỰ TAY tạo đơn tại quầy (created_by) không được xóa cứng dù đơn đó đứng
-     * tên khách khác hoặc khách vãng lai (user_id không còn trỏ về lễ tân nữa từ Giai đoạn 2) — vẫn
-     * phải giữ dấu vết ai đã bán đơn này.
-     */
+    // Nhân viên lễ tân đã TỰ TAY tạo đơn tại quầy (created_by) không được xóa cứng dù đơn đó đứng
+    // tên khách khác hoặc khách vãng lai (user_id không còn trỏ về lễ tân nữa từ Giai đoạn 2) — vẫn
+    // phải giữ dấu vết ai đã bán đơn này.
     public function test_admin_cannot_delete_receptionist_who_created_pos_orders(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2120,10 +1966,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $receptionist->id]);
     }
 
-    /**
-     * Lễ tân chọn mã nào thì đơn dùng đúng mã đó, kể cả khi đang có mã khác giá trị khác cùng đủ
-     * điều kiện — hệ thống không tự ý đổi sang mã "tốt hơn".
-     */
+    // Lễ tân chọn mã nào thì đơn dùng đúng mã đó, kể cả khi đang có mã khác giá trị khác cùng đủ
+    // điều kiện — hệ thống không tự ý đổi sang mã "tốt hơn".
     public function test_pos_uses_exactly_the_code_staff_picked(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2144,11 +1988,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(20000, (float) $order->discount_amount);
     }
 
-    /**
-     * Mã khuyến mãi thủ công phải kiểm tra hạng thành viên/"đã dùng chưa" trên KHÁCH ĐƯỢC CHỌN,
-     * không phải tài khoản lễ tân — khách vãng lai (không có tài khoản) không đủ điều kiện dùng mã
-     * yêu cầu hạng thành viên, nhưng khách hạng đúng yêu cầu thì dùng được.
-     */
+    // Mã khuyến mãi thủ công phải kiểm tra hạng thành viên/"đã dùng chưa" trên KHÁCH ĐƯỢC CHỌN,
+    // không phải tài khoản lễ tân — khách vãng lai (không có tài khoản) không đủ điều kiện dùng mã
+    // yêu cầu hạng thành viên, nhưng khách hạng đúng yêu cầu thì dùng được.
     public function test_pos_manual_coupon_validates_against_selected_customer_not_receptionist(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2176,10 +2018,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('GOLDONLY', $order->coupon_code);
     }
 
-    /**
-     * Endpoint xem trước tổng tiền (preview-total) phải báo lỗi rõ ràng khi mã khuyến mãi nhập tay
-     * không tồn tại/không hợp lệ — không được âm thầm bỏ qua mã và tính như không có gì.
-     */
+    // Endpoint xem trước tổng tiền (preview-total) phải báo lỗi rõ ràng khi mã khuyến mãi nhập tay
+    // không tồn tại/không hợp lệ — không được âm thầm bỏ qua mã và tính như không có gì.
     public function test_preview_total_endpoint_reports_error_for_invalid_manual_coupon(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2196,10 +2036,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNotNull($response->json('coupon_error'));
     }
 
-    /**
-     * Vá lỗ hổng hoàn điểm khi hủy: đơn đã dùng điểm tích lũy giảm giá mà bị hủy sau đó phải hoàn
-     * lại ĐÚNG số điểm đã dùng cho khách — trước Giai đoạn 4, hủy đơn không hoàn điểm gì cả.
-     */
+    // Vá lỗ hổng hoàn điểm khi hủy: đơn đã dùng điểm tích lũy giảm giá mà bị hủy sau đó phải hoàn
+    // lại ĐÚNG số điểm đã dùng cho khách — trước Giai đoạn 4, hủy đơn không hoàn điểm gì cả.
     public function test_cancelling_order_refunds_redeemed_points(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2227,12 +2065,10 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(50, $customer->fresh()->points);
     }
 
-    /**
-     * POS chỉ tạo đơn TẠI QUẦY/MANG ĐI — không còn hỗ trợ tạo đơn GIAO HÀNG từ màn hình này nữa
-     * (đã loại bỏ). Dù có ai cố gửi thêm 'delivery_type'/'address_id' vào request (form giả mạo/API
-     * gọi trực tiếp), các field này không còn nằm trong rule validate nên bị Laravel tự động bỏ qua
-     * — đơn tạo ra vẫn luôn là 'pickup', không có ngoại lệ.
-     */
+    // POS chỉ tạo đơn TẠI QUẦY/MANG ĐI — không còn hỗ trợ tạo đơn GIAO HÀNG từ màn hình này nữa
+    // (đã loại bỏ). Dù có ai cố gửi thêm 'delivery_type'/'address_id' vào request (form giả mạo/API
+    // gọi trực tiếp), các field này không còn nằm trong rule validate nên bị Laravel tự động bỏ qua
+    // — đơn tạo ra vẫn luôn là 'pickup', không có ngoại lệ.
     public function test_pos_order_is_always_pickup_ignoring_delivery_fields(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2258,10 +2094,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('dine_in', $order->pickup_mode);
     }
 
-    /**
-     * COD chỉ dành cho đơn giao hàng — không còn tồn tại trong POS nên 'cod' không còn là giá trị
-     * hợp lệ cho payment_method ở đây nữa (chỉ còn cash/momo).
-     */
+    // COD chỉ dành cho đơn giao hàng — không còn tồn tại trong POS nên 'cod' không còn là giá trị
+    // hợp lệ cho payment_method ở đây nữa (chỉ còn cash/momo).
     public function test_pos_pickup_order_rejects_cod_payment_method(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2277,11 +2111,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
     }
 
-    /**
-     * Chức năng ca làm việc đã bị loại bỏ khỏi khu vực lễ tân — đơn POS phải tạo được bình thường,
-     * không phụ thuộc bất kỳ trạng thái ca nào; shift_id (cột còn lại trong DB, chưa migrate xóa)
-     * luôn là null, created_by vẫn đúng lễ tân xử lý đơn.
-     */
+    // Chức năng ca làm việc đã bị loại bỏ khỏi khu vực lễ tân — đơn POS phải tạo được bình thường,
+    // không phụ thuộc bất kỳ trạng thái ca nào; shift_id (cột còn lại trong DB, chưa migrate xóa)
+    // luôn là null, created_by vẫn đúng lễ tân xử lý đơn.
     public function test_pos_order_has_null_shift_id_and_correct_created_by(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2301,10 +2133,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($order->shift_id);
     }
 
-    /**
-     * Đơn tại quầy KHÔNG còn tự chọn mã giúp: lễ tân không bấm chọn mã thì đơn giữ nguyên giá gốc,
-     * dù có mã đủ điều kiện đang chạy. Bấm chọn mã rồi thì mới được giảm.
-     */
+    // Đơn tại quầy KHÔNG còn tự chọn mã giúp: lễ tân không bấm chọn mã thì đơn giữ nguyên giá gốc,
+    // dù có mã đủ điều kiện đang chạy. Bấm chọn mã rồi thì mới được giảm.
     public function test_counter_order_does_not_auto_apply_promotion_until_staff_picks_one(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2343,9 +2173,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(90000, (float) $picked->final_amount);
     }
 
-    /**
-     * Chưa đạt đơn tối thiểu -> không tự động áp dụng khuyến mãi, đơn vẫn tạo bình thường với giá gốc.
-     */
+    // Chưa đạt đơn tối thiểu -> không tự động áp dụng khuyến mãi, đơn vẫn tạo bình thường với giá gốc.
     public function test_counter_order_does_not_apply_promotion_below_minimum(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2373,10 +2201,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(30000, (float) $order->final_amount);
     }
 
-    /**
-     * Lễ tân xác nhận đã nhận lại tiền COD cho MỘT đơn cụ thể — chỉ áp dụng cho đơn COD đã hoàn
-     * thành; đơn không phải COD hoặc chưa hoàn thành thì bị từ chối.
-     */
+    // Lễ tân xác nhận đã nhận lại tiền COD cho MỘT đơn cụ thể — chỉ áp dụng cho đơn COD đã hoàn
+    // thành; đơn không phải COD hoặc chưa hoàn thành thì bị từ chối.
     public function test_receptionist_can_settle_single_cod_order(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -2401,10 +2227,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($notCompletedOrder->fresh()->cod_settled_at);
     }
 
-    /**
-     * Nút "Nộp tất cả": đánh dấu MỌI đơn COD đã hoàn thành, chưa đối soát của một nhân viên vận
-     * chuyển thành đã nộp trong 1 lần — không đụng tới đơn của nhân viên vận chuyển khác.
-     */
+    // Nút "Nộp tất cả": đánh dấu MỌI đơn COD đã hoàn thành, chưa đối soát của một nhân viên vận
+    // chuyển thành đã nộp trong 1 lần — không đụng tới đơn của nhân viên vận chuyển khác.
     public function test_receptionist_can_settle_all_cod_orders_for_one_delivery_staff(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -2425,9 +2249,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($orderB1->fresh()->cod_settled_at);
     }
 
-    /**
-     * Trang đối soát COD hiển thị đúng tổng tiền chưa nộp theo từng nhân viên vận chuyển.
-     */
+    // Trang đối soát COD hiển thị đúng tổng tiền chưa nộp theo từng nhân viên vận chuyển.
     public function test_cod_settlement_page_shows_correct_unsettled_totals_per_staff(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -2446,9 +2268,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee('65.000');
     }
 
-    /**
-     * Dashboard vận chuyển tách đúng "đã thu chưa nộp" và "đã nộp quầy" từ tổng đã thu.
-     */
+    // Dashboard vận chuyển tách đúng "đã thu chưa nộp" và "đã nộp quầy" từ tổng đã thu.
     public function test_delivery_dashboard_splits_settled_and_unsettled_cod(): void
     {
         $delivery = User::factory()->create(['role' => 'staff', 'staff_type' => 'delivery']);
@@ -2465,11 +2285,9 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertViewHas('codSettledTotal', 60000.0);
     }
 
-    /**
-     * Sidebar chỉ được sáng đúng 1 mục tương ứng trang đang xem. Bug cũ: mục "Đơn hàng" dùng wildcard
-     * routeIs('staff.reception.orders.*') nên khớp luôn cả route 'staff.reception.orders.create',
-     * khiến "Đơn hàng" và "Tạo đơn" cùng sáng lúc đang ở trang Tạo đơn.
-     */
+    // Sidebar chỉ được sáng đúng 1 mục tương ứng trang đang xem. Bug cũ: mục "Đơn hàng" dùng wildcard
+    // routeIs('staff.reception.orders.*') nên khớp luôn cả route 'staff.reception.orders.create',
+    // khiến "Đơn hàng" và "Tạo đơn" cùng sáng lúc đang ở trang Tạo đơn.
     public function test_sidebar_highlights_only_current_menu_not_both_orders_and_create(): void
     {
         $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
@@ -2482,9 +2300,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(1, $activeCount, 'Chỉ đúng 1 mục sidebar được sáng khi đang ở trang Tạo đơn.');
     }
 
-    /**
-     * Trang sửa nhân viên hiển thị đúng dữ liệu hiện tại (điền sẵn form).
-     */
+    // Trang sửa nhân viên hiển thị đúng dữ liệu hiện tại (điền sẵn form).
     public function test_admin_can_view_staff_edit_page_with_prefilled_data(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2498,9 +2314,7 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSee($staff->email);
     }
 
-    /**
-     * Admin cập nhật thông tin nhân viên (tên/email/SĐT/loại) — không đổi mật khẩu nếu để trống.
-     */
+    // Admin cập nhật thông tin nhân viên (tên/email/SĐT/loại) — không đổi mật khẩu nếu để trống.
     public function test_admin_can_update_staff_account(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2527,10 +2341,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals($oldPasswordHash, $staff->password);
     }
 
-    /**
-     * Tạo nhân viên kèm ảnh đại diện: file được lưu vào public/images/avatars và tên file trần
-     * được lưu vào cột users.avatar.
-     */
+    // Tạo nhân viên kèm ảnh đại diện: file được lưu vào public/images/avatars và tên file trần
+    // được lưu vào cột users.avatar.
     public function test_admin_can_upload_avatar_when_creating_staff(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2554,12 +2366,10 @@ class StaffRoleWorkflowTest extends TestCase
         @unlink($path);
     }
 
-    /**
-     * Sửa nhân viên kèm đổi ảnh đại diện: ảnh cũ bị xóa khỏi đĩa, ảnh mới được lưu và cập nhật
-     * vào cột users.avatar.
-     * Ảnh cũ được dựng với tên file trần để kiểm tra avatar_path() vẫn xóa đúng ảnh trong
-     * public/images/avatars.
-     */
+    // Sửa nhân viên kèm đổi ảnh đại diện: ảnh cũ bị xóa khỏi đĩa, ảnh mới được lưu và cập nhật
+    // vào cột users.avatar.
+    // Ảnh cũ được dựng với tên file trần để kiểm tra avatar_path() vẫn xóa đúng ảnh trong
+    // public/images/avatars.
     public function test_admin_updating_staff_avatar_replaces_old_file(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2588,10 +2398,8 @@ class StaffRoleWorkflowTest extends TestCase
         @unlink($newPath);
     }
 
-    /**
-     * Admin đổi mật khẩu nhân viên khi có nhập; email trùng với nhân viên KHÁC bị từ chối, nhưng
-     * giữ nguyên email của chính mình (không tự đụng unique rule với bản thân) thì không lỗi.
-     */
+    // Admin đổi mật khẩu nhân viên khi có nhập; email trùng với nhân viên KHÁC bị từ chối, nhưng
+    // giữ nguyên email của chính mình (không tự đụng unique rule với bản thân) thì không lỗi.
     public function test_admin_updating_staff_password_and_email_uniqueness_rules(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2615,10 +2423,8 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSessionHasErrors('email');
     }
 
-    /**
-     * Xóa nhân viên: bị từ chối nếu đã có lịch sử hoạt động thật (tạo đơn/được phân công/đối soát)
-     * — tránh mất dấu vết do cột tham chiếu bị SET NULL; xóa được nếu chưa từng hoạt động.
-     */
+    // Xóa nhân viên: bị từ chối nếu đã có lịch sử hoạt động thật (tạo đơn/được phân công/đối soát)
+    // — tránh mất dấu vết do cột tham chiếu bị SET NULL; xóa được nếu chưa từng hoạt động.
     public function test_admin_cannot_delete_staff_with_order_history_but_can_delete_clean_staff(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2640,9 +2446,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $unusedReceptionist->id]);
     }
 
-    /**
-     * Không đụng được tài khoản customer/admin qua route sửa/xóa nhân viên dù trùng ID.
-     */
+    // Không đụng được tài khoản customer/admin qua route sửa/xóa nhân viên dù trùng ID.
     public function test_staff_edit_and_delete_routes_never_touch_customer_or_admin_accounts(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2659,11 +2463,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $customer->id, 'role' => 'customer']);
     }
 
-    /**
-     * Để trống SĐT khi sửa nhân viên phải lưu thành NULL (không phải chuỗi rỗng ''), và HAI nhân
-     * viên khác nhau cùng để trống SĐT không được đụng độ unique — tái hiện đúng bug thực tế:
-     * trim(null) trả về '' khiến "nullable" bị vô hiệu, gây lỗi trùng khóa 'users.phone'.
-     */
+    // Để trống SĐT khi sửa nhân viên phải lưu thành NULL (không phải chuỗi rỗng ''), và HAI nhân
+    // viên khác nhau cùng để trống SĐT không được đụng độ unique — tái hiện đúng bug thực tế:
+    // trim(null) trả về '' khiến "nullable" bị vô hiệu, gây lỗi trùng khóa 'users.phone'.
     public function test_updating_staff_with_blank_phone_saves_null_not_empty_string(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2689,10 +2491,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertNull($staffB->fresh()->phone);
     }
 
-    /**
-     * Tương tự cho tạo mới: để trống SĐT khi tạo nhân viên phải lưu NULL, tạo được nhiều nhân viên
-     * cùng để trống SĐT mà không lỗi trùng khóa.
-     */
+    // Tương tự cho tạo mới: để trống SĐT khi tạo nhân viên phải lưu NULL, tạo được nhiều nhân viên
+    // cùng để trống SĐT mà không lỗi trùng khóa.
     public function test_creating_staff_with_blank_phone_saves_null_not_empty_string(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2712,10 +2512,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'nv2-nophone@happytea.com', 'phone' => null]);
     }
 
-    /**
-     * Xem trước tổng tiền đơn tại quầy: chưa bấm chọn mã thì KHÔNG giảm gì, nhưng mã đủ điều kiện phải
-     * hiện trong danh sách để lễ tân bấm. Bấm rồi thì số tiền xem trước phải khớp đơn tạo thật.
-     */
+    // Xem trước tổng tiền đơn tại quầy: chưa bấm chọn mã thì KHÔNG giảm gì, nhưng mã đủ điều kiện phải
+    // hiện trong danh sách để lễ tân bấm. Bấm rồi thì số tiền xem trước phải khớp đơn tạo thật.
     public function test_preview_total_lists_available_codes_and_only_discounts_after_staff_picks_one(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2764,10 +2562,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(90000, (float) $order->final_amount);
     }
 
-    /**
-     * Phân loại khuyến mãi theo kênh: mã chỉ dành cho "Giao hàng" (applies_to=delivery) KHÔNG
-     * được tự động áp dụng cho đơn tại quầy — dù đủ điều kiện đơn tối thiểu và apply_for=all.
-     */
+    // Phân loại khuyến mãi theo kênh: mã chỉ dành cho "Giao hàng" (applies_to=delivery) KHÔNG
+    // được tự động áp dụng cho đơn tại quầy — dù đủ điều kiện đơn tối thiểu và apply_for=all.
     public function test_counter_order_does_not_auto_apply_delivery_only_promotion(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2792,11 +2588,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(100000, (float) $order->final_amount);
     }
 
-    /**
-     * Ngược lại: mã "Tại quầy" (applies_to=pickup) không được dùng cho đơn giao hàng (khách đặt
-     * online, delivery_type=delivery) — kiểm tra ở tầng OrderService::create() dùng chung cho cả
-     * COD lẫn MoMo của khách hàng thường.
-     */
+    // Ngược lại: mã "Tại quầy" (applies_to=pickup) không được dùng cho đơn giao hàng (khách đặt
+    // online, delivery_type=delivery) — kiểm tra ở tầng OrderService::create() dùng chung cho cả
+    // COD lẫn MoMo của khách hàng thường.
     public function test_delivery_order_rejects_pickup_only_promotion_code(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2828,9 +2622,7 @@ class StaffRoleWorkflowTest extends TestCase
         ], 'cod');
     }
 
-    /**
-     * Admin tạo khuyến mãi phải chọn kênh áp dụng hợp lệ (all/pickup/delivery); giá trị lạ bị từ chối.
-     */
+    // Admin tạo khuyến mãi phải chọn kênh áp dụng hợp lệ (all/pickup/delivery); giá trị lạ bị từ chối.
     public function test_admin_creating_promotion_validates_applies_to_channel(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -2851,11 +2643,9 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertDatabaseHas('promotions', ['code' => 'VALIDCH', 'applies_to' => 'pickup']);
     }
 
-    /**
-     * Mã khuyến mãi có set min_quantity (vd mã combo yêu cầu mua từ N món trở lên) phải bị từ chối
-     * khi nhập tay nếu giỏ hàng CHƯA đủ số lượng, dù đã đủ giá trị đơn tối thiểu — và dùng được ngay
-     * khi đủ số lượng.
-     */
+    // Mã khuyến mãi có set min_quantity (vd mã combo yêu cầu mua từ N món trở lên) phải bị từ chối
+    // khi nhập tay nếu giỏ hàng CHƯA đủ số lượng, dù đã đủ giá trị đơn tối thiểu — và dùng được ngay
+    // khi đủ số lượng.
     public function test_pos_order_rejects_manual_coupon_when_quantity_below_minimum(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2887,10 +2677,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(15000, (float) $order->discount_amount);
     }
 
-    /**
-     * Mã có set min_quantity chỉ được gợi ý cho lễ tân khi giỏ đã đủ số lượng, và bấm chọn khi chưa đủ
-     * thì bị từ chối — không có đường nào lọt vào đơn khi điều kiện chưa thỏa.
-     */
+    // Mã có set min_quantity chỉ được gợi ý cho lễ tân khi giỏ đã đủ số lượng, và bấm chọn khi chưa đủ
+    // thì bị từ chối — không có đường nào lọt vào đơn khi điều kiện chưa thỏa.
     public function test_pos_min_quantity_code_is_hidden_and_rejected_until_cart_has_enough_items(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
@@ -2932,10 +2720,8 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals(15000, (float) $secondOrder->discount_amount);
     }
 
-    /**
-     * Mã "cần nhân viên xác nhận" phải được gợi ý cho lễ tân bấm (chính lễ tân là người xác nhận),
-     * nhưng KHÔNG gợi ý cho khách tự bấm ở trang thanh toán.
-     */
+    // Mã "cần nhân viên xác nhận" phải được gợi ý cho lễ tân bấm (chính lễ tân là người xác nhận),
+    // nhưng KHÔNG gợi ý cho khách tự bấm ở trang thanh toán.
     public function test_staff_verification_code_is_suggested_at_pos_but_not_to_customers(): void
     {
         $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));

@@ -8,11 +8,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * Kiểm tra các endpoint backend (nhân viên giao hàng, chi tiết đơn lễ tân, đối soát COD) vừa
- * chuyển từ form POST cổ điển sang submit qua fetch (AJAX) — cùng đợt với FrontendAjaxTest.php,
- * dùng postJson()/getJson() để khớp đúng header fetch() thật gửi lên.
- */
+// Kiểm tra các endpoint backend (nhân viên giao hàng, chi tiết đơn lễ tân, đối soát COD) vừa
+// chuyển từ form POST cổ điển sang submit qua fetch (AJAX) — cùng đợt với FrontendAjaxTest.php,
+// dùng postJson()/getJson() để khớp đúng header fetch() thật gửi lên.
 class BackendAjaxTest extends TestCase
 {
     use RefreshDatabase;

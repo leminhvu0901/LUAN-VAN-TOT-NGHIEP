@@ -10,16 +10,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 class OrderItem extends Model
 {
-    // Tắt tính năng tự động ghi nhận thời gian tạo/sửa (created_at, updated_at) vì bảng chi tiết đơn hàng không cần thiết phải lưu thông tin này
+    // Tắt tính năng tự động ghi nhận thời gian tạo/sửa
     public $timestamps = false;
     
     // Tên bảng dữ liệu được quản lý bởi model này
     protected $table = 'order_items';
     
-    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng order_items (không khóa cột nào)
+    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả
     protected $guarded = [];
 
-    // Cấu hình ép kiểu dữ liệu khi lấy dữ liệu ra khỏi cơ sở dữ liệu
+    // Cấu hình ép kiểu dữ liệu khi lấy dữ liệu ra khỏi cơ sở
     protected $casts = [
         'options' => 'array', // Ép kiểu cột 'options' lưu dưới dạng JSON ở DB thành mảng array trong PHP (để lưu topping, size...)
     ];

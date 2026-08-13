@@ -44,14 +44,13 @@ class TrackDailyVisit
             'updated_at' => now(),
         ]);
 
-        // Chưa có dòng nào cho ngày hôm nay (lượt truy cập đầu tiên trong ngày) -> tạo mới.
+        // Chưa có dòng nào cho ngày hôm nay (lượt truy cập đầu
         if ($updated === 0) {
             try {
                 Setting::setValue($key, 1, 'stats', 'integer');
                 return;
             } catch (QueryException $e) {
-                // Một request khác vừa kịp tạo dòng này trước (cột key là duy nhất nên insert lỗi)
-                // -> quay lại cộng dồn bình thường.
+                // Một request khác vừa kịp tạo dòng này trước (cột key
                 DB::table('settings')->where('key', $key)->update([
                     'value' => DB::raw('COALESCE(value, 0) + 1'),
                     'updated_at' => now(),
@@ -59,7 +58,7 @@ class TrackDailyVisit
             }
         }
 
-        // Setting::getValue() cache vĩnh viễn nên phải xoá cache thì trang chủ mới đọc được số mới
+        // Setting::getValue() cache vĩnh viễn nên phải xoá cache
         Cache::forget("setting.{$key}");
     }
 }

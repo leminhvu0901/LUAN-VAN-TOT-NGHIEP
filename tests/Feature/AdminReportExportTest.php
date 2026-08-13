@@ -12,11 +12,9 @@ use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
-/**
- * Nút "Xuất báo cáo" trước đây chỉ gọi window.print() (in trang, không phải xuất file) - người dùng
- * báo cáo cần file Excel thật (30/07/2026). Đã thêm ReportController::export() dùng chung số liệu với
- * index() (qua buildReportData()) để tránh lệch số giữa trang xem và file xuất.
- */
+// Nút "Xuất báo cáo" trước đây chỉ gọi window.print() (in trang, không phải xuất file) - người dùng
+// báo cáo cần file Excel thật (30/07/2026). Đã thêm ReportController::export() dùng chung số liệu với
+// index() (qua buildReportData()) để tránh lệch số giữa trang xem và file xuất.
 class AdminReportExportTest extends TestCase
 {
     use RefreshDatabase;

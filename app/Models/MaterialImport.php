@@ -9,7 +9,7 @@ class MaterialImport extends Model
 {
     use HasFactory;
 
-    // Các cột dữ liệu được phép điền nhanh (mass-assign) khi tạo hoặc sửa lô nguyên liệu
+    // Các cột dữ liệu được phép điền nhanh (mass-assign) khi
     protected $fillable = [
         'material_id',       // ID của nguyên liệu được nhập
         'quantity',          // Số lượng nhập kho ban đầu

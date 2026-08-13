@@ -19,30 +19,30 @@ class MaterialController
     {
     }
 
-    // 1. Lấy danh sách Vật tư & Tính toán thống kê hiển thị ở trang chủ kho
+    // 1. Lấy danh sách Vật tư & Tính toán thống kê hiển thị
     public function index(Request $request)
     {
         $query = Material::with([
-            // Chỉ nạp các lô còn hàng (remaining_quantity > 0) để hiển thị chi tiết lô ở trang chi tiết
+            // Chỉ nạp các lô còn hàng (remaining_quantity > 0) để
             'imports' => function ($q) {
                 $q->where('remaining_quantity', '>', 0);
             }
         ])->withCount([
-                    // Số lô đang còn tồn thật (loại trừ bản ghi âm là lô đã hủy/xuất)
+                    // Số lô đang còn tồn thật (loại trừ bản ghi âm là lô đã
                     'imports as active_lots_count' => function ($q) {
                         $q->where('quantity', '>', 0)
                             ->where('remaining_quantity', '>', 0);
                     },
-                    // Số lần vật tư này đã bị hủy bỏ (bản ghi quantity âm, xem disposeBatch())
+                    // Số lần vật tư này đã bị hủy bỏ (bản ghi quantity âm,
                     'imports as disposed_count' => function ($q) {
                         $q->where('quantity', '<', 0);
                     }
                 ]);
 
-        // Áp bộ lọc tìm kiếm/trạng thái (search, low_stock, out_of_stock, expiring, expired, disposed) lên danh sách hiển thị
+        // Áp bộ lọc tìm kiếm/trạng thái (search, low_stock,
         $this->applyMaterialFilters($query, $request);
         $deletableMaterialsQuery = Material::query();
-        //để số đếm khớp với danh sách đang hiển thị trên màn hình
+        // để số đếm khớp với danh sách đang hiển thị trên màn hình
         $this->applyMaterialFilters($deletableMaterialsQuery, $request);
         $deletableMaterialsCount = $deletableMaterialsQuery
             ->whereDoesntHave('imports', function ($q) {
@@ -73,7 +73,7 @@ class MaterialController
 
         $materials = $query->paginate(10)->withQueryString();
 
-        // Thống kê cho 6 thẻ (chỉ tính 1 lần không phụ thuộc bộ lọc tìm kiếm)
+        // Thống kê cho 6 thẻ (chỉ tính 1 lần không phụ thuộc bộ
         $totalItems = Material::count();
         $lowStockItems = Material::where('current_stock', '<', 5)->where('current_stock', '>', 0)->count();
         $outOfStockItems = Material::where('current_stock', 0)->count();
@@ -126,14 +126,14 @@ class MaterialController
         $hasImports = $material->imports()->exists();
         $isUsedByProducts = $material->products()->exists();
 
-        // Đổi đơn vị sẽ làm sai lệch số liệu tồn kho/công thức đã ghi theo đơn vị cũ -> chặn nếu đã có dữ liệu phụ thuộc
+        // Đổi đơn vị sẽ làm sai lệch số liệu tồn kho/công thức
         if (($hasImports || $isUsedByProducts) && $validated['unit'] !== $material->unit) {
             throw ValidationException::withMessages([
                 'unit' => 'Không thể đổi đơn vị vì vật tư đã có phiếu nhập hoặc đang được dùng trong công thức sản phẩm.',
             ]);
         }
 
-        // Giá vốn là số TÍNH RA từ các phiếu nhập (bình quân gia quyền), không phải số nhập tay -> khóa sửa thủ công khi đã có phiếu
+        // Giá vốn là số TÍNH RA từ các phiếu nhập (bình quân gia
         if ($hasImports && (float) $validated['unit_price'] !== (float) $material->unit_price) {
             throw ValidationException::withMessages([
                 'unit_price' => 'Giá vốn của vật tư đã có phiếu nhập được hệ thống tính tự động, không thể sửa thủ công.',
@@ -148,7 +148,7 @@ class MaterialController
     // 4. Xóa hẳn Vật tư ra khỏi hệ thống
     public function destroy(Material $material, Request $request = null)
     {
-        // Kiểm tra vật tư có còn lô hàng/đang dùng trong công thức sản phẩm không -> có thì trả lý do, xóa được thì trả null
+        // Kiểm tra vật tư có còn lô hàng/đang dùng trong công
         $blockReason = $this->getMaterialDeleteBlockReason($material);
         if ($blockReason !== null) {
             return redirect()->back()->withErrors(['delete' => $blockReason]);
@@ -158,7 +158,7 @@ class MaterialController
         return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
     }
 
-    // Xóa nhiều vật tư (chỉ các dòng đang chọn trong trang hiện tại)
+    // Xóa nhiều vật tư (chỉ các dòng đang chọn trong trang
     public function bulkDelete(Request $request)
     {
         $request->validate([
@@ -167,18 +167,18 @@ class MaterialController
         ]);
 
         $materials = Material::whereIn('id', $request->material_ids)->get();
-        // Xóa từng vật tư trong danh sách, bỏ qua (không lỗi hết cả loạt) vật tư nào đang bị chặn
+        // Xóa từng vật tư trong danh sách, bỏ qua (không lỗi hết
         return $this->deleteMaterialCollection($materials, $request);
     }
 
-    // --- Imports ---
+    // Imports
 
-    // 5. Hiển thị màn hình Lịch sử Nhập/Xuất của một Vật tư cụ thể (imports.blade.php)
+    // 5. Hiển thị màn hình Lịch sử Nhập/Xuất của một Vật tư
     public function imports(Material $material)
     {
-        // Lấy TẤT CẢ bản ghi (kể cả bản ghi âm hủy/xuất) để trang lịch sử hiển thị đủ, không chỉ lô còn hàng
+        // Lấy TẤT CẢ bản ghi (kể cả bản ghi âm hủy/xuất) để
         $imports = $material->imports()->latest()->get();
-        // Số lô còn tồn thật — dùng cho ô thống kê ở đầu trang, không tính bản ghi âm
+        // Số lô còn tồn thật — dùng cho ô thống kê ở đầu trang,
         $activeLotsCount = $imports
             ->where('quantity', '>', 0)
             ->where('remaining_quantity', '>', 0)
@@ -191,7 +191,7 @@ class MaterialController
     public function storeImport(Request $request, Material $material)
     {
         $request->merge(['_form_context' => 'import-create']);
-        // Phiếu MỚI nên hạn sử dụng phải sau HÔM NAY (chưa có ngày tạo phiếu thật để so sánh)
+        // Phiếu MỚI nên hạn sử dụng phải sau HÔM NAY (chưa có
         $validated = $this->validateImportData($request, today()->toDateString());
 
         $this->inventory->createImportLot(
@@ -208,12 +208,12 @@ class MaterialController
     // 6.1. Sửa Phiếu Nhập Kho (Tính toán lại Tồn kho và Giá vốn)
     public function updateImport(Request $request, MaterialImport $import)
     {
-        // Các giá trị _min_* để Blade validate phía client TRƯỚC khi submit (chặn sớm, đỡ round-trip server)
+        // Các giá trị _min_* để Blade validate phía client TRƯỚC
         $request->merge([
             '_form_context' => 'import-edit',
             '_form_action' => route('admin.materials.imports.update', $import),
             '_import_id' => $import->id,
-            // Không cho sửa số lượng xuống thấp hơn phần đã tiêu thụ của lô
+            // Không cho sửa số lượng xuống thấp hơn phần đã tiêu thụ
             '_min_quantity' => max((float) $import->quantity - (float) $import->remaining_quantity, 0),
             '_min_expiration_date' => $import->created_at->copy()->addDay()->toDateString(),
         ]);
@@ -225,15 +225,15 @@ class MaterialController
             ]);
         }
 
-        // Phiếu SỬA thì hạn sử dụng phải sau ngày TẠO PHIẾU GỐC, không phải hôm nay (tránh vô lý nếu phiếu tạo từ lâu)
+        // Phiếu SỬA thì hạn sử dụng phải sau ngày TẠO PHIẾU GỐC,
         $validated = $this->validateImportData($request, $import->created_at->toDateString());
 
         DB::transaction(function () use ($import, $validated) {
-            // Khóa dòng để 2 request sửa cùng lúc (hoặc sửa trong lúc đang xuất/hủy) không ghi đè lẫn nhau
+            // Khóa dòng để 2 request sửa cùng lúc (hoặc sửa trong
             $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
             $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
 
-            // Kiểm tra lại lần 2 SAU KHI khóa dòng — dữ liệu có thể đã đổi từ lúc check phía trên tới lúc khóa được
+            // Kiểm tra lại lần 2 SAU KHI khóa dòng — dữ liệu có thể
             if ((float) $lockedImport->quantity <= 0) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Chỉ phiếu nhập kho mới được phép chỉnh sửa.',
@@ -263,8 +263,7 @@ class MaterialController
                 ]);
             }
 
-            // Giá vốn bình quân gia quyền: bỏ giá trị lô cũ ra khỏi tổng tồn kho, cộng lại giá trị lô mới,
-            // rồi chia lại cho tổng số lượng tồn mới -> unit_price của Material luôn phản ánh đúng giá vốn thật
+            // Giá vốn bình quân gia quyền: bỏ giá trị lô cũ ra khỏi
             $currentInventoryValue = (float) $material->current_stock * (float) $material->unit_price;
             $oldRemainingValue = $oldRemainingQuantity * ($oldTotalPrice / $oldQuantity);
             $newRemainingValue = $newRemainingQuantity * ($newTotalPrice / $newQuantity);
@@ -294,10 +293,10 @@ class MaterialController
         return redirect()->back()->with('success', 'Đã cập nhật phiếu nhập kho thành công!');
     }
 
-    // 8. Hủy bỏ một phần/toàn bộ số lượng của MỘT LÔ HÀNG cụ thể (VD: Lô bị hỏng, hết hạn)
+    // 8. Hủy bỏ một phần/toàn bộ số lượng của MỘT LÔ HÀNG cụ
     public function disposeBatch(Request $request, MaterialImport $import)
     {
-        // _max_quantity để Blade giới hạn ô nhập số lượng hủy không vượt quá lô, tránh khách gõ số lớn rồi mới báo lỗi
+        // _max_quantity để Blade giới hạn ô nhập số lượng hủy
         $request->merge([
             '_form_context' => 'dispose-batch',
             '_form_action' => route('admin.materials.imports.dispose_batch', $import),
@@ -307,7 +306,7 @@ class MaterialController
             'note' => trim((string) $request->input('note')),
         ]);
 
-        // Bắt buộc phải có lý do hủy — dùng cho việc tra soát sau này (lô hỏng, hết hạn, sự cố...)
+        // Bắt buộc phải có lý do hủy — dùng cho việc tra soát
         $validated = $request->validate([
             'quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999',
             'note' => 'required|string|max:255',
@@ -320,27 +319,27 @@ class MaterialController
         ]);
 
         DB::transaction(function () use ($import, $validated) {
-            // Khóa dòng để tránh 2 request hủy/xuất cùng lúc trên cùng 1 lô làm số liệu bị lệch
+            // Khóa dòng để tránh 2 request hủy/xuất cùng lúc trên
             $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
             $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
             $disposeQty = (float) $validated['quantity'];
             $remainingQuantity = (float) $lockedImport->remaining_quantity;
 
-            // Chỉ hủy được từ bản ghi phiếu nhập thật (quantity > 0), không hủy từ 1 bản ghi nhật ký hủy khác
+            // Chỉ hủy được từ bản ghi phiếu nhập thật (quantity >
             if ((float) $lockedImport->quantity <= 0) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Chỉ có thể hủy hàng từ một phiếu nhập kho.',
                 ]);
             }
 
-            // Không hủy nhiều hơn số lượng còn lại của lô, cũng không hủy nhiều hơn tồn kho thực tế
+            // Không hủy nhiều hơn số lượng còn lại của lô, cũng
             if ($disposeQty > $remainingQuantity || $disposeQty > (float) $material->current_stock) {
                 throw ValidationException::withMessages([
                     'quantity' => "Số lượng hủy không được vượt quá số lượng còn lại của lô ({$remainingQuantity}).",
                 ]);
             }
 
-            // Đơn giá gốc của ĐÚNG lô này (không phải giá bình quân của Material) để tính đúng giá trị hủy
+            // Đơn giá gốc của ĐÚNG lô này (không phải giá bình quân
             $unitPrice = abs((float) $lockedImport->total_price / (float) $lockedImport->quantity);
             $disposeValue = $disposeQty * $unitPrice;
 
@@ -349,8 +348,7 @@ class MaterialController
                 'remaining_quantity' => $remainingQuantity - $disposeQty,
             ]);
 
-            // Ghi thêm 1 bản ghi MỚI với quantity/total_price ÂM làm nhật ký hủy — không sửa/xóa lô gốc,
-            // để lịch sử nhập/xuất luôn xem lại được đầy đủ, không mất dấu vết
+            // Ghi thêm 1 bản ghi MỚI với quantity/total_price ÂM làm
             MaterialImport::create([
                 'material_id' => $material->id,
                 'quantity' => -$disposeQty,
@@ -360,12 +358,12 @@ class MaterialController
                 'expiration_date' => $lockedImport->expiration_date,
             ]);
 
-            // Trừ thẳng tồn kho tổng của Material — hủy không phải bán nên KHÔNG qua OrderService
+            // Trừ thẳng tồn kho tổng của Material — hủy không phải
             $material->update([
                 'current_stock' => (float) $material->current_stock - $disposeQty,
             ]);
 
-            // Bảng inventory_movements là log audit riêng (không bắt buộc, chỉ ghi nếu bảng tồn tại)
+            // Bảng inventory_movements là log audit riêng (không bắt
             if (Schema::hasTable('inventory_movements'))
                 DB::table('inventory_movements')->insert([
                     'material_id' => $material->id,
@@ -378,17 +376,17 @@ class MaterialController
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            // Tính lại giá vốn bình quân của Material sau khi 1 lô vừa bị hủy bớt số lượng
+            // Tính lại giá vốn bình quân của Material sau khi 1 lô
             $this->inventory->recalculateMaterialCost($material->id);
         });
 
         return redirect()->back()->with('success', 'Đã xuất hủy từ lô hàng thành công!');
     }
 
-    // Xuất kho sử dụng - LUÔN từ một lô cụ thể do người dùng tự chọ
+    // Xuất kho sử dụng - LUÔN từ một lô cụ thể do người dùng
     public function consumeBatch(Request $request, MaterialImport $import)
     {
-        // _max_quantity để Blade giới hạn ô nhập số lượng xuất không vượt quá lô
+        // _max_quantity để Blade giới hạn ô nhập số lượng xuất
         $request->merge([
             '_form_context' => 'consume-batch',
             '_form_action' => route('admin.materials.imports.consume_batch', $import),
@@ -398,7 +396,7 @@ class MaterialController
             'reason' => trim((string) $request->input('reason')),
         ]);
 
-        // Bắt buộc lý do xuất — khác dispose (hủy hỏng/hết hạn), đây là xuất thủ công cho mục đích khác (VD làm mẫu, thất thoát)
+        // Bắt buộc lý do xuất — khác dispose (hủy hỏng/hết hạn),
         $validated = $request->validate([
             'quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999',
             'reason' => 'required|string|max:255',
@@ -413,31 +411,30 @@ class MaterialController
         $operator = Auth::user();
 
         DB::transaction(function () use ($import, $validated, $operator) {
-            // Khóa dòng để tránh 2 request xuất/hủy cùng lúc trên cùng 1 lô làm số liệu bị lệch
+            // Khóa dòng để tránh 2 request xuất/hủy cùng lúc trên
             $material = Material::query()->lockForUpdate()->findOrFail($import->material_id);
             $lockedImport = MaterialImport::query()->lockForUpdate()->findOrFail($import->id);
             $consumeQty = (float) $validated['quantity'];
             $remainingQuantity = (float) $lockedImport->remaining_quantity;
 
-            // Chỉ xuất được từ bản ghi phiếu nhập thật (quantity > 0), không xuất từ 1 bản ghi nhật ký khác
+            // Chỉ xuất được từ bản ghi phiếu nhập thật (quantity >
             if ((float) $lockedImport->quantity <= 0) {
                 throw ValidationException::withMessages([
                     'quantity' => 'Chỉ có thể xuất kho từ một phiếu nhập kho.',
                 ]);
             }
 
-            // Không xuất nhiều hơn số lượng còn lại của lô, cũng không xuất nhiều hơn tồn kho thực tế
+            // Không xuất nhiều hơn số lượng còn lại của lô, cũng
             if ($consumeQty > $remainingQuantity || $consumeQty > (float) $material->current_stock) {
                 throw ValidationException::withMessages([
                     'quantity' => "Số lượng xuất không được vượt quá số lượng còn lại của lô ({$remainingQuantity}).",
                 ]);
             }
 
-            // Đơn giá gốc của ĐÚNG lô này (không phải giá bình quân của Material) để tính đúng giá trị xuất
+            // Đơn giá gốc của ĐÚNG lô này (không phải giá bình quân
             $unitPrice = abs((float) $lockedImport->total_price / (float) $lockedImport->quantity);
             $consumeValue = $consumeQty * $unitPrice;
-            // Gắn danh tính admin thao tác vào ghi chú — xuất kho thủ công cần truy được ai đã bấm, khác
-            // với xuất kho tự động khi đơn hàng được tạo (không cần ghi người, hệ thống tự trừ)
+            // Gắn danh tính admin thao tác vào ghi chú — xuất kho
             $reason = sprintf('[Admin: %s (%s)] %s', $operator->name, $operator->email, $validated['reason']);
 
             // Trừ số lượng còn lại của lô gốc
@@ -445,8 +442,7 @@ class MaterialController
                 'remaining_quantity' => $remainingQuantity - $consumeQty,
             ]);
 
-            // Ghi thêm 1 bản ghi MỚI với quantity/total_price ÂM làm nhật ký xuất — không sửa/xóa lô gốc,
-            // để lịch sử nhập/xuất luôn xem lại được đầy đủ, không mất dấu vết
+            // Ghi thêm 1 bản ghi MỚI với quantity/total_price ÂM làm
             MaterialImport::create([
                 'material_id' => $material->id,
                 'quantity' => -$consumeQty,
@@ -456,12 +452,12 @@ class MaterialController
                 'expiration_date' => $lockedImport->expiration_date,
             ]);
 
-            // Trừ thẳng tồn kho tổng của Material — xuất thủ công không phải bán nên KHÔNG qua OrderService
+            // Trừ thẳng tồn kho tổng của Material — xuất thủ công
             $material->update([
                 'current_stock' => (float) $material->current_stock - $consumeQty,
             ]);
 
-            // Bảng inventory_movements là log audit riêng (không bắt buộc, chỉ ghi nếu bảng tồn tại)
+            // Bảng inventory_movements là log audit riêng (không bắt
             // type='adjustment' (khác 'dispose') để phân biệt xuất thủ công với hủy hàng hỏng/hết hạn
             if (Schema::hasTable('inventory_movements'))
                 DB::table('inventory_movements')->insert([
@@ -475,7 +471,7 @@ class MaterialController
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            // Tính lại giá vốn bình quân của Material sau khi 1 lô vừa bị xuất bớt số lượng
+            // Tính lại giá vốn bình quân của Material sau khi 1 lô
             $this->inventory->recalculateMaterialCost($material->id);
         });
 
@@ -485,7 +481,7 @@ class MaterialController
     // Validate chung cho cả thêm mới
     private function validateMaterialData(Request $request, ?Material $material = null): array
     {
-        // Gộp nhiều khoảng trắng liên tiếp thành 1 (khách gõ "Trà   xanh" -> "Trà xanh") trước khi validate/lưu
+        // Gộp nhiều khoảng trắng liên tiếp thành 1 (khách gõ
         $request->merge([
             'name' => preg_replace('/\s+/u', ' ', trim((string) $request->input('name'))),
             'unit' => preg_replace('/\s+/u', ' ', trim((string) $request->input('unit'))),
@@ -497,8 +493,7 @@ class MaterialController
             $uniqueNameRule .= ',' . $material->id;
         }
 
-        // Chặn nhập số vào đơn vị tính (VD "kg2") — trừ khi giữ nguyên đơn vị cũ (không đổi gì) để không
-        // chặn nhầm những đơn vị cũ lỡ đã lưu sai định dạng từ trước
+        // Chặn nhập số vào đơn vị tính (VD "kg2") — trừ khi giữ
         $unitCharacterRule = function (string $attribute, mixed $value, $fail) use ($material) {
             if ($material !== null && $value === $material->unit) {
                 return;
@@ -527,7 +522,7 @@ class MaterialController
         ]);
     }
 
-    //Validate dữ liệu 1 phiếu nhập kho
+    // Validate dữ liệu 1 phiếu nhập kho
     private function validateImportData(Request $request, string $importDate): array
     {
         $request->merge([
@@ -555,7 +550,7 @@ class MaterialController
         ]);
     }
 
-    //kiểm tra xem 1 vật tư có xóa được không
+    // kiểm tra xem 1 vật tư có xóa được không
     private function getMaterialDeleteBlockReason(Material $material): ?string
     {
         $activeLotsCount = $material->imports()->count();
@@ -571,15 +566,15 @@ class MaterialController
         return null;
     }
 
-    //áp bộ lọc tìm kiếm + trạng thái lên query danh sách vật tư,
+    // áp bộ lọc tìm kiếm + trạng thái lên query danh sách vật tư,
     private function applyMaterialFilters($query, Request $request): void
     {
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
-            // Cho phép gõ cả mã hiển thị "VT-0007" lẫn số ID thô -> bóc tiền tố "VT-" và số 0 đệm đầu để ra ID thật
+            // Cho phép gõ cả mã hiển thị "VT-0007" lẫn số ID thô ->
             $materialId = preg_replace('/^VT[-\s]*0*/iu', '', $search);
 
-            // Khớp theo TÊN (chứa từ khóa) HOẶC đúng ID (nếu từ khóa bóc ra được số) — 1 trong 2 là đủ
+            // Khớp theo TÊN (chứa từ khóa) HOẶC đúng ID (nếu từ khóa
             $query->where(function ($subQuery) use ($search, $materialId) {
                 $subQuery->where('name', 'like', '%' . $search . '%');
 
@@ -589,7 +584,7 @@ class MaterialController
             });
         }
 
-        // Không chọn trạng thái hoặc chọn "Tất cả" -> không lọc gì thêm, dừng ở đây
+        // Không chọn trạng thái hoặc chọn "Tất cả" -> không lọc
         $status = $request->input('status');
         if (!$status || $status === 'all') {
             return;
@@ -602,21 +597,21 @@ class MaterialController
             // Tồn kho về đúng 0
             $query->where('current_stock', 0);
         } elseif ($status === 'expiring') {
-            // Có ít nhất 1 lô còn hàng, hạn sử dụng rơi trong 30 ngày tới nhưng CHƯA quá hạn
+            // Có ít nhất 1 lô còn hàng, hạn sử dụng rơi trong 30
             $query->whereHas('imports', function ($subQuery) {
                 $subQuery->whereNotNull('expiration_date')
                     ->where('remaining_quantity', '>', 0)
                     ->whereBetween('expiration_date', [today(), today()->addDays(30)]);
             });
         } elseif ($status === 'expired') {
-            // Có ít nhất 1 lô còn hàng nhưng hạn sử dụng đã trôi qua (chưa được hủy/xử lý)
+            // Có ít nhất 1 lô còn hàng nhưng hạn sử dụng đã trôi qua
             $query->whereHas('imports', function ($subQuery) {
                 $subQuery->whereNotNull('expiration_date')
                     ->where('remaining_quantity', '>', 0)
                     ->where('expiration_date', '<', today());
             });
         } elseif ($status === 'disposed') {
-            // quantity < 0 là bản ghi nhật ký hủy/xuất (xem disposeBatch()/consumeBatch()), không phải lô hàng thật
+            // quantity < 0 là bản ghi nhật ký hủy/xuất (xem
             $query->whereHas('imports', function ($subQuery) {
                 $subQuery->where('quantity', '<', 0);
             });
@@ -630,7 +625,7 @@ class MaterialController
         $blockedCount = 0;
 
         foreach ($materials as $material) {
-            // Cùng hàm kiểm tra như destroy() — vật tư còn lô hàng/đang dùng trong công thức thì bỏ qua, không xóa
+            // Cùng hàm kiểm tra như destroy() — vật tư còn lô
             if ($this->getMaterialDeleteBlockReason($material) !== null) {
                 $blockedCount++;
                 continue;

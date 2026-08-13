@@ -11,7 +11,7 @@ class Order extends Model
     protected $table = 'orders';
     protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
 
-    // Tự động ép kiểu các cột lưu ngày giờ từ chuỗi (string) trong DB thành đối tượng Carbon DateTime trong PHP
+    // Tự động ép kiểu các cột lưu ngày giờ từ chuỗi (string)
     protected $casts = [
         'paid_at' => 'datetime',                // Thời điểm thanh toán thành công
         'inventory_reserved_at' => 'datetime',  // Thời điểm khóa/giữ hàng trong kho tạm thời

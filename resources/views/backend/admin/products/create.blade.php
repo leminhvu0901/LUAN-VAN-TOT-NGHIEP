@@ -2,8 +2,6 @@
 
 @section('title', 'Thêm Sản phẩm Mới')
 
-
-
 @section('content')
 <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 products-page">
     <!-- Header -->
@@ -162,7 +160,7 @@
         }
     }
 
-    // Sinh một dòng size mới (tên size + phụ phí) khi bấm nút thêm
+    // Sinh một dòng size mới khi bấm nút thêm
     function createSizeRow() {
         const row = document.createElement('div');
         row.className = 'product-size-row grid grid-cols-[1fr_1fr_40px] gap-2';

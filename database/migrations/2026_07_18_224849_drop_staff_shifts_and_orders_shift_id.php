@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    // Run the migrations.
     public function up(): void
     {
         // Chức năng "Ca làm việc" đã bị loại bỏ khỏi toàn bộ code (routes, controller, model,
@@ -24,9 +22,7 @@ return new class extends Migration
         Schema::dropIfExists('staff_shifts');
     }
 
-    /**
-     * Reverse the migrations.
-     */
+    // Reverse the migrations.
     public function down(): void
     {
         // Khôi phục lại đúng schema gốc (không khôi phục được dữ liệu ca cũ đã mất khi drop).

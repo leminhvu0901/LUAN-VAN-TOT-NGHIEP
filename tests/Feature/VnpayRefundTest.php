@@ -8,10 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-/**
- * Port của MomoRefundTest.php sang cổng VNPay — cùng luồng "Hoàn tiền & Hủy đơn" dùng chung
- * (OrderWorkflowService::refundAndCancel), chỉ khác gateway gọi API hoàn tiền + field response.
- */
+// Port của MomoRefundTest.php sang cổng VNPay — cùng luồng "Hoàn tiền & Hủy đơn" dùng chung
+// (OrderWorkflowService::refundAndCancel), chỉ khác gateway gọi API hoàn tiền + field response.
 class VnpayRefundTest extends TestCase
 {
     use RefreshDatabase;

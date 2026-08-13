@@ -92,10 +92,7 @@
                 </div>
             </div>
 
-            {{-- Cột giỏ hàng + thông tin khách. Ở lg:+ (desktop): dính trên cùng, tự cuộn nội bộ,
-                 giống hệt hành vi cũ. Dưới lg: (tablet/điện thoại): ẩn mặc định và hiện dưới dạng
-                 bottom-sheet khi lễ tân bấm nút "Xem giỏ hàng" ở thanh nổi đáy màn hình (JS bên dưới)
-                 — tránh phải cuộn qua hết lưới sản phẩm mới tới được nút "Tạo đơn". --}}
+            
             <div id="pos-cart-column"
                 class="hidden lg:block fixed inset-x-0 lg:inset-auto bottom-0 lg:bottom-auto z-50 lg:z-auto space-y-4 max-h-[85vh] lg:max-h-[calc(100vh-6rem)] overflow-y-auto lg:pr-1 rounded-t-2xl lg:rounded-none bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 lg:sticky lg:top-0 lg:self-start">
                 <div class="lg:hidden flex justify-end">
@@ -155,9 +152,7 @@
                     @csrf
 
                     @php
-                        // Đơn tại quầy submit qua form thật giờ đây có thể redirect-back kèm lỗi validate
-                        // (vd. điểm vượt số dư) - dùng old() để khôi phục đúng lựa chọn trước đó của lễ
-                        // tân thay vì reset về mặc định, tránh mất thông tin khách hàng đang thao tác dở.
+                        // Lấy hình thức nhận món tại quầy
                         $posOrderType = old('pickup_mode', 'dine_in');
                         $posPaymentMethod = old('payment_method', 'cash');
                         $posActiveOrderType = 'border-primary bg-primary/5 text-primary';
@@ -182,7 +177,7 @@
                                 <span class="material-symbols-outlined text-[18px]">takeout_dining</span> Mang đi
                             </label>
                         </div>
-                        {{-- Gửi thật lên server — JS đồng bộ theo lựa chọn order_type ở trên --}}
+                        {{-- Gửi thật lên server --}}
                         <input type="hidden" name="pickup_mode" id="pos-pickup-mode" value="{{ $posOrderType }}">
                     </div>
 
@@ -229,8 +224,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Mã khuyến mãi (tùy chọn)</label>
-                        {{-- Danh sách mã dùng được với giỏ hiện tại. Hệ thống không tự chọn mã nữa, lễ tân
-                        bấm chọn ở đây hoặc gõ tay vào ô bên dưới. --}}
+                        {{-- Danh sách mã dùng được với giỏ hiện tại --}}
                         <div id="pos-coupon-chips" class="flex flex-wrap gap-2 mb-2"></div>
                         <div class="flex gap-2">
                             <input type="text" name="coupon_code" id="pos-coupon-code" placeholder="Nhập mã..."
@@ -278,11 +272,10 @@
         </div>
     </div>
 
-    {{-- Lớp phủ nền khi giỏ hàng dạng bottom-sheet đang mở trên tablet/điện thoại (dưới lg:) --}}
+    {{-- Lớp phủ nền khi giỏ hàng dạng bottom-sheet đang --}}
     <div id="pos-cart-backdrop" class="hidden lg:hidden fixed inset-0 bg-black/40 z-40"></div>
 
-    {{-- Thanh giỏ hàng nổi cố định đáy màn hình — chỉ hiện dưới lg: (tablet/điện thoại), JS tự ẩn khi
-         giỏ hàng trống. Bấm vào để mở bottom-sheet giỏ hàng + form thanh toán ở trên. --}}
+    {{-- Thanh giỏ hàng nổi cố định đáy màn hình --}}
     <div id="pos-mobile-cart-bar"
         class="hidden lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
@@ -357,14 +350,11 @@
         </div>
     </div>
 
-
     <script>
         window.posPreviewTotalUrl = '{{ route('staff.reception.orders.preview_total') }}';
         window.posCustomerSearchUrl = '{{ route('staff.reception.customers.search') }}';
 
-        // Toàn bộ logic trang POS tạo đơn tại quầy: tìm khách, thêm món, áp mã, submit đơn — bọc trong
-        // IIFE để không rò biến ra global, tránh xung đột với JS của các trang khác
-        (function() {
+        // Toàn bộ logic trang pos tạo đơn tại quầy: tìm khách,        (function() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
                 document.querySelector('input[name="_token"]')?.value;
 
@@ -380,7 +370,7 @@
                 }, 4000);
             }
 
-            // Định dạng số tiền kiểu Việt Nam, VD 50000 -> "50.000đ"
+            // Định dạng số tiền kiểu Việt Nam, vd 50000 -> "50.000đ"
             function formatMoney(value) {
                 return Number(value).toLocaleString('vi-VN') + 'đ';
             }
@@ -489,7 +479,7 @@
 
             let lastCartItemCount = 0;
 
-            // Cập nhật thanh giỏ hàng nổi ở mobile (số món + tổng tiền), ẩn hẳn nếu giỏ trống
+            // Cập nhật thanh giỏ hàng nổi ở mobile, ẩn hẳn nếu giỏ trống
             function updateMobileCartBar(total) {
                 const bar = document.getElementById('pos-mobile-cart-bar');
                 if (!bar) return;
@@ -506,9 +496,7 @@
                 if (totalEl) totalEl.textContent = formatMoney(total);
             }
 
-            // Đổ dữ liệu từ API preview-total vào bảng tổng tiền — mỗi dòng (giảm giá/hạng thành viên/
-            // điểm/ship/quà tặng) chỉ hiện nếu giá trị > 0, ẩn hẳn nếu bằng 0
-            function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts,
+            // Đổ dữ liệu từ API preview-total vào bảng tổng tiền —            function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts,
                 membershipDiscount, pointsDiscount) {
                 document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
@@ -570,15 +558,13 @@
                 updateMobileCartBar(finalAmount);
             }
 
-            // Đọc loại đơn đang chọn (uống tại chỗ/mang về/giao đi), mặc định 'dine_in' nếu chưa chọn gì
+            // Đọc loại đơn đang chọn, mặc định 'dine_in' nếu chưa chọn gì
             function getCurrentOrderType() {
                 const checked = document.querySelector('.pos-order-type-option input[name="order_type"]:checked');
                 return checked ? checked.value : 'dine_in';
             }
 
-            // Gọi API preview-total lấy số liệu mới nhất theo khách/mã giảm giá/điểm hiện tại — hàm trung
-            // tâm, được gọi lại mỗi khi bất kỳ yếu tố nào ảnh hưởng tới tổng tiền thay đổi
-            function refreshPreviewTotal() {
+            // Gọi API preview-total lấy số liệu mới nhất theo            function refreshPreviewTotal() {
                 const customerIdInput = document.getElementById('pos-customer-id');
                 const couponInput = document.getElementById('pos-coupon-code');
                 const feedbackEl = document.getElementById('pos-coupon-feedback');
@@ -700,9 +686,7 @@
                 return parts.join(' • ');
             }
 
-            // Tải lại toàn bộ giỏ hàng từ server và vẽ lại danh sách — gọi sau mỗi lần thêm/xóa món,
-            // rồi tự gọi refreshPreviewTotal() ở cuối để tổng tiền luôn khớp với giỏ mới nhất
-            function refreshCart() {
+            // Tải lại toàn bộ giỏ hàng từ server và vẽ lại danh sách            function refreshCart() {
                 fetch('/cart', {
                         headers: {
                             Accept: 'application/json'
@@ -751,9 +735,7 @@
 
             let activeCategoryId = '';
 
-            // Lọc lưới sản phẩm theo cả từ khóa tìm kiếm VÀ danh mục đang chọn cùng lúc — thuần CSS
-            // display, không gọi lại server vì toàn bộ sản phẩm đã render sẵn trong trang
-            function applyProductFilters() {
+            // Lọc lưới sản phẩm theo cả từ khóa tìm kiếm và danh mục            function applyProductFilters() {
                 const needle = document.getElementById('pos-product-search').value.trim().toLowerCase();
                 document.querySelectorAll('.pos-product-card').forEach(function(card) {
                     const matchesName = card.dataset.name.includes(needle);
@@ -782,9 +764,7 @@
                 applyProductFilters();
             });
 
-            // Modal "Chọn size/đường/đá/topping" khi bấm 1 sản phẩm — state của lựa chọn ĐANG mở, reset
-            // mỗi lần openProductModal() gọi lại cho sản phẩm khác
-            const modal = document.getElementById('pos-product-modal');
+            // Modal "Chọn size/đường/đá/topping" khi bấm 1 sản phẩm            const modal = document.getElementById('pos-product-modal');
             let currentProduct = null;
             let selectedSize = null;
             let selectedSugar = '100';
@@ -792,7 +772,7 @@
             let selectedToppingIds = [];
             let quantity = 1;
 
-            // Tô đậm đúng 1 chip đang chọn trong 1 nhóm (size/đường/đá), bỏ tô các chip còn lại
+            // Tô đậm đúng 1 chip đang chọn trong 1 nhóm, bỏ tô các chip còn lại
             function setActiveChip(container, value) {
                 container.querySelectorAll('.pos-chip-btn').forEach(function(btn) {
                     btn.classList.toggle('is-active', btn.dataset.value === value);
@@ -818,9 +798,7 @@
                 document.getElementById('pos-modal-price').textContent = formatMoney(computeModalPrice());
             }
 
-            // Mở modal cho 1 sản phẩm — dựng lại toàn bộ chip size/topping từ dữ liệu JSON gắn sẵn trên
-            // nút "+" của sản phẩm đó (xem data-product ở nơi gọi hàm này bên dưới)
-            function openProductModal(product) {
+            // Mở modal cho 1 sản phẩm — dựng lại toàn bộ chip            function openProductModal(product) {
                 currentProduct = product;
                 selectedSize = product.sizes.length > 0 ? product.sizes[0].size_name : null;
                 selectedSugar = '100';
@@ -882,9 +860,7 @@
                 currentProduct = null;
             }
 
-            // Toàn bộ lưới sản phẩm dùng 1 listener chung (event delegation) thay vì gắn riêng từng nút —
-            // đỡ tốn bộ nhớ khi có hàng trăm sản phẩm, và tự hoạt động cả khi lưới lọc lại (applyProductFilters)
-            document.getElementById('pos-product-grid').addEventListener('click', function(event) {
+            // Toàn bộ lưới sản phẩm dùng 1 listener chung thay vì            document.getElementById('pos-product-grid').addEventListener('click', function(event) {
                 const btn = event.target.closest('.pos-add-btn');
                 if (!btn) return;
                 openProductModal(JSON.parse(btn.dataset.product));
@@ -941,9 +917,7 @@
                 renderModalPrice();
             });
 
-            // Bấm "Thêm vào giỏ" trong modal — gọi thẳng route /cart/add dùng chung với trang khách,
-            // disable nút trong lúc chờ để tránh bấm 2 lần thêm trùng
-            document.getElementById('pos-modal-add').addEventListener('click', function() {
+            // Bấm "Thêm vào giỏ" trong modal — gọi thẳng route            document.getElementById('pos-modal-add').addEventListener('click', function() {
                 if (!currentProduct) return;
                 const addBtn = this;
                 addBtn.disabled = true;
@@ -978,9 +952,7 @@
                     });
             });
 
-            // Cũng dùng event delegation — danh sách giỏ hàng bị vẽ lại toàn bộ mỗi lần refreshCart()
-            // nên gắn listener riêng từng nút xóa sẽ bị mất tác dụng ngay sau lần render đầu
-            document.getElementById('pos-cart-items').addEventListener('click', function(event) {
+            // Cũng dùng event delegation — danh sách giỏ hàng bị vẽ            document.getElementById('pos-cart-items').addEventListener('click', function(event) {
                 const btn = event.target.closest('.pos-remove-btn');
                 if (!btn) return;
 
@@ -1002,7 +974,7 @@
             const mobileCartOpenBtn = document.getElementById('pos-mobile-cart-open-btn');
             const cartCloseBtn = document.getElementById('pos-cart-close-btn');
 
-            // Trên mobile giỏ hàng mặc định ẩn (nhường chỗ cho lưới sản phẩm), mở/đóng như 1 drawer
+            // Trên mobile giỏ hàng mặc định ẩn, mở/đóng như 1 drawer
             function openMobileCart() {
                 if (!cartColumn) return;
                 cartColumn.classList.remove('hidden');
@@ -1010,7 +982,7 @@
                 document.body.style.overflow = 'hidden';
             }
 
-            // Chỉ ẩn cột giỏ hàng trên mobile (< 1024px) — desktop luôn hiện cột giỏ cố định, không đóng được
+            // Chỉ ẩn cột giỏ hàng trên mobile — desktop luôn hiện cột giỏ cố định, không đóng được
             function closeMobileCart() {
                 if (!cartColumn) return;
                 if (window.innerWidth < 1024) {
@@ -1031,9 +1003,7 @@
                 }
             });
 
-            // Style lại radio button dạng "thẻ bấm" (payment method / order type) — tô màu thẻ đang chọn,
-            // dùng chung 1 hàm cho cả 2 nhóm vì cùng logic, chỉ khác class màu
-            function wireToggleGroup(selector, activeClasses) {
+            // Style lại radio button dạng "thẻ bấm" — tô màu thẻ            function wireToggleGroup(selector, activeClasses) {
                 document.querySelectorAll(selector).forEach(function(radio) {
                     radio.addEventListener('change', function() {
                         document.querySelectorAll(selector).forEach(function(r) {
@@ -1056,9 +1026,7 @@
                 'text-primary'
             ]);
 
-            // Đổi loại đơn (uống tại chỗ/mang về) -> ghi vào input ẩn pickup-mode để submit kèm form,
-            // và tính lại tổng vì 1 số khuyến mãi chỉ áp cho đúng 1 kênh (pickup)
-            function applyOrderType() {
+            // Đổi loại đơn -> ghi vào input ẩn pickup-mode để submit            function applyOrderType() {
                 document.getElementById('pos-pickup-mode').value = getCurrentOrderType();
                 refreshPreviewTotal();
             }
@@ -1076,7 +1044,7 @@
                 });
             }
 
-            // Tải giỏ hàng thật ngay khi mở trang (có thể đã có sẵn món từ phiên làm việc trước)
+            // Tải giỏ hàng thật ngay khi mở trang
             refreshCart();
         })();
     </script>

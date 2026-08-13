@@ -15,7 +15,7 @@ class ShippingQuoteService
     {
     }
 
-    //tinh tien ship theo khoang cach
+    // tinh tien ship theo khoang cach
     public function quote(UserAddress $address, float $subtotal, ?User $user): array
     {
         $distance = $this->distanceFor($address);
@@ -51,13 +51,13 @@ class ShippingQuoteService
         return $this->distanceForWithSource($address)['distance_km'];
     }
 
-    // Tính khoảng cách giao hàng thật, có 3 tầng dự phòng nối tiếp — luôn trả về kết quả, không bao giờ trống
+    // Tính khoảng cách giao hàng thật, có 3 tầng dự phòng
     public function distanceForWithSource(UserAddress $address): array
     {
         $storeLat = (float) Setting::getValue('store_latitude', 10.73809);
         $storeLng = (float) Setting::getValue('store_longitude', 106.67812);
 
-        // Chỉ gọi API định vị nếu địa chỉ khách đã có sẵn tọa độ (geocode hoặc chọn trên bản đồ)
+        // Chỉ gọi API định vị nếu địa chỉ khách đã có sẵn tọa độ
         if ($address->latitude && $address->longitude) {
             $destLat = (float) $address->latitude;
             $destLng = (float) $address->longitude;
@@ -68,7 +68,7 @@ class ShippingQuoteService
                 return ['distance_km' => $distance, 'is_mock' => false];
             }
 
-            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService (chỉ nếu có cấu hình key)
+            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService (chỉ
             if (config('services.openroute.key')) {
                 try {
                     $response = Http::timeout(8)
@@ -85,7 +85,7 @@ class ShippingQuoteService
             }
         }
 
-        // Ưu tiên 3 (luôn có): chưa có tọa độ hoặc cả 2 API đều lỗi -> ước lượng thô theo tên quận/huyện
+        // Ưu tiên 3 (luôn có): chưa có tọa độ hoặc cả 2 API đều
         $district = mb_strtolower((string) $address->district);
         $estimate = match (true) {
             str_contains($district, '8') => 1.5,
@@ -101,7 +101,7 @@ class ShippingQuoteService
         return ['distance_km' => $estimate, 'is_mock' => true];
     }
 
-    // Nhãn hiển thị cho từng nhóm thời tiết (dùng chung cho cả trang checkout lẫn trang cài đặt).
+    // Nhãn hiển thị cho từng nhóm thời tiết (dùng chung cho
     public const WEATHER_LABELS = [
         'none' => 'Bình thường',
         'light_rain' => 'Mưa nhỏ',
@@ -120,7 +120,7 @@ class ShippingQuoteService
         };
     }
 
-    // Mức phụ thu (%) của từng nhóm, lấy từ Cài đặt để admin đổi được mà không sửa code.
+    // Mức phụ thu (%) của từng nhóm, lấy từ Cài đặt để admin
     private function percentForGroup(string $group): int
     {
         return match ($group) {
@@ -131,7 +131,7 @@ class ShippingQuoteService
         };
     }
 
-    //thời tiết hiện tại đang được áp dụng
+    // thời tiết hiện tại đang được áp dụng
     public function currentWeatherGroup(?float $lat, ?float $lng): string
     {
         $override = (string) Setting::getValue('weather_override', 'auto');
@@ -161,7 +161,7 @@ class ShippingQuoteService
     {
         $none = ['fee' => 0.0, 'group' => 'none', 'label' => self::WEATHER_LABELS['none']];
 
-        // Miễn phí giao hàng thì không thu phụ thu (phụ thu tính theo % của phí ship).
+        // Miễn phí giao hàng thì không thu phụ thu (phụ thu tính
         if ($shippingFee <= 0) {
             return $none;
         }

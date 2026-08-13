@@ -2,7 +2,7 @@
 
 return [
 
-    // Mailer mặc định được sử dụng để gửi email (smtp, log, mailgun, v.v.)
+    // Mailer mặc định được sử dụng để gửi email
     'default' => env('MAIL_MAILER', 'log'),
 
     // Các cấu hình máy chủ gửi email khác nhau
@@ -17,7 +17,6 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            // Thời gian chờ tối đa kết nối SMTP (giới hạn 25 giây để tránh treo UI)
             'timeout' => (int) env('MAIL_TIMEOUT', 25),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
@@ -43,13 +42,13 @@ return [
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
-        // Chỉ ghi thông tin email vào file log (dùng khi phát triển local)
+        // Chỉ ghi thông tin email vào file log
         'log' => [
             'transport' => 'log',
             'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
-        // Lưu email vào mảng bộ nhớ (dùng để viết các bản kiểm thử test)
+        // Lưu email vào mảng bộ nhớ
         'array' => [
             'transport' => 'array',
         ],

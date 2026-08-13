@@ -110,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- Form ẩn dùng để xóa nhiều -->
+            <!-- Form -->
             <form id="bulk-delete-form" action="{{ route('admin.reviews.bulk_delete') }}" method="POST" class="hidden">
                 @csrf
             </form>
@@ -214,6 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCountSpan) selectedCountSpan.textContent = count;
     }
 
+    // Xử lý sự kiện khi thay đổi trạng thái checkbox chọn tất cả hoặc từng dòng
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('js-select-all')) {
             const checked = e.target.checked;
@@ -229,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Bỏ chọn tất cả checkbox đang được tích
     const deselectBtn = document.getElementById('bulk-deselect-btn');
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
@@ -237,6 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Xác nhận và gửi yêu cầu xóa các đánh giá đã chọn
     const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener('click', function () {
@@ -244,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (ids.length === 0) return;
             if (!confirm(`Bạn chuẩn bị xóa ${ids.length} đánh giá đã chọn. Tiếp tục?`)) return;
 
+            // Đưa danh sách ID vào form ẩn và submit
             bulkDeleteForm.querySelectorAll('input[name="review_ids[]"]').forEach(el => el.remove());
             ids.forEach(id => {
                 const input = document.createElement('input');

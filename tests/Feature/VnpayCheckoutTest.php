@@ -14,11 +14,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * Luồng thanh toán VNPay: build URL đã ký (không gọi HTTP như MoMo), handleReturn (redirect trình
- * duyệt) và handleIpn (server-to-server, PHẢI luôn trả JSON {"RspCode":...} — rủi ro cao nhất nếu sai
- * định dạng VNPay sẽ retry vô hạn, xem VnpayController::handleIpn()).
- */
+// Luồng thanh toán VNPay: build URL đã ký (không gọi HTTP như MoMo), handleReturn (redirect trình
+// duyệt) và handleIpn (server-to-server, PHẢI luôn trả JSON {"RspCode":...} — rủi ro cao nhất nếu sai
+// định dạng VNPay sẽ retry vô hạn, xem VnpayController::handleIpn()).
 class VnpayCheckoutTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,10 +30,8 @@ class VnpayCheckoutTest extends TestCase
         ]);
     }
 
-    /**
-     * Mirror thuật toán ký ở VnpayController::buildPaymentUrl()/verifySignature(): ksort() rồi
-     * urlencode(key)=urlencode(value) nối bằng "&", HMAC-SHA512.
-     */
+    // Mirror thuật toán ký ở VnpayController::buildPaymentUrl()/verifySignature(): ksort() rồi
+    // urlencode(key)=urlencode(value) nối bằng "&", HMAC-SHA512.
     private function signVnpayParams(array $params, string $secret): array
     {
         ksort($params);

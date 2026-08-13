@@ -1,25 +1,24 @@
-{{-- Lưới sản phẩm + phân trang — tách riêng để tái sử dụng cho cả lần tải trang đầu tiên lẫn phản
-hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đúng partial này khi $request->ajax()). --}}
+{{-- Lưới sản phẩm --}}
 <div id="ajax-product-area">
     <!-- Grid chứa danh sách sản phẩm -->
     <div class="p-product-grid" id="product-grid">
 
         @forelse($products as $product)
             @php
-                // Kiểm tra trạng thái HOT (Bán chạy) và NEW (Mới nhất) phục vụ gắn huy hiệu và bộ lọc JS
+                // Kiểm tra trạng thái hot và new phục vụ gắn huy hiệu và bộ lọc JS
                 $isHot = in_array($product->id, $top6HotProductIds);
                 $isNew = \Carbon\Carbon::parse($product->created_at)->diffInDays(now()) <= 15;
                 $isOos = !$product->is_active; // Hết hàng khi is_active = 0
                 $discountInfo = $product->discount_info;
                 $displayPrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
             @endphp
-            {{-- Thẻ sản phẩm. Các thuộc tính data-* đóng vai trò truyền dữ liệu để JS lọc/sắp xếp nhanh tại client --}}
+            {{-- Sắp xếp sản phẩm --}}
             <div class="p-product-card {{ $isOos ? 'p-product-card--out-of-stock' : '' }}"
                 data-sold="{{ $product->total_sold }}" data-price-val="{{ $displayPrice }}"
                 data-date="{{ strtotime($product->created_at) }}" data-rating-val="{{ $product->avg_rating }}"
                 data-is-hot="{{ $isHot ? '1' : '0' }}" data-is-new="{{ $isNew ? '1' : '0' }}">
 
-                {{-- Vùng ảnh sản phẩm, nhấp vào sẽ chuyển hướng sang trang chi tiết sản phẩm --}}
+                {{-- Chi tiết sản phẩm --}}
                 <div class="p-product-img-wrap p-product-img-wrap-pointer"
                     onclick="window.location.href='{{ route('product.show', $product->slug) }}'"
                     data-id="{{ $product->id }}" data-name="{{ $product->name }}"
@@ -28,7 +27,7 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
                     data-slug="{{ $product->slug }}"
                     data-rating="{{ number_format($product->avg_rating, 1) }} ({{ $product->review_count }} đánh giá)">
 
-                    {{-- Nhãn (Badge) trạng thái HOT, NEW hoặc DISCOUNT --}}
+                    {{-- Nhãn trạng thái hot, new hoặc discount --}}
                     @if ($discountInfo && !$isOos)
                         <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️
                             {{ $discountInfo['label'] }}</span>
@@ -60,7 +59,7 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
                         onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
 
-                {{-- Phần thân thông tin sản phẩm (Tên, Số sao, Số lượng đã bán, Giá cả, Nút thêm giỏ hàng) --}}
+                {{-- Phần thân thông tin sản phẩm --}}
                 <div class="p-product-body">
                     <a href="{{ route('product.show', $product->slug) }}"
                         class="p-product-name p-product-name-link">{{ $product->name }}</a>
@@ -114,11 +113,9 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
             </div>
         @endforelse
 
-    </div><!-- end .p-product-grid -->
+    </div><!-- End .p-product-grid -->
 
-    {{-- Phân trang — giữ nguyên các tham số lọc hiện tại (category/max_price/rating/search) nhờ
-    withQueryString() ở ProductController::index(). Tự viết markup thay vì dùng $products->links()
-    mặc định của Laravel vì trang này không nạp Tailwind CSS. --}}
+    {{-- Phân trang --}}
     @if ($products->hasPages())
         <nav class="p-pagination" aria-label="Phân trang sản phẩm">
             <a href="{{ $products->previousPageUrl() }}"
@@ -141,4 +138,4 @@ hồi AJAX khi bấm chuyển trang (ProductController::index() trả về đún
             </a>
         </nav>
     @endif
-</div><!-- end #ajax-product-area -->
+</div><!-- End #ajax-product-area -->

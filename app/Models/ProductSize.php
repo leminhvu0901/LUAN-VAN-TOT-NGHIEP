@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductSize extends Model
 {
-    // Tắt tính năng tự động ghi nhận thời gian tạo/sửa (created_at, updated_at) vì bảng này chỉ lưu size
+    // Tắt tính năng tự động ghi nhận thời gian tạo/sửa
     public $timestamps = false;
 
     // Tên bảng dữ liệu được quản lý bởi model này
     protected $table = 'product_sizes';
 
-    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng product_sizes (không khóa cột nào)
+    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả
     protected $guarded = [];
 
     /**

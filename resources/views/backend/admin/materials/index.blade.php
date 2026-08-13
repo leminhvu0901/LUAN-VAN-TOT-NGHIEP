@@ -5,7 +5,7 @@
 @section('content')
 
     <div id="materials-index-page" class="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
+        <!-- Tiêu đề trang & Nút Thêm mới -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Kho Vật Tư</h2>
@@ -44,7 +44,7 @@
             </div>
         @endif
 
-        <!-- Phần 2: Khung Thống kê 7 thẻ -->
+        <!-- Khung Thống kê 7 thẻ -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             <!-- Card 1: Tổng -->
             <div class="bg-white p-3 sm:p-4 rounded-2xl organic-shadow flex items-center justify-between border border-gray-100 hover:border-emerald-300 transition-all group gap-2">
@@ -159,7 +159,7 @@
             </div>
         </div>
 
-        <!-- Phần 3: Thanh Tìm kiếm và Lọc dữ liệu -->
+        <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
         <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 flex flex-col gap-4">
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
@@ -223,13 +223,6 @@
         </div>
     </div>
 
-
-
-
-
-
-
-
     <!-- Phan 5: Modal Them Vat tu moi -->
     <div id="modal-add" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'material-add' ? '' : 'hidden' }} z-50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden mat-modal-panel">
@@ -284,7 +277,7 @@
         </div>
     </div>
 
-    <!-- Form ẩn để xóa nhiều -->
+    <!-- Form -->
     <form id="bulk-delete-form" method="POST" action="{{ route('admin.materials.bulk_delete') }}" class="hidden">
         @csrf
     </form>
@@ -340,7 +333,7 @@
         return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
     }
 
-    // Bắt sự kiện beforeinput để chặn ký tự sai NGAY TRƯỚC KHI nó hiện ra (kể cả khi dán), tránh hiện rồi mới xóa gây nhấp nháy
+    // Bắt sự kiện beforeinput để chặn ký tự sai ngay TRƯỚC khi nó hiện ra, tránh hiện rồi mới xóa gây nhấp nháy
     function guardInsertedContent(input, getValidationMessage) {
         input.addEventListener("beforeinput", function (event) {
             if (
@@ -472,7 +465,7 @@
         });
     }
 
-    // Nạp giá trị có sẵn vào ô tiền khi mở form sửa (đồng bộ lần đầu, chưa có thao tác gõ)
+    // Nạp giá trị có sẵn vào ô tiền khi mở form sửa
     function syncCurrencyValue(formattedInput, rawInput, value) {
         const numericValue = Number(value) || 0;
         rawInput.value = numericValue;
@@ -481,7 +474,7 @@
         setFieldError(formattedInput);
     }
 
-    // Trả về thông báo lỗi cho ô tiền (vượt hạn mức, bằng 0, bỏ trống...)
+    // Trả về thông báo lỗi cho ô tiền
     function getCurrencyValidation(input, value) {
         if (/[^\d.,\s]/u.test(value)) {
             return {

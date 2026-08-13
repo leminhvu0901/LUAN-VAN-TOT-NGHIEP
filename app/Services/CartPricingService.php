@@ -14,13 +14,13 @@ use Illuminate\Validation\ValidationException;
 class CartPricingService
 {
 
-    // TÍNH TOÁN GIÁ CHUẨN NHẤT TỪNG SẢN PHẨM , trả về giá chuẩn từng sp
+    // TÍNH TOÁN GIÁ CHUẨN NHẤT TỪNG SẢN PHẨM , trả về giá
     public function pricedItems(Cart $cart, bool $lock = false, ?array $selectedIds = null): Collection
     {
-        // Khởi tạo câu truy vấn lấy các sản phẩm trong giỏ hàng (Eager Loading mối quan hệ 'product' và các 'toppings')
+        // Khởi tạo câu truy vấn lấy các sản phẩm trong giỏ hàng
         $query = CartItem::query()->with(['product', 'toppings.topping'])->where('cart_id', $cart->id); // Lấy danh sách sản phẩm trong giỏ kèm chi tiết Topping
 
-        // Nếu người dùng chỉ tick chọn một vài sản phẩm để thanh toán, chỉ lọc lấy các sản phẩm đó
+        // Nếu người dùng chỉ tick chọn một vài sản phẩm để thanh
         if ($selectedIds !== null && count($selectedIds) > 0) {
             $query->whereIn('id', $selectedIds);
         }
@@ -30,7 +30,7 @@ class CartPricingService
             $query->lockForUpdate();
         }
 
-        // Thực thi câu lệnh SQL để lấy danh sách sản phẩm trong giỏ hàng
+        // Thực thi câu lệnh SQL để lấy danh sách sản phẩm trong
         $items = $query->get();
 
         // Kiểm tra nếu danh sách trống, báo lỗi
@@ -38,13 +38,13 @@ class CartPricingService
             throw ValidationException::withMessages(['cart' => 'Giỏ hàng của bạn đang trống.']);
         }
 
-        // Vòng lặp duyệt qua từng sản phẩm trong giỏ hàng để bắt đầu tính toán giá
+        // Vòng lặp duyệt qua từng sản phẩm trong giỏ hàng để bắt
         foreach ($items as $item) {
             if (!$item->product || !$item->product->is_active) {
                 throw ValidationException::withMessages(['cart' => 'Giỏ hàng có sản phẩm đã ngừng kinh doanh.']);
             }
 
-            // 2. Kiểm tra tính hợp lệ của số lượng mua (phải từ 1 đến 99 ly)
+            // 2. Kiểm tra tính hợp lệ của số lượng mua (phải từ 1
             if (!is_numeric($item->quantity) || (int) $item->quantity < 1 || (int) $item->quantity > 99) {
                 throw ValidationException::withMessages(['cart' => 'Số lượng sản phẩm trong giỏ không hợp lệ.']);
             }
@@ -53,7 +53,7 @@ class CartPricingService
             $price = (float) $item->product->base_price;
             $size = null;
 
-            // 3. Nếu khách chọn Size (Ví dụ: Size M, Size L), tìm phần giá chênh lệch của Size đó và cộng dồn vào giá gốc
+            // 3. Nếu khách chọn Size (Ví dụ: Size M, Size L), tìm
             if ($item->size_name) {
                 $size = ProductSize::query()->where('product_id', $item->product_id)
                     ->where('size_name', $item->size_name)->first();
@@ -63,7 +63,7 @@ class CartPricingService
                 $price += (float) $size->price_adjustment;
             }
 
-            // Lấy danh sách ID của các loại Topping được chọn cho sản phẩm này
+            // Lấy danh sách ID của các loại Topping được chọn cho
             $toppingIds = $item->toppings->pluck('topping_id')->unique()->values();
             $allowedToppings = collect();
 
@@ -76,21 +76,20 @@ class CartPricingService
                     ->whereIn('toppings.id', $toppingIds)
                     ->select('toppings.*')->get();
 
-                // Nếu số lượng Topping hợp lệ tìm thấy khác với số lượng Topping khách chọn -> Có topping không hợp lệ, báo lỗi
+                // Nếu số lượng Topping hợp lệ tìm thấy khác với số lượng
                 if ($allowedToppings->count() !== $toppingIds->count()) {
                     throw ValidationException::withMessages(['cart' => "Topping của {$item->product->name} không còn hợp lệ."]);
                 }
 
-                // Cộng dồn tổng giá tiền của tất cả các Topping đã chọn vào giá của sản phẩm
+                // Cộng dồn tổng giá tiền của tất cả các Topping đã chọn
                 $price += (float) $allowedToppings->sum('price');
             }
 
-            // Gán 2 thuộc tính ảo (calculated_unit_price và calculated_toppings) vào đối tượng CartItem
-            // để các Service khác có thể lấy ra sử dụng mà không cần tính lại từ đầu
+            // Gán 2 thuộc tính ảo (calculated_unit_price và
             $item->setAttribute('calculated_unit_price', $price);
             $item->setAttribute('calculated_toppings', $allowedToppings);
 
-            // 5. Đồng bộ lại giá tiền vào bảng `cart_items` trong Database nếu giá tính toán mới khác với giá đã lưu trước đó
+            // 5. Đồng bộ lại giá tiền vào bảng `cart_items` trong
             if ((float) $item->unit_price !== $price) {
                 DB::table('cart_items')->where('id', $item->id)->update(['unit_price' => $price, 'updated_at' => now()]);
                 $item->unit_price = $price;
@@ -100,7 +99,7 @@ class CartPricingService
         return $items;
     }
 
-    //hàm tính tổng số tiền của giỏ hàng trước khi áp dụng mã giảm giá.
+    // hàm tính tổng số tiền của giỏ hàng trước khi áp dụng
     public function subtotal(Collection $items): float
     {
         // Tổng tiền = tổng của các (giá mỗi sản phẩm * số lượng tương ứng)

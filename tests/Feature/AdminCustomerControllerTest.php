@@ -11,11 +11,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * Bổ sung test CRUD khách hàng (admin) - trước đây chưa có. Bao gồm xác nhận migration
- * 2026_07_29_150632_fix_reviews_user_id_cascade_on_delete (reviews.user_id ON DELETE CASCADE):
- * khách hàng chỉ có review (không có đơn hàng) giờ xóa cứng được, kèm review của họ bị xóa theo.
- */
+// Bổ sung test CRUD khách hàng (admin) - trước đây chưa có. Bao gồm xác nhận migration
+// 2026_07_29_150632_fix_reviews_user_id_cascade_on_delete (reviews.user_id ON DELETE CASCADE):
+// khách hàng chỉ có review (không có đơn hàng) giờ xóa cứng được, kèm review của họ bị xóa theo.
 class AdminCustomerControllerTest extends TestCase
 {
     use RefreshDatabase;
@@ -149,14 +147,12 @@ class AdminCustomerControllerTest extends TestCase
         $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
     }
 
-    /**
-     * LƯU Ý: orders.user_id là nullOnDelete() (không phải restrictOnDelete), nên xóa khách hàng có
-     * lịch sử đơn hàng KHÔNG bị chặn bởi khóa ngoại như comment trong CustomerController::destroy()
-     * mô tả ("sẽ bị lỗi foreign key nếu có Order") - đơn hàng vẫn còn (dữ liệu snapshot customer_name/
-     * customer_phone không đổi) nhưng liên kết user_id bị NULL hóa. Test này xác nhận hành vi THỰC TẾ
-     * của schema hiện tại, không phải hành vi comment mô tả (nhánh "khóa thay vì xóa" chỉ chạy nếu có
-     * bảng khác thực sự chặn - hiện không còn bảng user_id nào dùng restrictOnDelete).
-     */
+    // LƯU Ý: orders.user_id là nullOnDelete() (không phải restrictOnDelete), nên xóa khách hàng có
+    // lịch sử đơn hàng KHÔNG bị chặn bởi khóa ngoại như comment trong CustomerController::destroy()
+    // mô tả ("sẽ bị lỗi foreign key nếu có Order") - đơn hàng vẫn còn (dữ liệu snapshot customer_name/
+    // customer_phone không đổi) nhưng liên kết user_id bị NULL hóa. Test này xác nhận hành vi THỰC TẾ
+    // của schema hiện tại, không phải hành vi comment mô tả (nhánh "khóa thay vì xóa" chỉ chạy nếu có
+    // bảng khác thực sự chặn - hiện không còn bảng user_id nào dùng restrictOnDelete).
     public function test_deleting_customer_with_order_history_hard_deletes_and_nulls_order_owner(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

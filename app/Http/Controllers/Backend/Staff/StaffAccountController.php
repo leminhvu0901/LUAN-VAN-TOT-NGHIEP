@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class StaffAccountController
 {
-    // Danh sách tài khoản nhân viên, có tìm kiếm/lọc/sắp xếp/phân trang
+    // Danh sách tài khoản nhân viên, có tìm kiếm/lọc/sắp
     public function index(Request $request)
     {
         $query = User::where('role', 'staff');
@@ -31,7 +31,7 @@ class StaffAccountController
             $query->where('is_active', $status);
         }
 
-        // Lọc theo loại nhân viên (whitelist cứng, tránh nhận giá trị lạ từ query string)
+        // Lọc theo loại nhân viên (whitelist cứng, tránh nhận
         if ($request->filled('staff_type') && in_array($request->input('staff_type'), ['receptionist', 'delivery'], true)) {
             $query->where('staff_type', $request->input('staff_type'));
         }
@@ -62,7 +62,7 @@ class StaffAccountController
         return view('backend.admin.staff-accounts.index', compact('staffs', 'totalStaff', 'activeStaff', 'inactiveStaff'));
     }
 
-    //hiển thị form trống
+    // hiển thị form trống
     public function create()
     {
         return view('backend.admin.staff-accounts.create');
@@ -79,9 +79,7 @@ class StaffAccountController
             $request->merge(['email' => strtolower(trim($request->email))]);
         }
         if ($request->has('phone')) {
-            // trim(null) trả về '' (không phải null) -> nếu để trống, phải ép lại thành null tường
-            // minh, nếu không "nullable" sẽ bị vô hiệu hóa (chuỗi rỗng khác NULL với unique index,
-            // gây lỗi trùng khóa nếu có nhân viên khác cũng đang để trống SĐT).
+            // trim(null) trả về '' (không phải null) -> nếu để
             $trimmedPhone = trim((string) $request->phone);
             $request->merge(['phone' => $trimmedPhone === '' ? null : $trimmedPhone]);
         }
@@ -92,7 +90,7 @@ class StaffAccountController
             'password' => 'required|string|min:8|confirmed',
             'phone' => ['nullable', 'string', 'regex:/^0[0-9]{9}$/', 'unique:users,phone'],
             'is_active' => 'required|boolean',
-            // Whitelist cứng — chỉ 2 giá trị hợp lệ, route này đã nằm trong group admin.* nên chỉ admin gọi tới được.
+            // Whitelist cứng — chỉ 2 giá trị hợp lệ, route này đã
             'staff_type' => ['required', 'in:receptionist,delivery'],
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
         ], [
@@ -115,7 +113,7 @@ class StaffAccountController
         $avatarFilename = null;
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
-            // Ghép timestamp vào tên gốc để tránh trùng tên nếu 2 người cùng upload file cùng tên
+            // Ghép timestamp vào tên gốc để tránh trùng tên nếu 2
             $filename = time() . '_' . $file->getClientOriginalName();
             $file->move(upload_dir('avatars'), $filename);
             $avatarFilename = upload_rel('avatars', $filename);
@@ -135,7 +133,7 @@ class StaffAccountController
         return redirect()->route('admin.staff_accounts.index')->with('success', 'Thêm tài khoản nhân viên thành công!');
     }
 
-    //chuyen tới trang chinh sửa
+    // chuyen tới trang chinh sửa
     public function edit($id)
     {
         $staff = User::where('role', 'staff')->findOrFail($id);
@@ -143,7 +141,7 @@ class StaffAccountController
         return view('backend.admin.staff-accounts.edit', compact('staff'));
     }
 
-    // Cập nhật thông tin nhân viên — mật khẩu/ảnh đại diện là tùy chọn, không bắt buộc đổi mỗi lần sửa
+    // Cập nhật thông tin nhân viên — mật khẩu/ảnh đại diện
     public function update(Request $request, $id)
     {
         $staff = User::where('role', 'staff')->findOrFail($id);
@@ -156,9 +154,7 @@ class StaffAccountController
             $request->merge(['email' => strtolower(trim($request->email))]);
         }
         if ($request->has('phone')) {
-            // trim(null) trả về '' (không phải null) -> nếu để trống, phải ép lại thành null tường
-            // minh, nếu không "nullable" sẽ bị vô hiệu hóa (chuỗi rỗng khác NULL với unique index,
-            // gây lỗi trùng khóa nếu có nhân viên khác cũng đang để trống SĐT).
+            // trim(null) trả về '' (không phải null) -> nếu để
             $trimmedPhone = trim((string) $request->phone);
             $request->merge(['phone' => $trimmedPhone === '' ? null : $trimmedPhone]);
         }
@@ -192,16 +188,16 @@ class StaffAccountController
         $staff->phone = $validated['phone'] ?? null;
         $staff->staff_type = $validated['staff_type'];
         $staff->is_active = $validated['is_active'];
-        // Kích hoạt lại tài khoản thì xóa luôn lý do khóa cũ, không để sót lại lý do khóa của lần trước
+        // Kích hoạt lại tài khoản thì xóa luôn lý do khóa cũ,
         if ($staff->is_active) {
             $staff->lock_reason = null;
         }
-        // Chỉ đổi mật khẩu nếu admin có nhập — để trống nghĩa là giữ nguyên mật khẩu cũ
+        // Chỉ đổi mật khẩu nếu admin có nhập — để trống nghĩa là
         if (!empty($validated['password'])) {
             $staff->password = Hash::make($validated['password']);
         }
         if ($request->hasFile('avatar')) {
-            // Xóa ảnh cũ trên disk trước khi lưu ảnh mới — bỏ qua nếu avatar là URL ngoài (VD ảnh Google)
+            // Xóa ảnh cũ trên disk trước khi lưu ảnh mới — bỏ qua
             if ($staff->avatar && !str_starts_with($staff->avatar, 'http')) {
                 $oldPath = avatar_path($staff->avatar);
                 if ($oldPath && file_exists($oldPath)) {
@@ -218,7 +214,7 @@ class StaffAccountController
         return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật tài khoản nhân viên thành công!');
     }
 
-    // Xóa hẳn tài khoản nhân viên — chỉ cho phép nếu chưa có lịch sử hoạt động thật, xem chi tiết bên dưới
+    // Xóa hẳn tài khoản nhân viên — chỉ cho phép nếu chưa có
     public function destroy($id)
     {
         $staff = User::where('role', 'staff')->find($id);
@@ -226,9 +222,7 @@ class StaffAccountController
             return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên.');
         }
 
-        // Không cho xóa nếu nhân viên đã có lịch sử hoạt động thật (tạo đơn tại quầy/được phân công
-        // giao hàng/đối soát COD) — xóa sẽ khiến các cột tham chiếu bị SET NULL, mất dấu vết ai đã
-        // làm gì trên các đơn đó. Trường hợp này chỉ nên khóa tài khoản (đã có sẵn nút Khóa), không xóa.
+        // Không cho xóa nếu nhân viên đã có lịch sử hoạt động
         $hasHistory = Order::withTrashed()
             ->where('user_id', $staff->id)
             ->orWhere('created_by', $staff->id)
@@ -246,7 +240,7 @@ class StaffAccountController
         return redirect()->route('admin.staff_accounts.index')->with('success', 'Đã xóa tài khoản nhân viên.');
     }
 
-  //Cập nhật quyền hạn/phân loại vai trò của nhân viên (Lễ tân / Shipper).
+  // Cập nhật quyền hạn/phân loại vai trò của nhân viên (Lễ
     public function updateType(Request $request, $id)
     {
         // Chỉ tác động tài khoản role=staff — không đụng customer/admin dù ID có trùng.
@@ -256,7 +250,7 @@ class StaffAccountController
         }
 
         $validated = $request->validate([
-            // Whitelist cứng — chỉ 2 giá trị hợp lệ, không tin giá trị gửi lên nếu nằm ngoài danh sách này.
+            // Whitelist cứng — chỉ 2 giá trị hợp lệ, không tin giá
             'staff_type' => ['required', 'in:receptionist,delivery'],
         ], [
             'staff_type.required' => 'Vui lòng chọn loại nhân viên.',
@@ -269,7 +263,7 @@ class StaffAccountController
         return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật loại nhân viên thành công!');
     }
 
-   //Khóa hoặc kích hoạt tài khoản nhân viên.
+   // Khóa hoặc kích hoạt tài khoản nhân viên.
     public function toggleStatus(Request $request, $id)
     {
         $staff = User::where('role', 'staff')->findOrFail($id);

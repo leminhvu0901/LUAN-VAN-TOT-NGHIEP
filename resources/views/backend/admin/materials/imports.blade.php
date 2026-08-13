@@ -49,7 +49,7 @@
 
         <div class="space-y-6">
 
-            <!-- Phần 1: Biểu mẫu (Form) Tạo Phiếu Nhập Kho Mới -->
+            <!-- Biểu mẫu Tạo Phiếu Nhập Kho Mới -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 class="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-3">Tạo phiếu nhập</h3>
 
@@ -122,8 +122,7 @@
                 </form>
             </div>
 
-
-            <!-- Phần 2: Bảng Lịch sử Nhập kho & Xuất kho -->
+            <!-- Bảng Lịch sử Nhập kho & Xuất kho -->
             @php
                 $nhapKho = $imports->where('quantity', '>', 0);
                 $xuatHuy = $imports->where('quantity', '<', 0);
@@ -136,11 +135,11 @@
                         kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $nhapKho->count() }} phiếu nhập</span>
                 </div>
-                <!-- Giao diện Mobile (Card view) -->
+                <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
                     @forelse($nhapKho as $import)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 relative hover:shadow-md transition-shadow" id="import-card-{{ $import->id }}">
-                            <!-- Header: Lot ID + Time -->
+                            <!-- Header -->
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <div class="flex items-center gap-2">
                                     <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
@@ -244,7 +243,7 @@
                     @endforelse
                 </div>
 
-                <!-- Giao diện Desktop (Table view) -->
+                <!-- Giao diện Desktop -->
                 <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
@@ -358,11 +357,11 @@
                         kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
                 </div>
-                <!-- Giao diện Mobile (Card view) -->
+                <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
                     @forelse($xuatHuy as $export)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
-                            <!-- Header: Export ID + Time -->
+                            <!-- Header -->
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <div class="flex items-center gap-2">
                                     <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
@@ -401,7 +400,7 @@
                     @endforelse
                 </div>
 
-                <!-- Giao diện Desktop (Table view) -->
+                <!-- Giao diện Desktop -->
                 <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
@@ -441,7 +440,7 @@
         </div>
     </div>
 
-    <!-- Phần 3: Hộp thoại (Modal) Xóa/Hủy một phần hoặc toàn bộ Lô hàng (Bị ẩn mặc định) -->
+    <!-- Hộp thoại Xóa/Hủy một phần hoặc toàn bộ Lô hàng -->
     <div id="modal-dispose-batch"
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'dispose-batch' ? '' : 'hidden' }} z-50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
@@ -490,9 +489,7 @@
         </div>
     </div>
 
-    {{-- Modal "Xuất kho sử dụng" theo ĐÚNG 1 lô do người dùng tự chọn (nút "Xuất" trên từng dòng lô ở
-         bảng bên dưới). Cấu trúc y hệt modal-dispose-batch ở trên, chỉ đổi
-         route/nhãn cho đúng ngữ cảnh "xuất dùng" thay vì "hủy". --}}
+    {{-- Modal --}}
     <div id="modal-consume-batch"
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'consume-batch' ? '' : 'hidden' }} z-50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
@@ -541,7 +538,7 @@
         </div>
     </div>
 
-    <!-- Phần 4: Hộp thoại (Modal) Sửa thông tin Vật tư cơ bản (Bị ẩn mặc định) -->
+    <!-- Hộp thoại Sửa thông tin Vật tư cơ bản -->
     <div id="modal-edit" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'material-edit' ? '' : 'hidden' }} z-50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
             <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -713,7 +710,7 @@
         return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
     }
 
-    // Bắt sự kiện beforeinput để chặn ký tự sai NGAY TRƯỚC KHI nó hiện ra (kể cả khi dán), tránh hiện rồi mới xóa gây nhấp nháy
+    // Bắt sự kiện beforeinput để chặn ký tự sai ngay TRƯỚC khi nó hiện ra, tránh hiện rồi mới xóa gây nhấp nháy
     function guardInsertedContent(input, getValidationMessage) {
         input.addEventListener("beforeinput", function (event) {
             if (
@@ -845,7 +842,7 @@
         });
     }
 
-    // Nạp giá trị có sẵn vào ô tiền khi mở form sửa (đồng bộ lần đầu, chưa có thao tác gõ)
+    // Nạp giá trị có sẵn vào ô tiền khi mở form sửa
     function syncCurrencyValue(formattedInput, rawInput, value) {
         const numericValue = Number(value) || 0;
         rawInput.value = numericValue;
@@ -854,7 +851,7 @@
         setFieldError(formattedInput);
     }
 
-    // Trả về thông báo lỗi cho ô tiền (vượt hạn mức, bằng 0, bỏ trống...)
+    // Trả về thông báo lỗi cho ô tiền
     function getCurrencyValidation(input, value) {
         if (/[^\d.,\s]/u.test(value)) {
             return {

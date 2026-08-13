@@ -5,7 +5,7 @@
 @section('content')
     <div class="dashboard-page p-4 md:p-6 space-y-6">
 
-        <!-- 1. Header trang -->
+        <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
             <div>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Khu Vực Pha Chế</h2>
@@ -17,7 +17,7 @@
             </div>
         </div>
 
-        <!-- 2. Thống kê nhanh (Stats Cards) -->
+        <!-- Thống kê nhanh -->
         <div class="grid grid-cols-2 lg:grid-cols-7 gap-4">
             <!-- Đơn chờ xác nhận -->
             <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-200">
@@ -84,7 +84,7 @@
             </div>
         </div>
 
-        <!-- 2.5. Doanh thu hôm nay theo hình thức thanh toán -->
+        <!-- Doanh thu hôm nay theo hình thức thanh toán -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <h3 class="font-bold text-gray-900 text-base mb-4">Doanh thu hôm nay</h3>
 
@@ -99,7 +99,7 @@
             @endphp
 
             <div class="flex flex-col sm:flex-row items-center gap-6">
-                {{-- Donut: vàng = tiền mặt, xanh = chuyển khoản (VNPay) --}}
+                {{-- Donut: vàng = tiền mặt, xanh = chuyển khoản --}}
                 <div class="relative w-40 h-40 shrink-0">
                     <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90" role="img" aria-label="Tỉ lệ doanh thu hôm nay theo hình thức thanh toán">
                         <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="14" />
@@ -122,7 +122,7 @@
                     </div>
                 </div>
 
-                {{-- Chú giải: luôn hiển thị số tiền + % trực tiếp (không phụ thuộc màu sắc/hover) --}}
+                {{-- Chú giải: luôn hiển thị số tiền + % trực tiếp --}}
                 <div class="flex-1 w-full space-y-3">
                     <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-50 border border-amber-100">
                         <div class="flex items-center gap-2">
@@ -151,7 +151,7 @@
             </div>
         </div>
 
-        <!-- 3. Đơn hàng mới nhận -->
+        <!-- Đơn hàng mới nhận -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                 <div>
@@ -161,7 +161,7 @@
                 <a href="{{ route('staff.reception.orders.index') }}" class="text-xs text-emerald-600 hover:text-emerald-700 font-bold transition-colors">Xem tất cả</a>
             </div>
 
-            <!-- Desktop View (Table) -->
+            <!-- Desktop View -->
             <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -203,7 +203,7 @@
                 </table>
             </div>
 
-            <!-- Mobile View (Card list) -->
+            <!-- Mobile View -->
             <div class="block sm:hidden space-y-3">
                 @forelse ($recentOrders as $order)
                     <div class="bg-gray-50/50 p-3.5 rounded-xl border border-gray-100 flex flex-col gap-2 relative">

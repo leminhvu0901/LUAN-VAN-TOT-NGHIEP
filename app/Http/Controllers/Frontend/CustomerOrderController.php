@@ -22,14 +22,14 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerOrderController
 {
-    // Sử dụng Dependency Injection để nạp các dịch vụ xử lý nghiệp vụ đơn hàng và thông báo
+    // Sử dụng Dependency Injection để nạp các dịch vụ xử lý
     public function __construct(
         private readonly OrderService $orders,
         private readonly NotificationService $notifications,
     ) {
     }
 
-    //DANH SACH ĐƠN HANG
+    // DANH SACH ĐƠN HANG
     public function index(Request $request)
     {
         $status = $request->query('status');
@@ -42,10 +42,10 @@ class CustomerOrderController
             $query->where('status', $status);
         }
 
-        // Lấy danh sách đơn hàng mới nhất và thực hiện phân trang (10 đơn hàng trên mỗi trang)
+        // Lấy danh sách đơn hàng mới nhất và thực hiện phân
         $orders = $query->latest()->paginate(10);
 
-        // Chuẩn hóa lại thông tin sản phẩm trong từng chi tiết đơn hàng (Tên, Ảnh, Slug) để tránh bị mất nếu sản phẩm bị chỉnh sửa về sau
+        // Chuẩn hóa lại thông tin sản phẩm trong từng chi tiết
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
                 $item->product_name = $item->product_name ?: $item->product?->name;
@@ -54,7 +54,7 @@ class CustomerOrderController
             }
         }
 
-        // Lấy danh sách các sản phẩm mà người dùng hiện tại đã viết đánh giá (Review)
+        // Lấy danh sách các sản phẩm mà người dùng hiện tại đã
         $reviewedItems = Review::query()->where('user_id', Auth::id())->whereNotNull('order_id')
             ->select('order_id', 'product_id')->get();
 
@@ -66,7 +66,7 @@ class CustomerOrderController
     // XỬ LÝ TẠO ĐƠN VỚI HÌNH THỨC THANH TOÁN COD
     public function store(Request $request)
     {
-        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi form đặt hàng
+        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi
         $validated = $request->validate([
             'address_id' => ['required', 'integer'], // Địa chỉ giao nhận hàng
             'coupon_code' => ['nullable', 'string', 'max:50'], // Mã giảm giá (nếu có)
@@ -77,29 +77,29 @@ class CustomerOrderController
             'selected_item_ids.*' => ['integer', 'min:1'],
         ]);
 
-        // Kiểm tra xem Token thanh toán có khớp với Session hiện hành để tránh spam hoặc đặt trùng lặp
+        // Kiểm tra xem Token thanh toán có khớp với Session hiện
         $this->assertCheckoutToken($validated['idempotency_key']);
 
-        // Kiểm tra xem cửa hàng hiện tại có đang mở cửa và nhận đơn hàng hay không
+        // Kiểm tra xem cửa hàng hiện tại có đang mở cửa và nhận
         $this->assertStoreOpen();
 
-        // Kiểm tra cấu hình hệ thống xem phương thức COD có đang được cho phép sử dụng hay không
+        // Kiểm tra cấu hình hệ thống xem phương thức COD có đang
         $codEnabled = Setting::getValue('cod_enabled', '1');
         if ($codEnabled != '1') {
             throw ValidationException::withMessages(['checkout' => 'Phương thức thanh toán COD hiện đang tạm khóa.']);
         }
 
-        // Thực hiện tạo đơn hàng mới trong cơ sở dữ liệu qua dịch vụ OrderService
+        // Thực hiện tạo đơn hàng mới trong cơ sở dữ liệu qua
         $order = $this->orders->create(Auth::user(), $validated, 'cod');
 
         // Gửi thông báo đặt hàng thành công đến hệ thống
         $this->notifications->orderPlaced($order);
 
-        // Xóa sạch token thanh toán và danh sách sản phẩm đã chọn thanh toán ra khỏi Session
+        // Xóa sạch token thanh toán và danh sách sản phẩm đã
         session()->forget('checkout_token');
         session()->forget('selected_cart_item_ids');
 
-        // Chuyển hướng về trang lịch sử đơn hàng kèm theo thông báo thành công
+        // Chuyển hướng về trang lịch sử đơn hàng kèm theo thông
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
 
@@ -107,19 +107,19 @@ class CustomerOrderController
     // MUA LẠI
     public function reorder(Order $order)
     {
-        // Đảm bảo đơn hàng này đúng là của người dùng hiện tại đang đăng nhập
+        // Đảm bảo đơn hàng này đúng là của người dùng hiện tại
         abort_unless($order->user_id === Auth::id(), 404);
         // Nạp thông tin chi tiết các món nước trong đơn cũ
         $order->load('items');
-        // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu khi thêm nhiều sản phẩm vào giỏ
+        // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
         DB::transaction(function () use ($order) {
-            // Lấy giỏ hàng hiện tại hoặc tự tạo mới nếu người dùng chưa có giỏ
+            // Lấy giỏ hàng hiện tại hoặc tự tạo mới nếu người dùng
             $cart = Cart::query()->firstOrCreate(['user_id' => Auth::id()], ['session_id' => null]);
             $added = 0;
 
             // Duyệt qua từng món nước trong đơn hàng cũ
             foreach ($order->items as $oldItem) {
-                // Kiểm tra xem sản phẩm này có còn kinh doanh và hoạt động không
+                // Kiểm tra xem sản phẩm này có còn kinh doanh và hoạt
                 $product = Product::query()->whereKey($oldItem->product_id)->where('is_active', true)->first();
                 if (!$product)
                     continue;
@@ -136,7 +136,7 @@ class CustomerOrderController
                         $price += (float) $size->price_adjustment;
                 }
 
-                // Kiểm tra và lấy thông tin các Topping cũ đi kèm (nếu topping đó còn bán)
+                // Kiểm tra và lấy thông tin các Topping cũ đi kèm (nếu
                 $optionNames = is_array($oldItem->options) ? $oldItem->options : [];
                 $toppings = Topping::query()->join('product_toppings', 'product_toppings.topping_id', '=', 'toppings.id')
                     ->where('product_toppings.product_id', $product->id)->where('toppings.is_available', true)
@@ -166,7 +166,7 @@ class CustomerOrderController
                 throw ValidationException::withMessages(['order' => 'Các sản phẩm trong đơn này hiện không còn kinh doanh.']);
         });
 
-        // Chuyển hướng người dùng sang trang thanh toán luôn để họ hoàn tất
+        // Chuyển hướng người dùng sang trang thanh toán luôn để
         return redirect()->route('checkout')->with('success', 'Đã thêm lại các sản phẩm còn bán vào giỏ hàng.');
     }
 
@@ -176,7 +176,7 @@ class CustomerOrderController
         // Đảm bảo đây đúng là đơn hàng của khách hàng hiện tại
         abort_unless($order->user_id === Auth::id(), 404);
 
-        // Chỉ cho phép hủy khi đơn hàng đang ở trạng thái Chờ xác nhận (pending)
+        // Chỉ cho phép hủy khi đơn hàng đang ở trạng thái Chờ
         if ($order->status !== 'pending') {
             return $this->cancelError('Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xác nhận.');
         }
@@ -228,7 +228,7 @@ class CustomerOrderController
         }
 
         try {
-            // Khi cổng thanh toán xác nhận hoàn tiền thành công -> cập nhật trạng thái đơn hàng sang refunded và cancelled, giải phóng tồn kho
+            // Khi cổng thanh toán xác nhận hoàn tiền thành công ->
             app(OrderWorkflowService::class)->refundAndCancel($order, $result['transId'], $reason);
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->errors());
@@ -266,7 +266,7 @@ class CustomerOrderController
             throw ValidationException::withMessages(['checkout' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
         }
 
-        // 2. Kiểm tra xem giờ hiện hành có nằm trong khung giờ mở cửa của quán hay không
+        // 2. Kiểm tra xem giờ hiện hành có nằm trong khung giờ
         $open = Setting::getValue('store_open_time', '08:00');
         $close = Setting::getValue('store_close_time', '22:00');
         $nowStr = now('Asia/Ho_Chi_Minh')->format('H:i');

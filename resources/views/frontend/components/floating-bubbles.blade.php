@@ -1,5 +1,4 @@
-{{-- Bong bóng nổi "Giỏ hàng" + "Zalo" — góc dưới-phải màn hình, phong cách hình tròn nổi (xem
-     .floating-bubbles trong users.css). --}}
+{{-- Bong bóng nổi "Giỏ hàng" + "Zalo" --}}
 @php
     $floatingCartCount = 0;
     if (Auth::check()) {
@@ -17,10 +16,7 @@
             <path stroke-linecap="round" stroke-linejoin="round"
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
         </svg>
-        {{-- Luôn render sẵn (không @if) + toggle bằng class ẩn, giống hệt #cart-badge của navbar —
-        để main.js (updateCartUI) tìm thấy và cập nhật số real-time mỗi khi thêm/xóa giỏ hàng qua AJAX,
-        không cần tải lại trang. Nếu chỉ render khi >0 thì lúc giỏ đang trống sẽ không có phần tử nào
-        để JS cập nhật khi khách thêm sản phẩm đầu tiên. --}}
+        
         <span id="floating-cart-badge" class="floating-bubble__badge {{ $floatingCartCount > 0 ? '' : 'floating-bubble__badge--hidden' }}">{{ $floatingCartCount }}</span>
     </button>
 

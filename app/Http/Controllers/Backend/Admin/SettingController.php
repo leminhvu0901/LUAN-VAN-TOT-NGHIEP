@@ -24,10 +24,10 @@ class SettingController
                 }
             }
         } catch (\Exception $e) {
-            // Bảng chưa tồn tại (mới cài đặt, chưa chạy migrate) -> bỏ qua, dùng giá trị mặc định bên dưới
+            // Bảng chưa tồn tại (mới cài đặt, chưa chạy migrate) ->
         }
 
-        // Giá trị mặc định cho lần đầu cài đặt hoặc key nào đó chưa từng được lưu vào DB
+        // Giá trị mặc định cho lần đầu cài đặt hoặc key nào đó
         $defaults = [
             'store_name' => 'Happy Tea',
             'store_logo' => '/images/logo/black.png',
@@ -78,20 +78,19 @@ class SettingController
             }
         }
 
-        // Tự động cập nhật giá trị quy đổi điểm trong DB về 1 để áp dụng ngay lập tức
+        // Tự động cập nhật giá trị quy đổi điểm trong DB về 1 để
         if (Setting::getValue('loyalty_point_value') != 1) {
             Setting::setValue('loyalty_point_value', '1', 'loyalty', 'decimal');
             $settings['loyalty_point_value'] = '1';
         }
 
-        // Chỉ kiểm tra ĐÃ có cấu hình VNPay sandbox hay chưa, không lộ giá trị thật ra view
+        // Chỉ kiểm tra ĐÃ có cấu hình VNPay sandbox hay chưa,
         $vnpayEnvConfig = config("services.vnpay.sandbox", []);
         $paymentStatus = [
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
         ];
 
-        // Quét logo ở 2 nơi: logo mẫu đi kèm mã nguồn (images/logo) và logo admin tự tải lên
-        // (images/uploads/logo - thư mục được gắn ổ đĩa bền vững khi chạy trên Railway).
+        // Quét logo ở 2 nơi: logo mẫu đi kèm mã nguồn
         $existingLogos = [];
         $allowedLogoExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
         $logoDirs = [
@@ -118,8 +117,7 @@ class SettingController
      // Cập nhật giá trị các thiết lập hệ thống
     public function update(Request $request)
     {
-        // Form cấu hình chia theo từng tab (store/orders/shipping/payment/loyalty/notifications), mỗi
-        // lần submit chỉ lưu ĐÚNG 1 tab đang mở, không đụng tới các tab khác
+        // Form cấu hình chia theo từng tab
         $section = $request->input('section');
 
         // Rule validate riêng cho từng tab, gán bên dưới theo switch($section)
@@ -147,7 +145,7 @@ class SettingController
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
         ];
 
-        // Kiểu dữ liệu để Setting::setValue() ép kiểu đúng lúc lưu (Setting.value trong DB luôn là chuỗi)
+        // Kiểu dữ liệu để Setting::setValue() ép kiểu đúng lúc
         $types = [
             'store_name' => 'string',
             'store_logo' => 'string',
@@ -262,23 +260,23 @@ class SettingController
             return back()->withErrors($validator)->withInput()->with('error_section', $section);
         }
 
-        // Chặn sớm nếu bảng settings chưa tồn tại, tránh lỗi SQL khó hiểu ở bước ghi bên dưới
+        // Chặn sớm nếu bảng settings chưa tồn tại, tránh lỗi SQL
         if (!Schema::hasTable('settings')) {
             return back()->with('error', 'Bảng cấu hình chưa tồn tại. Vui lòng chạy php artisan migrate để tạo bảng settings trước.')->with('error_section', $section);
         }
 
         $fields = $allowedKeys[$section] ?? [];
 
-        // Ghi từng key trong 1 transaction — nếu 1 key lỗi giữa chừng thì rollback hết, không lưu dở dang
+        // Ghi từng key trong 1 transaction — nếu 1 key lỗi giữa
         DB::transaction(function () use ($fields, $section, $types, $request) {
-            // Các trường giờ hoạt động: nếu bỏ trống thì giữ nguyên giá trị cũ trong DB
+            // Các trường giờ hoạt động: nếu bỏ trống thì giữ nguyên
             $timeFields = ['store_open_time', 'store_close_time'];
 
             foreach ($fields as $field) {
                 $type = $types[$field] ?? 'string';
                 $val = $request->input($field);
 
-                // Nếu trường giờ bị để trống, giữ lại giá trị hiện tại (không ghi đè)
+                // Nếu trường giờ bị để trống, giữ lại giá trị hiện tại
                 if (in_array($field, $timeFields) && ($val === null || trim((string) $val) === '')) {
                     continue;
                 }
@@ -296,8 +294,7 @@ class SettingController
             if ($request->hasFile('store_logo')) {
                 $file = $request->file('store_logo');
                 $extension = $file->getClientOriginalExtension();
-                // Dùng UUID thay vì time() (chỉ chính xác tới giây) - 2 lần upload trong cùng 1 giây
-                // trùng tên file sẽ khiến bước xoá logo cũ bên dưới xoá NHẦM chính file vừa ghi.
+                // Dùng UUID thay vì time() (chỉ chính xác tới giây) - 2
                 $fileName = 'logo_' . (string) Str::uuid() . '.' . $extension;
 
                 // Giá trị lưu DB là đường dẫn tuyệt đối nên asset($shopLogo) ở các view dùng lại
@@ -305,7 +302,7 @@ class SettingController
                 $file->move(upload_dir('logo'), $fileName);
                 $logoPath = '/images/' . upload_rel('logo', $fileName);
 
-                // Xóa file logo cũ, trừ các logo mẫu đi kèm mã nguồn (không được xóa nhầm)
+                // Xóa file logo cũ, trừ các logo mẫu đi kèm mã nguồn
                 $oldLogo = Setting::getValue('store_logo');
                 $presetLogos = ['/images/logo/black.png', '/images/logo/black1.svg', '/images/logo/black2.png'];
                 if ($oldLogo && !in_array($oldLogo, $presetLogos) && file_exists(public_path($oldLogo))) {

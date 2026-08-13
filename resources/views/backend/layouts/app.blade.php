@@ -399,58 +399,36 @@
         }
     };
 
-    // 5. Ghi nhớ các dòng đã tích chọn khi chuyển trang / lọc lại danh sách (Bulk Actions).
-    //
-    //    Vấn đề: phân trang giờ là tải lại trang thật (đã bỏ AJAX) nên toàn bộ checkbox bị dựng lại
-    //    từ đầu -> tích vài dòng ở trang 1, sang trang 2 là mất sạch, không xóa hàng loạt xuyên trang
-    //    được. Người dùng tưởng đã chọn 10 dòng nhưng bấm xóa chỉ mất 3 dòng của trang đang xem.
-    //
-    //    Cách xử lý: lưu danh sách id đã chọn vào sessionStorage theo từng màn hình (khóa = đường dẫn,
-    //    nên đổi trang/đổi bộ lọc vẫn chung một danh sách). Mỗi lần tải trang thì tích lại các dòng
-    //    thuộc trang hiện tại, còn những id đang nằm ở TRANG KHÁC thì tạo checkbox ẩn cùng class để
-    //    chúng vẫn được đếm và vẫn được gửi đi khi bấm xóa.
-    //
-    //    Làm tập trung ở đây thay vì sửa 8 trang danh sách, vì mỗi trang viết JS một kiểu khác nhau
-    //    (có trang quét cả document, có trang chỉ quét trong #table-container) — chèn checkbox ẩn vào
-    //    đúng #table-container thì mọi kiểu quét đó đều thấy, không phải đụng vào code từng trang.
-    //
-    //    Dùng sessionStorage chứ không phải localStorage để đóng tab là quên, tránh hôm sau mở lên
-    //    vẫn còn lựa chọn cũ rồi xóa nhầm.
+    // Ghi nhớ các dòng đã chọn vào session khi chuyển trang
     (function () {
         const KEY = 'bulk-sel:' + window.location.pathname;
-        // Mỗi màn hình đặt tên class checkbox một kiểu, thử lần lượt để biết trang này dùng loại nào.
-        // Xếp loại riêng lên trước '.row-checkbox' vì trang Vật tư gắn CẢ HAI class lên cùng một ô
-        // (material-checkbox row-checkbox) nhưng code của trang chỉ tìm theo '.material-checkbox'.
         const CANDIDATES = ['.material-checkbox', '.product-checkbox', '.order-checkbox', '.row-checkbox'];
 
+        // Đọc danh sách ID đã chọn từ sessionStorage
         function read() {
             try { return new Set(JSON.parse(sessionStorage.getItem(KEY) || '[]')); }
-            catch (e) { return new Set(); } // bị chặn hoặc dữ liệu hỏng -> coi như chưa chọn gì
+            catch (e) { return new Set(); }
         }
+
+        // Lưu danh sách ID đã chọn vào sessionStorage
         function write(set) {
             try { sessionStorage.setItem(KEY, JSON.stringify(Array.from(set))); }
-            catch (e) { /* hết dung lượng: bỏ qua, chỉ mất phần ghi nhớ chứ trang vẫn chạy */ }
+            catch (e) { }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             const container = document.getElementById('table-container');
-            if (!container) return; // không phải trang danh sách có chọn hàng loạt
+            if (!container) return;
 
             const selector = CANDIDATES.find(function (s) { return container.querySelector(s); });
             if (!selector) return;
 
-            const cls = selector.slice(1); // bỏ dấu chấm đầu để gán vào class của checkbox ẩn
+            const cls = selector.slice(1);
 
-            // Ghi trạng thái checkbox hiện có trên trang vào danh sách đã nhớ.
-            //
-            // Lưu ý: giao diện responsive vẽ MỖI DÒNG THÀNH 2 CHECKBOX cùng value (một cho bảng ở
-            // màn hình lớn, một cho thẻ ở màn hình điện thoại) và chỉ hiện 1 cái tùy độ rộng màn hình.
-            // Nếu duyệt tuần tự từng ô thì ô đang tích vừa thêm id vào xong, ô song sinh chưa tích
-            // liền xóa id đó ra -> danh sách luôn rỗng. Vì vậy phải gom theo value trước: chỉ cần
-            // MỘT ô của dòng đó đang tích thì coi như dòng đó được chọn.
+            // Đồng bộ trạng thái checkbox hiện tại vào bộ nhớ
             function sync() {
                 const set = read();
-                const rowChecked = new Map(); // value -> dòng đó có ô nào đang tích không
+                const rowChecked = new Map();
                 container.querySelectorAll(selector).forEach(function (cb) {
                     rowChecked.set(cb.value, (rowChecked.get(cb.value) || false) || cb.checked);
                 });
@@ -461,10 +439,9 @@
                 write(set);
             }
 
-            // --- Khôi phục lựa chọn cũ ---
+            // Khôi phục lựa chọn checkbox từ bộ nhớ tạm
             const saved = read();
             if (saved.size > 0) {
-                // Gom các ô theo value vì mỗi dòng có 2 ô (bản bảng + bản thẻ mobile)
                 const byValue = new Map();
                 container.querySelectorAll(selector).forEach(function (cb) {
                     if (!byValue.has(cb.value)) byValue.set(cb.value, []);
@@ -472,9 +449,6 @@
                 });
 
                 const onPage = new Set(byValue.keys());
-
-                // Chỉ tích ô ĐANG HIỂN THỊ của dòng đó. Tích cả 2 ô song sinh sẽ khiến code đếm của
-                // trang (vốn đếm mọi ô đang tích) báo gấp đôi số dòng thực tế được chọn.
                 const restored = [];
                 saved.forEach(function (id) {
                     const group = byValue.get(id);
@@ -484,12 +458,10 @@
                     restored.push(target);
                 });
 
-                // Chép nguyên class của một ô thật để ô ẩn cũng khớp mọi kiểu tìm kiếm của trang
-                // (có ô mang nhiều class cùng lúc), tránh trường hợp trang tìm theo class khác thì bỏ sót
                 const sample = container.querySelector(selector);
                 const ghostClass = sample ? sample.className : cls;
 
-                // Id đã chọn nhưng đang nằm ở trang khác -> tạo checkbox ẩn để không bị bỏ sót
+                // Tạo checkbox ẩn cho các mục đã chọn ở trang khác
                 saved.forEach(function (id) {
                     if (onPage.has(id)) return;
                     const ghost = document.createElement('input');
@@ -503,16 +475,7 @@
                     restored.push(ghost);
                 });
 
-                // Báo cho code riêng của từng trang biết những dòng này đang được chọn.
-                //
-                // Phải bắn sự kiện cho TỪNG ô chứ không phải một ô đại diện: trang Đơn hàng không
-                // đọc DOM mà tự giữ danh sách riêng (window.selectedOrderIds), mỗi lần nhận sự kiện
-                // mới thêm đúng 1 id vào -> bắn một ô thì nó chỉ biết 1 dòng. Các trang khác đọc
-                // thẳng DOM nên bắn nhiều lần cũng chỉ tính lại cùng một kết quả, không sai lệch.
-                //
-                // Hoãn 1 nhịp vì script này nằm TRƯỚC khe cắm script của trang con nên chạy trước,
-                // bắn ngay bây giờ thì trang chưa kịp đăng ký lắng nghe -> số đếm vẫn là 0 và người
-                // dùng tưởng lựa chọn đã mất sạch.
+                // Kích hoạt sự kiện thay đổi để cập nhật giao diện nút xóa
                 setTimeout(function () {
                     restored.forEach(function (cb) {
                         cb.dispatchEvent(new Event('change', { bubbles: true }));
@@ -520,9 +483,7 @@
                 }, 0);
             }
 
-            // --- Theo dõi thay đổi ---
-            // Hoãn 1 nhịp vì code của trang mới là bên đổi trạng thái các checkbox còn lại
-            // (vd: bấm "chọn tất cả"), chạy ngay lúc này sẽ đọc phải trạng thái cũ.
+            // Lắng nghe thay đổi trên từng checkbox
             container.addEventListener('change', function (e) {
                 if (e.target && e.target.classList && e.target.classList.contains(cls)) {
                     setTimeout(sync, 0);
@@ -534,13 +495,11 @@
                 }
             });
 
-            // Bấm "Bỏ chọn tất cả" -> trang tự bỏ tích hết, sync lại là danh sách rỗng
+            // Xử lý nút bỏ chọn tất cả
             const deselectBtn = document.getElementById('bulk-deselect-btn');
             if (deselectBtn) deselectBtn.addEventListener('click', function () { setTimeout(sync, 0); });
 
-            // Đã bấm xóa thì quên lựa chọn, tránh lần sau còn sót id của dòng vừa bị xóa.
-            // Phải thay hàm submit của chính form vì trang gọi form.submit() bằng code,
-            // mà cách gọi đó KHÔNG bắn ra sự kiện 'submit' để lắng nghe như bình thường.
+            // Xóa bộ nhớ đã chọn khi submit form xóa hàng loạt
             const form = document.getElementById('bulk-delete-form');
             if (form) {
                 const nativeSubmit = form.submit.bind(form);

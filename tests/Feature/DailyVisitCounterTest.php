@@ -8,11 +8,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * Bộ đếm "Lượt truy cập hôm nay" hiển thị ở trang chủ.
- * Mỗi phiên chỉ được tính 1 lượt/ngày, và con số phải thật sự tăng (trước đây middleware đếm lượt
- * có tồn tại nhưng chưa được đăng ký nên không bao giờ chạy, số luôn đứng yên ở 0).
- */
+// Bộ đếm "Lượt truy cập hôm nay" hiển thị ở trang chủ.
+// Mỗi phiên chỉ được tính 1 lượt/ngày, và con số phải thật sự tăng (trước đây middleware đếm lượt
+// có tồn tại nhưng chưa được đăng ký nên không bao giờ chạy, số luôn đứng yên ở 0).
 class DailyVisitCounterTest extends TestCase
 {
     use RefreshDatabase;
@@ -64,10 +62,8 @@ class DailyVisitCounterTest extends TestCase
         $this->get('/')->assertOk()->assertSee('42', false);
     }
 
-    /**
-     * Cộng dồn phải do database tự thực hiện, không đọc-rồi-ghi ở PHP. Nếu đọc trước ghi sau thì
-     * hai người vào cùng lúc sẽ cùng đọc N rồi cùng ghi N+1 -> mất 1 lượt.
-     */
+    // Cộng dồn phải do database tự thực hiện, không đọc-rồi-ghi ở PHP. Nếu đọc trước ghi sau thì
+    // hai người vào cùng lúc sẽ cùng đọc N rồi cùng ghi N+1 -> mất 1 lượt.
     public function test_counter_uses_atomic_database_increment(): void
     {
         Setting::setValue($this->todayKey(), 10, 'stats', 'integer');

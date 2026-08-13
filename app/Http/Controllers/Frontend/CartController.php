@@ -27,7 +27,7 @@ use Illuminate\Validation\ValidationException;
 
 class CartController
 {
-    // Nạp các dịch vụ hỗ trợ tính giá giỏ hàng, tính phí vận chuyển và áp dụng chương trình khuyến mãi
+    // Nạp các dịch vụ hỗ trợ tính giá giỏ hàng, tính phí vận
     public function __construct(
         private readonly CartPricingService $sv_cartPricing,
         private readonly ShippingQuoteService $sv_shippingQuote,
@@ -53,7 +53,7 @@ class CartController
         return $cart;
     }
 
-    // TÌM KIẾM GIỎ HÀNG — trả null nếu chưa đăng nhập (route getCartData() không yêu cầu auth)
+    // TÌM KIẾM GIỎ HÀNG — trả null nếu chưa đăng nhập (route
     private function findCart(): ?Cart
     {
         if (!Auth::check()) {
@@ -63,7 +63,7 @@ class CartController
     }
 
 
-    //LẤY THONG TIN CHI TIẾT CỦA GIỎ HÀNG HIỆN RA GIAO DIỆN
+    // LẤY THONG TIN CHI TIẾT CỦA GIỎ HÀNG HIỆN RA GIAO DIỆN
     public function getCartData()
     {
         $cart = $this->findCart();// Tìm kiếm giỏ hàng hiện tại
@@ -79,7 +79,7 @@ class CartController
             ]);
         }
 
-        // Lấy danh sách các món nước trong giỏ hàng và kết nối với bảng sản phẩm để lấy thông tin Tên, Ảnh
+        // Lấy danh sách các món nước trong giỏ hàng và kết nối
         $items = CartItem::query()
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->where('cart_items.cart_id', $cart->id)
@@ -89,7 +89,7 @@ class CartController
 
         $itemIds = $items->pluck('id');
 
-        // Lấy toàn bộ topping đi kèm của các món nước trong giỏ hàng bằng một câu truy vấn duy nhất (Eager Loading thủ công)
+        // Lấy toàn bộ topping đi kèm của các món nước trong giỏ
         $itemToppings = CartItemTopping::query()
             ->join('toppings', 'cart_item_toppings.topping_id', '=', 'toppings.id')
             ->whereIn('cart_item_toppings.cart_item_id', $itemIds)
@@ -100,12 +100,11 @@ class CartController
         foreach ($items as $item) {
             // Lọc ra các topping tương ứng với từng dòng sản phẩm
             $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
-            // Cộng dồn tổng tiền tạm tính (Giá đã gồm size + topping * Số lượng)
+            // Cộng dồn tổng tiền tạm tính (Giá đã gồm size + topping
             $total += $item->unit_price * $item->quantity;
         }
 
-        // Giỏ hàng không còn hiện quà/giảm giá combo nữa: combo chỉ ăn khi khách tự bấm chọn mã của nó
-        // ở trang thanh toán, nên ở đây chưa thể biết khách sẽ chọn mã nào.
+        // Giỏ hàng không còn hiện quà/giảm giá combo nữa: combo
         return response()->json([
             'success' => true,
             'items' => $items,
@@ -132,7 +131,7 @@ class CartController
         $productId = (int) $validated['product_id'];
         $quantity = (int) ($validated['quantity'] ?? 1);
 
-        // Xác định Size: Nếu khách không chọn, tự động lấy Size có giá phụ thu thấp nhất
+        // Xác định Size: Nếu khách không chọn, tự động lấy Size
         $sizeName = $validated['size_name'] ?? null;
         if (empty($sizeName)) {
             $defaultSize = ProductSize::query()
@@ -164,7 +163,7 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Product not found']);
         }
 
-        // Ngăn chặn thêm sản phẩm vào giỏ nếu sản phẩm đó đã bị tắt hoạt động (hết hàng/ngừng bán)
+        // Ngăn chặn thêm sản phẩm vào giỏ nếu sản phẩm đó đã bị
         if (!$product->is_active) {
             return response()->json(['success' => false, 'message' => 'Sản phẩm này đã hết hàng, không thể thêm vào giỏ hàng.']);
         }
@@ -209,7 +208,7 @@ class CartController
         // THUẬT TOÁN SO KHỚP SẢN PHẨM TRÙNG TRONG GIỎ HÀNG
         // =========================================================================
 
-        // Bước 1: Tìm tất cả các món nước trong giỏ có chung Product, Size, Đường và Đá
+        // Bước 1: Tìm tất cả các món nước trong giỏ có chung
         $potentialItems = CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
@@ -222,7 +221,7 @@ class CartController
         $reqTops = $toppingIds;
         sort($reqTops); // Sắp xếp mảng ID topping yêu cầu tăng dần để chuẩn bị so sánh
 
-        // Bước 2: Duyệt qua các món nước tìm được, so sánh danh sách Topping đi kèm của chúng
+        // Bước 2: Duyệt qua các món nước tìm được, so sánh danh
         foreach ($potentialItems as $pi) {
             $piToppings = CartItemTopping::query()
                 ->where('cart_item_id', $pi->id)
@@ -231,14 +230,14 @@ class CartController
 
             sort($piToppings); // Sắp xếp mảng ID topping của món trong giỏ tăng dần
 
-            // So sánh 2 mảng đã được sắp xếp. Nếu trùng khít -> Đã tìm thấy ly nước y hệt cấu hình
+            // So sánh 2 mảng đã được sắp xếp. Nếu trùng khít -> Đã
             if ($piToppings == $reqTops) {
                 $existingItem = $pi;
                 break;
             }
         }
 
-        // Bước 3: Nếu tìm thấy ly nước trùng cấu hình -> Cập nhật cộng dồn số lượng (tối đa 99 ly)
+        // Bước 3: Nếu tìm thấy ly nước trùng cấu hình -> Cập
         if ($existingItem) {
             CartItem::query()
                 ->where('id', $existingItem->id)
@@ -247,7 +246,7 @@ class CartController
                     'updated_at' => now()
                 ]);
         } else {
-            // Nếu không trùng khớp -> Tạo mới một dòng sản phẩm trong giỏ hàng
+            // Nếu không trùng khớp -> Tạo mới một dòng sản phẩm
             $newItemId = CartItem::query()->insertGetId([
                 'cart_id' => $cart->id,
                 'product_id' => $productId,
@@ -260,7 +259,7 @@ class CartController
                 'updated_at' => now()
             ]);
 
-            // Lưu liên kết các topping đi kèm của ly nước mới tạo này vào cơ sở dữ liệu
+            // Lưu liên kết các topping đi kèm của ly nước mới tạo
             if (!empty($tops)) {
                 $inserts = [];
                 foreach ($tops as $t) {
@@ -278,7 +277,7 @@ class CartController
         return $this->getCartData();
     }
 
-    //XÓA TOÀN BỘ
+    // XÓA TOÀN BỘ
     public function remove(Request $request)
     {
         $validated = $request->validate(['item_id' => ['required', 'integer']]);
@@ -294,7 +293,7 @@ class CartController
         return $this->getCartData();
     }
 
-    //CẬP NHẬT
+    // CẬP NHẬT
     public function  update(Request $request)
     {
         $validated = $request->validate([
@@ -316,7 +315,7 @@ class CartController
         return $this->getCartData();
     }
 
-    //XÓA ĐÃ CHỌN
+    // XÓA ĐÃ CHỌN
     public function removeMany(Request $request)
     {
         $validated = $request->validate([
@@ -335,7 +334,7 @@ class CartController
         return $this->getCartData();
     }
 
-   //XÓA TOÀN BỘ
+   // XÓA TOÀN BỘ
     public function clear(Request $request)
     {
         $cart = $this->findCart();
@@ -395,7 +394,7 @@ class CartController
                     $existingItem = null; // Tạo mới dòng nếu ly cũ trong giỏ có topping
                 }
             }
-            //NẾU CÓ SP GIỐNG + LUÔN
+            // NẾU CÓ SP GIỐNG + LUÔN
             if ($existingItem) {
                 CartItem::query()
                     ->where('id', $existingItem->id)
@@ -434,7 +433,7 @@ class CartController
             return response()->json(['success' => false, 'message' => 'Giỏ hàng không tồn tại.'], 400);
         }
 
-        // Xác thực chặt chẽ phía Server: Đảm bảo các ID sản phẩm gửi lên thực sự thuộc giỏ hàng của user này
+        // Xác thực chặt chẽ phía Server: Đảm bảo các ID sản phẩm
         $validIds = CartItem::query()
             ->where('cart_id', $cart->id)
             ->whereIn('id', $validated['selected_item_ids'])
@@ -456,12 +455,12 @@ class CartController
     }
 
 
-    //TRANG THANH TOÁN
+    // TRANG THANH TOÁN
     public function checkout()
     {
         $userId = Auth::id();
 
-        // Lấy danh sách địa chỉ của khách hàng (ưu tiên địa chỉ mặc định lên đầu)
+        // Lấy danh sách địa chỉ của khách hàng (ưu tiên địa chỉ
         $addresses = UserAddress::query()
             ->where('user_id', $userId)
             ->orderBy('is_default', 'desc')
@@ -476,7 +475,7 @@ class CartController
         $subtotal = 0;
         if ($cart) {
             try {
-                // Đọc danh sách ID sản phẩm khách đã tick chọn thanh toán lưu trong Session
+                // Đọc danh sách ID sản phẩm khách đã tick chọn thanh
                 $selectedIds = session('selected_cart_item_ids');
 
                 if (!empty($selectedIds)) {
@@ -491,14 +490,14 @@ class CartController
                     $selectedIds = null; // Mặc định thanh toán toàn bộ giỏ nếu session trống
                 }
 
-                //tính lại giá gốc+size+topping, đồng bộ lại DB nếu giá đổi
+                // tính lại giá gốc+size+topping, đồng bộ lại DB nếu giá đổi
                 $items = $this->sv_cartPricing->pricedItems($cart, selectedIds: $selectedIds);
                 foreach ($items as $item) {
                     $item->name = $item->product->name;
                     $item->image = $item->product->image;
                     $item->toppings = $item->calculated_toppings;
                 }
-                //cộng dồn giá × số lượng của tất cả item -> 1 số tổng
+                // cộng dồn giá × số lượng của tất cả item -> 1 số tổng
                 $subtotal = $this->sv_cartPricing->subtotal($items);
             } catch (ValidationException $exception) {
                 return redirect('/')->withErrors($exception->errors());
@@ -510,7 +509,7 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        // Xác định ngưỡng miễn phí vận chuyển theo hạng thành viên (Diamond được miễn phí hoàn toàn)
+        // Xác định ngưỡng miễn phí vận chuyển theo hạng thành
         $freeShipThreshold = (float) Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
         if ($user) {
@@ -527,7 +526,7 @@ class CartController
             }
         }
 
-        // 1. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản trị của Admin
+        // 1. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản
         $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         $isClosed = !$receiveEnabled;
         $closedReason = null;
@@ -535,7 +534,7 @@ class CartController
         if ($isClosed) {
             $closedReason = 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!';
         } else {
-            // 2. Kiểm tra giờ hoạt động của cửa hàng (Hỗ trợ cấu hình chạy qua đêm)
+            // 2. Kiểm tra giờ hoạt động của cửa hàng (Hỗ trợ cấu
             $open = Setting::getValue('store_open_time', '08:00');
             $close = Setting::getValue('store_close_time', '22:00');
             $nowStr = now()->format('H:i');
@@ -552,7 +551,7 @@ class CartController
             }
         }
 
-        // Khởi tạo token chống đặt lặp đơn (Idempotency token) và lưu vào Session
+        // Khởi tạo token chống đặt lặp đơn (Idempotency token)
         $checkoutToken = (string) Str::uuid();
         session(['checkout_token' => $checkoutToken]);
 
@@ -561,10 +560,6 @@ class CartController
         }
 
         // Lấy danh sách mã khuyến mãi CÓ THỂ ÁP DỤNG cho đơn hàng này:
-        // Bước 1 — lọc nhanh ở DB: active, kênh đúng, scope không phải combo
-        // Bước 2 — gọi checkValidity() để lọc chính xác: hạng thành viên, đơn tối thiểu,
-        //           đã dùng rồi chưa, khung giờ Happy Hour, số lượng tối thiểu...
-        // Mã combo được ghép thêm ở bước 3 bên dưới vì còn phải xét giỏ có đủ tổ hợp món hay không.
         $totalQuantity = $items->sum('quantity');
         $now = now();
         $availablePromotions = Promotion::query()
@@ -588,8 +583,7 @@ class CartController
             })
             ->values();
 
-        // Bước 3 — ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ hợp món, để khách bấm chọn như mọi mã
-        // khác. Chưa đủ món thì không hiện, tránh khách bấm vào chỉ để nhận lỗi.
+        // Bước 3 — ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ
         $comboPromotions = $this->sv_promotions->applicableCombos($items, 'delivery')
             ->filter(fn($promo) => $promo->checkValidity($user, $subtotal, 'delivery', $totalQuantity)['valid'] === true);
 
@@ -628,7 +622,7 @@ class CartController
             }
         }
 
-        // Sử dụng ShippingQuoteService để tính toán khoảng cách thực tế (theo tuyến đường đi)
+        // Sử dụng ShippingQuoteService để tính toán khoảng cách
         $result = $this->sv_shippingQuote->distanceForWithSource($address);
 
         return response()->json([
@@ -663,7 +657,7 @@ class CartController
     }
 
 
-    //XÁC NHẬN TÍNH HỢP LỆ VÀ MỨC TIỀN ĐƯỢC TRỪ KHI ÁP DỤNG
+    // XÁC NHẬN TÍNH HỢP LỆ VÀ MỨC TIỀN ĐƯỢC TRỪ KHI ÁP DỤNG
     public function validateCoupon(Request $request)
     {
         $code = strtoupper(trim($request->input('coupon_code')));
@@ -695,18 +689,17 @@ class CartController
             'max_discount_amount' => $coupon->max_discount_amount,
             'min_order_amount' => $coupon->min_order_amount,
             'description' => $coupon->description,
-            // end_at là cột dateTime thô, KHÔNG có cast Carbon trong Model -> phải tự parse chứ
-            // không được gọi ->format() thẳng lên chuỗi.
+            // end_at là cột dateTime thô, KHÔNG có cast Carbon trong
             'end_at' => $coupon->end_at ? Carbon::parse($coupon->end_at)->format('d/m/Y H:i') : null,
             'scope' => $coupon->scope,
-            // Mô tả phạm vi áp dụng cho sản phẩm hoặc danh mục cụ thể để hiển thị trực quan lên giao diện
+            // Mô tả phạm vi áp dụng cho sản phẩm hoặc danh mục cụ
             'scope_label' => match ($coupon->scope) {
                 'product' => 'Áp dụng cho: ' . $coupon->products->pluck('name')->implode(', '),
                 'category' => 'Áp dụng cho danh mục: ' . $coupon->categories->pluck('name')->implode(', '),
                 'combo' => 'Combo: mua ' . $coupon->comboItems->map(fn($ci) => $ci->quantity . ' ' . ($ci->product->name ?? ''))->implode(' + '),
                 default => null,
             },
-            // Quà tặng kèm của mã combo — chỉ mã combo mới có, JS dùng để vẽ/xóa dòng quà khi đổi mã
+            // Quà tặng kèm của mã combo — chỉ mã combo mới có, JS
             'gifts' => collect($result['gifts'] ?? [])->map(fn($g) => [
                 'name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
@@ -743,7 +736,7 @@ class CartController
         $shippingFee = $distanceKm <= 2 ? $baseFee : $baseFee + ($distanceKm - 2) * $feePerKm;
         $shippingFee = $subtotal >= $threshold ? 0 : round($shippingFee); // Miễn ship nếu đạt ngưỡng
 
-        // Tính toán mức phụ thu thời tiết xấu dựa trên phí vận chuyển chuẩn thông qua ShippingQuoteService
+        // Tính toán mức phụ thu thời tiết xấu dựa trên phí vận
         $result = $this->sv_shippingQuote->weatherSurcharge(
             $shippingFee,
             $address->latitude ? (float) $address->latitude : null,

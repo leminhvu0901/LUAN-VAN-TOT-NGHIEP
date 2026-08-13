@@ -5,7 +5,7 @@
 @section('content')
 <div class="p-6 space-y-6">
 
-    <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
+    <!-- Tiêu đề trang & Nút Thêm mới -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <div>
             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Danh mục</h2>
@@ -45,7 +45,7 @@
         @endpush
     @endif
 
-    <!-- Phần 2: Khung Thống kê -->
+    <!-- Khung Thống kê -->
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <!-- Card 1: Tổng -->
         <div class="bg-white p-3 sm:p-4 rounded-2xl organic-shadow flex items-center justify-between border border-gray-100 hover:border-emerald-300 transition-all group gap-2">
@@ -90,7 +90,7 @@
         </div>
     </div>
 
-    <!-- Phần 3: Thanh Tìm kiếm và Lọc dữ liệu -->
+    <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
     <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 flex flex-col gap-4">
         <div class="flex items-center justify-between xl:hidden">
             <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    <!-- Phần 4: Bảng danh sách Danh mục -->
+    <!-- Bảng danh sách Danh mục -->
     <div class="bg-white rounded-2xl organic-shadow overflow-hidden border border-gray-100 flex flex-col h-[calc(100vh-230px)] min-h-[500px] w-full">
         <div id="table-container" class="flex-1 flex flex-col min-h-0 relative w-full">
             <div id="table-loader" class="absolute inset-0 bg-white/50 z-20 hidden items-center justify-center transition-all duration-300">
@@ -164,12 +164,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCountSpan = document.getElementById('selected-count');
     const bulkDeleteForm = document.getElementById('bulk-delete-form');
 
-    // Lấy mảng id của các dòng đang được tích chọn trong bảng
+    // Lấy danh sách ID danh mục đang được chọn
     function getCheckedIds() {
         return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     }
 
-    // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
+    // Cập nhật trạng thái hiển thị và số lượng của nút xóa hàng loạt
     function updateBulkDeleteUI() {
         const count = getCheckedIds().length;
         if (bulkDeleteBtn) bulkDeleteBtn.classList.toggle('hidden', count === 0);
@@ -177,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCountSpan) selectedCountSpan.textContent = count;
     }
 
+    // Xử lý sự kiện khi thay đổi trạng thái checkbox chọn tất cả hoặc từng dòng
     document.addEventListener('change', function (e) {
         if (e.target.classList.contains('js-select-all')) {
             const isChecked = e.target.checked;
@@ -191,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Bỏ chọn tất cả checkbox đang được tích
     if (bulkDeselectBtn) {
         bulkDeselectBtn.addEventListener('click', function () {
             document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false);
@@ -198,12 +200,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Xác nhận và gửi yêu cầu xóa các danh mục đã chọn
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener('click', function () {
             const ids = getCheckedIds();
             if (ids.length === 0) return;
             if (!confirm(`Bạn chuẩn bị xóa ${ids.length} danh mục đã chọn. Tiếp tục?`)) return;
 
+            // Đưa danh sách ID vào form ẩn và submit
             bulkDeleteForm.querySelectorAll('input[name="category_ids[]"]').forEach(el => el.remove());
             ids.forEach(id => {
                 const input = document.createElement('input');

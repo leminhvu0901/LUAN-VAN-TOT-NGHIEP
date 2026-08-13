@@ -60,9 +60,7 @@
                             <p class="text-xs text-gray-400 mt-1">Tối đa 10 ký tự. Để trống để hệ thống tự sinh mã.</p>
                         </div>
 
-                        <!-- Loại khuyến mãi + Giá trị giảm: CHỈ có ý nghĩa với giảm giá tiền (toàn
-                        đơn/sản phẩm/danh mục) — ẩn hoàn toàn khi chọn "Mua X tặng Y" ở khối phạm vi
-                        bên dưới (xử lý bởi form-common.js). -->
+                        <!-- Loại khuyến mãi + Giá trị giảm: CHỈ có ý nghĩa -->
                         <div id="money-discount-fields">
                         <!-- Loại khuyến mãi -->
                         <div>
@@ -98,15 +96,15 @@
                                     Giá trị giảm <span class="text-red-500">*</span>
                                     <span id="value-unit" class="font-normal text-gray-500">(% tỷ lệ)</span>
                                 </label>
-                                <!-- Display input (hiện cho user) -->
+                                <!-- Display input -->
                                 <input type="text" id="display-value"
                                     value="{{ old('value') }}"
                                     placeholder="VD: 20"
                                     class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
-                                <!-- Hidden input (gửi lên server) -->
+                                <!-- Hidden input -->
                                 <input type="hidden" name="value" id="promo-value" value="{{ old('value') }}">
                             </div>
-                            <!-- Giảm tối đa (chỉ hiện khi type=percent) -->
+                            <!-- Giảm tối đa -->
                             <div id="max-discount-wrap">
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Giảm tối đa (VNĐ)</label>
                                 <input type="text" id="display-max-discount"
@@ -243,7 +241,7 @@
                         <p class="text-[11px] text-gray-500 mt-1 ml-6">Sử dụng cho Giờ Vàng (vd: 7h-9h T2, T3 hàng tuần).</p>
                     </div>
 
-                    <!-- Thời gian Cố định (Một lần) -->
+                    <!-- Thời gian Cố định -->
                     <div id="fixed_time_wrapper" class="space-y-4 {{ old('is_recurring') ? 'hidden' : '' }}">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Ngày bắt đầu</label>
@@ -392,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function () {
     bindVNDInput(displayMaxDiscount, hiddenMaxDiscount);
     bindVNDInput(displayMinOrder, hiddenMinOrder);
 
-    // Đọc kiểu giảm giá đang được chọn (theo % hay số tiền cố định)
+    // Đọc kiểu giảm giá đang được chọn
     function getCurrentType() {
         const checked = document.querySelector('input[name="type"]:checked');
         return checked ? checked.value : 'percent';
@@ -475,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const scopeComboFields = document.getElementById('scope-combo-fields');
     const moneyDiscountFields = document.getElementById('money-discount-fields');
 
-    // Hiện/ẩn các khu vực của form theo phạm vi áp dụng (cả đơn / sản phẩm / danh mục / combo)
+    // Hiện/ẩn các khu vực của form theo phạm vi áp dụng
     function updateScopeUI(selectedScope) {
         scopeOptions.forEach(function (option) {
             const isActive = option.dataset.scope === selectedScope;
@@ -691,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateComboDiscountTypeUI(getComboDiscountType());
 
-    // Kiểm tra combo ngay tại trình duyệt trước khi gửi (đủ ít nhất 2 món, không trùng sản phẩm), chặn sớm cho khỏi mất công tải lại trang
+    // Kiểm tra combo ngay tại trình duyệt trước khi gửi, chặn sớm cho khỏi mất công tải lại trang
     function validateComboBeforeSubmit() {
         const productSelects = Array.from(document.querySelectorAll('#combo-items select[name="combo_product_ids[]"]'));
         const hasProduct = productSelects.some((sel) => sel.value);

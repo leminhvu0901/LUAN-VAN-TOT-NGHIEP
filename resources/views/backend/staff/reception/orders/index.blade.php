@@ -18,7 +18,7 @@
             @include('backend.staff.reception.orders.partials.stats')
         </div>
 
-        {{-- Form tìm kiếm và lọc dữ liệu --}}
+        {{-- Form --}}
         <div class="bg-white p-3 sm:p-4 rounded-xl organic-shadow border border-gray-100 flex flex-col gap-4 relative z-20">
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>

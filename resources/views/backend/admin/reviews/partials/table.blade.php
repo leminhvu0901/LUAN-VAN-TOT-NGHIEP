@@ -1,4 +1,4 @@
-<!-- Giao diện Mobile (Card view) -->
+<!-- Giao diện Mobile -->
 <div class="block lg:hidden space-y-4 p-4">
     <div class="flex items-center justify-between mb-3 px-1">
         <label class="flex items-center gap-2 text-sm text-gray-700 font-bold cursor-pointer group">
@@ -10,7 +10,7 @@
 
     @forelse($reviews as $review)
         <div class="bg-white p-4 sm:p-5 rounded-2xl organic-shadow border border-gray-100 flex flex-col gap-3.5 relative group transition-all hover:shadow-md" id="review-card-{{ $review->id }}">
-            <!-- Header: Avatar + Checkbox -->
+            <!-- Header -->
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-3 w-[calc(100%-2rem)]">
                     @php
@@ -129,7 +129,7 @@
     @endforelse
 </div>
 
-<!-- Giao diện Desktop (Table view) -->
+<!-- Giao diện Desktop -->
 <div class="hidden lg:block overflow-x-auto">
     <table class="w-full text-left border-collapse whitespace-nowrap">
         <thead class="bg-gray-50/80 border-b border-gray-100 backdrop-blur-sm">

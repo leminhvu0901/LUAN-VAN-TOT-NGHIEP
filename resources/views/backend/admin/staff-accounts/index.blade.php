@@ -119,6 +119,7 @@
     @push('scripts')
         <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Xử lý thay đổi loại vai trò nhân viên (pha chế hoặc giao hàng)
             document.addEventListener('change', function (e) {
                 if (e.target && e.target.classList.contains('staff-type-select')) {
                     const select = e.target;
@@ -135,6 +136,7 @@
                 }
             });
 
+            // Xử lý thay đổi trạng thái hoạt động hoặc khóa tài khoản kèm lý do
             document.addEventListener('change', function (e) {
                 if (e.target && e.target.classList.contains('toggle-status')) {
                     const checkbox = e.target;

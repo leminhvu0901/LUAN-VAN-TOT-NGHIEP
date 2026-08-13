@@ -56,8 +56,7 @@ class Promotion extends Model
     // KIỂM TRA MÃ GIẢM GIÁ CÓ HỢP LỆ KHÔNG
     public function checkValidity($user, $subtotal, ?string $deliveryType = null, ?int $totalQuantity = null)
     {
-        // 0. KIỂM TRA KÊNH ÁP DỤNG (tại quầy / giao hàng) — mã chỉ dành riêng 1 kênh thì không cho
-        // dùng ở kênh còn lại (vd mã "chỉ giao hàng" không được tự động áp cho đơn tại quầy).
+        // 0. KIỂM TRA KÊNH ÁP DỤNG (tại quầy / giao hàng) — mã
         if ($deliveryType && $this->applies_to && $this->applies_to !== 'all' && $this->applies_to !== $deliveryType) {
             $channelNames = ['pickup' => 'đơn tại quầy', 'delivery' => 'đơn giao hàng'];
             $requiredChannel = $channelNames[$this->applies_to] ?? $this->applies_to;
@@ -72,14 +71,14 @@ class Promotion extends Model
 
         // 2. KIỂM TRA THỜI GIAN ÁP DỤNG
         if ($this->is_recurring) {
-            // TRƯỜNG HỢP A: Mã giảm giá lặp lại theo khung giờ/thứ trong tuần (Happy Hour)
+            // TRƯỜNG HỢP A: Mã giảm giá lặp lại theo khung giờ/thứ
             $nowStr = now()->format('H:i:s');
             $currentDay = now()->dayOfWeekIso;
 
             // Kiểm tra xem hôm nay có nằm trong những ngày cho phép không
             if (is_array($this->recurring_days) && count($this->recurring_days) > 0) {
                 if (!in_array($currentDay, $this->recurring_days)) {
-                    // Chuyển mảng số thành chữ (VD: [1, 2] -> T2, T3) để thông báo cho khách
+                    // Chuyển mảng số thành chữ (VD: [1, 2] -> T2, T3) để
                     $days = [1 => 'T2', 2 => 'T3', 3 => 'T4', 4 => 'T5', 5 => 'T6', 6 => 'T7', 7 => 'CN'];
                     $dayLabels = array_map(function ($d) use ($days) {
                         return $days[$d] ?? '';
@@ -98,7 +97,7 @@ class Promotion extends Model
                 return ['valid' => false, 'message' => 'Mã này đã hết khung giờ áp dụng hôm nay (' . \Carbon\Carbon::parse($this->recurring_end_time)->format('H:i') . ').'];
             }
         } else {
-            // TRƯỜNG HỢP B: Mã giảm giá áp dụng theo ngày cố định (Cổ điển)
+            // TRƯỜNG HỢP B: Mã giảm giá áp dụng theo ngày cố định
 
             // Nếu đã vượt qua ngày giờ kết thúc (end_at)
             if ($this->end_at && now() > $this->end_at) {
@@ -112,26 +111,23 @@ class Promotion extends Model
         }
 
         // 3. KIỂM TRA ĐIỀU KIỆN ĐƠN TỐI THIỂU
-        // Nếu đơn hàng chưa đủ giá trị tối thiểu (min_order_amount)
         if ($this->min_order_amount && $subtotal < $this->min_order_amount) {
             return ['valid' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu ' . number_format($this->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.'];
         }
 
-        // 3.5. KIỂM TRA SỐ LƯỢNG MÓN TỐI THIỂU (vd: mã combo yêu cầu mua từ 2-3 ly trở lên)
+        // 3.5. KIỂM TRA SỐ LƯỢNG MÓN TỐI THIỂU (vd: mã combo yêu
         if ($this->min_quantity && (int) ($totalQuantity ?? 0) < $this->min_quantity) {
             return ['valid' => false, 'message' => "Đơn hàng cần mua tối thiểu {$this->min_quantity} món để dùng mã này."];
         }
 
         // 4. KIỂM TRA GIỚI HẠN TỔNG SỐ LƯỢT DÙNG TRÊN TOÀN HỆ THỐNG
-        // Nếu mã có set usage_limit và số lượt đã dùng (used_count) vượt mức
         if ($this->usage_limit && $this->used_count >= $this->usage_limit) {
             return ['valid' => false, 'message' => 'Mã giảm giá đã hết lượt sử dụng.'];
         }
 
-        // 5. KIỂM TRA ĐIỀU KIỆN HẠNG THÀNH VIÊN — mã gắn cho ĐÚNG hạng đó, không phải "hạng đó trở lên".
-        // (VD mã "Chào mừng thành viên Mới" chỉ hạng Mới dùng được, hạng Kim cương KHÔNG được dùng ké.)
+        // 5. KIỂM TRA ĐIỀU KIỆN HẠNG THÀNH VIÊN — mã gắn cho
         if ($this->apply_for && $this->apply_for !== 'all') {
-            // Yêu cầu phải đăng nhập nếu mã này đòi hỏi hạng thành viên cụ thể
+            // Yêu cầu phải đăng nhập nếu mã này đòi hỏi hạng thành
             if (!$user) {
                 return ['valid' => false, 'message' => 'Vui lòng đăng nhập để sử dụng mã ưu đãi này.'];
             }

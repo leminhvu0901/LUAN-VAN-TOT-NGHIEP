@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    // Run the migrations.
     public function up(): void
     {
         // users.id trong DB này là `int` thường (không phải bigint) — foreignId() mặc định tạo
@@ -30,9 +28,7 @@ return new class extends Migration
         }); 
     }
 
-    /**
-     * Reverse the migrations.
-     */
+    // Reverse the migrations.
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {

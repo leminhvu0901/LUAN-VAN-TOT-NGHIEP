@@ -10,11 +10,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * Kiểm tra các view render đúng URL ảnh cho mọi dạng đường dẫn lưu trong DB.
- * Sau khi gỡ bỏ hệ thống Railway (không còn public/uploads/), mọi đường dẫn
- * đều theo quy ước duy nhất: tương đối so với public/images/.
- */
+// Kiểm tra các view render đúng URL ảnh cho mọi dạng đường dẫn lưu trong DB.
+// Sau khi gỡ bỏ hệ thống Railway (không còn public/uploads/), mọi đường dẫn
+// đều theo quy ước duy nhất: tương đối so với public/images/.
 class UploadedImageUrlRenderingTest extends TestCase
 {
     use RefreshDatabase;

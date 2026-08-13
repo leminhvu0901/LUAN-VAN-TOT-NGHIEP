@@ -8,20 +8,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
-/**
- * Bộ test này xác nhận toàn bộ luồng CRUD và quy ước lưu ảnh banner: ảnh mẫu đi kèm mã nguồn nằm ở
- * public/images/banners, ảnh admin tự tải lên nằm ở public/images/uploads/banners (thư mục được gắn
- * ổ đĩa bền vững khi chạy trên Railway).
- */
+// Bộ test này xác nhận toàn bộ luồng CRUD và quy ước lưu ảnh banner: ảnh mẫu đi kèm mã nguồn nằm ở
+// public/images/banners, ảnh admin tự tải lên nằm ở public/images/uploads/banners (thư mục được gắn
+// ổ đĩa bền vững khi chạy trên Railway).
 class AdminBannerControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * Trang danh sách và trang sửa phải dựng đúng URL cho CẢ 2 kiểu đường dẫn.
-     * Trước đây 2 view này tự cắt basename() rồi ghép cứng 'images/banners/' nên ảnh mới tải lên
-     * (có thêm thư mục con 'uploads/') bị mất đường dẫn và vỡ ảnh.
-     */
+    // Trang danh sách và trang sửa phải dựng đúng URL cho CẢ 2 kiểu đường dẫn.
+    // Trước đây 2 view này tự cắt basename() rồi ghép cứng 'images/banners/' nên ảnh mới tải lên
+    // (có thêm thư mục con 'uploads/') bị mất đường dẫn và vỡ ảnh.
     public function test_banner_pages_render_correct_image_url_for_both_old_and_new_paths(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -12,7 +12,7 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
-    // Cấu hình dịch vụ Amazon SES (Simple Email Service)
+    // Cấu hình dịch vụ Amazon SES
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -27,15 +27,14 @@ return [
         ],
     ],
 
-    // Cấu hình đăng nhập bằng tài khoản Google (OAuth)
+    // Cấu hình đăng nhập bằng tài khoản Google
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URL', 'http://127.0.0.1:8000/auth/google/callback'),
     ],
 
-
-    // Cấu hình kết nối cổng thanh toán VNPay (Môi trường thử nghiệm Sandbox)
+    // Cấu hình kết nối cổng thanh toán VNPay
     'vnpay' => [
         'sandbox' => [
             'tmn_code' => env('VNPAY_TMN_CODE_SANDBOX'),
@@ -50,7 +49,7 @@ return [
         'key' => env('OPENROUTE_SERVICE_API_KEY'),
     ],
 
-    // Cấu hình API Key của Geoapify (dùng định vị, hiển thị bản đồ, tính phí ship)
+    // Cấu hình API Key của Geoapify
     'geoapify' => [
         'key' => env('GEOAPIFY_API_KEY'),
     ],

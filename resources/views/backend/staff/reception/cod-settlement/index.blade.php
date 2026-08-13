@@ -28,9 +28,7 @@
                             <h3 class="font-bold text-gray-900 text-lg">{{ $group['staff']->name }}</h3>
                             <p class="text-xs text-gray-500">{{ $group['staff']->phone ?: 'Chưa cập nhật SĐT' }}</p>
                         </div>
-                        {{-- Màn hẹp: xếp 2 ô số liệu + nút "Nộp tất cả" dọc xuống thay vì nhồi chung 1 hàng
-                             ngang - nhãn "Đã nộp hôm nay" dài hơn "Chưa nộp" nên tự xuống dòng còn ô kia
-                             thì không, làm 2 ô lệch chiều cao và nút bị đẩy lệch theo. --}}
+                        {{-- Màn hẹp: xếp 2 ô số liệu + nút "Nộp tất cả" dọc --}}
                         <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
                             <div class="flex items-center justify-between sm:justify-end gap-4">
                                 <div class="text-left sm:text-right">

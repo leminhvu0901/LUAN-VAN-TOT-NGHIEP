@@ -5,7 +5,7 @@
 @section('content')
     <div id="pos-order-page-content" class="flex flex-col gap-6 h-full pb-4 orders-page">
 
-        {{-- PHẦN 1: HEADER (Tiêu đề, Trạng thái đơn, Nút in) --}}
+        {{-- Header --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <div class="flex items-center gap-3">
@@ -25,10 +25,7 @@
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
             <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
-                {{-- Cho in ngay khi đơn đã XÁC NHẬN (không chờ payment_status=paid nữa) - pha chế cần
-                     phiếu để bắt đầu làm đồ ngay, không thể chờ thu tiền xong mới in, áp dụng như nhau
-                     cho cả đơn tại quầy và đơn đặt online/giao hàng. Chỉ chặn khi đơn còn "chờ xác nhận"
-                     (chưa chắc sẽ nhận) hoặc đã hủy. --}}
+                {{-- Cho in ngay khi đơn đã xác NHẬN - pha chế cần --}}
                 @if (in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
                     <button id="print-prep-ticket-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
@@ -46,7 +43,7 @@
             </div>
         </div>
 
-        {{-- PHẦN 1.5: THÔNG BÁO LÝ DO HỦY ĐƠN --}}
+        {{-- Thông báo lý do hủy đơn --}}
         @if ($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
                 <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
@@ -57,7 +54,7 @@
             </div>
         @endif
 
-        {{-- PHẦN 1.6: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG — chỉ chỉnh được tại đây, danh sách chỉ hiển thị --}}
+        {{-- CẬP NHẬT TRẠNG thái ĐƠN hàng --}}
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
             @php
                 $statusLabels = [
@@ -69,18 +66,15 @@
                 ];
                 [$statusLabel, $statusBadgeClass] = $statusLabels[$order->status] ?? [$order->status, ''];
                 $isDeliveryOrder = $order->delivery_type !== 'pickup';
-                // Không cho hủy khi: đơn đã thanh toán (phải hoàn tiền trước — theo rule OrderWorkflowService),
-                // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đây).
+                // Kiểm tra điều kiện hủy đơn hàng
                 $canCancel =
                     in_array($order->status, ['pending', 'confirmed'], true) && $order->payment_status !== 'paid';
-                // Đơn VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động
-                // (route staff.reception.orders.refund), khác nút "Hủy đơn" thường ở trên.
+                // Kiểm tra điều kiện hoàn tiền và hủy đơn
                 $canRefundAndCancel =
                     in_array($order->status, ['pending', 'confirmed'], true) &&
                     $order->payment_method === 'vnpay' &&
                     $order->payment_status === 'paid';
-                // Đơn tiền mặt tại quầy: phải thu tiền (khối "Thanh toán" ngay bên dưới) TRƯỚC khi được
-                // xác nhận - khớp rule server-side ở OrderWorkflowService::transition().
+                // Kiểm tra trạng thái thu tiền mặt tại quầy
                 $cashNotYetCollected = $order->payment_method === 'cash' && $order->payment_status !== 'paid';
             @endphp
 
@@ -138,7 +132,7 @@
                         @endif
                     @endif
 
-                    {{-- Đơn tại quầy: khách nhận trực tiếp, không có bước giao hàng — xác nhận xong là hoàn thành luôn. --}}
+                    {{-- Đơn tại quầy: khách nhận trực tiếp, không có bước giao hàng --}}
                     @if ($order->delivery_type === 'pickup' && in_array($order->status, ['confirmed', 'shipping'], true))
                         <form action="{{ route('staff.reception.orders.status.update', $order->id) }}" method="POST">
                             @csrf
@@ -184,9 +178,7 @@
             </div>
         </div>
 
-        {{-- PHẦN 1.7: TÌNH TRẠNG THANH TOÁN — đưa lên ngay dưới khối trạng thái/xác nhận đơn (thay vì
-             nằm cuối cột phải) vì lễ tân phải xử lý thu tiền TRƯỚC khi xác nhận đơn (đơn tiền mặt),
-             không thể để mục này khuất bên dưới toàn bộ chi tiết món/khách hàng/giao hàng. --}}
+        {{-- Tình TRẠNG thanh toán --}}
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
             <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
                 <span class="material-symbols-outlined text-gray-400">payments</span>
@@ -276,13 +268,13 @@
             @endif
         </div>
 
-        {{-- PHẦN 2: LƯỚI GIAO DIỆN CHÍNH --}}
+        {{-- Lưới giao diện chính --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {{-- CỘT TRÁI (Chiếm 2/3 không gian): Danh sách món ăn và tổng tiền --}}
+            {{-- CỘT trái: Danh sách món ăn và tổng tiền --}}
             <div class="lg:col-span-2 flex flex-col gap-6">
 
-                {{-- Khối 1: Danh sách món ăn (Order Items) --}}
+                {{-- Khối 1: Danh sách món ăn --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div class="p-5 border-b border-gray-100">
                         <h3 class="font-bold text-gray-900 text-lg">Chi tiết món</h3>
@@ -396,7 +388,7 @@
                 </div>
             </div>
 
-            {{-- CỘT PHẢI (Chiếm 1/3 không gian): Khách hàng, Giao hàng --}}
+            {{-- CỘT PHẢI: Khách hàng, Giao hàng --}}
             <div class="flex flex-col gap-6">
 
                 {{-- Khối 3: Thông tin Khách hàng --}}
@@ -451,10 +443,7 @@
                                     <form action="{{ route('staff.reception.orders.assign_delivery', $order->id) }}"
                                         method="POST" class="flex flex-col gap-2 mt-1">
                                         @csrf
-                                        {{-- custom-select-init (public/js/backend/admin/layout.js) thay khung sổ xuống
-                                             mặc định của trình duyệt bằng dropdown tự vẽ theo đúng giao diện chung -
-                                             native <select> để trần trên mobile hiện thanh xanh dương mặc định của hệ
-                                             điều hành, lệch hẳn với phần còn lại của trang. --}}
+                                        {{-- Custom-select-init thay khung sổ xuống mặc định --}}
                                         <select name="delivery_staff_id" required
                                             class="custom-select-init w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                                             <option value="">-- Chọn nhân viên giao hàng --</option>
@@ -500,8 +489,7 @@
         $pickupModeLabels = ['dine_in' => 'Tại quầy', 'takeaway' => 'Mang đi'];
     @endphp
 
-    {{-- PHIẾU PHA CHẾ: chỉ hiện khi in (JS gắn class lên <body> trước khi gọi window.print()) — không
-         hiển thị giá tiền, chỉ thông tin cần thiết để pha chế đúng món. --}}
+    {{-- Phiếu pha chế: --}}
     <div id="print-prep-ticket" class="hidden">
         <div class="print-ticket">
             <h2 class="print-ticket__title">PHIẾU PHA CHẾ</h2>
@@ -543,7 +531,7 @@
         </div>
     </div>
 
-    {{-- HÓA ĐƠN KHÁCH HÀNG: đầy đủ giá + tổng + phương thức thanh toán, không có nút bấm/form. --}}
+    {{-- Hóa ĐƠN khách hàng: đầy đủ giá + tổng + phương --}}
     <div id="print-customer-invoice" class="hidden">
         <div class="print-ticket">
             <h2 class="print-ticket__title--invoice">{{ $storeInfo['name'] }}</h2>
@@ -615,7 +603,7 @@
                 image.src = image.dataset.fallbackSrc;
             }
 
-            // In một khu vực của trang (phiếu pha chế / hóa đơn) bằng cách gắn class riêng lên body rồi gọi window.print()
+            // In một khu vực của trang bằng cách gắn class riêng lên body rồi gọi window.print
             function printSection(bodyClass) {
                 document.body.classList.add("pos-printing-ticket", bodyClass);
 

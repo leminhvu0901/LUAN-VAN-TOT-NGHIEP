@@ -1,12 +1,4 @@
-{{-- ===== THANH ĐIỀU HƯỚNG DƯỚI CÙNG (Mobile Bottom Navigation) =====
-Chỉ hiển thị trên mobile — dùng chung cho Trang chủ, Sản phẩm, Đơn hàng, Tài khoản.
-Tab đang active được tính theo route hiện tại (không hardcode cứng theo từng trang) để tránh
-lệch nhau giữa các trang dùng chung thanh này.
-
-QUAN TRỌNG: dùng class CSS thuần (định nghĩa trong users.css, "l-bottom-nav*"), KHÔNG dùng class
-Tailwind — vì Tailwind CDN chỉ được nạp có điều kiện cho 4 route profile/orders/checkout/review
-(xem frontend/components/head.blade.php), còn Trang chủ/Sản phẩm không hề nạp Tailwind. Dùng class
-Tailwind ở đây sẽ vỡ layout trên 2 trang đó (đã xảy ra thực tế, đây là bản sửa lại). --}}
+{{-- Thanh điều hướng dưới cùng --}}
 @php
     $bottomNavIsHome = request()->is('/');
     $bottomNavIsProducts = request()->routeIs('products');

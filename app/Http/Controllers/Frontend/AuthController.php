@@ -15,10 +15,10 @@ use Laravel\Socialite\Facades\Socialite;
 
 class AuthController
 {
-    //Thời gian hiệu lực của mã OTP (giây).
+    // Thời gian hiệu lực của mã OTP (giây).
     private const OTP_LIFETIME_SECONDS = 60;
 
-    //Thời hạn của quyền đặt lại mật khẩu (giây) tính từ lúc xác thực OTP thành công
+    // Thời hạn của quyền đặt lại mật khẩu (giây) tính từ lúc
     private const RESET_PASSWORD_WINDOW_SECONDS = 60;
 
     // HÀM XỬ LÝ THÔNG TIN ĐĂNG KÝ TÀI KHOẢN
@@ -74,7 +74,7 @@ class AuthController
         // 3. Tạo mã OTP gồm 4 số ngẫu nhiên
         $otp = rand(1000, 9999);
 
-        // 4. Lưu dữ liệu đăng ký tạm thời vào Session (Chưa lưu ngay vào DB)
+        // 4. Lưu dữ liệu đăng ký tạm thời vào Session (Chưa lưu
         session([
             'register_data' => [
                 'name' => $request->input('full_name'),
@@ -100,7 +100,7 @@ class AuthController
             return back()->withErrors(['register_error' => $message])->withInput();
         }
 
-        // Đưa người dùng quay lại và đính kèm cờ show_otp để giao diện hiển thị Popup nhập mã OTP
+        // Đưa người dùng quay lại và đính kèm cờ show_otp để
         return back()->with('show_otp', true);
     }
 
@@ -113,7 +113,7 @@ class AuthController
             'otp.*' => 'required|numeric'
         ]);
 
-        // Ghép các ký tự số lẻ trong mảng thành một chuỗi OTP hoàn chỉnh
+        // Ghép các ký tự số lẻ trong mảng thành một chuỗi OTP
         $enteredOtp = implode('', $request->input('otp'));
 
         // Lấy thông tin OTP và dữ liệu đăng ký tạm thời từ Session ra
@@ -178,7 +178,7 @@ class AuthController
     // GỬI LẠI MÃ OTP
     public function resendOtp(Request $request)
     {
-        // Nếu không tồn tại email cần xác nhận trong session -> đẩy ra ngoài trang chủ
+        // Nếu không tồn tại email cần xác nhận trong session ->
         if (!$request->session()->has('verify_email')) {
             return redirect('/');
         }
@@ -261,7 +261,7 @@ class AuthController
             return redirect($destination);
         }
 
-        // Đăng nhập thất bại: Quay lại trang trước, đính kèm thông báo lỗi
+        // Đăng nhập thất bại: Quay lại trang trước, đính kèm
         return $this->loginError($request, 'Thông tin đăng nhập không chính xác.');
     }
 
@@ -292,7 +292,7 @@ class AuthController
     public function handleGoogleCallback()
     {
         try {
-            // Tắt xác thực chứng chỉ SSL tạm thời trên môi trường local phát triển để tránh lỗi cURL
+            // Tắt xác thực chứng chỉ SSL tạm thời trên môi trường
             $guzzle = new GuzzleClient(['verify' => false]);
             $googleUser = Socialite::driver('google')->setHttpClient($guzzle)->user();
 
@@ -311,7 +311,7 @@ class AuthController
                     'google_id' => $googleUser->getId(), // Lưu trữ ID định danh của Google
                 ]);
             } else {
-                // TH2: Nếu tài khoản đã tồn tại bằng email đăng ký thường, thực hiện đồng bộ thêm thông tin Google ID và ảnh đại diện
+                // TH2: Nếu tài khoản đã tồn tại bằng email đăng ký
                 if (!$user->google_id || !$user->avatar) {
                     $user->update([
                         'google_id' => $googleUser->getId(),
@@ -400,7 +400,7 @@ class AuthController
         return redirect('/')->with('show_reset_password', true);
     }
 
-    //KIỂM TRA QUYỂN ĐẶT LẠI MẬT KHẨU
+    // KIỂM TRA QUYỂN ĐẶT LẠI MẬT KHẨU
     private function hasValidResetPermission(Request $request): bool
     {
         if (!$request->session()->has('can_reset_password')) {
@@ -410,7 +410,7 @@ class AuthController
         if (!$grantedAt) {
             return false;
         }
-        // Carbon::parse: session serialize kiểu json nên giá trị đọc ra là CHUỖI, không phải Carbon.
+        // Carbon::parse: session serialize kiểu json nên giá trị
         return Carbon::parse($grantedAt)->diffInSeconds(now()) <= self::RESET_PASSWORD_WINDOW_SECONDS;
     }
 
@@ -454,7 +454,7 @@ class AuthController
             // Xóa sạch toàn bộ các khóa xác thực tạm thời trong Session
             $request->session()->forget(['verify_email', 'verify_otp', 'verify_otp_time', 'is_forgot_password', 'can_reset_password', 'can_reset_password_at']);
 
-            // Tự động đăng nhập luôn cho người dùng sau khi đổi mật khẩu thành công
+            // Tự động đăng nhập luôn cho người dùng sau khi đổi mật
             Auth::login($user);
             $request->session()->put('login_method', 'email');
             $request->session()->flash('success', 'Đặt lại mật khẩu thành công! Bạn đã được đăng nhập.');

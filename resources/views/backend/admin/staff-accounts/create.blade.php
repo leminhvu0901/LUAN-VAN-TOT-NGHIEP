@@ -5,7 +5,7 @@
 @section('content')
     <div class="space-y-6 max-w-3xl mx-auto pb-8">
 
-        {{-- HEADER --}}
+        {{-- Header --}}
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.staff_accounts.index') }}"
                 onclick="smartGoBack(event)"
@@ -15,7 +15,7 @@
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Thêm Nhân viên</h1>
         </div>
 
-        {{-- FORM --}}
+        {{-- Form --}}
         <form action="{{ route('admin.staff_accounts.store') }}" method="POST" enctype="multipart/form-data" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden p-6 space-y-6">
             @csrf
 
@@ -48,7 +48,7 @@
                     @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
 
-                {{-- Email & SĐT --}}
+                {{-- Email & sđt --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                         <label for="email" class="block text-sm font-semibold text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>

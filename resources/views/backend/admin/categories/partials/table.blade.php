@@ -1,6 +1,6 @@
 <div class="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-x-auto custom-scrollbar relative w-full">
 @if($categories->count() > 0)
-    <!-- Giao diện Mobile (Card view) -->
+    <!-- Giao diện Mobile -->
     <div class="block md:hidden space-y-4 p-4 w-full">
         <div class="flex items-center justify-between mb-2">
             <label class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer">
@@ -59,7 +59,7 @@
         @endforeach
     </div>
 
-    <!-- Giao diện Desktop (Table view) -->
+    <!-- Giao diện Desktop -->
     <div class="hidden md:block w-full">
         <table class="w-full text-left border-collapse relative">
             <thead class="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">

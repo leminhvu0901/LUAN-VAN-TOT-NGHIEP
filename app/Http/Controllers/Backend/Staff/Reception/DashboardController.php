@@ -10,7 +10,7 @@ use App\Models\MaterialImport;
 
 class DashboardController
 {
-    //Hiển thị trang Dashboard tổng quan của quầy Lễ tân.
+    // Hiển thị trang Dashboard tổng quan của quầy Lễ tân.
     public function index()
     {
         // 1. Thống kê số lượng đơn hàng theo từng trạng thái cần chú ý
@@ -18,13 +18,13 @@ class DashboardController
         $shippingOrdersCount = Order::where('status', 'shipping')->count(); // Số lượng đơn shipper đang đi giao
         $cancelledOrdersCount = Order::where('status', 'cancelled')->count(); // Số lượng đơn bị hủy
 
-        // Đếm số đơn giao hàng đã xác nhận nhưng chưa gán shipper -> "kẹt" không ai xử lý tiếp nếu lễ tân không để ý
+        // Đếm số đơn giao hàng đã xác nhận nhưng chưa gán
         $needsAssignmentCount = Order::where('delivery_type', 'delivery')
             ->where('status', 'confirmed')
             ->whereNull('delivery_staff_id')
             ->count();
 
-        // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ tính tiền đã thực thu 
+        // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ
         $todayRange = [today(), today()->endOfDay()]; // Khai báo khoảng thời gian từ 00:00:00 đến 23:59:59 ngày hôm nay
 
         $cashRevenueToday = (float) Order::whereIn('payment_method', ['cash', 'cod']) // Lấy các đơn trả bằng tiền mặt/tiền COD
@@ -37,7 +37,7 @@ class DashboardController
             ->sum('final_amount');
         $totalRevenueToday = $cashRevenueToday + $transferRevenueToday; // Tính tổng doanh thu thực thu trong ngày
 
-        // Tính toán tỷ lệ phần trăm đóng góp doanh thu của từng phương thức
+        // Tính toán tỷ lệ phần trăm đóng góp doanh thu của từng
         $cashRevenuePercent = $totalRevenueToday > 0 ? round($cashRevenueToday / $totalRevenueToday * 100) : 0;
         $transferRevenuePercent = $totalRevenueToday > 0 ? 100 - $cashRevenuePercent : 0;
 
@@ -45,7 +45,7 @@ class DashboardController
         $outOfStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '<=', 0)->count(); // Nguyên liệu đã hết hoàn toàn
         $lowStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '>', 0)->where('current_stock', '<', 5)->count(); // Cảnh báo tồn kho sắp hết (dưới 5 đơn vị)
 
-        // Thống kê số lô nguyên liệu sắp hết hạn sử dụng trong vòng 30 ngày tới
+        // Thống kê số lô nguyên liệu sắp hết hạn sử dụng trong
         $expiringMaterialsCount = Material::where('is_active', true)
             ->whereHas('imports', function ($subQuery) {
                 $subQuery->whereNotNull('expiration_date')

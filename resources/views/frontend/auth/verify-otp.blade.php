@@ -1,7 +1,7 @@
-{{-- Khung Modal bao quanh màn hình xác thực OTP (Mặc định được ẩn bằng CSS, hiển thị khi cần thiết qua JS) --}}
+{{-- Khung Modal bao quanh màn hình xác thực OTP --}}
 <div id="otp-modal" data-show-otp="{{ (session('show_otp') || $errors->has('otp') || $errors->has('otp_error') || session('verify_email')) ? 'true' : 'false' }}">
     
-    {{-- Lớp nền tối mờ phía sau Modal (Overlay) để ngăn người dùng tương tác với trang chính phía sau --}}
+    {{-- Modal --}}
     <div id="otp-overlay"></div>
 
     {{-- Khung căn giữa màn hình cho nội dung Modal --}}
@@ -10,9 +10,7 @@
         {{-- Hộp xác thực OTP chính chứa biểu mẫu nhập mã và bộ đếm ngược --}}
         <div id="otp-box" class="l-modal-box">
             
-            {{-- Nút biểu tượng chữ X để đóng Modal OTP — submit thật (không phải AJAX) form ẩn bên dưới
-            để dọn session OTP trên server rồi quay về trang chủ. Dùng thuộc tính form="..." vì nút này
-            nằm trước form nhập OTP chính, không thể lồng 2 form vào nhau. --}}
+            {{-- Modal --}}
             <button id="close-otp" type="submit" form="cancel-otp-form" class="l-close-btn" aria-label="Đóng">
                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
@@ -22,7 +20,7 @@
                 @csrf
             </form>
 
-            {{-- Phần hiển thị biểu tượng xác thực (Khiên bảo mật kèm biểu tượng phong bì thư) --}}
+            {{-- Phần hiển thị biểu tượng xác thực --}}
             <div class="otp-icon-wrap">
                 {{-- Biểu tượng chiếc khiên xanh lá cây --}}
                 <div class="otp-icon-bg">
@@ -42,17 +40,16 @@
             <h2 class="otp-main-title">Kiểm tra Email</h2>
             <p class="otp-desc">
                 Nhập mã OTP đã được gửi đến<br>
-                {{-- Hiển thị Email đang chờ xác thực được lưu trong Session của Laravel, mặc định là "email" --}}
+                {{-- Hiển thị Email đang chờ xác thực được lưu trong --}}
                 email của bạn: <span class="otp-email" id="otp-email-display">{{ session('verify_email', 'email') }}</span>
             </p>
 
-            {{-- Biểu mẫu gửi mã OTP xác nhận, thực hiện qua phương thức POST gửi đến Route verify.otp.post --}}
+            {{-- Biểu mẫu gửi mã OTP xác nhận, thực hiện qua --}}
             <form action="{{ route('verify.otp.post') }}" method="POST">
-                {{-- Token bảo mật CSRF bắt buộc của Laravel nhằm chống tấn công giả mạo --}}
+                {{-- Token bảo mật CSRF bắt buộc của Laravel nhằm --}}
                 @csrf
                 
-                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác nhận mã OTP (render trực tiếp từ
-                $errors sau khi submit form thật và tải lại trang). --}}
+                {{-- Hiển thị thông báo lỗi nếu xảy ra sai sót khi xác --}}
                 @php
                     $otpErrorMsg = $errors->has('otp_error')
                         ? $errors->first('otp_error')
@@ -72,7 +69,7 @@
                 <div class="otp-resend">
                     {{-- Dòng chữ đếm ngược số giây --}}
                     <p class="otp-timer-text" id="timer-text">Gửi lại mã sau <span id="timer" class="otp-timer">00:58</span></p>
-                    {{-- Đường link gửi yêu cầu gửi lại OTP, ban đầu sẽ bị khóa bằng CSS (pointer-events: none) và kích hoạt sau khi đếm ngược xong --}}
+                    
                     <a href="{{ route('resend.otp') }}" class="otp-resend-btn" id="resend-btn">Gửi lại</a>
                 </div>
 

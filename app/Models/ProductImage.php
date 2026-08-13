@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductImage extends Model
 {
-    // Các cột dữ liệu được phép điền nhanh (mass-assign) khi thêm/sửa ảnh sản phẩm
+    // Các cột dữ liệu được phép điền nhanh (mass-assign) khi
     protected $fillable = [
         'product_id',    // ID của sản phẩm sở hữu ảnh này
         'image_path',    // Đường dẫn tương đối lưu file ảnh trong ổ đĩa

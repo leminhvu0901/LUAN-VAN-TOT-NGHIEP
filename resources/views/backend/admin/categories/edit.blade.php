@@ -50,7 +50,7 @@
                 <p class="text-xs text-gray-500 mt-1">Số nhỏ hơn sẽ xếp lên trước.</p>
             </div>
 
-            <!-- Trạng thái (is_active) -->
+            <!-- Trạng thái -->
             <div class="flex items-center gap-3">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_active" class="sr-only peer" value="1" {{ old('is_active', $category->is_active) ? 'checked' : '' }}>

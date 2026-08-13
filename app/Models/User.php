@@ -77,7 +77,7 @@ class User extends Authenticatable
         if ($earned <= 0)
             return;
 
-        // Cộng dồn điểm mới vào tổng điểm hiện tại của user (Nếu điểm hiện tại là null thì tính là 0)
+        // Cộng dồn điểm mới vào tổng điểm hiện tại của user (Nếu
         $total = (int) ($this->points ?? 0) + $earned;
 
         // TỰ ĐỘNG XẾP HẠNG THÀNH VIÊN DỰA TRÊN TỔNG ĐIỂM
@@ -97,8 +97,7 @@ class User extends Authenticatable
         // Lưu xuống Database
         $this->save();
 
-        // Ghi lại lịch sử cộng điểm vào file log hệ thống (storage/logs/laravel.log) 
-        // để Admin có thể tra cứu khi cần thiết.
+        // Ghi lại lịch sử cộng điểm vào file log hệ thống
         \Illuminate\Support\Facades\Log::info(
             "[Points] User #{$this->id} ({$this->name}): +{$earned} điểm -> tổng {$total} điểm | Hạng: {$level}"
         );

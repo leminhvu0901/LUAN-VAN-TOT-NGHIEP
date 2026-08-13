@@ -1,47 +1,4 @@
-{{-- Khung Modal bao quanh màn hình đăng nhập (Mặc định được ẩn bằng CSS, tự động hiển thị nếu có cờ chỉ định từ Backend) --}}
-<div id="login-modal"
-    data-show-login="{{ $errors->has('identity') || $errors->has('password') || $errors->has('login_error') || session('show_login') ? 'true' : 'false' }}">
-
-    {{-- Lớp nền tối mờ phía sau Modal (Overlay) --}}
-    <div id="login-overlay"></div>
-
-    {{-- Khung căn giữa màn hình cho nội dung Modal --}}
-    <div class="l-modal-wrapper">
-
-        {{-- Hộp đăng nhập chính chứa biểu mẫu và các nút --}}
-        <div id="login-box" class="l-modal-box">
-
-            {{-- Nút biểu tượng chữ X để đóng Modal đăng nhập --}}
-            <button id="close-login" type="button" class="l-close-btn" aria-label="Đóng">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-
-            {{-- Tiêu đề của Modal --}}
-            <h2 class="l-title">Đăng Nhập</h2>
-
-            {{-- Biểu mẫu đăng nhập gửi dữ liệu qua phương thức POST tới route xử lý đăng nhập --}}
-            <form action="{{ route('login.post') }}" method="POST">
-                {{-- Token bảo mật CSRF bắt buộc của Laravel để chống tấn công giả mạo yêu cầu --}}
-                @csrf
-
-                {{-- Hiển thị thông báo lỗi chung nếu đăng nhập thất bại (sai tài khoản/mật khẩu). Luôn
-                render sẵn (ẩn mặc định bằng "hidden") thay vì chỉ render khi có lỗi từ server, vì form
-                giờ submit qua fetch (xem login.js) -> JS cần 1 chỗ có sẵn để tự hiện lỗi, không tải
-                lại trang để server render lại khối này nữa. --}}
-                <div id="login-error-alert" class="l-error-alert {{ $errors->has('login_error') ? '' : 'hidden' }}">
-                    {{ $errors->first('login_error') }}
-                </div>
-
-                {{-- Ô nhập địa chỉ Email --}}
-                <div class="l-form-group">
-                    <label class="l-label">Email</label>
-                    {{-- class "is-invalid" sẽ được kích hoạt nếu Email nhập không đúng định dạng hoặc không hợp lệ --}}
-                    {{-- old('email') giữ lại email đã nhập trước đó nếu việc submit bị lỗi, tránh việc user phải gõ lại --}}
-                    <input type="email" name="email" placeholder="Nhập địa chỉ email"
+{{-- Khung Modal bao quanh màn hình đăng nhập --}}<input type="email" name="email" placeholder="Nhập địa chỉ email"
                         class="l-input @error('email') is-invalid @enderror" value="{{ old('email') }}" required>
                     {{-- Hiển thị lỗi validate chi tiết của trường Email dưới ô nhập --}}
                     @error('email')
@@ -55,13 +12,13 @@
                     <div class="l-input-wrap">
                         <input type="password" id="login-password" name="password" placeholder="Nhập mật khẩu"
                             class="l-input has-password-toggle @error('password') is-invalid @enderror" required>
-                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle ẩn/hiện ký tự mật khẩu (dùng chung main.js) --}}
+                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                         <button type="button" class="toggle-password toggle-password-visibility"
                             data-target="login-password" aria-label="Hiện/ẩn mật khẩu">
                             <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
                         </button>
                     </div>
-                    {{-- Hiển thị lỗi validate chi tiết của trường Mật khẩu (nếu có) --}}
+                    {{-- Hiển thị lỗi validate chi tiết của trường Mật khẩu --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
@@ -123,7 +80,7 @@
         const modal = document.getElementById('login-modal');
         if (!modal) return; // Trang hiện tại không có modal đăng nhập -> bỏ qua, không xử lý gì thêm
 
-        // Bấm nút/link mở modal đăng nhập (nút này nằm ở nơi khác, thường là header)
+        // Bấm nút/link mở modal đăng nhập
         const loginBtn = e.target.closest('#login-btn');
         if (loginBtn) {
             e.preventDefault();
@@ -141,7 +98,7 @@
             return;
         }
 
-        // Bấm ra ngoài vùng modal (lên lớp nền tối mờ overlay) cũng coi như đóng modal
+        // Bấm ra ngoài vùng modal cũng coi như đóng modal
         const overlay = e.target.closest('#login-overlay');
         if (overlay) {
             modal.style.display = 'none';

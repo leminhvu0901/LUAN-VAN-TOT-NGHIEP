@@ -13,7 +13,7 @@ class Favorite extends Model
     // Tên bảng được quản lý bởi model này
     protected $table = 'favorites';
 
-    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả các cột của bảng favorites
+    // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả
     protected $guarded = [];
 
     /**

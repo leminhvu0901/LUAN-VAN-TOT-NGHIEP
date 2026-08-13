@@ -6,18 +6,16 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * Tạo tài khoản ảo phục vụ đo hiệu năng đăng nhập (load test).
- *
- * Cách chạy (chỉ chạy trên máy local, KHÔNG chạy trên server thật):
- *   php artisan db:seed --class=LoadTestUserSeeder
- *
- * Tài khoản sinh ra: loadtest1@test.local ... loadtest1000@test.local
- * Mật khẩu chung:    loadtest123
- *
- * Xoá sau khi test xong:
- *   php artisan tinker --execute="DB::table('users')->where('email','like','loadtest%@test.local')->delete();"
- */
+// Tạo tài khoản ảo phục vụ đo hiệu năng đăng nhập (load test).
+//
+// Cách chạy (chỉ chạy trên máy local, KHÔNG chạy trên server thật):
+//   php artisan db:seed --class=LoadTestUserSeeder
+//
+// Tài khoản sinh ra: loadtest1@test.local ... loadtest1000@test.local
+// Mật khẩu chung:    loadtest123
+//
+// Xoá sau khi test xong:
+//   php artisan tinker --execute="DB::table('users')->where('email','like','loadtest%@test.local')->delete();"
 class LoadTestUserSeeder extends Seeder
 {
     private const TOTAL = 1000;

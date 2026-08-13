@@ -30,7 +30,7 @@ class HomeController extends Controller
             ->orderBy('display_order', 'asc')
             ->get();
 
-        // Lấy danh mục đang active, kèm số lượng sản phẩm ĐANG KINH DOANH
+        // Lấy danh mục đang active, kèm số lượng sản phẩm ĐANG
         $categories = Category::where('is_active', 1)
             ->withCount(['products as product_count' => function ($query) {
                 $query->where('is_active', 1);

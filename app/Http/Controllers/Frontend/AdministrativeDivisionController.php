@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Services\AdministrativeDivisionService;
 
-// Cung cấp dữ liệu tỉnh/thành + phường/xã cho form địa chỉ qua AJAX.
-// Toàn bộ dữ liệu lấy từ AdministrativeDivisionService (không hard-code trong Blade/JS).
+// Cung cấp dữ liệu tỉnh/thành + phường/xã cho form địa
 class AdministrativeDivisionController
 {
     // Inject service xử lý dữ liệu địa chính vào controller
@@ -29,12 +28,12 @@ class AdministrativeDivisionController
         return response()->json(['success' => true, 'data' => $provinces]);
     }
 
-   // LẤY DS QUẬN HUYỆN 
+   // LẤY DS QUẬN HUYỆN
     public function wards(int $provinceCode)
     {
         $wards = $this->service->wardsOf($provinceCode); // Lọc phường/xã theo mã tỉnh
 
-        // Nếu service trả về null (mã tỉnh không hợp lệ hoặc lỗi nguồn dữ liệu) → báo lỗi 503
+        // Nếu service trả về null (mã tỉnh không hợp lệ hoặc lỗi
         if ($wards === null) {
             return response()->json([
                 'success' => false,

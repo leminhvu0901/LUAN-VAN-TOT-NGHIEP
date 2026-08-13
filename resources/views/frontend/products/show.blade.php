@@ -1,4 +1,4 @@
-{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web (Layout App) --}}
+{{-- Kế thừa cấu trúc giao diện chính của toàn bộ trang web --}}
 @extends('frontend.layouts.app')
 
 @section('content')
@@ -6,9 +6,9 @@
         $discountInfo = $product->discount_info;
         $effectivePrice = $discountInfo ? $discountInfo['sale_price'] : $product->base_price;
     @endphp
-    {{-- Thẻ wrapper bao bọc chi tiết sản phẩm, đồng thời truyền id sản phẩm và giá cơ bản qua thuộc tính data để JS đọc --}}
+    {{-- Chi tiết sản phẩm --}}
     <div class="pd-wrapper" data-product-id="{{ $product->id }}" data-base-price="{{ $effectivePrice }}">
-        {{-- ===== BREADCRUMB (ĐƯỜNG DẪN ĐỊNH VỊ) ===== --}}
+        {{-- Breadcrumb --}}
         <nav class="pd-breadcrumb" aria-label="Breadcrumb">
             <a href="/">Trang chủ</a>
             <span class="pd-breadcrumb__sep">›</span>
@@ -17,12 +17,12 @@
             <span class="pd-breadcrumb__current">{{ $product->name }}</span>
         </nav>
 
-        {{-- ===== KHU VỰC CHI TIẾT SẢN PHẨM CHÍNH ===== --}}
+        {{-- Chi tiết sản phẩm --}}
         <div class="pd-main">
-            {{-- BÊN TRÁI: Gallery hình ảnh sản phẩm --}}
+            {{-- Gallery hình ảnh sản phẩm --}}
             <div class="pd-gallery">
                 <div class="pd-gallery__main">
-                    {{-- Huy hiệu trạng thái Bán chạy (Hot), Sản phẩm mới (New) hoặc Giảm giá --}}
+                    {{-- Huy hiệu trạng thái Bán chạy, Sản phẩm mới hoặc Giảm giá --}}
                     @if ($discountInfo && $product->is_active)
                         <span class="pd-badge pd-badge--sale"
                             style="background: linear-gradient(135deg, #e11d48, #7c3aed); color: #fff; box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);">🏷️
@@ -36,7 +36,7 @@
                         <span class="out-of-stock-overlay" style="font-size:1.2rem; padding: 0.6rem 1.6rem;">Hết Hàng</span>
                     @endif
 
-                    {{-- Nút yêu thích sản phẩm (Wishlist). Nếu đã được yêu thích ($isFavorite = true), class 'is-active' sẽ tô màu đỏ cho trái tim --}}
+                    {{-- Nút yêu thích --}}
                     <button class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}" id="pd-wishlist-btn"
                         onclick="toggleFavorite(this, {{ $product->id }})" aria-label="Yêu thích">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -48,12 +48,12 @@
                         </svg>
                     </button>
 
-                    {{-- Ảnh lớn hiển thị sản phẩm chính. Có sự kiện onerror tải ảnh placeholder nếu ảnh chính bị lỗi --}}
+                    {{-- Ảnh lớn hiển thị sản phẩm chính --}}
                     <img id="pd-main-img" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="pd-gallery__img"
                         onerror="this.src='{{ asset('images/products/placeholder.jpg') }}'">
                 </div>
 
-                {{-- Các ảnh thu nhỏ (Thumbnails) bổ sung ở phía dưới ảnh chính --}}
+                {{-- Các ảnh thu nhỏ bổ sung ở phía dưới ảnh chính --}}
                 <div class="pd-gallery__thumbs" id="pd-thumbs">
                     <div class="pd-gallery__thumb is-active" onclick="switchImage(this, '{{ $product->image_url }}')">
                         <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
@@ -71,7 +71,7 @@
                 </div>
             </div>
 
-            {{-- BÊN PHẢI: Thông tin chi tiết sản phẩm --}}
+            {{-- Bên PHẢI: Thông tin chi tiết sản phẩm --}}
             <div class="pd-info">
                 {{-- Tên sản phẩm --}}
                 <h1 class="pd-info__name">{{ $product->name }}</h1>
@@ -79,7 +79,7 @@
                 {{-- Dòng hiển thị đánh giá sao và lượt mua --}}
                 <div class="pd-info__rating-row">
                     <div class="pd-stars">
-                        {{-- Tính toán làm tròn điểm số để đổ màu ngôi sao (Filled, Half, Empty) --}}
+                        {{-- Tính toán làm tròn điểm số để đổ màu ngôi sao --}}
                         @php $avgR = round($product->avg_rating * 2) / 2; @endphp
                         @for ($i = 1; $i <= 5; $i++)
                             @if ($i <= floor($avgR))
@@ -131,8 +131,7 @@
                     @endif
                 </div>
 
-
-                {{-- Lựa chọn Kích cỡ (Size). Gắn các thuộc tính data- để JS cộng trừ chênh lệch giá tiền khi click chọn --}}
+                {{-- Lựa chọn Kích cỡ --}}
                 @if ($sizes->count() > 0)
                     <div class="pd-option-group">
                         <div class="pd-option-label">CHỌN KÍCH CỠ</div>
@@ -184,7 +183,7 @@
                     </div>
                 </div>
 
-                {{-- Tùy chọn thêm Toppings (Không áp dụng cho danh mục Cà phê để khớp thực đơn) --}}
+                {{-- Tùy chọn thêm Toppings --}}
                 @if ($toppings->count() > 0 && mb_stripos($product->category_name, 'cà phê') === false)
                     <div class="pd-option-group">
                         <div class="pd-option-label">THÊM TOPPING (KHÔNG BẮT BUỘC)</div>
@@ -289,7 +288,7 @@
             </div>
         </div>
 
-        {{-- ===== PHẦN MÔ TẢ CHI TIẾT SẢN PHẨM ===== --}}
+        {{-- Mô tả chi tiết sản phẩm --}}
         @if ($product->description)
             <div class="pd-desc-section">
                 <h2 class="pd-section-title">Mô tả sản phẩm</h2>
@@ -299,11 +298,11 @@
             </div>
         @endif
 
-        {{-- ===== PHẦN ĐÁNH GIÁ TỪ KHÁCH HÀNG ===== --}}
+        {{-- Đánh giá từ khách hàng --}}
         <div class="pd-reviews-section" id="reviews-section">
             <h2 class="pd-section-title">Đánh giá từ khách hàng</h2>
 
-            {{-- Bảng tóm tắt điểm đánh giá sao trung bình & tỉ lệ phần trăm các mức sao --}}
+            {{-- Đánh giá của khách hàng --}}
             <div class="pd-reviews-summary">
                 <div class="pd-reviews-score">
                     <div class="pd-reviews-score__num">{{ number_format($product->avg_rating, 1) }}</div>
@@ -336,8 +335,7 @@
                 </div>
             </div>
 
-            {{-- Danh sách các bình luận của khách hàng — nút lọc giờ là link GET thật (tải lại trang),
-        trạng thái "đang chọn" tính thẳng từ request() hiện tại thay vì JS. --}}
+            {{-- Đánh giá của khách hàng --}}
             <div class="reviews-app">
                 <div class="pd-review-filters">
                     <a href="{{ route('product.show', $product->slug) }}#reviews-section"
@@ -360,7 +358,7 @@
             </div>
         </div>
 
-        {{-- ===== SẢN PHẨM TƯƠNG TỰ (GỢI Ý) ===== --}}
+        {{-- Sản phẩm tương tự --}}
         @if ($relatedProducts->count() > 0)
             <div class="pd-related-section">
                 <h2 class="pd-section-title">Sản phẩm tương tự</h2>
@@ -375,7 +373,7 @@
                         @endphp
                         <a href="{{ route('product.show', $rel->slug) }}" class="pd-rel-card">
                             <div class="pd-rel-card__img-wrap">
-                                {{-- Nhãn (Badge) trạng thái HOT, NEW hoặc DISCOUNT - ưu tiên hiện Sale > Hot > New --}}
+                                {{-- Nhãn trạng thái hot, new hoặc discount - ưu tiên --}}
                                 @if ($relDiscount && !$relIsOos)
                                     <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️
                                         {{ $relDiscount['label'] }}</span>
@@ -436,7 +434,7 @@
 
     @push('scripts')
         <script>
-            // TRANG CHI TIẾT SẢN PHẨM: tính giá đơn vị theo lựa chọn Size/Topping của khách, thêm vào
+            // Tính giá đơn vị theo lựa chọn size và topping
             (function() {
                 let qty = 1;
                 const wrapper = document.querySelector('.pd-wrapper');
@@ -463,9 +461,7 @@
                     el.classList.add('pd-qty__val--bump');
                 };
 
-                // Chọn 1 Size: đổi trạng thái "đang chọn" trong nhóm nút Size (chỉ 1 nút active
-                // tại 1 thời điểm), đọc phụ phí giá tương ứng từ data-price-adj rồi tính lại giá hiển thị
-                window.selectSize = function(btn) {
+                // Chọn 1 Size: đổi trạng thái "đang chọn" trong nhóm nút                window.selectSize = function(btn) {
                     document.querySelectorAll('#pd-sizes .pd-chip').forEach(b => b.classList.remove('is-active'));
                     btn.classList.add('is-active');
 
@@ -473,18 +469,13 @@
                     updatePrice();
                 };
 
-                // Hàm dùng chung cho các nhóm lựa chọn KHÔNG ảnh hưởng tới giá (mức Đường, mức Đá) -
-                // chỉ đổi trạng thái active trong đúng nhóm (groupId) chứa nút vừa bấm, không tính lại giá
-                window.selectOption = function(btn, groupId) {
+                // Hàm dùng chung cho các nhóm lựa chọn không ảnh hưởng tới giá                window.selectOption = function(btn, groupId) {
                     document.querySelectorAll('#' + groupId + ' .pd-chip').forEach(b => b.classList.remove(
                     'is-active'));
                     btn.classList.add('is-active');
                 };
 
-                // Xử lý khi tích/bỏ tích 1 checkbox Topping: cộng dồn lại tổng phụ phí từ TẤT CẢ topping
-                // đang được chọn (không chỉ riêng ô vừa đổi), tính lại giá, và cập nhật dòng tóm tắt tên
-                // các topping đã chọn hiển thị trên nút dropdown (đổi cả màu viền/nền cho nút khi có chọn)
-                window.handleToppingChange = function(inputEl = null) {
+                // Xử lý khi tích/bỏ tích 1 checkbox Topping: cộng dồn                window.handleToppingChange = function(inputEl = null) {
                     if (inputEl) {
                         const labelEl = inputEl.closest('.topping-item-label');
                         labelEl.classList.toggle('is-selected', inputEl.checked);
@@ -546,16 +537,14 @@
                     }
                 }
 
-                // Thêm sản phẩm (kèm đầy đủ tùy chọn Size/Đường/Đá/Topping đang chọn) vào giỏ hàng
+                // Thêm sản phẩm vào giỏ hàng
                 window.addToCartFromDetail = function() {
                     const btn = document.getElementById('pd-add-cart');
-                    // Tạm khóa nút + đổi icon/label sang "Đang thêm..." để tránh bấm nhiều lần liên tiếp
-                    // gây thêm trùng sản phẩm khi mạng chậm; tự khôi phục lại sau 1.2 giây bên dưới
-                    btn.disabled = true;
+                    // Tạm khóa nút + đổi icon/label sang "Đang thêm..." để                    btn.disabled = true;
                     btn.innerHTML =
                         '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Đang thêm...';
 
-                    // Đọc lại lựa chọn hiện tại của khách trực tiếp từ DOM (nút nào đang có class is-active)
+                    // Đọc lại lựa chọn hiện tại của khách trực tiếp từ DOM
                     const activeSize = document.querySelector('#pd-sizes .pd-chip.is-active');
                     const activeSugar = document.querySelector('#pd-sugar .pd-chip.is-active');
                     const activeIce = document.querySelector('#pd-ice .pd-chip.is-active');
@@ -578,7 +567,7 @@
                     }, 1200);
                 };
 
-                // Bấm vào 1 ảnh thu nhỏ 
+                // Bấm vào 1 ảnh thu nhỏ
                 window.switchImage = function(thumb, url) {
                     document.querySelectorAll('.pd-gallery__thumb').forEach(t => t.classList.remove('is-active'));
                     thumb.classList.add('is-active');

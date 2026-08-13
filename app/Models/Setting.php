@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Cache;
 class Setting extends Model
 {
     // Các cột dữ liệu được phép điền nhanh (mass-assign)
-    // group: nhóm cấu hình, key: tên cấu hình, value: giá trị, type: kiểu dữ liệu (để ép kiểu khi xuất)
     protected $fillable = ['group', 'key', 'value', 'type'];
 
     /**
@@ -22,7 +21,7 @@ class Setting extends Model
      */
     public static function getValue(string $key, $default = null)
     {
-        // Cache vĩnh viễn giá trị cấu hình theo key, nếu có trong cache thì lấy ngay, nếu chưa thì chạy hàm Closure bên dưới để lấy từ DB
+        // Cache vĩnh viễn giá trị cấu hình theo key, nếu có
         return Cache::rememberForever("setting.{$key}", function () use ($key, $default) {
             $setting = self::where('key', $key)->first();
             if (!$setting) {
@@ -34,7 +33,7 @@ class Setting extends Model
                 return null;
             }
 
-            // Chuyển kiểu dữ liệu từ chuỗi (string) trong DB về kiểu thực tế (int, float, bool, json...)
+            // Chuyển kiểu dữ liệu từ chuỗi (string) trong DB về kiểu
             $type = strtolower($setting->type ?? 'string');
 
             switch ($type) {
@@ -76,7 +75,7 @@ class Setting extends Model
             ]
         );
 
-        // Xóa cache cũ để hệ thống nạp lại giá trị mới ở lần truy cập tiếp theo
+        // Xóa cache cũ để hệ thống nạp lại giá trị mới ở lần
         Cache::forget("setting.{$key}");
     }
 

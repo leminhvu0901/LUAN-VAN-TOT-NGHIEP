@@ -41,7 +41,7 @@
                         placeholder="VD: Chào hè rực rỡ - Đồng giá 29K">
                 </div>
 
-                <!-- Nhãn banner (title_tag) -->
+                <!-- Nhãn banner -->
                 <div>
                     <label for="title_tag" class="block text-sm font-semibold text-gray-700 mb-2">
                         Nhãn phụ (Tag)
@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <!-- Upload ảnh banner (Có preview và tỷ lệ banner) -->
+            <!-- Upload ảnh banner -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     Ảnh banner <span class="text-red-500">*</span>
@@ -81,8 +81,6 @@
                     <input type="file" name="image" id="image-input" class="hidden" accept="image/*" onchange="previewSelectedImage(this);">
                 </div>
             </div>
-
-
 
             <!-- Grid 3 cột trên Desktop cho Thứ tự, Start_at, End_at -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,7 +121,7 @@
                 </div>
             </div>
 
-            <!-- Trạng thái hiển thị (is_active) -->
+            <!-- Trạng thái hiển thị -->
             <div class="flex items-center gap-3 pt-2">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_active" class="sr-only peer" checked value="1">
@@ -134,7 +132,7 @@
 
         </div>
 
-        <!-- Hủy và Lưu (Xếp dọc trên mobile, ngang trên desktop) -->
+        <!-- Hủy và Lưu -->
         <div class="mt-8 flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
             <a href="{{ route('admin.banners.index') }}" 
                 onclick="smartGoBack(event)"
@@ -152,16 +150,12 @@
 
 @push('scripts')
 <script>
-// =========================================================================
-// XỬ LÝ CHỌN ẢNH & HIỂN THỊ XEM TRƯỚC CHO FORM BANNER (CREATE)
-// =========================================================================
-
-// Bấm vào khung ảnh thì mở hộp thoại chọn file (thẻ input file gốc bị ẩn cho đẹp)
+// Kích hoạt mở hộp thoại chọn tệp ảnh
 function triggerFileInput() {
     document.getElementById('image-input').click();
 }
 
-// Hiện ảnh xem trước ngay sau khi chọn file, chưa cần tải lên máy chủ
+// Kiểm tra dung lượng và hiển thị ảnh xem trước
 function previewSelectedImage(input) {
     if (input.files && input.files[0]) {
         if (input.files[0].size > 10 * 1024 * 1024) {
@@ -184,7 +178,7 @@ function previewSelectedImage(input) {
     }
 }
 
-// Bỏ ảnh vừa chọn và trả khung về trạng thái trống
+// Hủy ảnh đã chọn và đặt lại trạng thái ban đầu
 function removeImagePreview() {
     document.getElementById('image-input').value = '';
     document.getElementById('image-preview').setAttribute('src', '#');
@@ -192,6 +186,7 @@ function removeImagePreview() {
     document.getElementById('upload-placeholder').classList.remove('hidden');
 }
 
+// Khởi tạo bộ chọn ngày giờ Flatpickr
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".banner-date-picker", {

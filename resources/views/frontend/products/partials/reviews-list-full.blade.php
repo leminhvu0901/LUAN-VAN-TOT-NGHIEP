@@ -1,5 +1,4 @@
-{{-- Danh sách đánh giá kiểu "full" — dùng cho products/show.blade.php. Nút "Xem thêm" là link phân
-     trang GET thật (paginator tự giữ nguyên các tham số lọc rating/has_image nhờ withQueryString()). --}}
+{{-- Đánh giá của khách hàng --}}
 @php $isFiltered = $isFiltered ?? false; @endphp
 <div class="review-items-fragment">
     @forelse($reviews as $review)

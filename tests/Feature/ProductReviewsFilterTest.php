@@ -12,12 +12,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * Kiểm tra lọc theo sao/có hình ảnh + phân trang ("Xem thêm đánh giá") + tag "(Bạn)" cho danh sách
- * đánh giá sản phẩm. Route AJAX riêng /products/{id}/reviews đã bị xóa khi bỏ AJAX (Giai đoạn 8) -
- * lọc giờ áp dụng ngay khi tải trang qua query string thật, dùng lại 2 trang gốc: chi tiết sản phẩm
- * (ProductController::show(), full view) và "Xem đánh giá" (ReviewController::create(), compact view).
- */
+// Kiểm tra lọc theo sao/có hình ảnh + phân trang ("Xem thêm đánh giá") + tag "(Bạn)" cho danh sách
+// đánh giá sản phẩm. Route AJAX riêng /products/{id}/reviews đã bị xóa khi bỏ AJAX (Giai đoạn 8) -
+// lọc giờ áp dụng ngay khi tải trang qua query string thật, dùng lại 2 trang gốc: chi tiết sản phẩm
+// (ProductController::show(), full view) và "Xem đánh giá" (ReviewController::create(), compact view).
 class ProductReviewsFilterTest extends TestCase
 {
     use RefreshDatabase;
@@ -34,10 +32,8 @@ class ProductReviewsFilterTest extends TestCase
         ], $overrides));
     }
 
-    /**
-     * Trang "Xem đánh giá" (view=compact) đòi hỏi user đăng nhập có đơn hàng completed thật chứa sản
-     * phẩm đó (ReviewController::create() tự kiểm tra) - khác endpoint AJAX cũ không cần điều kiện này.
-     */
+    // Trang "Xem đánh giá" (view=compact) đòi hỏi user đăng nhập có đơn hàng completed thật chứa sản
+    // phẩm đó (ReviewController::create() tự kiểm tra) - khác endpoint AJAX cũ không cần điều kiện này.
     private function makeCompletedOrderFor(User $user, Product $product): Order
     {
         $order = Order::create([
@@ -167,10 +163,8 @@ class ProductReviewsFilterTest extends TestCase
         $response->assertSee('Có hình ảnh (1)');
     }
 
-    /**
-     * Trước đây trang "Xem đánh giá" chỉ có nút lọc 5 sao/4 sao (thiếu hẳn 1-3 sao) — giờ phải đủ cả
-     * 5 mức sao.
-     */
+    // Trước đây trang "Xem đánh giá" chỉ có nút lọc 5 sao/4 sao (thiếu hẳn 1-3 sao) — giờ phải đủ cả
+    // 5 mức sao.
     public function test_review_create_page_renders_filter_buttons_for_all_five_stars(): void
     {
         $user = User::factory()->create();

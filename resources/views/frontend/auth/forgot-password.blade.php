@@ -1,7 +1,7 @@
-{{-- Khung Modal bao quanh màn hình Quên mật khẩu (Mặc định được ẩn bằng CSS) --}}
+{{-- Khung Modal bao quanh màn hình Quên mật khẩu --}}
 <div id="forgot-modal">
 
-    {{-- Lớp nền tối mờ phía sau Modal (Overlay) --}}
+    {{-- Lớp nền tối mờ phía sau Modal --}}
     <div id="forgot-overlay"></div>
 
     {{-- Khung căn giữa màn hình cho nội dung Modal --}}
@@ -41,13 +41,12 @@
                 Vui lòng nhập email để nhận mã khôi phục mật khẩu.
             </p>
 
-            {{-- Biểu mẫu gửi email yêu cầu đặt lại mật khẩu, gửi dữ liệu POST tới route xử lý --}}
+            {{-- Biểu mẫu gửi email yêu cầu đặt lại mật khẩu, gửi --}}
             <form action="{{ route('forgot-password.post') }}" method="post" novalidate>
-                {{-- Token bảo mật CSRF bắt buộc của Laravel để chống tấn công giả mạo yêu cầu --}}
+                {{-- Token bảo mật CSRF bắt buộc của Laravel để chống --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi chung nếu việc gửi yêu cầu quên mật khẩu bị lỗi trên server.
-                Luôn render sẵn (ẩn mặc định) vì form submit qua fetch (xem forgot-password.js). --}}
+                
                 <div id="forgot-error-alert" class="l-error-alert {{ $errors->has('forgot_error') ? '' : 'hidden' }}">
                     {{ $errors->first('forgot_error') }}
                 </div>
@@ -55,7 +54,7 @@
                 {{-- Ô nhập Email để khôi phục tài khoản --}}
                 <div class="l-form-group">
                     <label for="recoveryContact" class="l-label">Email</label>
-                    {{-- old('recovery_contact') giữ lại email đã nhập nếu submit form gặp lỗi để user không phải gõ lại --}}
+                    {{-- Old giữ lại email đã nhập nếu submit form gặp lỗi --}}
                     <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email của bạn"
                         class="l-input" required value="{{ old('recovery_contact') }}" />
                     {{-- Hiển thị thông báo lỗi xác thực riêng của trường email --}}
@@ -86,7 +85,7 @@
                 <div class="l-divider-line"></div>
             </div>
 
-            {{-- Nút chuyển đổi nhanh sang popup Đăng ký nếu chưa có tài khoản --}}
+            {{-- Nút chuyển đổi nhanh sang popup Đăng ký nếu chưa --}}
             <div class="l-footer">
                 Chưa có tài khoản? <a href="#" id="switch-to-register-from-forgot">Đăng ký ngay</a>
             </div>
@@ -101,7 +100,7 @@
         const forgotModal = document.getElementById('forgot-modal');
         if (!forgotModal) return;
 
-        // Nút đóng (X)
+        // Nút đóng
         const closeForgotBtn = e.target.closest('#close-forgot');
         if (closeForgotBtn) {
             e.preventDefault();

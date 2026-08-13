@@ -10,7 +10,7 @@ return [
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
-    // Các chốt chặn bảo mật (Guard) cho ứng dụng
+    // Các chốt chặn bảo mật cho ứng dụng
     'guards' => [
         'web' => [
             'driver' => 'session',
@@ -18,7 +18,7 @@ return [
         ],
     ],
 
-    // Nguồn dữ liệu tài khoản người dùng (sử dụng Eloquent và Model User)
+    // Nguồn dữ liệu tài khoản người dùng
     'providers' => [
         'users' => [
             'driver' => 'eloquent',

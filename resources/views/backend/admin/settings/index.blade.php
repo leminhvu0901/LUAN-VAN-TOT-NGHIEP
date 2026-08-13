@@ -5,7 +5,7 @@
 @section('content')
     <div class="settings-page p-4 sm:p-6 space-y-6" data-active-section="{{ session('active_section', session('error_section', 'store')) }}">
 
-        <!-- 1. Tiêu đề trang -->
+        <!-- Tiêu đề trang -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
             <div>
                 <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Cài đặt hệ thống</h2>
@@ -34,10 +34,10 @@
             </div>
         @endif
 
-        <!-- 2. Khung Tab cài đặt -->
+        <!-- Khung Tab cài đặt -->
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
             
-            <!-- Mobile Navigation Dropdown (lg:hidden) -->
+            <!-- Mobile Navigation Dropdown -->
             <div class="lg:hidden w-full relative z-10">
                 <button type="button" id="mobile-tab-selector-btn" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm flex items-center justify-between font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:bg-gray-50 transition-all">
                     <span class="flex items-center gap-2" id="mobile-tab-active-label">
@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <!-- Desktop Navigation Sidebar (lg:block hidden) -->
+            <!-- Desktop Navigation Sidebar -->
             <div class="hidden lg:block lg:col-span-1 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
                 <div class="flex flex-col gap-1.5" role="tablist">
                     <button type="button" data-target="store" 
@@ -118,7 +118,7 @@
             <!-- Nội dung biểu mẫu các Tab -->
             <div class="lg:col-span-3 space-y-6">
 
-                <!-- SECTION 1: THÔNG TIN CỬA HÀNG -->
+                <!-- Thông tin cửa hàng -->
                 <div id="section-store" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Thông tin cửa hàng</h3>
@@ -174,7 +174,7 @@
                                         @error('store_open_time') <p class="text-red-500 text-xs mt-0.5 field-error-msg">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <!-- Arrow or Line connector on Desktop (hidden on mobile) -->
+                                    <!-- Arrow or Line connector on Desktop -->
                                     <div class="hidden sm:flex items-center justify-center pt-5 text-gray-300">
                                         <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
                                     </div>
@@ -264,7 +264,7 @@
                     </form>
                 </div>
 
-                <!-- SECTION 2: CÀI ĐẶT ĐƠN HÀNG -->
+                <!-- Cài đặt đơn hàng -->
                 <div id="section-orders" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5 hidden">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Cài đặt đơn hàng</h3>
@@ -285,8 +285,7 @@
                                 </div>
                                 <div class="flex items-center">
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                        {{-- Hidden input gửi "0" khi checkbox bị bỏ tick — HTML không tự gửi field cho checkbox unchecked,
-                                             nếu thiếu input này thì backend nhận request rỗng và validate "required" báo lỗi sai. --}}
+                                        
                                         <input type="hidden" name="orders_enabled" value="0">
                                         <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" class="sr-only peer" {{ ($settings['orders_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -309,7 +308,7 @@
                                 </div>
                             </div>
 
-                            <!-- Thời gian tự động hủy (Phút) -->
+                            <!-- Thời gian tự động hủy -->
                             <div class="flex flex-col gap-2 transition-all duration-200">
                                 <label for="auto_cancel_unpaid_minutes" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Thời gian hủy đơn online</label>
                                 <div class="settings-page__input-suffix-wrapper">
@@ -330,7 +329,7 @@
                     </form>
                 </div>
 
-                <!-- SECTION 3: CÀI ĐẶT GIAO HÀNG -->
+                <!-- Cài đặt giao hàng -->
                 <div id="section-shipping" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5 hidden">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Cài đặt giao hàng</h3>
@@ -402,8 +401,7 @@
                                 </div>
                             </div>
 
-                            {{-- Ép tình trạng thời tiết: dùng khi cần trình diễn/kiểm thử mà ngoài trời không mưa.
-                                 Để "Tự động" thì hệ thống đọc thời tiết thật tại tọa độ giao hàng. --}}
+                            {{-- Ép tình trạng thời tiết: dùng khi cần trình --}}
                             <div class="flex flex-col gap-1.5">
                                 <label for="weather_override" class="text-[11px] font-bold text-gray-500 uppercase">Tình trạng thời tiết áp dụng</label>
                                 @php $weatherOverride = old('weather_override', $settings['weather_override'] ?? 'auto'); @endphp
@@ -458,7 +456,7 @@
                     </form>
                 </div>
 
-                <!-- SECTION 4: CÀI ĐẶT THANH TOÁN -->
+                <!-- Section 4: cài đặt thanh toán -->
                 <div id="section-payment" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5 hidden">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Cài đặt thanh toán</h3>
@@ -471,7 +469,7 @@
                         <input type="hidden" name="section" value="payment">
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Chế độ môi trường (Chỉ áp dụng Thử nghiệm Sandbox) -->
+                            <!-- Chế độ môi trường -->
                             <div class="flex flex-col gap-2">
                                 <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Môi trường thanh toán</label>
                                 <input type="hidden" name="payment_environment" id="payment_environment" value="sandbox">
@@ -505,7 +503,6 @@
                                     </label>
                                 </div>
                             </div>
-
 
                             <!-- Card VNPay -->
                             <div class="settings-page__payment-card bg-gray-50 p-4 rounded-xl border border-gray-200/60 flex flex-col justify-between gap-3">
@@ -543,7 +540,7 @@
                     </form>
                 </div>
 
-                <!-- SECTION 5: ĐIỂM TÍCH LŨY -->
+                <!-- Section 5: điểm tích lũy -->
                 <div id="section-loyalty" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5 hidden">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Điểm tích lũy thành viên</h3>
@@ -631,7 +628,7 @@
                     </form>
                 </div>
 
-                <!-- SECTION 6: THÔNG BÁO -->
+                <!-- Section 6: thông báo -->
                 <div id="section-notifications" class="tab-pane bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm space-y-5 hidden">
                     <div class="border-b border-gray-100 pb-3">
                         <h3 class="font-bold text-gray-900 text-base">Hệ thống thông báo</h3>

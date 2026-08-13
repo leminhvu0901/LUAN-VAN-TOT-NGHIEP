@@ -1,4 +1,4 @@
-{{-- ===== COMPONENTS: HEAD (meta, fonts, CSS) ===== --}}
+{{-- Head --}}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link rel="shortcut icon" type="image/x-icon" href="{{ asset('images/favicon/favicon.ico') }}" />
@@ -15,10 +15,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@6.2.5/dist/simplebar.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/tiny-slider.css" />
-{{-- ?v=filemtime: ép trình duyệt tải lại CSS mới mỗi khi file này thay đổi, tránh bị cache bản cũ trên web đã deploy --}}
+
 <link rel="stylesheet" href="{{ asset('css/frontend/users.css') }}?v={{ filemtime(public_path('css/frontend/users.css')) }}" />
 
-{{-- Tailwind + extra fonts (chỉ load trên các trang cần thiết) --}}
+{{-- Tailwind + extra fonts --}}
 @if(request()->routeIs('profile') || request()->routeIs('orders') || request()->routeIs('checkout') || request()->routeIs('review.*'))
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link
@@ -28,9 +28,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     @endif
 
-    {{-- Cấu hình tùy biến Tailwind CSS dùng chung cho profile/orders/checkout/review: mã màu, font
-    chữ chính (Plus Jakarta Sans & Be Vietnam Pro), khoảng cách, bo góc theo chuẩn thiết kế Material 3.
-    preflight: false để tránh đè CSS reset lên bố cục trang ngoài (navbar/footer dùng CSS thuần). --}}
+    
     <script>
     tailwind.config = {
         darkMode: "class",

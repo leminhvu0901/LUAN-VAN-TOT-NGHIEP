@@ -1,5 +1,5 @@
 @if ($customers->count() > 0)
-    <!-- Giao diện Mobile (Card view) -->
+    <!-- Giao diện Mobile -->
     <div class="block md:hidden space-y-4 p-4">
         <div class="flex items-center justify-between mb-2">
             <label class="flex items-center gap-2 text-sm text-gray-600 font-medium cursor-pointer">
@@ -10,7 +10,7 @@
 
         @foreach($customers as $customer)
             <div class="bg-white p-4 rounded-2xl organic-shadow border border-gray-100 flex flex-col gap-3 relative group" id="customer-card-{{ $customer->id }}">
-                <!-- Header: Avatar + Checkbox -->
+                <!-- Header -->
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-3">
                         @php
@@ -119,7 +119,7 @@
         @endforeach
     </div>
 
-    <!-- Giao diện Desktop (Table view) -->
+    <!-- Giao diện Desktop -->
     <div class="hidden md:block overflow-x-auto w-full">
         <table class="w-full text-left border-collapse">
             <thead>

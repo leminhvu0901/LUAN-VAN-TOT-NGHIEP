@@ -42,7 +42,7 @@
                         placeholder="VD: Chào hè rực rỡ - Đồng giá 29K">
                 </div>
 
-                <!-- Nhãn banner (title_tag) -->
+                <!-- Nhãn banner -->
                 <div>
                     <label for="title_tag" class="block text-sm font-semibold text-gray-700 mb-2">
                         Nhãn phụ (Tag)
@@ -53,15 +53,14 @@
                 </div>
             </div>
 
-            <!-- Upload ảnh banner (Có preview và tỷ lệ banner) -->
+            <!-- Upload ảnh banner -->
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     Ảnh banner
                 </label>
                 <div class="space-y-4">
                     @php
-                        // Dùng upload_url() dùng chung: nó xử lý đúng cả ảnh cũ ("banners/x.jpg")
-                        // lẫn ảnh mới tải lên ("uploads/banners/x.jpg"), khỏi tự ghép đường dẫn.
+                        // Lấy đường dẫn ảnh banner
                         $fullImageUrl = upload_url($banner->image_url);
                     @endphp
 
@@ -85,8 +84,6 @@
                     <input type="file" name="image" id="image-input" class="hidden" accept="image/*" onchange="previewSelectedImage(this);">
                 </div>
             </div>
-
-
 
             <!-- Grid 3 cột trên Desktop cho Thứ tự, Start_at, End_at -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -127,7 +124,7 @@
                 </div>
             </div>
 
-            <!-- Trạng thái hiển thị (is_active) -->
+            <!-- Trạng thái hiển thị -->
             <div class="flex items-center gap-3 pt-2">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_active" class="sr-only peer" {{ $banner->is_active ? 'checked' : '' }} value="1">
@@ -138,7 +135,7 @@
 
         </div>
 
-        <!-- Hủy và Lưu (Xếp dọc trên mobile, ngang trên desktop) -->
+        <!-- Hủy và Lưu -->
         <div class="mt-8 flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
             <a href="{{ route('admin.banners.index') }}" 
                 onclick="smartGoBack(event)"
@@ -156,16 +153,12 @@
 
 @push('scripts')
 <script>
-// =========================================================================
-// XỬ LÝ CHỌN ẢNH & HIỂN THỊ XEM TRƯỚC CHO FORM BANNER (EDIT)
-// =========================================================================
-
-// Bấm vào khung ảnh thì mở hộp thoại chọn file (thẻ input file gốc bị ẩn cho đẹp)
+// Kích hoạt mở hộp thoại chọn tệp ảnh mới
 function triggerFileInput() {
     document.getElementById('image-input').click();
 }
 
-// Hiện ảnh xem trước ngay sau khi chọn file, chưa cần tải lên máy chủ
+// Kiểm tra dung lượng và hiển thị ảnh xem trước mới
 function previewSelectedImage(input) {
     if (input.files && input.files[0]) {
         if (input.files[0].size > 10 * 1024 * 1024) {
@@ -188,6 +181,7 @@ function previewSelectedImage(input) {
     }
 }
 
+// Khởi tạo bộ chọn ngày giờ Flatpickr
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof flatpickr !== 'undefined') {
         flatpickr(".banner-date-picker", {

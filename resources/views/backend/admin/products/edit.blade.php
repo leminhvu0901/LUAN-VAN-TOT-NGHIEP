@@ -2,8 +2,6 @@
 
 @section('title', 'Cập nhật Sản phẩm')
 
-
-
 @section('content')
 <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 products-page">
     <!-- Header -->
@@ -42,8 +40,7 @@
                     <div class="js-image-upload-trigger border-2 border-dashed border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-emerald-500 transition-all relative overflow-hidden group h-64">
                         <input type="file" id="image-upload" name="image" class="hidden" accept="image/*">
                         
-                        {{-- upload_url() (qua accessor image_url) tạo URL từ đường dẫn tương đối trong
-                             public/images/. --}}
+                        {{-- Upload_url tạo URL từ đường dẫn tương đối trong --}}
                         @php
                             $imageUrl = $product->image ? $product->image_url : '';
                         @endphp
@@ -197,7 +194,7 @@
         }
     }
 
-    // Sinh một dòng size mới (tên size + phụ phí) khi bấm nút thêm
+    // Sinh một dòng size mới khi bấm nút thêm
     function createSizeRow() {
         const row = document.createElement('div');
         row.className = 'product-size-row grid grid-cols-[1fr_1fr_40px] gap-2';

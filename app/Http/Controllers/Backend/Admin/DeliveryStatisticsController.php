@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class DeliveryStatisticsController
 {
-    //Thống kê số đơn hàng giao thành công của từng nhân viên giao hàng theo khoảng thời gian
+    // Thống kê số đơn hàng giao thành công của từng nhân
     public function index(Request $request)
     {
         $preset = $request->input('preset', 'today');
@@ -39,7 +39,7 @@ class DeliveryStatisticsController
                 break;
         }
 
-        // Lấy toàn bộ nhân viên giao hàng kèm số đơn đã giao thành công/thất bại trong khoảng thời gian đang lọc
+        // Lấy toàn bộ nhân viên giao hàng kèm số đơn đã giao
         $staffs = User::query()
             ->where('role', 'staff')
             ->where('staff_type', 'delivery')

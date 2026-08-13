@@ -107,7 +107,7 @@
                                                     <img src="{{ upload_url($img) }}" class="w-full h-full object-cover group-hover:opacity-80 transition-opacity">
                                                 </a>
                                                 
-                                                <!-- Nút X góc phải trên (Xóa bằng AJAX) -->
+                                                <!-- Nút X góc phải trên -->
                                                 <button type="button" data-image="{{ $img }}" data-id="{{ $review->id }}" data-index="{{ $index }}" class="js-delete-review-image absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur text-gray-500 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white" title="Xóa ảnh này ngay lập tức">
                                                     <span class="material-symbols-outlined text-[16px] font-bold">close</span>
                                                 </button>
@@ -123,7 +123,7 @@
                                 <input type="file" id="new-images-input" name="new_images[]" multiple accept="image/*"
                                     class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 transition-all border border-gray-200 rounded-xl p-2 bg-gray-50">
                                 
-                                <!-- Khu vực hiển thị trước (preview) các ảnh mới được chọn -->
+                                <!-- Khu vực hiển thị trước các ảnh mới được chọn -->
                                 <div id="new-images-preview" class="flex flex-wrap gap-3 mt-4 empty:hidden"></div>
                             </div>
                         </div>

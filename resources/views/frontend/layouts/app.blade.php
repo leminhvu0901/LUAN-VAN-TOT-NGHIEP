@@ -2,36 +2,29 @@
 <html lang="vi">
 
 <head>
-    {{-- @yield('title'): Nơi các trang con sẽ truyền tiêu đề (title) vào. Nếu không truyền, mặc định sẽ là 'Happy Tea'
-    --}}
+    
     <title>@yield('title', 'Happy Tea')</title>
 
-    {{-- @include: Nạp nội dung từ file resources/views/components/head.blade.php vào đây (thường chứa các thẻ meta,
-    link CSS) --}}
+    
     @include('frontend.components.head')
 </head>
 
-{{-- @yield('body_class'): Cho phép trang con tự thêm class CSS riêng vào thẻ body (vd: class 'home-page' cho trang chủ)
---}}
-
 <body class="@yield('body_class')">
 
-    {{-- Nạp thanh điều hướng phía trên (Header/Navbar) - hiển thị chung cho mọi trang --}}
+    {{-- Nạp thanh điều hướng phía trên - hiển thị chung --}}
     @include('frontend.components.navbar')
 
     {{-- Phần thân chính của trang web --}}
     <main>
-        {{-- @yield('content'): Điểm nối vô cùng quan trọng. Nội dung chính của các trang con (home, products,
-        profile...) sẽ được "nhét" vào đúng vị trí này --}}
+        
         @yield('content')
     </main>
 
-    {{-- Nạp chân trang (Footer) - hiển thị chung ở cuối mọi trang --}}
+    {{-- Nạp chân trang - hiển thị chung ở cuối mọi trang --}}
     @include('frontend.components.footer')
 
-    {{-- ===== MODALS XÁC THỰC ===== --}}
-    {{-- Các file này chứa mã HTML của các hộp thoại (popup) bị ẩn đi. Chúng chỉ hiện lên khi JavaScript kích hoạt. Nạp
-    sẵn ở layout để trang nào cũng có thể gọi popup đăng nhập --}}
+    {{-- Modals xác thực --}}
+    
     @include('frontend.auth.login')
     @include('frontend.auth.register')
     @include('frontend.auth.forgot-password')
@@ -41,29 +34,19 @@
     {{-- Bong bóng nổi Giỏ hàng + Zalo --}}
     @include('frontend.components.floating-bubbles')
 
-
-
-    {{-- ===== SCRIPTS ===== --}}
-    <!-- Thư viện Javascript bên thứ 3 (Thanh cuộn mượt, Slider/Carousel) -->
+    {{-- Scripts --}}
+    <!-- Thư viện Javascript bên thứ 3 -->
     <script src="https://cdn.jsdelivr.net/npm/simplebar@6.2.5/dist/simplebar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tiny-slider@2.9.4/dist/min/tiny-slider.js"></script>
-    {{-- SweetAlert2 — trước đây CHỈ nạp khi tài khoản bị khóa (is_active==0), nên window.FrontendAlert
-    (main.js) và mọi chỗ khác lỡ gọi Swal trực tiếp trên toàn frontend đều lặng lẽ không hiện được gì
-    cho >99% tài khoản bình thường. Nạp sẵn ở đây cho MỌI trang để dùng được toast thông báo thống nhất. --}}
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- CÁC HÀM JS TOÀN CỤC DÙNG CHUNG CHO TOÀN BỘ FRONTEND (thông báo toast, giỏ hàng, yêu thích) -
-    trước đây nằm ở file riêng public/js/frontend/layout/main.js, giờ nhúng thẳng vào đây (layout dùng
-    chung mọi trang khách hàng) để mọi trang đều có sẵn window.FrontendAlert/addToCart/toggleFavorite...
-    mà không cần khai báo lại. --}}
+    {{-- Các hàm tiện ích toàn cục frontend --}}
     <script>
     'use strict';
 
-    // ---------------------------------------------------------
-    // THÔNG BÁO TOÀN CỤC CHO TOÀN BỘ FRONTEND (khách hàng) — toast góc trên-phải, tự tắt sau vài giây,
-    // dùng SweetAlert2 đã nạp sẵn ở MỌI trang. Cùng tinh thần với window.AdminAlert bên khu vực quản
-    // trị/nhân viên — tránh mỗi trang tự viết Swal.fire()/alert() rải rác khác kiểu nhau.
+        // Thông báo toàn cục frontend
     window.FrontendAlert = {
         success: function (message, timer = 3000) {
             if (typeof Swal === 'undefined') { alert(message); return; }
@@ -93,10 +76,7 @@
                 },
             }).fire({ icon: 'error', title: message });
         },
-        // Hộp thoại nhập liệu có xác nhận (vd lý do hủy đơn) - thay cho prompt() gốc của trình duyệt.
-        // Dùng class CSS THUẦN (fa-prompt-*, xem users.css), KHÔNG dùng Tailwind: script này chạy trên
-        // MỌI trang, kể cả những trang không nạp Tailwind (xem head.blade.php).
-        // Trả về Promise giống hệt Swal.fire() gốc: { isConfirmed, value }.
+                // Hộp thoại nhập liệu có xác nhận
         prompt: function (options) {
             options = options || {};
             const title = options.title || '';
@@ -140,8 +120,7 @@
                 },
             });
         },
-        // Hộp thoại xác nhận đồng ý/hủy đơn giản (không cần nhập liệu, khác prompt() ở trên) - dùng lại
-        // đúng bộ class fa-prompt-* (chỉ bỏ phần input) để đồng bộ giao diện. Trả về Promise { isConfirmed }.
+                // Hộp thoại xác nhận đồng ý hoặc hủy
         confirm: function (options) {
             options = options || {};
             const title = options.title || 'Xác nhận';
@@ -172,12 +151,7 @@
         },
     };
 
-    // ==========================================
-    // CÁC HÀM TOÀN CỤC: YÊU THÍCH (WISHLIST)
-    // Gắn vào 'window' để có thể gọi trực tiếp từ HTML (onclick)
-    // ==========================================
-
-    // Hàm gửi API để BẬT/TẮT yêu thích (Dùng cho nút bấm ngoài trang chủ)
+        // Gửi yêu cầu bật hoặc tắt yêu thích sản phẩm
     window.toggleFavorite = function (btn, productId) {
         var token = document.querySelector('meta[name="csrf-token"]');
         if (!token) return;
@@ -192,7 +166,7 @@
             body: JSON.stringify({ product_id: productId })
         })
             .then(res => {
-                // Nếu Server báo 401 (Chưa đăng nhập), chuyển hướng tới trang Đăng nhập
+                // Nếu Server báo 401, chuyển hướng tới trang Đăng nhập
                 if (res.status === 401 || res.redirected) {
                     window.location.href = '/login';
                     return;
@@ -204,7 +178,7 @@
                     // Đảo class 'is-active' để nút tim đổi màu đỏ/xám
                     btn.classList.toggle('is-active');
 
-                    // Tạo hiệu ứng rung/nhún (Pop animation) cho nút tim
+                    // Tạo hiệu ứng rung/nhún cho nút tim
                     btn.classList.remove('badge-pop');
                     void btn.offsetWidth; // Cú pháp ép trình duyệt vẽ lại (reflow) để chạy lại animation
                     btn.classList.add('badge-pop');
@@ -218,9 +192,9 @@
             .catch(error => console.error('Error:', error));
     };
 
-    // Hàm gửi API để XÓA sản phẩm khỏi danh sách yêu thích
+    // Hàm gửi API để xóa sản phẩm khỏi danh sách yêu thích
     window.removeFromWishlist = function (productId) {
-        // Lấy mã CSRF Token bảo mật của Laravel để cho phép gọi API POST
+        // Lấy mã CSRF Token bảo mật của Laravel để cho phép gọi API post
         var token = document.querySelector('meta[name="csrf-token"]');
         if (!token) return;
 
@@ -237,7 +211,7 @@
                 if (data && data.success) {
                     updateWishlistUI(data); // Cập nhật lại ngăn kéo
 
-                    // Tìm và tắt biểu tượng tim (đổi màu về xám) trên Trang chủ nếu có
+                    // Tìm và tắt biểu tượng tim trên Trang chủ nếu có
                     var heartBtn = document.querySelector('.home-prod-card__wishlist[data-id="' + productId + '"]');
                     if (heartBtn) {
                         heartBtn.classList.remove('is-active');
@@ -253,17 +227,17 @@
             .catch(error => console.error('Error:', error));
     };
 
-    // Hàm cập nhật giao diện (UI) của ngăn kéo Yêu Thích sau khi gọi API
+    // Hàm cập nhật giao diện của ngăn kéo Yêu Thích sau khi gọi API
     window.updateWishlistUI = function (data) {
         if (!data || !data.success) return;
 
-        // 1. Cập nhật các con số đếm trên thanh điều hướng (counters)
+        // Cập nhật số đếm trên navbar
         var badge = document.getElementById('wishlist-badge');
         var subtitle = document.querySelector('.wl-drawer__subtitle');
         if (badge) badge.innerText = data.count;
         if (subtitle) subtitle.innerText = data.count + ' sản phẩm đã lưu';
 
-        // 2. Cập nhật lại danh sách HTML hiển thị trong ngăn kéo
+        // Cập nhật danh sách yêu thích
         var listBody = document.getElementById('wishlist-list');
         if (listBody) {
             if (data.count === 0) {
@@ -275,7 +249,7 @@
                 data.items.forEach(item => {
                     let formattedPrice = new Intl.NumberFormat('vi-VN').format(item.base_price) + 'đ';
 
-                    // Vẽ số sao đánh giá động (Tô màu sao tùy thuộc điểm avg_rating)
+                    // Vẽ số sao đánh giá động
                     let avgRating = parseFloat(item.avg_rating) || 0;
                     let roundedRating = Math.round(avgRating);
                     let starsHtml = '';
@@ -329,11 +303,7 @@
         }
     };
 
-    // ==========================================
-    // CÁC HÀM TOÀN CỤC: GIỎ HÀNG (CART LOGIC)
-    // ==========================================
-
-    // Hàm thêm một sản phẩm vào giỏ
+        // Thêm sản phẩm vào giỏ hàng
     window.addToCart = function (productId, quantity = 1, options = {}) {
         var token = document.querySelector('meta[name="csrf-token"]');
         if (!token) return;
@@ -372,7 +342,7 @@
             .then(data => {
                 if (!data) return;
 
-                // Thông báo khi backend từ chối (ví dụ: sản phẩm hết hàng)
+                // Thông báo khi backend từ chối
                 if (data.success === false) {
                     if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.'); else alert(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
                     return;
@@ -423,7 +393,7 @@
             .catch(err => console.error(err));
     };
 
-    // Hàm cập nhật số lượng của 1 sản phẩm trong giỏ (Kích hoạt khi bấm nút + / -)
+    // Hàm cập nhật số lượng của 1 sản phẩm trong giỏ
     window.updateCartItem = function (itemId, quantity) {
         var token = document.querySelector('meta[name="csrf-token"]');
         if (!token) return;
@@ -505,9 +475,7 @@
             .catch(err => console.error(err));
     };
 
-    // Hiệu ứng phản hồi trực quan khi thêm sản phẩm vào giỏ hàng thành công — nẩy số trên badge của
-    // navbar VÀ rung bong bóng nổi "Giỏ hàng" (floating-bubbles.blade.php, nếu trang đang có). Tách hàm
-    // dùng chung vì addToCart() và addAllToCart() đều cần gọi y hệt nhau, tránh lặp code 2 nơi.
+        // Hiệu ứng phản hồi trực quan khi thêm sản phẩm vào giỏ
     function triggerCartAddedAnimation() {
         var badge = document.getElementById('cart-badge');
         if (badge) {
@@ -528,25 +496,25 @@
     const updateCartUI = (data) => {
         if (!data || !data.success) return;
 
-        // 1. Cập nhật con số hiển thị trên icon giỏ hàng của Navbar (đỏm đỏ)
+        // Cập nhật số lượng trên icon giỏ hàng
         var badge = document.getElementById('cart-badge');
         if (badge) {
             badge.innerText = data.count;
             badge.classList.toggle('cart-badge--hidden', !(data.count > 0));
         }
 
-        // 1b. Cùng logic ở trên nhưng cho badge trên bong bóng nổi "Giỏ hàng"
+        // Cập nhật badge giỏ hàng nổi
         var floatingBadge = document.getElementById('floating-cart-badge');
         if (floatingBadge) {
             floatingBadge.innerText = data.count;
             floatingBadge.classList.toggle('floating-bubble__badge--hidden', !(data.count > 0));
         }
 
-        // 2. Cập nhật câu phụ đề trên ngăn kéo (ví dụ: "3 sản phẩm")
+        // Cập nhật số lượng sản phẩm
         var subtitle = document.getElementById('cart-drawer-subtitle');
         if (subtitle) subtitle.innerText = data.count + ' sản phẩm';
 
-        // 3. Vẽ lại (Render) danh sách mã HTML các sản phẩm trong giỏ
+        // Render danh sách sản phẩm trong giỏ
         var list = document.getElementById('cart-list');
         var selectAllBar = document.getElementById('cart-select-all-bar');
         if (list) {
@@ -616,9 +584,7 @@
                         </div>
                     </div>`;
                 });
-                // Giỏ hàng không hiện quà combo nữa: quà chỉ xuất hiện ở trang thanh toán sau khi khách
-                // tự bấm chọn mã combo, nên ở đây chưa biết khách sẽ chọn mã nào.
-
+                // Giỏ hàng không hiện quà combo nữa: quà chỉ xuất hiện ở
                 list.innerHTML = html;
 
                 if (selectAllBar) selectAllBar.style.display = 'flex';
@@ -640,27 +606,19 @@
         }
     };
 
-    // ==========================================
-    // KÍCH HOẠT BAN ĐẦU (Init)
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', () => {
+    // Khởi tạo giỏ hàng khi tải xong trang
+    document.addEventListener('DOMContentLoaded', function () {
         loadCart();
     });
 
-    // Nút back/forward của trình duyệt có thể được phục vụ từ bfcache — khôi phục nguyên DOM đã lưu
-    // trong bộ nhớ thay vì tải lại trang từ server, khiến dữ liệu/thông báo cũ hiện lại sai. Ép tải lại
-    // thật khi phát hiện trang được phục hồi từ bfcache (cùng cách sửa với khu vực admin/nhân viên).
+        // Tải lại trang khi khôi phục từ bộ nhớ đệm trình duyệt
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) {
             window.location.reload();
         }
     });
 
-    // ==========================================
-    // CHỌN SẢN PHẨM TRONG GIỎ HÀNG ĐỂ THANH TOÁN
-    // ==========================================
-
-    // Đồng bộ các ô tích chọn món trong giỏ với tổng tiền hiển thị bên dưới
+        // Đồng bộ trạng thái chọn sản phẩm trong giỏ hàng
     window.syncCartSelectionUI = function () {
         var checkboxes = document.querySelectorAll('.cart-item-checkbox');
         var masterChk = document.getElementById('cart-select-all-chk');
@@ -842,10 +800,7 @@
             });
     };
 
-    // ==========================================
-    // NÚT MẮT HIỆN/ẨN MẬT KHẨU — dùng chung cho MỌI ô mật khẩu ở MỌI trang (đăng nhập, đăng ký, đặt
-    // lại mật khẩu, đổi mật khẩu trong hồ sơ...), chỉ cần thêm class .toggle-password-visibility +
-    // data-target="id-của-input-mật-khẩu" là có ngay, không cần viết lại JS riêng cho từng trang.
+        // Bật tắt ẩn hiện mật khẩu dùng chung cho mọi form
     document.querySelectorAll('.toggle-password-visibility').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var targetId = this.getAttribute('data-target');
@@ -873,18 +828,14 @@
     });
     </script>
 
-    {{-- Hiện toast cho flash message session('success') dùng CHUNG cho mọi trang - tránh phải tự thêm
-    @if(session('success')) + gọi FrontendAlert riêng lẻ ở từng trang (dễ quên, dễ sót như đã xảy ra
-    với trang đăng ký/xác nhận OTP). Chỉ áp dụng cho 'success': 'error' KHÔNG đưa vào đây vì
-    orders/index.blade.php và checkout.blade.php đã tự hiển thị session('error') riêng bằng banner
-    tĩnh, thêm toast nữa sẽ bị hiện trùng 2 lần. --}}
+    
     @if(session('success'))
         <script>window.FrontendAlert.success(@json(session('success')), 3500);</script>
     @endif
 
-    {{-- CÁC SCRIPT VENDORS / PLUGINS DÙNG CHUNG TOÀN FRONTEND --}}
+    {{-- Script vendors / plugins dùng chung --}}
     <script>
-    // 1. Bộ đếm ngược thời gian (Countdown Timer)
+    // Bộ đếm ngược thời gian
     document.querySelectorAll('[data-countdown]').forEach(function (element) {
         var finalDate = element.getAttribute('data-countdown');
         // Đồng hồ đếm ngược cho các chương trình khuyến mãi có hạn
@@ -910,7 +861,7 @@
         var interval = setInterval(updateCountdown, 1000);
     });
 
-    // 2. Tiny Slider (TNS) sản phẩm & modal
+    // Tiny Slider sản phẩm & modal
     if (typeof tns === 'function') {
         if (document.querySelectorAll('.productModal').length > 0) {
             tns({
@@ -928,7 +879,7 @@
         }
     }
 
-    // 3. Phóng to ảnh chi tiết sản phẩm khi hover
+    // Phóng to ảnh chi tiết sản phẩm khi hover
     function zoom(e) {
         var zoomer = e.currentTarget;
         var offsetX = e.offsetX ? e.offsetX : e.touches[0].pageX;
@@ -938,7 +889,7 @@
         zoomer.style.backgroundPosition = x + '% ' + y + '%';
     }
 
-    // 4. Khởi tạo Swiper Carousel tự động
+    // Khởi tạo Swiper Carousel tự động
     function initializeSwiperCarousels() {
         if (typeof Swiper !== 'function') return;
         const swiperContainers = document.querySelectorAll('.swiper-container');
@@ -977,7 +928,7 @@
     }
     document.addEventListener('DOMContentLoaded', initializeSwiperCarousels);
 
-    // 5. Client Form Validation
+    // Validate form phía client
     (() => {
         'use strict';
         const forms = document.querySelectorAll('.needs-validation');
@@ -993,9 +944,7 @@
     })();
     </script>
 
-
-    {{-- @stack('scripts'): Khác với @yield, @stack cho phép nhiều trang con cùng "đẩy" (@push) các đoạn mã script bổ
-    sung vào vị trí này. Rất hữu ích khi một trang cụ thể cần chạy một file JS riêng biệt --}}
+    
     @stack('scripts')
 
     @if (Auth::check() && Auth::user()->is_active == 0)

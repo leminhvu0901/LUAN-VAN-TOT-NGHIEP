@@ -52,8 +52,7 @@
                     <span class="material-symbols-outlined text-[18px]">call</span> Gọi khách
                 </a>
                 @php
-                    // Ưu tiên tọa độ GPS chính xác (đã lưu lúc đặt hàng) thay vì tìm theo chuỗi địa chỉ text
-                    // — tìm theo text dễ ra nhiều kết quả trùng tên đường/khu vực, không rõ điểm nào là đúng.
+                    // Lấy link bản đồ giao hàng
                     $mapUrl = ($order->delivery_latitude && $order->delivery_longitude)
                         ? "https://www.google.com/maps/search/?api=1&query={$order->delivery_latitude},{$order->delivery_longitude}"
                         : 'https://www.google.com/maps/search/?api=1&query=' . urlencode($order->delivery_address);

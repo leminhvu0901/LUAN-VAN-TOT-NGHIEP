@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <div
         class="min-h-screen bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container pb-24">
-        <!-- Header Page (Material Style) -->
+        <!-- Header -->
         <header
             class="bg-white border-b border-outline-variant py-4 px-6 md:px-12 flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-3">
@@ -20,9 +20,7 @@
         </header>
 
         <div class="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-            {{-- Lỗi chung (session('error')) HOẶC lỗi validate form (vd địa chỉ không hợp lệ, phiên đặt
-        hàng hết hạn...) sau khi submit form thật và tải lại trang — trước đây các lỗi này chỉ hiện
-        qua JS đọc JSON trả về từ fetch(), giờ phải render trực tiếp từ $errors mới thấy được. --}}
+            
             @if (session('error') || $errors->any())
                 <div
                     class="bg-error-container text-on-error-container border border-error p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm">
@@ -51,9 +49,9 @@
                 <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Left: Shipping Address & Method & Payment (2 columns on desktop) -->
+                    <!-- Left: Shipping Address & Method & Payment -->
                     <div class="lg:col-span-2 space-y-6">
-                        <!-- 1. Shipping Address Section -->
+                        <!-- Shipping Address Section -->
                         <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
                             <div class="flex items-center gap-2 border-b border-outline-variant pb-4 mb-4">
                                 <span class="material-symbols-outlined text-primary material-filled">location_on</span>
@@ -194,7 +192,7 @@
                                 </div>
                             @endif
 
-                            <!-- New Address Form (Hidden by default) -->
+                            <!-- New Address Form -->
                             <div id="addressModal" class="hidden mt-4 pt-4 border-t border-outline-variant/60">
                                 <div class="border-b border-outline-variant pb-4 mb-4 flex items-center justify-between">
                                     <h2 id="addressModalTitle" class="font-headline-md text-lg text-on-surface font-bold">
@@ -205,11 +203,8 @@
                                     </button>
                                 </div>
 
-                                <!-- Segmented control: 3 phương thức xác định vị trí độc lập (gps/map/manual) -->
-                                {{-- Icon xếp TRÊN chữ trên mobile (flex-col), xếp NGANG lại như cũ từ sm trở lên
-                                (sm:flex-row): 3 nút cùng hàng ngang với chữ 2-3 từ quá chật trên màn hình hẹp,
-                                khiến chữ xuống dòng lệch lạc rất xấu. Xếp dọc trên mobile giải quyết dứt điểm mà
-                                không phải rút ngắn nhãn hay đổi cỡ chữ. --}}
+                                <!-- Segmented control: 3 phương thức xác định vị trí độc lập -->
+                                
                                 <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4"
                                     role="tablist" aria-label="Phương thức xác định vị trí">
                                     <button type="button" data-method="gps" onclick="setLocationMethod('gps')"
@@ -261,7 +256,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- Nút GPS (chỉ hiện ở mode "Vị trí hiện tại") -->
+                                        <!-- Nút gps -->
                                         <div id="gpsBlock" class="hidden">
                                             <button type="button" onclick="getCurrentLocation()"
                                                 class="w-full min-h-[44px] rounded-xl bg-primary/10 text-primary font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/20 transition-colors active:scale-[0.98]">
@@ -273,7 +268,7 @@
                                             </p>
                                         </div>
 
-                                        <!-- Khu vực: 2 ô tìm chọn Tỉnh/Thành phố + Phường/Xã độc lập, hiển thị đủ chiều rộng -->
+                                        <!-- Khu vực: 2 ô tìm chọn Tỉnh/Thành phố + Phường/Xã -->
                                         <div class="grid grid-cols-1 gap-3.5" id="locSelectContainer">
                                             <div class="space-y-1">
                                                 <label for="addr_province_search"
@@ -390,12 +385,7 @@
                                         </label>
                                     </div>
 
-                                    <!-- Right: Map — hiện ở CẢ 3 mode (kể cả 'manual'): trước đây mode 'manual' ẩn bản đồ,
-                                            gửi mù toạ độ để backend tự dò khi lưu -> khách không biết hệ thống có hiểu đúng
-                                            địa chỉ hay không, dẫn tới tính sai khoảng cách/phí ship. Giờ gõ địa chỉ xong, hệ
-                                            thống tự dò và ghim lên bản đồ ngay để khách nhìn thấy + kéo chỉnh nếu sai, giống
-                                            hệt cách mode "Chọn trên bản đồ" đã làm (xem scheduleManualForwardGeocode() ở
-                                            checkout.js). -->
+                                    
                                     <div id="mapColumn" class="flex flex-col h-full space-y-3">
                                         <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản
                                             đồ</label>
@@ -416,10 +406,10 @@
                                     </div>
                                 </div>
 
-                                <!-- Thông báo lỗi chung của form (không dùng alert() — mục 9) -->
+                                <!-- Thông báo lỗi chung của form — mục 9) -->
                                 <p id="addressFormError" class="text-sm text-error font-medium mt-3 hidden"></p>
 
-                                <!-- Actions (full-width, hiện ở mọi mode) -->
+                                <!-- Actions -->
                                 <div class="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-outline-variant/60">
                                     <button type="button" onclick="closeAddressModal()"
                                         class="min-h-[44px] rounded-xl border border-outline-variant text-on-surface font-bold hover:bg-surface-container-low transition-colors">
@@ -434,7 +424,7 @@
 
                         </section>
 
-                        <!-- 3. Payment Method Section -->
+                        <!-- Payment Method Section -->
                         <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
                             <div class="flex items-center gap-2 border-b border-outline-variant pb-4 mb-4">
                                 <span class="material-symbols-outlined text-primary material-filled">payments</span>
@@ -444,11 +434,11 @@
                             @php
                                 $codEnabled = (bool) \App\Models\Setting::getValue('cod_enabled', true);
                                 $vnpayEnabled = (bool) \App\Models\Setting::getValue('vnpay_enabled', false);
-                                // COD tắt -> tự chọn phương thức online ĐẦU TIÊN còn bật (chỉ 1 radio được checked).
+                                // COD tắt -> tự chọn phương thức online ĐẦU tiên còn bật.
                                 $autoCheckOnline = !$codEnabled;
                             @endphp
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Cash On Delivery (COD) -->
+                                <!-- Cash On Delivery -->
                                 @if ($codEnabled)
                                     <label
                                         class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
@@ -496,7 +486,7 @@
                         </section>
                     </div>
 
-                    <!-- Right: Order Summary (1 column on desktop) -->
+                    <!-- Right: Order Summary -->
                     <div class="space-y-6">
                         <!-- Order Items Summary Card -->
                         <section class="bg-white rounded-xl border border-outline-variant p-6 shadow-sm">
@@ -544,9 +534,7 @@
                                     </div>
                                 @endforeach
 
-                                {{-- Quà tặng của mã combo — chỉ xuất hiện sau khi khách bấm chọn mã combo, và
-                            biến mất ngay khi khách đổi sang mã khác (mỗi đơn chỉ giữ 1 mã). JS đổ nội dung
-                            vào đây từ kết quả áp mã. --}}
+                                {{-- Quà tặng combo --}}
                                 <div id="combo-gift-list"></div>
                             </div>
                         </section>
@@ -568,8 +556,7 @@
                                                 // Tạo nhãn mô tả ngắn gọn cho chip
                                                 $isCombo = $promo->scope === 'combo';
                                                 if ($isCombo) {
-                                                    // Mã combo có phần thưởng nằm ở bảng cấu hình riêng, không nằm ở
-                                                    // cột type/value như mã thường
+                                                    // Lấy cấu hình phần thưởng combo
                                                     $cfg = $promo->combo;
                                                     $parts = [];
                                                     if ($cfg->hasDiscount()) {
@@ -815,7 +802,7 @@
                 return (window.checkoutConfig && window.checkoutConfig.geoapifyKey) || '';
             }
 
-            // Hiện trạng thái của bước lấy vị trí (đang tìm / thành công / ngoài vùng giao)
+            // Hiện trạng thái của bước lấy vị trí
             function setLocStatus(state, extraText) {
                 const iconEl = document.getElementById('locStatusIcon');
                 const textEl = document.getElementById('locStatusText');
@@ -841,7 +828,7 @@
                     cfg[2];
             }
 
-            // Ghi nhận khách lấy tọa độ bằng cách nào: định vị GPS, chọn trên bản đồ hay gõ tay
+            // Ghi nhận khách lấy tọa độ bằng cách nào: định vị gps, chọn trên bản đồ hay gõ tay
             function setLocationMethod(method) {
                 if (!['gps', 'map', 'manual'].includes(method)) method = 'map';
                 const methodChanged = method !== locationMethod;
@@ -899,7 +886,7 @@
                 updateSaveButtonState();
             }
 
-            // Chỉ khởi tạo bản đồ Leaflet lần đầu khi thật sự cần, tránh tải nặng ngay lúc mở trang
+            // Khởi tạo bản đồ Leaflet khi cần sử dụng
             function initMapIfNeeded() {
                 if (map) return;
                 const mapEl = document.getElementById('addressMap');
@@ -974,7 +961,7 @@
             let manualGeocodeTimer = null;
             const MANUAL_GEOCODE_MIN_CONFIDENCE = 0.3;
 
-            // Ghép số nhà + phường + tỉnh thành chuỗi hoàn chỉnh gửi cho dịch vụ tra tọa độ; thiếu phần nào thì trả null để khỏi gọi API
+            // Ghép địa chỉ đầy đủ để tra cứu tọa độ; thiếu phần nào thì trả null để khỏi gọi API
             function buildManualAddressQuery() {
                 const specific = (document.getElementById('addr_specific').value || '').trim();
                 const wardName = (document.getElementById('addr_ward_search').value || '').trim();
@@ -1148,7 +1135,7 @@
                     .catch(err => console.error(err));
             }
 
-            // Bỏ dấu tiếng Việt và đổi đ thành d để so khớp tên tỉnh/phường, nhờ vậy gõ không dấu vẫn tìm ra
+            // Chuyển chuỗi tiếng Việt sang dạng không dấu để tìm kiếm
             function normalizeVN(str) {
                 return (str || '')
                     .toString()
@@ -1328,14 +1315,14 @@
                 }
             }
 
-            // Mã hóa ký tự đặc biệt trước khi chèn chuỗi vào HTML, chống lỗi XSS
+            // Mã hóa ký tự đặc biệt trước khi chèn chuỗi vào HTML, chống lỗi xss
             function escapeHtml(str) {
                 const div = document.createElement('div');
                 div.textContent = str == null ? '' : String(str);
                 return div.innerHTML;
             }
 
-            // Hiện thông tin mã giảm giá vừa áp thành công và ghi mã vào ô ẩn để gửi kèm khi đặt hàng
+            // Hiển thị thông tin mã giảm giá đã áp dụng
             function renderCouponSuccessInfo(data, code) {
                 const lines = [];
                 lines.push(
@@ -1963,7 +1950,7 @@
                     });
                 }
 
-                // Đổi đích gửi form theo phương thức thanh toán khách chọn (COD hay VNPay)
+                // Đổi đích gửi form theo phương thức thanh toán khách chọn
                 function updateFormAction() {
                     const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
                     if (selectedPayment && checkoutForm) {
@@ -2013,8 +2000,7 @@
                 let maxDiscountAmount = 0;
                 let couponScope = 'order';
 
-                // Vẽ lại danh sách quà tặng theo mã đang chọn. Mỗi đơn chỉ giữ 1 mã nên gọi với mảng
-                // rỗng là quà của mã cũ biến mất ngay.
+                // Vẽ lại danh sách quà tặng theo mã đang chọn. Mỗi đơn
                 const comboGiftList = document.getElementById('combo-gift-list');
 
                 // Hiện danh sách quà tặng kèm khi khách áp mã combo
@@ -2119,9 +2105,7 @@
                                         maxDiscountAmount = 0;
                                     }
 
-                                    // QUAN TRỌNG: đây là ô thật sự được gửi lên server lúc bấm "Đặt hàng". Thiếu
-                                    // dòng này thì số tiền giảm chỉ là ảo trên màn hình — server không hề biết
-                                    // khách đã áp mã, nên khách bị tính đúng giá gốc dù thấy giá đã giảm.
+                                    // Quan TRỌNG: đây là ô thật sự được gửi lên server lúc
                                     document.getElementById('hidden_coupon_code').value = code;
 
                                     couponMessage.innerHTML = renderCouponSuccessInfo(data, code);
@@ -2131,8 +2115,7 @@
                                     discount = 0;
                                     discountPercent = 0;
                                     couponScope = 'order';
-                                    // Mã vừa gõ bị từ chối -> phải xóa luôn ô ẩn, nếu không mã HỢP LỆ đã áp
-                                    // trước đó vẫn còn sót lại và bị gửi nhầm lên server.
+                                    // Mã vừa gõ bị từ chối -> phải xóa luôn ô ẩn, nếu không
                                     document.getElementById('hidden_coupon_code').value = '';
                                     couponMessage.innerText = data.message;
                                     couponMessage.className = 'text-xs text-error font-bold mt-1';
@@ -2218,7 +2201,7 @@
                     }
                 }
 
-                // Cộng lại tổng tiền cuối cùng mỗi khi có thay đổi (tiền hàng + ship + phụ thu - giảm giá)
+                // Cộng lại tổng tiền cuối cùng mỗi khi có thay đổi
                 function calculateTotal() {
                     const hiddenDist = document.getElementById('hidden_distance_km');
                     const distanceKm = hiddenDist ? parseFloat(hiddenDist.value) : 2.5;

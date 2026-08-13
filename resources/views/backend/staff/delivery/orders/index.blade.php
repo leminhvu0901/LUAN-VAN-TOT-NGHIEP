@@ -71,7 +71,7 @@
                         </p>
                     @endif
 
-                    {{-- Danh sách món kèm ảnh — để shipper biết cần lấy gì mà không phải bấm vào xem chi tiết. --}}
+                    {{-- Danh sách món kèm ảnh --}}
                     @if($order->items->isNotEmpty())
                         <div class="rounded-xl border border-gray-100 divide-y divide-gray-100 overflow-hidden">
                             @foreach($order->items as $item)
@@ -85,7 +85,7 @@
                         </div>
                     @endif
 
-                    {{-- Trạng thái thanh toán + phụ phí dạng chip, dễ quét mắt trên màn hình nhỏ. --}}
+                    {{-- Trạng thái thanh toán + phụ phí dạng chip, dễ --}}
                     <div class="flex flex-wrap gap-1.5">
                         @if($order->payment_method === 'cod')
                             <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">COD {{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
@@ -100,7 +100,7 @@
                         @endforeach
                     </div>
 
-                    {{-- Vùng nút: mỗi nút tối thiểu 44px chiều cao, dễ bấm trên di động --}}
+                    {{-- Vùng nút: mỗi nút tối thiểu 44px chiều cao, dễ --}}
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <a href="tel:{{ $order->customer_phone }}"
                             class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm active:bg-gray-50">

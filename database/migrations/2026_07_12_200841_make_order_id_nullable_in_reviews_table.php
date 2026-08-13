@@ -6,17 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    // Run the migrations.
     public function up(): void
     {
         // Already represented by the base schema and current production schema.
     }
 
-    /**
-     * Reverse the migrations.
-     */
+    // Reverse the migrations.
     public function down(): void
     {
         // Making historical review ownership mandatory would be destructive.

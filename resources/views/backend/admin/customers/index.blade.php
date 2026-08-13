@@ -58,7 +58,7 @@
                 </div>
             </div>
 
-            <!-- Card 3: Khách hàng mới (New) -->
+            <!-- Card 3: Khách hàng mới -->
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
                 <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">person_add</span>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <!-- Form ẩn dùng để xóa nhiều -->
+        <!-- Form -->
         <form id="bulk-delete-form" action="{{ route('admin.customers.bulk_delete') }}" method="POST" style="display: none;">
             @csrf
         </form>
@@ -165,12 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const deselectBtn = document.getElementById('bulk-deselect-btn');
     const bulkDeleteForm = document.getElementById('bulk-delete-form');
 
-    // Lấy mảng id của các dòng đang được tích chọn trong bảng
+    // Lấy danh sách ID khách hàng đang được chọn
     function getCheckedIds() {
         return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
     }
 
-    // Bật/tắt và cập nhật số đếm trên nút "Xóa đã chọn" theo số dòng đang tích
+    // Cập nhật trạng thái hiển thị và số lượng của nút xóa hàng loạt
     function updateBulkDeleteUI() {
         const count = getCheckedIds().length;
         if (bulkDeleteContainer) bulkDeleteContainer.classList.toggle('hidden', count === 0);
@@ -178,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCountSpan) selectedCountSpan.textContent = count;
     }
 
+    // Xử lý sự kiện khi thay đổi trạng thái checkbox chọn tất cả hoặc từng dòng
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('js-select-all')) {
             const checked = e.target.checked;
@@ -193,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Bỏ chọn tất cả checkbox đang được tích
     if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
             document.querySelectorAll('.js-select-all, .row-checkbox').forEach(el => el.checked = false);
@@ -200,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Xác nhận và gửi yêu cầu xóa các khách hàng đã chọn
     const bulkDeleteBtn = document.querySelector('.js-bulk-delete');
     if (bulkDeleteBtn) {
         bulkDeleteBtn.addEventListener('click', function () {
@@ -207,6 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (ids.length === 0) return;
             if (!confirm(`Xóa ${ids.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`)) return;
 
+            // Đưa danh sách ID vào form ẩn và submit
             bulkDeleteForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
             ids.forEach(id => {
                 const input = document.createElement('input');
@@ -219,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Xử lý thay đổi trạng thái hoạt động hoặc khóa tài khoản kèm lý do
     document.addEventListener('change', function (e) {
         if (e.target && e.target.classList.contains('toggle-status')) {
             const checkbox = e.target;
@@ -240,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Hỏi xác nhận rồi gửi yêu cầu xóa một khách hàng
+// Xác nhận và gửi yêu cầu xóa một khách hàng
 window.deleteCustomer = function (id) {
     if (confirm('Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.')) {
         const form = document.getElementById('delete-form-' + id);

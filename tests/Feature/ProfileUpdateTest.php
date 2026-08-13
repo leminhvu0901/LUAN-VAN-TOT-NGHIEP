@@ -43,16 +43,14 @@ class ProfileUpdateTest extends TestCase
         $this->assertEquals('0912345678', $fresh->phone);
     }
 
-    /**
-     * Trực tiếp mô phỏng field cropped_avatar mà form (cả desktop lẫn mobile, sau khi fix) đều gửi —
-     * đảm bảo backend xử lý đúng khi field này CÓ mặt trong request. Bug thật đã gặp: trang profile có
-     * 2 <form> HTML riêng biệt (desktop + mobile, ẩn/hiện qua CSS theo viewport) cùng POST tới cùng
-     * route profile.update — input ẩn cropped_avatar trước đây chỉ khai báo 1 lần trong form desktop,
-     * nên sửa ảnh đại diện ở giao diện MOBILE rồi lưu thì ảnh không hề được gửi lên server (name/phone
-     * vẫn lưu bình thường, hiện "thành công" gây hiểu lầm ảnh cũng đã lưu). Xem fix:
-     * resources/views/frontend/profile.blade.php (thêm #croppedAvatarInputMobile) +
-     * public/js/frontend/profile.js (cropImage() đồng bộ cả 2 input).
-     */
+    // Trực tiếp mô phỏng field cropped_avatar mà form (cả desktop lẫn mobile, sau khi fix) đều gửi —
+    // đảm bảo backend xử lý đúng khi field này CÓ mặt trong request. Bug thật đã gặp: trang profile có
+    // 2 <form> HTML riêng biệt (desktop + mobile, ẩn/hiện qua CSS theo viewport) cùng POST tới cùng
+    // route profile.update — input ẩn cropped_avatar trước đây chỉ khai báo 1 lần trong form desktop,
+    // nên sửa ảnh đại diện ở giao diện MOBILE rồi lưu thì ảnh không hề được gửi lên server (name/phone
+    // vẫn lưu bình thường, hiện "thành công" gây hiểu lầm ảnh cũng đã lưu). Xem fix:
+    // resources/views/frontend/profile.blade.php (thêm #croppedAvatarInputMobile) +
+    // public/js/frontend/profile.js (cropImage() đồng bộ cả 2 input).
     public function test_profile_update_saves_cropped_avatar(): void
     {
         $user = User::factory()->create(['role' => 'customer', 'avatar' => null]);
@@ -74,11 +72,9 @@ class ProfileUpdateTest extends TestCase
         @unlink(avatar_path($fresh->avatar));
     }
 
-    /**
-     * Regression test cho đúng bug đã gặp: trang profile PHẢI render input ẩn cropped_avatar ở CẢ 2
-     * form (desktop và mobile) — nếu ai đó lỡ xóa mất input của form mobile trong tương lai, test này
-     * sẽ đỏ ngay thay vì phải đợi người dùng report "lưu ảnh không thành công".
-     */
+    // Regression test cho đúng bug đã gặp: trang profile PHẢI render input ẩn cropped_avatar ở CẢ 2
+    // form (desktop và mobile) — nếu ai đó lỡ xóa mất input của form mobile trong tương lai, test này
+    // sẽ đỏ ngay thay vì phải đợi người dùng report "lưu ảnh không thành công".
     public function test_profile_page_renders_cropped_avatar_input_in_both_desktop_and_mobile_forms(): void
     {
         $user = User::factory()->create(['role' => 'customer']);
@@ -115,12 +111,10 @@ class ProfileUpdateTest extends TestCase
         $this->assertEquals($exactly30, $user->fresh()->name);
     }
 
-    /**
-     * Trang profile phải render sẵn (ẩn) đúng 4 thẻ <small> hiện lỗi tên/SĐT ở cả 2 form — cần thiết
-     * để profile.js (showProfileFieldErrors) tìm thấy và điền lỗi vào khi submit qua AJAX, vì @error
-     * của Blade chỉ có tác dụng lúc tải trang lại (submit cổ điển không JS), không tự kích hoạt được
-     * khi form submit qua fetch (không tải lại trang).
-     */
+    // Trang profile phải render sẵn (ẩn) đúng 4 thẻ <small> hiện lỗi tên/SĐT ở cả 2 form — cần thiết
+    // để profile.js (showProfileFieldErrors) tìm thấy và điền lỗi vào khi submit qua AJAX, vì @error
+    // của Blade chỉ có tác dụng lúc tải trang lại (submit cổ điển không JS), không tự kích hoạt được
+    // khi form submit qua fetch (không tải lại trang).
     public function test_profile_page_renders_inline_error_placeholders_for_name_and_phone(): void
     {
         $user = User::factory()->create(['role' => 'customer']);

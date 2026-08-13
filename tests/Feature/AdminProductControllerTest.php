@@ -32,10 +32,8 @@ class AdminProductControllerTest extends TestCase
         ], $overrides));
     }
 
-    /**
-     * Sau khi lưu sản phẩm, phải quay lại ĐÚNG trang danh sách đã lọc/phân trang trước đó (lấy từ
-     * Referer lúc vào trang Sửa) — không được bật về trang index trần làm mất bộ lọc đang áp dụng.
-     */
+    // Sau khi lưu sản phẩm, phải quay lại ĐÚNG trang danh sách đã lọc/phân trang trước đó (lấy từ
+    // Referer lúc vào trang Sửa) — không được bật về trang index trần làm mất bộ lọc đang áp dụng.
     public function test_updating_product_redirects_back_to_previously_filtered_index_url(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -63,10 +61,8 @@ class AdminProductControllerTest extends TestCase
         $response->assertRedirect($filteredUrl);
     }
 
-    /**
-     * Không có back_url hợp lệ (hoặc bị giả mạo trỏ ra domain khác) -> phải rơi về trang index mặc
-     * định, không redirect ra ngoài (chặn open-redirect).
-     */
+    // Không có back_url hợp lệ (hoặc bị giả mạo trỏ ra domain khác) -> phải rơi về trang index mặc
+    // định, không redirect ra ngoài (chặn open-redirect).
     public function test_updating_product_falls_back_to_index_when_back_url_missing_or_unsafe(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -95,10 +91,8 @@ class AdminProductControllerTest extends TestCase
         $response->assertRedirect(route('admin.products.index'));
     }
 
-    /**
-     * Tương tự khi TẠO sản phẩm mới — vào trang Thêm từ danh sách đã lọc thì lưu xong phải quay lại
-     * đúng danh sách đó.
-     */
+    // Tương tự khi TẠO sản phẩm mới — vào trang Thêm từ danh sách đã lọc thì lưu xong phải quay lại
+    // đúng danh sách đó.
     public function test_creating_product_redirects_back_to_previously_filtered_index_url(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

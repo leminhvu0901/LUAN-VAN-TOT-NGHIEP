@@ -6,26 +6,25 @@ use Illuminate\Support\Facades\Http;
 class AdministrativeDivisionService
 {
     // Thời gian lưu trữ dữ liệu vào Cache: 60 giây * 60 phút * 24 giờ * 7 ngày = 7 ngày (tương đương 1 tuần)
-    // Vì thông tin tỉnh/thành và phường/xã rất ít khi thay đổi nên cache lâu giúp tăng hiệu năng cho hệ thống, tránh gọi API ngoài liên tục
+    // Vì thông tin tỉnh/thành và phường/xã rất ít khi thay
     private const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-    // Đường dẫn gốc (Base URL) của API công khai để lấy dữ liệu tỉnh/thành, phường/xã của Việt Nam —
-    // đọc từ config/services.php (env ADMINISTRATIVE_DIVISION_BASE_URL), có giá trị mặc định sẵn.
+    // Đường dẫn gốc (Base URL) của API công khai để lấy dữ
     private function baseUrl(): string
     {
         return config('services.administrative_division.base_url', 'https://provinces.open-api.vn/api/v2');
     }
 
-    //lấy danh sách toàn bộ Tỉnh/Thành phố.
+    // lấy danh sách toàn bộ Tỉnh/Thành phố.
     public function provinces(): ?array
     {
-        // Cache kết quả với key 'admin_division_provinces' trong vòng 7 ngày
+        // Cache kết quả với key 'admin_division_provinces' trong
         return Cache::remember('admin_division_provinces', self::CACHE_TTL_SECONDS, function () {
             try {
-                // Gọi API lấy danh sách tỉnh, thiết lập thời gian chờ tối đa (timeout) là 8 giây
+                // Gọi API lấy danh sách tỉnh, thiết lập thời gian chờ
                 $response = Http::timeout(8)->get($this->baseUrl() . '/p/');
 
-                // Nếu gọi API thất bại (status code không phải 2xx), trả về null
+                // Nếu gọi API thất bại (status code không phải 2xx), trả
                 if (!$response->successful()) {
                     return null;
                 }
@@ -36,12 +35,12 @@ class AdministrativeDivisionService
                     return null;
                 }
 
-                // Dùng Collection để lọc và chuẩn hóa dữ liệu, chỉ giữ lại mã code (ép kiểu int) và tên tỉnh (ép kiểu string)
+                // Dùng Collection để lọc và chuẩn hóa dữ liệu, chỉ giữ
                 return collect($data)
                     ->map(fn($p) => ['code' => (int) $p['code'], 'name' => (string) $p['name']])
                     ->values()->all();
             } catch (\Throwable) {
-                // Nếu có bất kỳ lỗi nào xảy ra trong quá trình gọi API (mất mạng, API sập,...), bắt lỗi và trả về null
+                // Nếu có bất kỳ lỗi nào xảy ra trong quá trình gọi API
                 return null;
             }
         });
@@ -50,7 +49,7 @@ class AdministrativeDivisionService
     // LẤY DS PHƯỜNG XÃ DỰA THEO TỈNH
     public function wardsOf(int $provinceCode): ?array
     {
-        // Cache kết quả theo từng tỉnh riêng biệt bằng cách đưa mã tỉnh vào key cache: 'admin_division_wards_{provinceCode}'
+        // Cache kết quả theo từng tỉnh riêng biệt bằng cách đưa
         return Cache::remember("admin_division_wards_{$provinceCode}", self::CACHE_TTL_SECONDS, function () use ($provinceCode) {
             try {
                 // Gọi API lấy thông tin chi tiết của Tỉnh kèm theo danh sách Phường/Xã (depth=2)
@@ -65,7 +64,7 @@ class AdministrativeDivisionService
                     return null;
                 }
 
-                // Chuẩn hóa dữ liệu từng phường xã (mã xã, tên xã, và mã tỉnh cha của nó)
+                // Chuẩn hóa dữ liệu từng phường xã (mã xã, tên xã, và mã
                 return collect($wards)
                     ->map(fn($w) => [
                         'code' => (int) $w['code'],
@@ -93,7 +92,7 @@ class AdministrativeDivisionService
             return null;
         }
 
-        // Vòng lặp duyệt qua từng tỉnh để tìm tỉnh có mã code trùng khớp
+        // Vòng lặp duyệt qua từng tỉnh để tìm tỉnh có mã code
         foreach ($provinces as $p) {
             if ($p['code'] === $code) {
                 return $p; // Tìm thấy thì trả về ngay lập tức
@@ -118,7 +117,7 @@ class AdministrativeDivisionService
             return null;
         }
 
-        // Vòng lặp duyệt qua danh sách để tìm phường/xã khớp với mã wardCode
+        // Vòng lặp duyệt qua danh sách để tìm phường/xã khớp với
         foreach ($wards as $w) {
             if ($w['code'] === $wardCode) {
                 return $w; // Tìm thấy phường xã hợp lệ thuộc đúng tỉnh này

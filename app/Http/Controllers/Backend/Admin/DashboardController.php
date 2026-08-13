@@ -202,7 +202,7 @@ class DashboardController
             ->limit(5)
             ->get();
 
-        // 6. Danh sách cảnh báo tồn kho nguyên liệu và hạn dùng (Top 8)
+        // 6. Danh sách cảnh báo tồn kho nguyên liệu và hạn dùng
         $stockAlertList = collect();
 
         // B. Nguyên liệu hết hàng hoặc sắp hết
@@ -246,7 +246,7 @@ class DashboardController
 
         $stockAlerts = $stockAlertList->take(8)->values();
 
-        // 7. Dòng hoạt động gần đây (Tự động tổng hợp từ dữ liệu thực tế mới nhất)
+        // 7. Dòng hoạt động gần đây (Tự động tổng hợp từ dữ liệu
         $activities = collect();
 
         // Thêm Đơn hàng mới

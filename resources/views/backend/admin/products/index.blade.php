@@ -5,7 +5,7 @@
 @section('content')
     <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 products-page">
 
-        <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
+        <!-- Tiêu đề trang & Nút Thêm mới -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div>
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Sản phẩm</h2>
@@ -51,7 +51,7 @@
             </div>
         @endif
 
-        <!-- Phần 2: Khung Thống kê -->
+        <!-- Khung Thống kê -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
             <!-- Card 1 -->
             <div
@@ -104,8 +104,7 @@
             </div>
         </div>
 
-
-        <!-- Phần 3: Thanh Tìm kiếm và Lọc dữ liệu -->
+        <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
         <div
             class="bg-white p-3 sm:p-4 rounded-xl organic-shadow border border-gray-100 flex flex-col gap-4 relative z-20 mb-6">
 
@@ -171,7 +170,7 @@
             <input type="hidden" id="total-products-count" value="{{ $products->total() }}">
         </div>
 
-        <!-- Phần 4: Bảng danh sách Sản phẩm -->
+        <!-- Bảng danh sách Sản phẩm -->
         <div
             class="bg-white rounded-2xl organic-shadow border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-230px)] min-h-[500px] w-full">
             <div id="table-container" class="flex-1 flex flex-col min-h-0 relative w-full">
@@ -187,7 +186,7 @@
             </div>
         </div>
 
-        <!-- Form ẩn để xóa nhiều -->
+        <!-- Form -->
         <form id="bulk-delete-form" method="POST" action="{{ route('admin.products.bulk_delete') }}" class="hidden">
             @csrf
         </form>
@@ -280,7 +279,7 @@ function confirmDeleteProduct(event, formElement) {
     return true;
 }
 
-// Gắn sự kiện cho bảng danh sách sản phẩm (chọn dòng, xóa, chuyển trang)
+// Gắn sự kiện cho bảng danh sách sản phẩm
 function initProductTableEvents(tableContainer) {
     const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
     const bulkDeselectBtn = document.getElementById("bulk-deselect-btn");
@@ -298,6 +297,7 @@ function initProductTableEvents(tableContainer) {
         });
     }
 
+    // Lắng nghe sự kiện thay đổi checkbox trên bảng sản phẩm
     tableContainer.addEventListener("change", function (event) {
         if (event.target.classList.contains("js-select-all")) {
             handleSelectAll(event.target.checked);
@@ -309,6 +309,7 @@ function initProductTableEvents(tableContainer) {
         }
     });
 
+    // Lắng nghe sự kiện submit form xóa từng sản phẩm
     tableContainer.addEventListener("submit", function (event) {
         const deleteForm = event.target.closest(".js-product-delete-form");
         if (deleteForm) {
@@ -317,6 +318,7 @@ function initProductTableEvents(tableContainer) {
     });
 }
 
+// Khởi tạo các sự kiện cho bảng sản phẩm khi tải xong trang
 document.addEventListener("DOMContentLoaded", function () {
     const tableContainer = document.getElementById("table-container");
     if (!tableContainer) return;
@@ -327,12 +329,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 const PRODUCTS_SCROLL_STORAGE_KEY = "admin-products-scroll-y";
 
+// Lưu vị trí cuộn trang vào sessionStorage trước khi tải lại
 window.addEventListener("beforeunload", function () {
     const container = getScrollContainer();
     const scrollY = window.pendingScrollY !== undefined ? window.pendingScrollY : container?.scrollTop;
     if (scrollY !== undefined) sessionStorage.setItem(PRODUCTS_SCROLL_STORAGE_KEY, String(scrollY));
 });
 
+// Khôi phục vị trí cuộn trang đã lưu sau khi tải xong
 window.addEventListener("load", function () {
     const savedScrollY = sessionStorage.getItem(PRODUCTS_SCROLL_STORAGE_KEY);
     const container = getScrollContainer();

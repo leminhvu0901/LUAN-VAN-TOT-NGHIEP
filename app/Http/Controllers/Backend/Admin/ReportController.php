@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController
 {
-    // Hiển thị trang Báo cáo & Thống kê với bộ lọc thời gian đang chọn (mặc định 30 ngày gần nhất)
+    // Hiển thị trang Báo cáo & Thống kê với bộ lọc thời gian
     public function index(Request $request)
     {
         $data = $this->buildReportData($request);
@@ -42,25 +42,25 @@ class ReportController
         $periodLabel = $data['start']->format('d/m/Y') . ' - ' . $data['end']->format('d/m/Y');
 
         // Thứ tự gọi = thứ tự tab hiện trong file Excel
-        // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu, đơn hàng, khách mới...) kèm % so kỳ trước
+        // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu,
         $this->buildOverviewSheet($spreadsheet->getActiveSheet(), $data, $periodLabel);
-        // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ lọc, kèm dòng TỔNG CỘNG dùng công thức Excel thật
+        // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ
         $this->buildRevenueByDaySheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số lượng bán trong kỳ
+        // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số
         $this->buildTopProductsSheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu + tỷ trọng % của từng danh mục sản phẩm
+        // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu
         $this->buildCategorySheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu nhiều nhất trong kỳ
+        // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu
         $this->buildTopCustomersSheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng và sắp hết, không lọc theo kỳ thời gian
+        // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng
         $this->buildInventorySheet($spreadsheet->createSheet(), $data, $periodLabel);
 
-        // Mở file ra là thấy tab đầu tiên (Tổng quan), không phải tab cuối cùng vừa tạo
+        // Mở file ra là thấy tab đầu tiên (Tổng quan), không
         $spreadsheet->setActiveSheetIndex(0);
 
         $fileName = 'bao-cao-happy-tea_' . $data['start']->format('Ymd') . '-' . $data['end']->format('Ymd') . '.xlsx';
 
-        // streamDownload: ghi file thẳng ra response, không lưu tạm trên server rồi mới trả về
+        // streamDownload: ghi file thẳng ra response, không lưu
         return response()->streamDownload(function () use ($spreadsheet) {
             (new Xlsx($spreadsheet))->save('php://output');
         }, $fileName, [
@@ -69,7 +69,7 @@ class ReportController
         ]);
     }
 
-   //Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu mỗi sheet,
+   // Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu
     private function writeSheetHeading(Worksheet $sheet, string $title, string $periodLabel, string $lastColumn): int
     {
         $sheet->setCellValue('A1', $title);
@@ -84,7 +84,7 @@ class ReportController
         return 4;
     }
 
- //Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có viền) + bật auto filter và cố định dòng.
+ // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
     private function styleHeaderRow(Worksheet $sheet, int $row, string $lastColumn): void
     {
         $range = 'A' . $row . ':' . $lastColumn . $row;
@@ -98,7 +98,7 @@ class ReportController
         $sheet->freezePane('A' . ($row + 1));
     }
 
-  //Kẻ viền vùng dữ liệu và tự giãn bề rộng cột cho dễ đọc khi mở file.
+  // Kẻ viền vùng dữ liệu và tự giãn bề rộng cột cho dễ đọc
     private function finishSheet(Worksheet $sheet, int $headerRow, int $lastRow, string $lastColumn): void
     {
         if ($lastRow > $headerRow) {
@@ -111,16 +111,16 @@ class ReportController
         }
     }
 
-    // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu, đơn hàng, khách mới...) kèm % so kỳ trước
+    // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu,
     private function buildOverviewSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Tổng quan');
-        //Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu mỗi sheet,
+        // Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu
         $row = $this->writeSheetHeading($sheet, 'BÁO CÁO TỔNG QUAN', $periodLabel, 'C');
 
         $headerRow = $row;
         $sheet->fromArray(['Chỉ số', 'Giá trị', 'So với kỳ trước'], null, 'A' . $headerRow);
-        //Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có viền) + bật auto filter và cố định dòng.
+        // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
         $this->styleHeaderRow($sheet, $headerRow, 'C');//
 
         $row++;
@@ -135,23 +135,23 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $row, 'C');
     }
 
-    // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ lọc, kèm dòng TỔNG CỘNG dùng công thức Excel thật
+    // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ
     private function buildRevenueByDaySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Doanh thu theo ngày');
-        //Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu mỗi sheet,
+        // Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu
         $row = $this->writeSheetHeading($sheet, 'DOANH THU THEO NGÀY', $periodLabel, 'C');
 
         $headerRow = $row;
         $sheet->fromArray(['Ngày', 'Doanh thu (đ)', 'Số đơn hoàn thành'], null, 'A' . $headerRow);
-        //Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có viền) + bật auto filter và cố định dòng.
+        // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
         $this->styleHeaderRow($sheet, $headerRow, 'C');
 
         $row++;
         $chart = $data['revenueChartData'];
         foreach ($chart['labels'] as $index => $label) {
             $sheet->setCellValue('A' . $row, $label);
-            // Ghi số THÔ (không format chuỗi) để Excel còn tính tổng/vẽ biểu đồ được.
+            // Ghi số THÔ (không format chuỗi) để Excel còn tính
             $sheet->setCellValue('B' . $row, (float) ($chart['revenue'][$index] ?? 0));
             $sheet->setCellValue('C' . $row, (int) ($chart['orders'][$index] ?? 0));
             $row++;
@@ -170,7 +170,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $row, 'C');
     }
 
-    // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số lượng bán trong kỳ (đã tính sẵn ở buildReportData)
+    // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số
     private function buildTopProductsSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Sản phẩm bán chạy');
@@ -201,7 +201,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
     }
 
-    // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu + tỷ trọng % của từng danh mục sản phẩm
+    // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu
     private function buildCategorySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Doanh thu theo danh mục');
@@ -230,7 +230,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
     }
 
-    // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu nhiều nhất trong kỳ
+    // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu
     private function buildTopCustomersSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Khách hàng thân thiết');
@@ -245,7 +245,7 @@ class ReportController
             $sheet->fromArray([
                 $index + 1,
                 $customer->customer_name ?: 'Khách vãng lai',
-                // Ghi SĐT dạng chuỗi để Excel không cắt số 0 ở đầu (0912... -> 912...).
+                // Ghi SĐT dạng chuỗi để Excel không cắt số 0 ở đầu
                 (string) $customer->customer_phone,
                 (int) $customer->total_orders,
                 (float) $customer->total_spend,
@@ -262,7 +262,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
     }
 
-    // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng (đỏ) và sắp hết (cam), không lọc theo kỳ thời gian
+    // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng
     private function buildInventorySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Tồn kho nguyên liệu');
@@ -293,13 +293,13 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
     }
 
-  //Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc.
+  // Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc.
     private function buildReportData(Request $request): array
     {
         $preset = $request->input('preset', '30_days');
         $now = Carbon::now();
 
-        // 1. Xác định khoảng thời gian hiện tại và khoảng thời gian trước đó để so sánh
+        // 1. Xác định khoảng thời gian hiện tại và khoảng thời
         switch ($preset) {
             case 'today':
                 $start = $now->copy()->startOfDay();
@@ -492,7 +492,7 @@ class ReportController
             'percentages' => $statusPercentages,
         ];
 
-        // 6b. Biểu đồ so sánh doanh thu Tại quầy (pickup) và Đặt online (giao hàng) — chỉ tính đơn
+        // 6b. Biểu đồ so sánh doanh thu Tại quầy (pickup) và Đặt
         // đã hoàn thành (completed), giống cách tính $revenue ở trên để khớp với "Tổng doanh thu".
         $pickupRevenue = (float) Order::where('status', 'completed')
             ->where('delivery_type', 'pickup')
@@ -508,7 +508,7 @@ class ReportController
             'amounts' => [$pickupRevenue, $deliveryRevenue],
         ];
 
-        // 6c. Biểu đồ số lượng đơn hàng theo kênh bán — đếm TẤT CẢ đơn trong kỳ (không lọc trạng
+        // 6c. Biểu đồ số lượng đơn hàng theo kênh bán — đếm TẤT
         // thái), khớp với cách tính "Tổng đơn hàng" ($ordersCount) ở thẻ tổng quan phía trên.
         $pickupOrdersCount = Order::where('delivery_type', 'pickup')->whereBetween('created_at', [$start, $end])->count();
         $deliveryOrdersCount = Order::where('delivery_type', 'delivery')->whereBetween('created_at', [$start, $end])->count();
@@ -537,7 +537,7 @@ class ReportController
             ->limit(5)
             ->get();
 
-        // Tính % đóng góp doanh thu của từng sản phẩm trong nhóm Top 5 (không phải % trên tổng đơn hàng)
+        // Tính % đóng góp doanh thu của từng sản phẩm trong nhóm
         $totalProductRevenue = $topProducts->sum('total_revenue') ?: 1;
         foreach ($topProducts as $p) {
             $p->percentage = round(($p->total_revenue / $totalProductRevenue) * 100, 1);
@@ -594,8 +594,7 @@ class ReportController
             ->limit(5)
             ->get();
 
-        // Tính tổng giá trị tồn kho ước tính hiện tại — mỗi lô nhập giữ đơn giá riêng lúc nhập
-        // (total_price/quantity), không dùng giá nhập mới nhất, vì các lô cũ vẫn còn tồn thật trong kho
+        // Tính tổng giá trị tồn kho ước tính hiện tại — mỗi lô
         $estimatedInventoryValue = (float) MaterialImport::where('remaining_quantity', '>', 0)
             ->get()
             ->sum(function ($import) {

@@ -199,11 +199,9 @@ class PromotionScopeTest extends TestCase
 
     // ===== 3. COMBO (trước đây "Mua X tặng Y") =====
 
-    /**
-     * @param array $items [[Product, quantity], ...] - danh sách sản phẩm BẮT BUỘC phải mua đủ.
-     * @param ?array $discount ['type' => 'percent'|'fixed', 'value' => float, 'max' => ?float]
-     * @param ?array $gift ['product' => Product, 'quantity' => int, 'auto_add' => bool]
-     */
+    // @param array $items [[Product, quantity], ...] - danh sách sản phẩm BẮT BUỘC phải mua đủ.
+    // @param ?array $discount ['type' => 'percent'|'fixed', 'value' => float, 'max' => ?float]
+    // @param ?array $gift ['product' => Product, 'quantity' => int, 'auto_add' => bool]
     private function makeCombo(array $items, ?array $discount = null, ?array $gift = null, ?int $maxApplications = null): Promotion
     {
         $promotion = Promotion::create([

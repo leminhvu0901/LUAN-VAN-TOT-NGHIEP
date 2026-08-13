@@ -5,10 +5,10 @@ return [
     // Tên của ứng dụng
     'name' => env('APP_NAME', 'Laravel'),
 
-    // Môi trường hoạt động của ứng dụng (local, production, v.v.)
+    // Môi trường hoạt động của ứng dụng
     'env' => env('APP_ENV', 'production'),
 
-    // Chế độ sửa lỗi (bật/tắt hiển thị chi tiết thông báo lỗi)
+    // Chế độ sửa lỗi
     'debug' => (bool) env('APP_DEBUG', false),
 
     // Địa chỉ URL chính của trang web
@@ -23,7 +23,7 @@ return [
     // Ngôn ngữ dự phòng nếu ngôn ngữ mặc định bị thiếu
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
-    // Ngôn ngữ mặc định dùng để sinh dữ liệu mẫu (Faker)
+    // Ngôn ngữ mặc định dùng để sinh dữ liệu mẫu
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     // Thuật toán mã hóa dữ liệu

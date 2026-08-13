@@ -23,7 +23,7 @@
 
         <div class="space-y-6">
 
-            <!-- Phần 1: Biểu mẫu (Form) Tạo Phiếu Nhập Kho Mới -->
+            <!-- Biểu mẫu Tạo Phiếu Nhập Kho Mới -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 class="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-3">Tạo phiếu nhập</h3>
 
@@ -96,8 +96,7 @@
                 </form>
             </div>
 
-
-            <!-- Phần 2: Bảng Lịch sử Nhập kho & Xuất kho -->
+            <!-- Bảng Lịch sử Nhập kho & Xuất kho -->
             @php
                 $nhapKho = $imports->where('quantity', '>', 0);
                 $xuatHuy = $imports->where('quantity', '<', 0);
@@ -109,7 +108,7 @@
                             class="material-symbols-outlined align-middle mr-1.5 text-emerald-600">login</span>Lịch sử Nhập kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $nhapKho->count() }} phiếu nhập</span>
                 </div>
-                <!-- Giao diện Mobile (Card view) -->
+                <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
                     @forelse($nhapKho as $import)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-4 relative hover:shadow-md transition-shadow" id="import-card-{{ $import->id }}">
@@ -192,7 +191,7 @@
                     @endforelse
                 </div>
 
-                <!-- Giao diện Desktop (Table view) -->
+                <!-- Giao diện Desktop -->
                 <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full table-fixed text-left border-collapse">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
@@ -275,7 +274,7 @@
                             class="material-symbols-outlined align-middle mr-1.5 text-red-600">logout</span>Lịch sử Xuất kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
                 </div>
-                <!-- Giao diện Mobile (Card view) -->
+                <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
                     @forelse($xuatHuy as $export)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
@@ -315,7 +314,7 @@
                     @endforelse
                 </div>
 
-                <!-- Giao diện Desktop (Table view) -->
+                <!-- Giao diện Desktop -->
                 <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
@@ -437,7 +436,7 @@
                 return `${input.value.slice(0, start)}${insertedText}${input.value.slice(end)}`;
             }
 
-            // Bắt sự kiện beforeinput để chặn ký tự sai NGAY TRƯỚC KHI nó hiện ra (kể cả khi dán), tránh hiện rồi mới xóa gây nhấp nháy
+            // Bắt sự kiện beforeinput để chặn ký tự sai ngay TRƯỚC khi nó hiện ra, tránh hiện rồi mới xóa gây nhấp nháy
             function guardInsertedContent(input, getValidationMessage) {
                 input.addEventListener("beforeinput", function (event) {
                     if (
@@ -569,7 +568,7 @@
                 });
             }
 
-            // Nạp giá trị có sẵn vào ô tiền khi mở form sửa (đồng bộ lần đầu, chưa có thao tác gõ)
+            // Nạp giá trị có sẵn vào ô tiền khi mở form sửa
             function syncCurrencyValue(formattedInput, rawInput, value) {
                 const numericValue = Number(value) || 0;
                 rawInput.value = numericValue;
@@ -578,7 +577,7 @@
                 setFieldError(formattedInput);
             }
 
-            // Trả về thông báo lỗi cho ô tiền (vượt hạn mức, bằng 0, bỏ trống...)
+            // Trả về thông báo lỗi cho ô tiền
             function getCurrencyValidation(input, value) {
                 if (/[^\d.,\s]/u.test(value)) {
                     return {

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class OnlinePaymentGatewayController
 {
 
-    //Điều hướng và xử lý hoàn tiền đơn hàng thanh toán online.
+    // Điều hướng và xử lý hoàn tiền đơn hàng thanh toán online.
     public function refund(Request $request, Order $order)
     {
         return match ($order->payment_method) { // Dùng cấu trúc match rẽ nhánh theo phương thức thanh toán
@@ -19,7 +19,7 @@ class OnlinePaymentGatewayController
         };
     }
 
-   //Điều hướng và xử lý tạo lại liên kết thanh toán cho đơn hàng online đã tồn tại.
+   // Điều hướng và xử lý tạo lại liên kết thanh toán cho
     public function payExisting(Request $request, Order $order)
     {
         return match ($order->payment_method) { // Dùng cấu trúc match rẽ nhánh theo phương thức thanh toán

@@ -62,7 +62,7 @@
     const hint = document.getElementById('fail-reason-hint');
     const reasonRadios = document.querySelectorAll('input[name="fail-reason-type"]');
 
-    // Tự điền textarea theo lý do đã chọn (damaged/customer_unreachable có sẵn câu mô tả, "other" để trống bắt tự gõ)
+    // Tự điền textarea theo lý do đã chọn
     function applyDefaultText(radio) {
         if (userEditedReason || !radio) return;
         textarea.value = radio.getAttribute('data-default-text') || '';
@@ -98,7 +98,7 @@
             if (form) openModal(form);
         });
 
-        // Đổi radio -> cập nhật lại textarea theo lý do mới chọn (trừ khi người dùng đã tự gõ nội dung riêng)
+        // Đổi radio -> cập nhật lại textarea theo lý do mới chọn
         reasonRadios.forEach(function (radio) {
             radio.addEventListener('change', function () {
                 applyDefaultText(radio);

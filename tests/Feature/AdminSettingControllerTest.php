@@ -40,11 +40,9 @@ class AdminSettingControllerTest extends TestCase
         $this->assertSame('22:00', Setting::getValue('store_close_time'));
     }
 
-    /**
-     * Trường hợp cụ thể từng bị báo lỗi: chỉ muốn sửa 1 trường khác (vd tên cửa hàng) mà KHÔNG đụng
-     * tới giờ mở/đóng cửa -> gửi form với ô giờ để trống không được ép buộc phải điền, và giá trị giờ
-     * hiện có trong DB phải được GIỮ NGUYÊN chứ không bị xóa/ghi đè thành rỗng.
-     */
+    // Trường hợp cụ thể từng bị báo lỗi: chỉ muốn sửa 1 trường khác (vd tên cửa hàng) mà KHÔNG đụng
+    // tới giờ mở/đóng cửa -> gửi form với ô giờ để trống không được ép buộc phải điền, và giá trị giờ
+    // hiện có trong DB phải được GIỮ NGUYÊN chứ không bị xóa/ghi đè thành rỗng.
     public function test_submitting_store_section_without_hours_keeps_existing_hours_unchanged(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

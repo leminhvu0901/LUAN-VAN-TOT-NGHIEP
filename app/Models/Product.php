@@ -83,7 +83,7 @@ class Product extends Model
             })
             ->get();
 
-        // 2. Quét khuyến mãi áp dụng cho toàn bộ danh mục chứa sản phẩm này
+        // 2. Quét khuyến mãi áp dụng cho toàn bộ danh mục chứa
         $categoryPromos = collect();
         if ($this->category_id) {
             $categoryPromos = Promotion::query()
@@ -116,7 +116,7 @@ class Product extends Model
 
         // Lặp qua từng khuyến mãi để tìm cái có mức giảm giá cao nhất
         foreach ($allPromos as $promo) {
-            // Kiểm tra điều kiện lặp lại (theo giờ, theo các ngày trong tuần)
+            // Kiểm tra điều kiện lặp lại (theo giờ, theo các ngày
             if ($promo->is_recurring) {
                 $nowStr = $now->format('H:i:s');
                 $currentDay = $now->dayOfWeekIso;
@@ -129,7 +129,7 @@ class Product extends Model
                     continue;
             }
 
-            // Tính số tiền được giảm tương ứng với từng kiểu khuyến mãi (phần trăm hoặc giảm tiền mặt trực tiếp)
+            // Tính số tiền được giảm tương ứng với từng kiểu khuyến
             if ($promo->type === 'percent') {
                 $discount = round($this->base_price * ((float) $promo->value / 100));
                 if ($promo->max_discount_amount) {
@@ -152,10 +152,10 @@ class Product extends Model
         }
 
         $rawSalePrice = max(0, (float) $this->base_price - $maxDiscount);
-        // Làm tròn LÊN đến bội số 1.000đ gần nhất (Ceil to 1.000đ) để giá tiền hiển thị đẹp mắt
+        // Làm tròn LÊN đến bội số 1.000đ gần nhất (Ceil to
         $salePrice = ceil($rawSalePrice / 1000) * 1000;
 
-        // Nếu làm tròn lên vô tình làm giá bán mới lớn hơn hoặc bằng giá gốc -> trừ bớt đi 1.000đ để giữ lại ưu đãi
+        // Nếu làm tròn lên vô tình làm giá bán mới lớn hơn hoặc
         if ($salePrice >= (float) $this->base_price && $rawSalePrice < (float) $this->base_price) {
             $salePrice = max(0, (float) $this->base_price - 1000);
         }

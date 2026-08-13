@@ -29,7 +29,7 @@
             @include('backend.admin.orders.partials.stats')
         </div>
 
-        {{-- Form tìm kiếm và lọc dữ liệu --}}
+        {{-- Form --}}
         <div class="bg-white p-3 sm:p-4 rounded-xl organic-shadow border border-gray-100 flex flex-col gap-4 relative z-20">
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
@@ -101,11 +101,9 @@
             </div>
         </div>
 
-
-
     </div>
 
-    <!-- Form ẩn để xóa nhiều -->
+    <!-- Form -->
     <form id="bulk-delete-form" method="POST" action="{{ route('admin.orders.bulk_delete') }}" class="hidden">
         @csrf
     </form>
@@ -129,6 +127,8 @@
 
             if (!bulkDeleteBtn || !selectedCountSpan) return;
 
+        // Cập nhật trạng thái hiển thị và số lượng của nút xóa hàng loạt
+        function updateBulkDeleteButton() {
             const count = window.selectedOrderIds.size;
             selectedCountSpan.textContent = count;
 
@@ -149,11 +149,12 @@
             }
         }
 
-        // Gom id đã chọn, hỏi xác nhận rồi gửi form xóa hàng loạt lên server
+        // Gom danh sách ID đã chọn, hỏi xác nhận và gửi form xóa hàng loạt
         function submitBulkDelete() {
             if (window.selectedOrderIds.size === 0) return;
             if (!confirm(`Bạn chuẩn bị xóa ${window.selectedOrderIds.size} đơn hàng đã chọn. Tiếp tục?`)) return;
 
+            // Đưa danh sách ID đã chọn vào form ẩn và submit
             const bulkDeleteForm = document.getElementById("bulk-delete-form");
             bulkDeleteForm.querySelectorAll('input[name="order_ids[]"]').forEach((el) => el.remove());
 
@@ -168,7 +169,7 @@
             bulkDeleteForm.submit();
         }
 
-        // Gắn sự kiện cho ô tìm kiếm và các bộ lọc trên trang danh sách đơn
+        // Khởi tạo bộ chọn ngày Flatpickr cho bộ lọc danh sách đơn hàng
         function initSearchAndFilters() {
             if (typeof flatpickr !== 'undefined') {
                 flatpickr(".orders-date-picker", {
@@ -184,7 +185,7 @@
             }
         }
 
-        // Gắn sự kiện cho bảng đơn hàng (tích chọn, mở chi tiết)
+        // Gắn sự kiện tương tác cho bảng đơn hàng
         function initTableEvents() {
             tableContainer = document.getElementById("table-container");
             const bulkDeleteBtn = document.getElementById("bulk-delete-btn");
@@ -192,11 +193,14 @@
             window.selectedOrderIds = new Set();
             window.submitBulkDelete = submitBulkDelete;
 
+            // Gắn sự kiện click cho nút xóa hàng loạt
             if (bulkDeleteBtn) {
                 bulkDeleteBtn.addEventListener("click", submitBulkDelete);
             }
 
+            // Lắng nghe các sự kiện thay đổi trên bảng đơn hàng
             tableContainer.addEventListener("change", function (e) {
+                // Xử lý khi nhấn chọn tất cả đơn hàng trên trang
                 if (e.target.classList.contains("js-select-all")) {
                     const isChecked = e.target.checked;
                     document.querySelectorAll(".js-select-all").forEach(cb => cb.checked = isChecked);
@@ -211,6 +215,7 @@
                     return;
                 }
 
+                // Xử lý khi chọn hoặc bỏ chọn từng đơn hàng lẻ
                 if (e.target.classList.contains("order-checkbox")) {
                     if (e.target.checked) {
                         window.selectedOrderIds.add(e.target.value);
@@ -227,14 +232,17 @@
                     return;
                 }
 
+                // Xử lý khi thay đổi trạng thái đơn hàng từ dropdown
                 if (e.target.classList.contains("js-order-status-select")) {
                     const select = e.target;
 
+                    // Nếu không phải trạng thái hủy thì submit trực tiếp
                     if (select.value !== "cancelled") {
                         select.form.submit();
                         return;
                     }
 
+                    // Yêu cầu nhập lý do hủy đơn hàng
                     const reason = prompt("Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):");
                     if (reason === null) {
                         select.value = select.dataset.currentStatus;
@@ -246,6 +254,7 @@
                         return;
                     }
 
+                    // Đưa lý do hủy vào input ẩn và gửi form
                     const reasonInput = document.createElement("input");
                     reasonInput.type = "hidden";
                     reasonInput.name = "cancel_reason";
@@ -255,12 +264,14 @@
                 }
             });
 
+            // Lắng nghe thay đổi DOM trong bảng để cập nhật lại nút xóa
             const observer = new MutationObserver(function () {
                 updateBulkDeleteButton();
             });
             observer.observe(tableContainer, { childList: true, subtree: true });
         }
 
+        // Khởi tạo các bộ lọc và sự kiện bảng khi tải xong trang
         document.addEventListener("DOMContentLoaded", function () {
             initSearchAndFilters();
             initTableEvents();

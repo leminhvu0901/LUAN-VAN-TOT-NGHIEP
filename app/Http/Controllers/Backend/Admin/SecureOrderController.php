@@ -16,7 +16,7 @@ class SecureOrderController
     {
     }
 
-    //Hàm lấy danh sách và hiển thị tất cả đơn hàng lên trang quản trị
+    // Hàm lấy danh sách và hiển thị tất cả đơn hàng lên
     public function index(Request $request)
     {
         $status = $request->query('status'); // Lấy tham số trạng thái từ đường dẫn URL (query string)
@@ -85,7 +85,7 @@ class SecureOrderController
     }
 
 
-    //Hàm hiển thị thông tin chi tiết của một đơn hàng cụ thể.
+    // Hàm hiển thị thông tin chi tiết của một đơn hàng cụ thể.
     public function show($id)
     {
         $order = Order::find($id); // Tìm đơn hàng theo ID
@@ -98,14 +98,13 @@ class SecureOrderController
         return view('backend.admin.orders.show', compact('order', 'items')); // Load giao diện chi tiết đơn hàng
     }
 
-    //Hàm cập nhật trạng thái xử lý của đơn hàng
+    // Hàm cập nhật trạng thái xử lý của đơn hàng
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([ // Kiểm tra và xác thực các tham số đầu vào của trạng thái cập nhật gửi lên
             'status' => ['required', 'in:pending,confirmed,shipping,completed,cancelled'],
             'cancel_reason' => ['nullable', 'string', 'max:500'],
         ]);
-        //
         $this->orderWorkflow->transition(Order::findOrFail($id), $validated['status'], $validated['cancel_reason'] ?? null); // Gọi OrderWorkflowService để thực thi nghiệp vụ chuyển đổi trạng thái đơn hàng và ghi nhận lý do nếu hủy đơn
 
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
@@ -130,7 +129,7 @@ class SecureOrderController
         return back()->with('success', 'Đã phê duyệt đơn hàng ' . $order->order_code . ' thành công!');
     }
 
-   //Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
+   // Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
     public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id); // Tìm đơn hàng theo ID hoặc ném lỗi 404
@@ -139,7 +138,7 @@ class SecureOrderController
         return back()->with('success', 'Đã xóa đơn hàng thành công!');
     }
 
-    //Hàm xử lý xóa hàng loạt các đơn hàng đang được tích chọn trong trang hiện tại.
+    // Hàm xử lý xóa hàng loạt các đơn hàng đang được tích
     public function bulkDelete(Request $request)
     {
         $ids = $request->validate(['order_ids' => ['required', 'array'], 'order_ids.*' => ['integer', 'exists:orders,id']])['order_ids'];

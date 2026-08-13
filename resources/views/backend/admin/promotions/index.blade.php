@@ -6,7 +6,7 @@
     <div class="promotions-page">
         <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-            <!-- Phần 1: Tiêu đề trang & Nút Thêm mới -->
+            <!-- Tiêu đề trang & Nút Thêm mới -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                 <div>
                     <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Quản lý Khuyến mãi</h2>
@@ -46,7 +46,7 @@
                 </div>
             @endif
 
-            <!-- Phần 2: Khung Thống kê -->
+            <!-- Khung Thống kê -->
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <!-- Card 1: Tổng -->
                 <div
@@ -99,7 +99,6 @@
                     </div>
                 </div>
             </div>
-
 
             <!-- Thanh Tìm kiếm và Lọc dữ liệu -->
             <div class="bg-white p-4 rounded-xl organic-shadow border border-gray-100 mb-6 flex flex-col gap-4">
@@ -190,7 +189,7 @@
                 </div>
             </div>
 
-            <!-- Phần 4: Bảng danh sách Khuyến mãi -->
+            <!-- Bảng danh sách Khuyến mãi -->
             <div class="bg-white rounded-2xl organic-shadow overflow-hidden border border-gray-100" id="table-container">
                 @include('backend.admin.promotions.partials.table', ['promotions' => $promotions])
             </div>
@@ -316,7 +315,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Mã hóa ký tự đặc biệt trước khi chèn chuỗi vào HTML, chống lỗi XSS
+// Mã hóa ký tự đặc biệt trước khi chèn chuỗi vào HTML, chống lỗi xss
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")

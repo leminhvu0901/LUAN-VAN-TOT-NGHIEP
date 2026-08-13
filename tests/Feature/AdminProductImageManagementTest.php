@@ -11,11 +11,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-/**
- * AdminProductControllerTest.php đã có sẵn, chỉ kiểm tra hành vi redirect back_url. File này bổ sung
- * phần CHƯA có test: upload/xoá ảnh chính + ảnh phụ (gallery), đồng thời bảo vệ quy ước lưu một
- * đường dẫn tương đối dưới public/images/ khi tạo, cập nhật và xóa ảnh.
- */
+// AdminProductControllerTest.php đã có sẵn, chỉ kiểm tra hành vi redirect back_url. File này bổ sung
+// phần CHƯA có test: upload/xoá ảnh chính + ảnh phụ (gallery), đồng thời bảo vệ quy ước lưu một
+// đường dẫn tương đối dưới public/images/ khi tạo, cập nhật và xóa ảnh.
 class AdminProductImageManagementTest extends TestCase
 {
     use RefreshDatabase;
@@ -28,11 +26,9 @@ class AdminProductImageManagementTest extends TestCase
         ]);
     }
 
-    /**
-     * validateProduct() không có $messages tiếng Việt cho tới bản sửa này - báo lỗi rơi về tiếng Anh
-     * mặc định của Laravel ("The base price field is required.") dù APP_LOCALE=en (không có file dịch
-     * lang/vi/validation.php) khiến MỌI lỗi validate không tự override đều hiện tiếng Anh.
-     */
+    // validateProduct() không có $messages tiếng Việt cho tới bản sửa này - báo lỗi rơi về tiếng Anh
+    // mặc định của Laravel ("The base price field is required.") dù APP_LOCALE=en (không có file dịch
+    // lang/vi/validation.php) khiến MỌI lỗi validate không tự override đều hiện tiếng Anh.
     public function test_product_validation_errors_are_in_vietnamese(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

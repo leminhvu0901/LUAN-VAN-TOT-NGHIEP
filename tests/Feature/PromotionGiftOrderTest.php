@@ -60,9 +60,7 @@ class PromotionGiftOrderTest extends TestCase
         ]);
     }
 
-    /**
-     * @param array $items [[Product, quantity], ...] - danh sách sản phẩm BẮT BUỘC phải mua đủ.
-     */
+    // @param array $items [[Product, quantity], ...] - danh sách sản phẩm BẮT BUỘC phải mua đủ.
     private function makeCombo(array $items, ?array $discount = null, ?array $gift = null): Promotion
     {
         $promotion = Promotion::create([

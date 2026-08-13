@@ -5,7 +5,7 @@
 @section('content')
     <div class="flex flex-col gap-6 h-full pb-4 orders-page">
 
-        {{-- PHẦN 1: HEADER (Tiêu đề, Trạng thái đơn, Nút in) --}}
+        {{-- Header --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <div class="flex items-center gap-3">
@@ -26,7 +26,7 @@
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
             <div class="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
-                {{-- Nút in hóa đơn: Lớp 'print:hidden' để ẩn chính nút này khi in --}}
+                {{-- Nút in hóa đơn: Lớp 'print:hidden' để ẩn chính --}}
                 <button id="order-print-btn" type="button"
                     class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 w-full sm:w-auto rounded-lg hover:bg-gray-50 font-medium transition-colors print:hidden">
                     <span class="material-symbols-outlined text-[20px]">print</span>
@@ -35,12 +35,11 @@
             </div>
         </div>
 
-        {{-- PHẦN 1.6: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG --}}
+        {{-- Cập nhật trạng thái đơn hàng --}}
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
             @php
                 $isDeliveryOrder = $order->delivery_type !== 'pickup';
-                // Không cho hủy khi: đơn đã thanh toán (phải hoàn tiền trước — theo rule OrderWorkflowService),
-                // hoặc đơn giao hàng đang "đang giao" (chỉ nhân viên vận chuyển được xử lý từ đó).
+                // Kiểm tra điều kiện hủy đơn hàng
                 $canCancel = in_array($order->status, ['pending', 'confirmed'], true)
                     && $order->payment_status !== 'paid';
                 // Đơn VNPay đã thanh toán ở pending/confirmed -> hủy phải đi kèm hoàn tiền tự động.
@@ -137,7 +136,7 @@
             </div>
         </div>
 
-        {{-- PHẦN 1.5: THÔNG BÁO LÝ DO HỦY ĐƠN (Chỉ hiện khi trạng thái là cancelled và có lý do) --}}
+        {{-- Thông báo lý do HỦY ĐƠN --}}
         @if($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
                 <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
@@ -148,13 +147,13 @@
             </div>
         @endif
 
-        {{-- PHẦN 2: LƯỚI GIAO DIỆN CHÍNH (Chia làm 3 cột trên màn hình lớn lg:grid-cols-3) --}}
+        {{-- LƯỚI giao DIỆN chính --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {{-- CỘT TRÁI (Chiếm 2/3 không gian lg:col-span-2): Hiển thị danh sách món và tổng tiền --}}
+            {{-- CỘT trái: Hiển thị danh sách món và tổng tiền --}}
             <div class="lg:col-span-2 flex flex-col gap-6">
 
-                {{-- Khối 1: Danh sách món ăn (Order Items) --}}
+                {{-- Khối 1: Danh sách món ăn --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
                     <div class="p-5 border-b border-gray-100">
                         <h3 class="font-bold text-gray-900 text-lg">Chi tiết món</h3>
@@ -207,7 +206,7 @@
                     </div>
                 </div>
 
-                {{-- Khối 2: Tạm tính và Tổng tiền (Summary) --}}
+                {{-- Khối 2: Tạm tính và Tổng tiền --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <div class="flex flex-col gap-3">
                         {{-- Tạm tính tiền món --}}
@@ -220,14 +219,14 @@
                             <span>Phí giao hàng ({{ $order->distance_km ?? 0 }}km)</span>
                             <span class="font-medium">{{ number_format($order->shipping_fee ?? 0, 0, ',', '.') }}đ</span>
                         </div>
-                        {{-- Phụ thu thời tiết xấu (Nếu có) --}}
+                        {{-- Phụ thu thời tiết xấu --}}
                         @if($order->weather_fee > 0)
                             <div class="flex justify-between text-gray-600">
                                 <span>Phụ thu thời tiết xấu</span>
                                 <span class="font-medium">{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
                             </div>
                         @endif
-                        {{-- Tiền được giảm giá từ Coupon (Nếu có) --}}
+                        {{-- Tiền được giảm giá từ Coupon --}}
                         @if($order->discount_amount > 0)
                             <div class="flex justify-between text-emerald-600">
                                 <span>Khuyến mãi {{ $order->coupon_code ? '(' . $order->coupon_code . ')' : '' }}</span>
@@ -250,10 +249,10 @@
                 </div>
             </div>
 
-            {{-- CỘT PHẢI (Chiếm 1/3 không gian): Hiển thị thông tin khách hàng, giao hàng, thanh toán --}}
+            {{-- CỘT PHẢI: Hiển thị thông tin khách hàng, giao --}}
             <div class="flex flex-col gap-6">
 
-                {{-- Khối 3: Thông tin Khách hàng (Customer Info) --}}
+                {{-- Khối 3: Thông tin Khách hàng --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-gray-400">person</span>
@@ -272,7 +271,7 @@
                     </div>
                 </div>
 
-                {{-- Khối 4: Thông tin Giao hàng (Delivery Info) --}}
+                {{-- Khối 4: Thông tin Giao hàng --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-gray-400">local_shipping</span>
@@ -283,7 +282,7 @@
                             <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao</p>
                             <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
                         </div>
-                        {{-- Ghi chú của khách hàng khi đặt đơn (Nếu có) --}}
+                        {{-- Ghi chú của khách hàng khi đặt đơn --}}
                         @if($order->customer_note)
                             <div>
                                 <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Ghi chú của khách
@@ -295,7 +294,7 @@
                     </div>
                 </div>
 
-                {{-- Khối 5: Tình trạng Thanh toán (Payment Info) --}}
+                {{-- Khối 5: Tình trạng Thanh toán --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
                         <span class="material-symbols-outlined text-gray-400">payments</span>
@@ -303,10 +302,10 @@
                     </h3>
                     <div class="flex items-center justify-between">
                         <div>
-                            {{-- Phương thức thanh toán (COD hoặc VNPAY) --}}
+                            {{-- Phương thức thanh toán --}}
                             <div class="font-bold text-gray-900 uppercase">{{ $order->payment_method ?? 'COD' }}</div>
 
-                            {{-- Kiểm tra nếu thanh toán online (VNPay) thì in ra trạng thái Đã thanh toán / Chờ thanh toán --}}
+                            {{-- Kiểm tra nếu thanh toán online thì in ra trạng --}}
                             @if($order->payment_method === 'vnpay')
                                 @if(($order->payment_status ?? '') === 'paid')
                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
@@ -340,14 +339,14 @@
 
     @push('scripts')
         <script>
-        // Thay bằng ảnh mặc định khi ảnh sản phẩm bị lỗi hoặc đã bị xóa khỏi máy chủ
+        // Thay bằng ảnh mặc định khi ảnh sản phẩm bị lỗi
         function applyFallbackImage(image) {
             if (image.dataset.fallbackApplied === "true") return;
             image.dataset.fallbackApplied = "true";
             image.src = image.dataset.fallbackSrc;
         }
 
-        // Bắt buộc nhập lý do hủy qua hộp thoại rồi mới gửi form, không cho hủy đơn suông
+        // Yêu cầu nhập lý do hủy qua hộp thoại trước khi submit form
         function askCancelReasonAndSubmit(btn, form, reasonInput, message) {
             const reason = prompt(message);
             if (reason === null) return;
@@ -361,8 +360,9 @@
             form.submit();
         }
 
-        // Khởi tạo trang chi tiết đơn hàng
+        // Khởi tạo các sự kiện trên trang chi tiết đơn hàng
         function initOrderShowPage() {
+            // Gắn sự kiện in hóa đơn
             const printButton = document.getElementById("order-print-btn");
             if (printButton) {
                 printButton.addEventListener("click", function () {
@@ -370,6 +370,7 @@
                 });
             }
 
+            // Xử lý ảnh lỗi và hiển thị ảnh dự phòng
             document.querySelectorAll("img[data-fallback-src]").forEach((image) => {
                 image.addEventListener("error", function () {
                     applyFallbackImage(this);
@@ -380,6 +381,7 @@
                 }
             });
 
+            // Xử lý hủy đơn hàng thường kèm lý do
             const cancelBtn = document.getElementById('cancel-order-btn');
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', function () {
@@ -392,6 +394,7 @@
                 });
             }
 
+            // Xử lý hủy đơn và hoàn tiền trực tuyến cho khách
             const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
             if (refundCancelBtn) {
                 refundCancelBtn.addEventListener('click', function () {
@@ -399,12 +402,13 @@
                         refundCancelBtn,
                         document.getElementById('refund-cancel-order-form'),
                         document.getElementById('refund_cancel_reason_input'),
-                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
                     );
                 });
             }
         }
 
+        // Tự động kích hoạt khi tải xong trang
         initOrderShowPage();
         </script>
     @endpush

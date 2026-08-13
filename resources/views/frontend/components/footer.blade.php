@@ -1,4 +1,4 @@
-{{-- ===== COMPONENTS: FOOTER ===== --}}
+{{-- Footer --}}
 <footer id="footer-custom">
     <div class="container mx-auto px-4 md:px-8">
 

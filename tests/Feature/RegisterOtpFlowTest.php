@@ -64,13 +64,11 @@ class RegisterOtpFlowTest extends TestCase
         $this->assertGuest();
     }
 
-    /**
-     * config/session.php uses 'serialization' => 'json', which cannot preserve PHP objects — so on
-     * any real driver (database/file) verify_otp_time comes back out of the session as a STRING,
-     * not a Carbon instance. The suite normally hides this because phpunit.xml pins
-     * SESSION_DRIVER=array, which keeps the object in memory untouched. Pin the string form
-     * explicitly so the expiry check can never again assume it got an object.
-     */
+    // config/session.php uses 'serialization' => 'json', which cannot preserve PHP objects — so on
+    // any real driver (database/file) verify_otp_time comes back out of the session as a STRING,
+    // not a Carbon instance. The suite normally hides this because phpunit.xml pins
+    // SESSION_DRIVER=array, which keeps the object in memory untouched. Pin the string form
+    // explicitly so the expiry check can never again assume it got an object.
     public function test_verify_otp_works_when_issue_time_is_a_string_as_json_sessions_store_it(): void
     {
         Mail::fake();

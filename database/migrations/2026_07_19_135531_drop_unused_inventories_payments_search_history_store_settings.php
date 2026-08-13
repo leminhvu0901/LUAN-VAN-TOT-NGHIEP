@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+    // Run the migrations.
     public function up(): void
     {
         // 4 bảng không còn được bất kỳ code nào đọc/ghi (đã khảo sát toàn bộ app/, resources/,
@@ -25,9 +23,7 @@ return new class extends Migration
         Schema::dropIfExists('store_settings');
     }
 
-    /**
-     * Reverse the migrations.
-     */
+    // Reverse the migrations.
     public function down(): void
     {
         // Chỉ khôi phục lại đúng cấu trúc bảng gốc — KHÔNG khôi phục được dữ liệu đã mất khi drop.

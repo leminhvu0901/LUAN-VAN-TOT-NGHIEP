@@ -36,7 +36,7 @@ class OrderController
         // Phân trang 10 đơn mỗi trang
         $orders = $query->with('items.product')->latest('assigned_at')->paginate(10)->withQueryString();
 
-        // Tính tổng tiền mặt COD shipper cần thu từ các đơn hàng đang giao trên đường đi
+        // Tính tổng tiền mặt COD shipper cần thu từ các đơn hàng
         $codToCollect = (float) Order::where('delivery_staff_id', Auth::id())
             ->where('status', 'shipping')->where('payment_method', 'cod')->sum('final_amount');
 
@@ -48,7 +48,7 @@ class OrderController
     {
         $this->authorizeOwnership($order); // Đảm bảo an ninh kiểm soát: Đơn này phải thuộc về Shipper hiện tại
 
-        // Left Join lấy thông tin sản phẩm đề phòng sản phẩm gốc bị xóa khỏi hệ thống
+        // Left Join lấy thông tin sản phẩm đề phòng sản phẩm gốc
         $items = OrderItem::query()->leftJoin('products', 'order_items.product_id', '=', 'products.id')
             ->where('order_items.order_id', $order->id)->select('order_items.*')
             ->selectRaw('COALESCE(order_items.product_name, products.name) as product_name')
@@ -57,7 +57,7 @@ class OrderController
         return view('backend.staff.delivery.orders.show', compact('order', 'items'));
     }
 
-    // Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng sang Đang giao hàng (shipping)
+    // Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng
     public function ship(Order $order)
     {
         $this->authorizeOwnership($order);
@@ -65,7 +65,7 @@ class OrderController
         return $this->success('shipping', 'Đã nhận đơn và chuyển sang đang giao!');
     }
 
-    // Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao sang Hoàn thành (completed)
+    // Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao
     public function complete(Order $order)
     {
         $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
@@ -86,7 +86,7 @@ class OrderController
             'failure_type.required' => 'Vui lòng chọn loại lý do giao thất bại.',
         ]);
 
-        // Nếu hàng hư hỏng trên đường đi và khách đã thanh toán online -> Kích hoạt hoàn tiền online ngay
+        // Nếu hàng hư hỏng trên đường đi và khách đã thanh toán
         $needsRefund = $validated['failure_type'] === 'damaged'
             && $order->payment_method === 'vnpay'
             && $order->payment_status === 'paid';
@@ -104,12 +104,12 @@ class OrderController
             $refundResult = app(VnpayController::class)->requestRefund($order);
 
             if ($refundResult['success']) {
-                //Giao thất bại và ghi nhận thông tin hoàn tiền MoMo/VnPay
+                // Giao thất bại và ghi nhận thông tin hoàn tiền MoMo/VnPay
                 $this->sv_orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']); // Ghi nhận thất bại kèm cập nhật hoàn tiền
                 return $this->success('history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
             }
 
-            // Hoàn tiền thất bại: Vẫn hủy đơn để giải phóng chuyến giao hàng của shipper nhưng báo lễ tân hoàn thủ công
+            // Hoàn tiền thất bại: Vẫn hủy đơn để giải phóng chuyến
             Log::error("{$gatewayLabel} refund failed on delivery-failed (damaged)", ['orderId' => $order->order_code, 'message' => $refundResult['message']]);
             // Ghi nhận đơn hàng giao thất bại và tiến hành hủy đơn
             $this->sv_orderWorkflow->markDeliveryFailed($order, $validated['reason'], $validated['failure_type']);
@@ -121,13 +121,13 @@ class OrderController
         return $this->success('history', 'Đã ghi nhận giao hàng thất bại.');
     }
 
-    // Hàm helper trả về redirect kèm thông báo về đúng tab danh sách sau khi xử lý đơn xong
+    // Hàm helper trả về redirect kèm thông báo về đúng tab
     private function success(string $tab, string $message)
     {
         return redirect()->route('staff.delivery.orders.index', ['tab' => $tab])->with('success', $message);
     }
 
-    // Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
+    // Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng
     private function authorizeOwnership(Order $order): void
     {
         $user = Auth::user();
