@@ -23,6 +23,13 @@ class PromotionScopeTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Cố định giờ trong khung mở cửa mặc định (08:00-22:00) để OrderService không chặn vì đóng cửa.
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+    }
+
     private function makeCategory(string $name = 'Trà sữa'): Category
     {
         return Category::create(['name' => $name, 'is_active' => true]);
