@@ -5,11 +5,11 @@ use Illuminate\Support\Facades\Http;
 
 class AdministrativeDivisionService
 {
-    // Thời gian lưu trữ dữ liệu vào Cache: 60 giây * 60 phút * 24 giờ * 7 ngày = 7 ngày (tương đương 1 tuần)
+    // Thời gian lưu trữ dữ liệu vào Cache: 60 giây * 60 phút * 24 giờ * 7 ngày = 7 ngày, tương đương 1 tuần
     // Vì thông tin tỉnh/thành và phường/xã rất ít khi thay
     private const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-    // Đường dẫn gốc (Base URL) của API công khai để lấy dữ
+    // Đường dẫn gốc, Base URL của API công khai để lấy dữ
     private function baseUrl(): string
     {
         return config('services.administrative_division.base_url', 'https://provinces.open-api.vn/api/v2');
@@ -24,7 +24,7 @@ class AdministrativeDivisionService
                 // Gọi API lấy danh sách tỉnh, thiết lập thời gian chờ
                 $response = Http::timeout(8)->get($this->baseUrl() . '/p/');
 
-                // Nếu gọi API thất bại (status code không phải 2xx), trả
+                // Nếu gọi API thất bại, status code không phải 2xx, trả
                 if (!$response->successful()) {
                     return null;
                 }
@@ -52,7 +52,7 @@ class AdministrativeDivisionService
         // Cache kết quả theo từng tỉnh riêng biệt bằng cách đưa
         return Cache::remember("admin_division_wards_{$provinceCode}", self::CACHE_TTL_SECONDS, function () use ($provinceCode) {
             try {
-                // Gọi API lấy thông tin chi tiết của Tỉnh kèm theo danh sách Phường/Xã (depth=2)
+                // Gọi API lấy thông tin chi tiết của Tỉnh kèm theo danh sách Phường/Xã, depth=2
                 $response = Http::timeout(8)->get($this->baseUrl() . "/p/{$provinceCode}", ['depth' => 2]);
                 if (!$response->successful()) {
                     return null;
@@ -64,7 +64,7 @@ class AdministrativeDivisionService
                     return null;
                 }
 
-                // Chuẩn hóa dữ liệu từng phường xã (mã xã, tên xã, và mã
+                // Chuẩn hóa dữ liệu từng phường xã mã xã, tên xã, và mã
                 return collect($wards)
                     ->map(fn($w) => [
                         'code' => (int) $w['code'],
@@ -86,7 +86,7 @@ class AdministrativeDivisionService
      */
     public function findProvince(int $code): ?array
     {
-        // Lấy danh sách toàn bộ các tỉnh (từ cache hoặc API)
+        // Lấy danh sách toàn bộ các tỉnh, từ cache hoặc API
         $provinces = $this->provinces(); // Gọi hàm provinces() lấy danh sách toàn bộ các tỉnh thành
         if ($provinces === null) {
             return null;

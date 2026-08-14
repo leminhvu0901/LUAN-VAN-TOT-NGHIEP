@@ -53,7 +53,7 @@ class CartController
         return $cart;
     }
 
-    // TÌM KIẾM GIỎ HÀNG — trả null nếu chưa đăng nhập (route
+    // TÌM KIẾM GIỎ HÀNG, trả null nếu chưa đăng nhập route
     private function findCart(): ?Cart
     {
         if (!Auth::check()) {
@@ -100,7 +100,7 @@ class CartController
         foreach ($items as $item) {
             // Lọc ra các topping tương ứng với từng dòng sản phẩm
             $item->toppings = $itemToppings->where('cart_item_id', $item->id)->values();
-            // Cộng dồn tổng tiền tạm tính (Giá đã gồm size + topping
+            // Cộng dồn tổng tiền tạm tính Giá đã gồm size + topping
             $total += $item->unit_price * $item->quantity;
         }
 
@@ -117,7 +117,7 @@ class CartController
     // THÊM SP YÊU THÍCH VÀO GIỎ HÀNG
     public function add(Request $request)
     {
-        // 1. Kiểm tra định dạng dữ liệu đầu vào gửi lên
+        // Kiểm tra định dạng dữ liệu đầu vào gửi lên
         $validated = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['sometimes', 'integer', 'min:1', 'max:99'],
@@ -143,13 +143,13 @@ class CartController
             }
         }
 
-        // Xác định mức đường (Mặc định là 100% đường nếu trống)
+        // Xác định mức đường, Mặc định là 100% đường nếu trống
         $sugarLevel = $request->input('sugar_level');
         if ($sugarLevel === null) {
             $sugarLevel = '100';
         }
 
-        // Xác định mức đá (Mặc định là đá bình thường nếu trống)
+        // Xác định mức đá, Mặc định là đá bình thường nếu trống
         $iceLevel = $request->input('ice_level');
         if ($iceLevel === null) {
             $iceLevel = 'normal';
@@ -460,7 +460,7 @@ class CartController
     {
         $userId = Auth::id();
 
-        // Lấy danh sách địa chỉ của khách hàng (ưu tiên địa chỉ
+        // Lấy danh sách địa chỉ của khách hàng ưu tiên địa chỉ
         $addresses = UserAddress::query()
             ->where('user_id', $userId)
             ->orderBy('is_default', 'desc')
@@ -526,7 +526,7 @@ class CartController
             }
         }
 
-        // 1. Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản
+        // Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản
         $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         $isClosed = !$receiveEnabled;
         $closedReason = null;
@@ -534,7 +534,7 @@ class CartController
         if ($isClosed) {
             $closedReason = 'Cửa hàng hiện đang tạm ngưng tiếp nhận đơn hàng mới. Quý khách vui lòng quay lại sau!';
         } else {
-            // 2. Kiểm tra giờ hoạt động của cửa hàng (Hỗ trợ cấu
+            // Kiểm tra giờ hoạt động của cửa hàng Hỗ trợ cấu
             $open = Setting::getValue('store_open_time', '08:00');
             $close = Setting::getValue('store_close_time', '22:00');
             $nowStr = now()->format('H:i');
@@ -551,7 +551,7 @@ class CartController
             }
         }
 
-        // Khởi tạo token chống đặt lặp đơn (Idempotency token)
+        // Khởi tạo token chống đặt lặp đơn, Idempotency token
         $checkoutToken = (string) Str::uuid();
         session(['checkout_token' => $checkoutToken]);
 
@@ -583,7 +583,7 @@ class CartController
             })
             ->values();
 
-        // Bước 3 — ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ
+        // Bước 3, ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ
         $comboPromotions = $this->sv_promotions->applicableCombos($items, 'delivery')
             ->filter(fn($promo) => $promo->checkValidity($user, $subtotal, 'delivery', $totalQuantity)['valid'] === true);
 
@@ -610,7 +610,7 @@ class CartController
         // Tự động Geocode nếu địa chỉ thiếu tọa độ GPS và lưu
         if (empty($address->latitude) || empty($address->longitude)) {
             $destAddress = $address->specific_address . ', ' . $address->district . ', ' . $address->province . ', Việt Nam';
-            $geocoded = $geoapify->geocodeAddress($destAddress);// Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ - kinh độ)
+            $geocoded = $geoapify->geocodeAddress($destAddress);// Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý, vĩ độ, kinh độ
             if ($geocoded) {
                 $address->latitude = $geocoded['lat'];
                 $address->longitude = $geocoded['lng'];
@@ -630,10 +630,10 @@ class CartController
             'distance_km' => $result['distance_km'],
             'is_mock' => $result['is_mock'],
             'message' => $result['is_mock'] ? 'Sử dụng khoảng cách mô phỏng dự phòng.' : null,
-        ]); // checkout.js - updateDistanceForAddress()
+        ]); // checkout.js, updateDistanceForAddress()
     }
 
-    ///dùng để lấy đúng danh sách sản phẩm (đã tính giá chính xác)
+    ///dùng để lấy đúng danh sách sản phẩm, đã tính giá chính xác
     private function pricedSelectedItems(): Collection
     {
         $cart = $this->findCart();
@@ -699,7 +699,7 @@ class CartController
                 'combo' => 'Combo: mua ' . $coupon->comboItems->map(fn($ci) => $ci->quantity . ' ' . ($ci->product->name ?? ''))->implode(' + '),
                 default => null,
             },
-            // Quà tặng kèm của mã combo — chỉ mã combo mới có, JS
+            // Quà tặng kèm của mã combo, chỉ mã combo mới có, JS
             'gifts' => collect($result['gifts'] ?? [])->map(fn($g) => [
                 'name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
@@ -747,6 +747,6 @@ class CartController
             'success' => true,
             'fee' => $result['fee'],
             'condition' => $result['label'],
-        ]); // checkout.js - updateWeatherFeeForAddress()
+        ]); // checkout.js, updateWeatherFeeForAddress()
     }
 }

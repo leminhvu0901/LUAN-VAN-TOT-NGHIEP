@@ -24,7 +24,7 @@ class DashboardController
         $startOfYesterday = Carbon::yesterday();
         $endOfYesterday = Carbon::today()->subSecond();
 
-        // 1. Thống kê vận hành hôm nay
+        // Thống kê vận hành hôm nay
         $ordersTodayCount = Order::whereBetween('created_at', [$startOfToday, $endOfToday])->count();
         $ordersYesterdayCount = Order::whereBetween('created_at', [$startOfYesterday, $endOfYesterday])->count();
 
@@ -71,7 +71,7 @@ class DashboardController
             'payment_rate' => $paymentSuccessRate
         ];
 
-        // 2. Khu vực "Cần xử lý ngay" (Tác vụ / Cảnh báo khẩn cấp)
+        // Khu vực "Cần xử lý ngay", Tác vụ / Cảnh báo khẩn cấp
         $pendingOrdersCount = Order::where('status', 'pending')->count();
         $shippingOrdersCount = Order::where('status', 'shipping')->count();
         $cancelledOrdersCount = Order::where('status', 'cancelled')->count();
@@ -158,7 +158,7 @@ class DashboardController
             ]
         ];
 
-        // 3. Biểu đồ vận hành 7 ngày gần nhất
+        // Biểu đồ vận hành 7 ngày gần nhất
         $chartLabels = [];
         $chartRevenue = [];
         $chartOrders = [];
@@ -175,7 +175,7 @@ class DashboardController
             'orders' => $chartOrders
         ];
 
-        // 4. Danh sách đơn hàng mới nhất
+        // Danh sách đơn hàng mới nhất
         $recentOrders = Order::latest()->limit(5)->get()->map(function ($order) {
             $labels = [
                 'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],
@@ -196,13 +196,13 @@ class DashboardController
             ];
         });
 
-        // 5. Đánh giá mới nhất
+        // Đánh giá mới nhất
         $recentReviews = Review::with(['product', 'user'])
             ->latest()
             ->limit(5)
             ->get();
 
-        // 6. Danh sách cảnh báo tồn kho nguyên liệu và hạn dùng
+        // Danh sách cảnh báo tồn kho nguyên liệu và hạn dùng
         $stockAlertList = collect();
 
         // B. Nguyên liệu hết hàng hoặc sắp hết
@@ -222,7 +222,7 @@ class DashboardController
                 ]);
             });
 
-        // C. Lô hàng nguyên liệu sắp hết hạn (dưới 30 ngày)
+        // C. Lô hàng nguyên liệu sắp hết hạn, dưới 30 ngày
         MaterialImport::with('material')
             ->where('remaining_quantity', '>', 0)
             ->whereNotNull('expiration_date')
@@ -246,7 +246,7 @@ class DashboardController
 
         $stockAlerts = $stockAlertList->take(8)->values();
 
-        // 7. Dòng hoạt động gần đây (Tự động tổng hợp từ dữ liệu
+        // Dòng hoạt động gần đây Tự động tổng hợp từ dữ liệu
         $activities = collect();
 
         // Thêm Đơn hàng mới

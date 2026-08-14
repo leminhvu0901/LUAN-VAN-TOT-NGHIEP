@@ -18,9 +18,9 @@ class OrderWorkflowService
     ];
 
 
-    // Đơn tại quầy (pickup) không có bước giao hàng — khách
+    // Đơn tại quầy, pickup không có bước giao hàng, khách
     // xác nhận xong là hoàn thành luôn. Giữ 'shipping' => ['completed', 'cancelled'] để tương thích
-    // ngược cho các đơn pickup cũ (nếu có) đã lỡ ở trạng
+    // ngược cho các đơn pickup cũ, nếu có đã lỡ ở trạng
     private const PICKUP_TRANSITIONS = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['completed', 'cancelled'],

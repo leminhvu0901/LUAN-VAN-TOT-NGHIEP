@@ -66,10 +66,10 @@ class CustomerOrderController
     // XỬ LÝ TẠO ĐƠN VỚI HÌNH THỨC THANH TOÁN COD
     public function store(Request $request)
     {
-        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi
+        // Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi
         $validated = $request->validate([
             'address_id' => ['required', 'integer'], // Địa chỉ giao nhận hàng
-            'coupon_code' => ['nullable', 'string', 'max:50'], // Mã giảm giá (nếu có)
+            'coupon_code' => ['nullable', 'string', 'max:50'], // Mã giảm giá, nếu có
             'note' => ['nullable', 'string', 'max:500'], // Ghi chú thêm
             'idempotency_key' => ['required', 'uuid'], // Token chống gửi trùng lặp đơn hàng
             'points_to_redeem' => ['nullable', 'integer', 'min:0'], // Điểm thưởng quy đổi
@@ -127,7 +127,7 @@ class CustomerOrderController
                 $price = (float) $product->base_price;
                 $sizeName = $oldItem->size_name;
 
-                // Kiểm tra và lấy thông tin chênh lệch giá kích cỡ (Size) cũ
+                // Kiểm tra và lấy thông tin chênh lệch giá kích cỡ, Size cũ
                 if ($sizeName) {
                     $size = ProductSize::query()->where('product_id', $product->id)->where('size_name', $sizeName)->first();
                     if (!$size)
@@ -136,7 +136,7 @@ class CustomerOrderController
                         $price += (float) $size->price_adjustment;
                 }
 
-                // Kiểm tra và lấy thông tin các Topping cũ đi kèm (nếu
+                // Kiểm tra và lấy thông tin các Topping cũ đi kèm nếu
                 $optionNames = is_array($oldItem->options) ? $oldItem->options : [];
                 $toppings = Topping::query()->join('product_toppings', 'product_toppings.topping_id', '=', 'toppings.id')
                     ->where('product_toppings.product_id', $product->id)->where('toppings.is_available', true)
@@ -260,13 +260,13 @@ class CustomerOrderController
      */
     private function assertStoreOpen(): void
     {
-        // 1. Kiểm tra cấu hình bật/tắt nhận đơn hàng của quán
+        // Kiểm tra cấu hình bật/tắt nhận đơn hàng của quán
         $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         if (!$receiveEnabled) {
             throw ValidationException::withMessages(['checkout' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
         }
 
-        // 2. Kiểm tra xem giờ hiện hành có nằm trong khung giờ
+        // Kiểm tra xem giờ hiện hành có nằm trong khung giờ
         $open = Setting::getValue('store_open_time', '08:00');
         $close = Setting::getValue('store_close_time', '22:00');
         $nowStr = now('Asia/Ho_Chi_Minh')->format('H:i');
@@ -274,7 +274,7 @@ class CustomerOrderController
         $isOpen = false;
         if ($open < $close) {
             $isOpen = ($nowStr >= $open && $nowStr <= $close);
-        } else { // Khung giờ hoạt động qua đêm (Ví dụ: mở 20:00 tối và đóng 02:00 sáng hôm sau)
+        } else { // Khung giờ hoạt động qua đêm, Ví dụ: mở 20:00 tối và đóng 02:00 sáng hôm sau
             $isOpen = ($nowStr >= $open || $nowStr <= $close);
         }
         if (!$isOpen) {

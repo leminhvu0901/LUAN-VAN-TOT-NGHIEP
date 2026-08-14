@@ -6,13 +6,13 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-// Tạo tài khoản ảo phục vụ đo hiệu năng đăng nhập (load test).
+// Tạo tài khoản ảo phục vụ đo hiệu năng đăng nhập, load test.
 //
-// Cách chạy (chỉ chạy trên máy local, KHÔNG chạy trên server thật):
+// Cách chạy, chỉ chạy trên máy local, KHÔNG chạy trên server thật:
 //   php artisan db:seed --class=LoadTestUserSeeder
 //
 // Tài khoản sinh ra: loadtest1@test.local ... loadtest1000@test.local
-// Mật khẩu chung:    loadtest123
+// Mật khẩu chung: loadtest123
 //
 // Xoá sau khi test xong:
 //   php artisan tinker --execute="DB::table('users')->where('email','like','loadtest%@test.local')->delete();"
@@ -24,14 +24,14 @@ class LoadTestUserSeeder extends Seeder
 
     public function run(): void
     {
-        // Chặn chạy nhầm trên server thật - seeder này đổ 1000 tài khoản rác vào bảng users
+        // Chặn chạy nhầm trên server thật, seeder này đổ 1000 tài khoản rác vào bảng users
         if (app()->environment('production')) {
             $this->command->error('Seeder này chỉ dùng ở môi trường local. Đã hủy.');
             return;
         }
 
         // Băm mật khẩu ĐÚNG MỘT LẦN rồi dùng lại cho mọi tài khoản. Bcrypt cố tình chạy chậm
-        // (khoảng 0.2-0.4 giây/lần với BCRYPT_ROUNDS=12), băm 1000 lần sẽ mất vài phút vô ích.
+        // khoảng 0.2-0.4 giây/lần với BCRYPT_ROUNDS=12, băm 1000 lần sẽ mất vài phút vô ích.
         $hash = Hash::make(self::PASSWORD);
         $now = now();
 

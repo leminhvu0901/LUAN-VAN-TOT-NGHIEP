@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::table('promotions', function (Blueprint $table) {
             if (!Schema::hasColumn('promotions', 'requires_staff_verification')) {
-                // Cờ đánh dấu mã cần nhân viên xác nhận trước khi áp dụng (VD: mã sinh viên, sinh nhật).
-                // Khi bật (true): mã bị loại khỏi luồng tự động (resolveAutoPromotion),
+                // Cờ đánh dấu mã cần nhân viên xác nhận trước khi áp dụng, VD: mã sinh viên, sinh nhật.
+                // Khi bật, true: mã bị loại khỏi luồng tự động, resolveAutoPromotion
                 // chỉ có thể áp khi lễ tân/khách nhập tay sau khi đã xác nhận điều kiện.
                 $table->boolean('requires_staff_verification')->default(false)->after('applies_to');
             }

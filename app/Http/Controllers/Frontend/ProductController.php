@@ -33,17 +33,17 @@ class ProductController
             ->where('products.slug', $slug)
             ->first();
 
-        // Nếu không tìm thấy sản phẩm, quăng lỗi 404 (Không tìm
+        // Nếu không tìm thấy sản phẩm, quăng lỗi 404 Không tìm
         if (!$product) {
             abort(404);
         }
-        // 2. Lấy danh sách các kích cỡ (Sizes) của sản phẩm này
+        // Lấy danh sách các kích cỡ, Sizes của sản phẩm này
         $sizes = ProductSize::query()
             ->where('product_id', $product->id)
             ->orderBy('price_adjustment')
             ->get();
 
-        // 3. Lấy danh sách các loại Topping được liên kết với
+        // Lấy danh sách các loại Topping được liên kết với
         $toppings = Topping::query()
             ->join('product_toppings', 'toppings.id', '=', 'product_toppings.topping_id')
             ->where('product_toppings.product_id', $product->id)
@@ -51,7 +51,7 @@ class ProductController
             ->select('toppings.*')
             ->get();
 
-        // 4. Lấy danh sách đánh giá mới nhất kèm thông tin người dùng
+        // Lấy danh sách đánh giá mới nhất kèm thông tin người dùng
         $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $product->id)
@@ -71,7 +71,7 @@ class ProductController
             ->paginate(self::REVIEWS_PER_PAGE)
             ->withQueryString();
 
-        // 5. Phân phối điểm số đánh giá (đếm xem có bao nhiêu
+        // Phân phối điểm số đánh giá đếm xem có bao nhiêu
         $ratingDistribution = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
@@ -80,14 +80,14 @@ class ProductController
             ->pluck('count', 'rating')
             ->toArray();
 
-        // Số đánh giá có kèm hình ảnh — dùng cho nút lọc "Có
+        // Số đánh giá có kèm hình ảnh, dùng cho nút lọc "Có
         $hasImageCount = Review::query()
             ->where('product_id', $product->id)
             ->where('is_visible', 1)
             ->whereNotNull('image')
             ->count();
 
-        // 6. Tìm các sản phẩm liên quan (cùng danh mục, loại trừ
+        // Tìm các sản phẩm liên quan cùng danh mục, loại trừ
         $relatedProducts = Product::query()
             ->select(
                 'products.*',
@@ -103,7 +103,7 @@ class ProductController
             ->limit(4)
             ->get();
 
-        // 7. Kiểm tra xem người dùng hiện tại đã lưu sản phẩm
+        // Kiểm tra xem người dùng hiện tại đã lưu sản phẩm
         $isFavorite = false;
         if (Auth::check()) {
             $isFavorite = Favorite::query()
@@ -112,7 +112,7 @@ class ProductController
                 ->exists();
         }
 
-        // 8. Xác định xem sản phẩm này có phải là Bán chạy
+        // Xác định xem sản phẩm này có phải là Bán chạy
         $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
@@ -158,7 +158,7 @@ class ProductController
         $maxPrice = $request->input('max_price', 600000);
         $minRating = $request->input('rating');
 
-        // Xử lý chuẩn hóa từ khóa tìm kiếm (chuyển chữ thường,
+        // Xử lý chuẩn hóa từ khóa tìm kiếm chuyển chữ thường
         $rawSearch = $request->input('search');
         $searchQuery = '';
         if (!empty($rawSearch)) {
@@ -169,13 +169,13 @@ class ProductController
             $searchQuery = mb_strtolower($searchQuery, 'UTF-8');
         }
 
-        // 1. Lấy danh sách các danh mục sản phẩm đang mở hoạt
+        // Lấy danh sách các danh mục sản phẩm đang mở hoạt
         $categories = Category::query()
             ->where('is_active', 1)
             ->orderBy('display_order')
             ->get();
 
-        // 2. Xây dựng câu truy vấn lọc danh sách sản phẩm
+        // Xây dựng câu truy vấn lọc danh sách sản phẩm
         $query = Product::query()
             ->select(
                 'products.*',
@@ -189,7 +189,7 @@ class ProductController
             ->leftJoin(DB::raw("(SELECT oi.product_id, SUM(oi.quantity) as total_sold FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.status = 'completed' AND o.payment_status = 'paid' AND o.deleted_at IS NULL GROUP BY oi.product_id) as o"), 'products.id', '=', 'o.product_id')
             ->where('categories.is_active', 1);
 
-        // Lọc theo danh mục sản phẩm được tích chọn (nếu có)
+        // Lọc theo danh mục sản phẩm được tích chọn, nếu có
         if (!empty($categoryIds)) {
             $query->whereIn('products.category_id', $categoryIds);
         }
@@ -199,12 +199,12 @@ class ProductController
             $query->where('products.base_price', '<=', $maxPrice);
         }
 
-        // Lọc theo điểm số đánh giá trung bình tối thiểu (ví dụ:
+        // Lọc theo điểm số đánh giá trung bình tối thiểu ví dụ:
         if ($minRating !== null) {
             $query->whereRaw('COALESCE(r.avg_rating, 0) >= ?', [$minRating]);
         }
 
-        // Lọc theo từ khóa tìm kiếm (tìm kiếm không phân biệt
+        // Lọc theo từ khóa tìm kiếm tìm kiếm không phân biệt
         if (!empty($searchQuery)) {
             $query->where(DB::raw('LOWER(products.name)'), 'like', '%' . $searchQuery . '%');
         }
@@ -213,7 +213,7 @@ class ProductController
         $products = $query->orderByDesc('products.is_active')->orderByDesc('total_sold')
             ->paginate(15)->withQueryString();
 
-        // 3. Lấy danh sách ID các sản phẩm đã được người dùng
+        // Lấy danh sách ID các sản phẩm đã được người dùng
         $favoriteProductIds = [];
         if (Auth::check()) {
             $favoriteProductIds = Favorite::query()
@@ -222,7 +222,7 @@ class ProductController
                 ->toArray();
         }
 
-        // 4. Lấy danh sách ID của top 6 sản phẩm bán chạy nhất
+        // Lấy danh sách ID của top 6 sản phẩm bán chạy nhất
         $top6HotProductIds = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->select('product_id', DB::raw('SUM(quantity) as total_sold'))
@@ -238,6 +238,6 @@ class ProductController
         return view('frontend.products.index', compact('categories', 'products', 'favoriteProductIds', 'categoryIds', 'maxPrice', 'top6HotProductIds'));
     }
 
-    // Số đánh giá tải mỗi lần (trang đầu + mỗi lần bấm "Xem
+    // Số đánh giá tải mỗi lần trang đầu + mỗi lần bấm "Xem
     private const REVIEWS_PER_PAGE = 5;
 }

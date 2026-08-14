@@ -54,7 +54,7 @@
                 </ul>
             </div>
 
-            {{-- Cột 2–5: Các nhóm link --}}
+            {{-- Cột 2, 5: Các nhóm link --}}
             <div class="footer-col-links-custom">
 
                 {{-- Cột 2: Danh mục --}}
@@ -171,7 +171,7 @@
 </footer>
 
 <script>
-// Accordion đóng/mở danh sách liên kết footer trên giao diện mobile (<=640px)
+// Accordion đóng/mở danh sách liên kết footer trên giao diện mobile, <=640px
 document.addEventListener('DOMContentLoaded', function () {
     const headers = document.querySelectorAll('.footer-column h6');
     headers.forEach(header => {

@@ -36,7 +36,7 @@ return [
         ],
     ],
 
-    // Thời gian hết hạn xác nhận mật khẩu (mặc định 10800 giây = 3 tiếng)
+    // Thời gian hết hạn xác nhận mật khẩu, mặc định 10800 giây = 3 tiếng
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
 ];

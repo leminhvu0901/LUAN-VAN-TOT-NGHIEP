@@ -21,7 +21,7 @@
     {{-- Thư viện Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-    // Cấu hình bảng màu Material Design 3 và typography (font chữ, kích thước) cho Tailwind CSS Admin
+    // Cấu hình bảng màu Material Design 3 và typography, font chữ, kích thước cho Tailwind CSS Admin
     tailwind.config = {
         darkMode: "class",
         theme: {
@@ -52,7 +52,7 @@
                     "container-max": "1280px", "md": "16px", "gutter": "24px", "sm": "12px", "lg": "24px",
                     "margin-mobile": "16px", "base": "8px", "xs": "4px", "xl": "40px"
                 },
-                // Bảng màu giao diện theo phong cách Material 3 (Tone xanh lá chủ đạo - Happy Tea)
+                // Bảng màu giao diện theo phong cách Material 3, Tone xanh lá chủ đạo, Happy Tea
                 colors: {
                     success: '#10b981', 'success-light': '#d1fae5', warning: '#f59e0b', 'warning-light': '#fef3c7',
                     danger: '#ef4444', 'danger-light': '#fee2e2', info: '#3b82f6', 'info-light': '#dbeafe', dark: '#1f2937',
@@ -78,7 +78,7 @@
     };
     </script>
 
-    {{-- File CSS chính của phần Backend Admin (thêm param ?v=filemtime để chống cache khi sửa CSS) --}}
+    {{-- File CSS chính của phần Backend Admin, thêm param ?v=filemtime để chống cache khi sửa CSS --}}
     <link rel="stylesheet" href="{{ asset('css/backend/admin.css') }}?v={{ filemtime(public_path('css/backend/admin.css')) }}">
     {{-- CSS cho thư viện chọn ngày Flatpickr --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -89,18 +89,18 @@
     @stack('styles')
 </head>
 
-{{-- Thẻ body khóa cuộn toàn màn hình (overflow-hidden) để tạo layout Admin dạng App (cuộn riêng từng khu vực) --}}
+{{-- Thẻ body khóa cuộn toàn màn hình, overflow-hidden để tạo layout Admin dạng App, cuộn riêng từng khu vực --}}
 <body class="flex h-screen overflow-hidden antialiased">
 
-    {{-- 1. NHÚNG THANH ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR): Hỗ trợ biến động $sidebarView, mặc định là backend.components.sidebar --}}
+    {{-- NHÚNG THANH ĐIỀU HƯỚNG BÊN TRÁI, SIDEBAR: Hỗ trợ biến động $sidebarView, mặc định là backend.components.sidebar --}}
     @include($sidebarView ?? 'backend.components.sidebar')
 
-    {{-- 2. KHU VỰC NỘI DUNG CHÍNH (MAIN CONTENT AREA) --}}
+    {{-- KHU VỰC NỘI DUNG CHÍNH, MAIN CONTENT AREA --}}
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#f8fafc]">
-        {{-- Nhúng thanh Topbar (Header trên cùng: tìm kiếm, thông báo, user profile,...) --}}
+        {{-- Nhúng thanh Topbar, Header trên cùng: tìm kiếm, thông báo, user profile... --}}
         @include('backend.components.topbar')
 
-        {{-- Vùng nội dung có thanh cuộn riêng (overflow-y-auto) --}}
+        {{-- Vùng nội dung có thanh cuộn riêng, overflow-y-auto --}}
         <div id="main-content-area" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             <div id="main-content-inner" class="max-w-7xl mx-auto min-h-full flex flex-col">
                 {{-- Khe cắm nội dung chính của các trang con (@section('content')) --}}
@@ -109,14 +109,14 @@
         </div>
     </main>
 
-    {{-- 3. MÀN ĐEN CHE PHỦ (Overlay) khi mở Sidebar trên thiết bị di động (Mobile/Tablet) --}}
+    {{-- MÀN ĐEN CHE PHỦ, Overlay khi mở Sidebar trên thiết bị di động, Mobile/Tablet --}}
     <div id="sidebar-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-20 hidden lg:hidden transition-opacity">
     </div>
 
     {{-- SCRIPT ĐIỀU KHIỂN GIAO DIỆN & TIỆN ÍCH TOÀN HỆ THỐNG ADMIN --}}
     <script>
     // ==========================================
-    // A. Điều khiển Sidebar (Mobile & Desktop)
+    // A. Điều khiển Sidebar, Mobile & Desktop
     // ==========================================
     document.addEventListener('DOMContentLoaded', function () {
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -150,7 +150,7 @@
             });
         }
 
-        // Khởi tạo các dropdown tùy chỉnh (custom select) nếu có
+        // Khởi tạo các dropdown tùy chỉnh, custom select nếu có
         if (typeof window.initCustomSelects === 'function') {
             window.initCustomSelects();
         }
@@ -267,25 +267,25 @@
     };
 
     // ==========================================
-    // C. Bộ Helper Thông Báo AdminAlert (SweetAlert2)
+    // C. Bộ Helper Thông Báo AdminAlert, SweetAlert2
     // Cung cấp các hàm hiển thị hộp thoại, toast, popup xác nhận đồng bộ trên toàn trang Admin
     // ==========================================
     window.AdminAlert = {
-        // 1. Toast góc trên bên phải báo Thành công, tự động đóng sau 3s
+        // Toast góc trên bên phải báo Thành công, tự động đóng sau 3s
         success: function (message, title = 'Thành công!') {
             if (typeof Swal !== 'undefined') {
                 const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
                 return Toast.fire({ icon: 'success', title: message || title });
             }
         },
-        // 2. Toast góc trên bên phải báo Lỗi, tự động đóng sau 4s
+        // Toast góc trên bên phải báo Lỗi, tự động đóng sau 4s
         error: function (message, title = 'Lỗi') {
             if (typeof Swal !== 'undefined') {
                 const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 4000, timerProgressBar: true });
                 return Toast.fire({ icon: 'error', title: title, html: message });
             }
         },
-        // 3. Hộp thoại xác nhận hành động (Xóa, Hủy, Duyệt,...): confirmCallback chỉ thực thi khi bấm "Đồng ý"
+        // Hộp thoại xác nhận hành động, Xóa, Hủy, Duyệt...: confirmCallback chỉ thực thi khi bấm "Đồng ý"
         confirm: function (message, confirmCallback, title = 'Xác nhận') {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -302,7 +302,7 @@
                 });
             }
         },
-        // 4. Modal Loading (Đang xử lý) - Chặn thao tác màn hình trong lúc đợi API/tác vụ chạy nền
+        // Modal Loading, Đang xử lý, Chặn thao tác màn hình trong lúc đợi API/tác vụ chạy nền
         loading: function (message = 'Vui lòng đợi trong giây lát', title = 'Đang xử lý...') {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -312,7 +312,7 @@
                 });
             }
         },
-        // 5. Hộp thoại nhập nội dung (Prompt): Dùng khi cần nhập lý do hủy/từ chối, có validate bắt buộc nhập
+        // Hộp thoại nhập nội dung, Prompt: Dùng khi cần nhập lý do hủy/từ chối, có validate bắt buộc nhập
         prompt: function (title, message, placeholder, confirmCallback, validatorMessage = 'Vui lòng nhập thông tin!', confirmText = 'Xác nhận', minLength = 0) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -354,7 +354,7 @@
             if (window.flashSuccessMessage) {
                 Toast.fire({ icon: 'success', title: window.flashSuccessMessage });
             }
-            // Hiển thị danh sách các thông báo lỗi (ví dụ lỗi validate form)
+            // Hiển thị danh sách các thông báo lỗi, ví dụ lỗi validate form
             if (window.flashErrorMessages) {
                 let htmlContent = '<div class="text-left text-xs font-semibold space-y-0.5 mt-1">';
                 window.flashErrorMessages.forEach(msg => { htmlContent += `<div>• ${msg}</div>`; });
@@ -368,7 +368,7 @@
     // E. Các hàm tiện ích hỗ trợ trang danh sách quản trị
     // ==========================================
     
-    // 1. Nút "Quay lại thông minh": Nếu trang trước cùng domain thì dùng history.back() để giữ nguyên bộ lọc/trang hiện tại
+    // Nút "Quay lại thông minh": Nếu trang trước cùng domain thì dùng history.back() để giữ nguyên bộ lọc/trang hiện tại
     window.smartGoBack = function (event) {
         if (document.referrer.includes(window.location.host)) {
             event.preventDefault();
@@ -376,12 +376,12 @@
         }
     };
 
-    // 2. Tránh hiện dữ liệu cũ khi người dùng bấm Back/Forward bằng tính năng bfcache của trình duyệt
+    // Tránh hiện dữ liệu cũ khi người dùng bấm Back/Forward bằng tính năng bfcache của trình duyệt
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) window.location.reload();
     });
 
-    // 3. Ẩn/Hiện panel bộ lọc nâng cao
+    // Ẩn/Hiện panel bộ lọc nâng cao
     window.toggleFilterPanel = function (targetId) {
         const el = document.getElementById(targetId);
         if (!el) return;
@@ -389,7 +389,7 @@
         el.classList.toggle('flex');
     };
 
-    // 4. Bỏ chọn tất cả checkbox khi thao tác hàng loạt (Bulk Actions)
+    // Bỏ chọn tất cả checkbox khi thao tác hàng loạt, Bulk Actions
     window.bulkDeselectAllRows = function (checkboxSelector, resetFnName) {
         document.querySelectorAll('.js-select-all, ' + checkboxSelector).forEach(function (el) {
             el.checked = false;

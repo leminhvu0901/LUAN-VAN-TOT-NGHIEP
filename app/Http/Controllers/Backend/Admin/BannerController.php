@@ -15,7 +15,7 @@ class BannerController
         $query = Banner::query();
         $now = now();
 
-        // 1. Tìm kiếm theo tiêu đề hoặc liên kết
+        // Tìm kiếm theo tiêu đề hoặc liên kết
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -25,7 +25,7 @@ class BannerController
             });
         }
 
-        // 2. Lọc theo trạng thái
+        // Lọc theo trạng thái
         if ($request->filled('status') && $request->status !== 'all') {
             $status = $request->status;
             if ($status === 'active') {
@@ -49,12 +49,12 @@ class BannerController
             }
         }
 
-        // 3. Lọc theo vị trí hiển thị
+        // Lọc theo vị trí hiển thị
         if ($request->filled('position') && $request->position !== 'all') {
             $query->where('position', $request->position);
         }
 
-        // 4. Sắp xếp
+        // Sắp xếp
         switch ($request->sort) {
             case 'newest':
                 $query->orderBy('created_at', 'desc');
@@ -148,7 +148,7 @@ class BannerController
             $uploaded = [];
             $data['image_url'] = $this->storeImage($request->file('image'), $uploaded);
         }
-        // Cột "image" (khác "image_url") là cột CŨ từ migration
+        // Cột "image", khác "image_url" là cột CŨ từ migration
         $data['image'] = $data['image_url'] ?? '';
 
         Banner::create($data);
@@ -225,7 +225,7 @@ class BannerController
         return redirect()->route('admin.banners.index')->with('success', 'Đã xóa banner thành công!');
     }
 
-    // XÓA NHIỀU BANNER (chỉ các dòng đang chọn trong trang
+    // XÓA NHIỀU BANNER chỉ các dòng đang chọn trong trang
     public function bulkDelete(Request $request)
     {
         $request->validate([

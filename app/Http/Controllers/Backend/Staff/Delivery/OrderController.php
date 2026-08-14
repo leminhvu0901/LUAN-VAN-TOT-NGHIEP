@@ -57,7 +57,7 @@ class OrderController
         return view('backend.staff.delivery.orders.show', compact('order', 'items'));
     }
 
-    // Xác nhận "Nhận đơn giao" — Chuyển từ Chờ giao hàng
+    // Xác nhận "Nhận đơn giao", Chuyển từ Chờ giao hàng
     public function ship(Order $order)
     {
         $this->authorizeOwnership($order);
@@ -65,18 +65,18 @@ class OrderController
         return $this->success('shipping', 'Đã nhận đơn và chuyển sang đang giao!');
     }
 
-    // Xác nhận "Giao hàng thành công" — Chuyển từ Đang giao
+    // Xác nhận "Giao hàng thành công", Chuyển từ Đang giao
     public function complete(Order $order)
     {
-        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
-        $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái đơn hàng sang 'completed' (hoàn thành)
+        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình, hoặc Admin
+        $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái đơn hàng sang 'completed', hoàn thành
         return $this->success('history', 'Đã xác nhận giao hàng thành công!');
     }
 
     // Ghi nhận "Giao hàng thất bại".
     public function fail(Request $request, Order $order)
     {
-        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình (hoặc Admin)
+        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình, hoặc Admin
 
         $validated = $request->validate([ // Validate lý do giao hàng thất bại
             'reason' => ['required', 'string', 'max:500'],

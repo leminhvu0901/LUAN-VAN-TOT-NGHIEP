@@ -9,7 +9,7 @@ class UserAddress extends Model
     // Tên bảng quản lý các địa chỉ nhận hàng của khách trong DB
     protected $table = 'user_addresses';
 
-    // Cho phép điền hàng loạt cho tất cả các trường (không
+    // Cho phép điền hàng loạt cho tất cả các trường không
     protected $guarded = [];
 
     /**

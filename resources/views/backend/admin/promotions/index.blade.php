@@ -172,7 +172,7 @@
                             Lọc
                         </button>
 
-                        {{-- Nút Xóa lọc — luôn inline trong cùng hàng --}}
+                        {{-- Nút Xóa lọc, luôn inline trong cùng hàng --}}
                         <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
                             class="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors xl:shrink-0 whitespace-nowrap"
                             style="display: {{ (request('search') || (request('type') && request('type') != 'all') || (request('applies_to') && request('applies_to') != 'all') || (request('status') && request('status') != 'all') || (request('verification') && request('verification') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">

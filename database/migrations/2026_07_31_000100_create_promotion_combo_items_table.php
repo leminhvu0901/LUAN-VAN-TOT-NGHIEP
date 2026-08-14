@@ -13,7 +13,7 @@ return new class extends Migration
             return;
         }
 
-        // Dò kiểu thật của cột đích trước khi tạo — xem ghi chú đầy đủ trong migration
+        // Dò kiểu thật của cột đích trước khi tạo, xem ghi chú đầy đủ trong migration
         // promotion_products cùng đợt.
         $promotionIdIsBigInt = $this->idColumnIsBigInt('promotions');
         $productIdIsBigInt = $this->idColumnIsBigInt('products');
@@ -22,8 +22,8 @@ return new class extends Migration
             $table->engine = 'InnoDB';
             $table->id();
 
-            // Nhiều dòng / promotion (khác promotion_combos là quan hệ 1-1) - mỗi dòng là 1 sản
-            // phẩm bắt buộc phải có trong giỏ (kèm số lượng) mới tính là đã mua đủ combo.
+            // Nhiều dòng / promotion, khác promotion_combos là quan hệ 1-1 - mỗi dòng là 1 sản
+            // phẩm bắt buộc phải có trong giỏ, kèm số lượng mới tính là đã mua đủ combo.
             if ($promotionIdIsBigInt) {
                 $table->foreignId('promotion_id')->constrained()->cascadeOnDelete();
             } else {

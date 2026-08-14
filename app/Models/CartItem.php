@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CartItem extends Model
 {
     protected $table = 'cart_items'; // Model này đại diện và liên kết với bảng chi tiết giỏ hàng cart_items
-    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
+    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường, không khóa trường nào
 
     /**
      * Quan hệ Nhiều - 1 (Many-to-One) với Model Cart.

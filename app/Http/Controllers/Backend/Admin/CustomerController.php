@@ -12,9 +12,9 @@ class CustomerController
     // Hàm lấy danh sách khách hàng và hiển thị, lọc
     public function index(Request $request)
     {
-        $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng (role = customer)
+        $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng, role = customer
 
-        // Lọc theo tìm kiếm (tên, email, sđt)
+        // Lọc theo tìm kiếm, tên, email, sđt
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) { // Lọc tìm kiếm theo Tên, Email hoặc Số điện thoại
@@ -32,7 +32,7 @@ class CustomerController
 
         // Lọc theo hạng thành viên
         if ($request->filled('membership') && $request->input('membership') !== 'all') {
-            $query->where('membership_level', $request->input('membership')); // Lọc theo hạng thành viên (new, silver, gold, diamond)
+            $query->where('membership_level', $request->input('membership')); // Lọc theo hạng thành viên, new, silver, gold, diamond
         }
 
         // Sắp xếp
@@ -58,7 +58,7 @@ class CustomerController
             $query->latest();
         }
 
-        $customers = $query->paginate(10)->appends($request->query()); // Phân trang kết quả (10 khách/trang) và giữ lại các tham số lọc trên URL
+        $customers = $query->paginate(10)->appends($request->query()); // Phân trang kết quả, 10 khách/trang và giữ lại các tham số lọc trên URL
 
         // Các thống kê cho thẻ phía trên
         $totalCustomers = User::where('role', 'customer')->count(); // Đếm tổng số lượng khách hàng trong DB
@@ -96,15 +96,15 @@ class CustomerController
     // Hàm xử lý lưu thông tin khách hàng mới vào Database.
     public function store(Request $request)
     {
-        // 1. Name: trim khoảng trắng đầu/cuối và nhiều khoảng
+        // Name: trim khoảng trắng đầu/cuối và nhiều khoảng
         if ($request->has('name')) {
             $request->merge(['name' => preg_replace('/\s+/', ' ', trim($request->name))]);
         }
-        // 2. Email: chuyển về chữ thường
+        // Email: chuyển về chữ thường
         if ($request->has('email')) {
             $request->merge(['email' => strtolower(trim($request->email))]);
         }
-        // 6. Address: trim khoảng trắng
+        // Address: trim khoảng trắng
         if ($request->has('address')) {
             $request->merge(['address' => trim($request->address)]);
         }
@@ -148,9 +148,9 @@ class CustomerController
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID, ném lỗi 404 nếu không tồn tại
 
-        // Lấy số lượng đơn hàng (giả sử model User có qh orders,
+        // Lấy số lượng đơn hàng giả sử model User có qh orders
         $totalOrders = DB::table('orders')->where('user_id', $id)->count(); // Đếm tổng số đơn hàng đã đặt
-        $totalSpent = DB::table('orders')->where('user_id', $id)->where('status', '!=', 'cancelled')->sum('total_amount'); // Tính tổng số tiền đã mua (trừ đơn hủy)
+        $totalSpent = DB::table('orders')->where('user_id', $id)->where('status', '!=', 'cancelled')->sum('total_amount'); // Tính tổng số tiền đã mua, trừ đơn hủy
 
         // Lấy 5 đơn hàng gần nhất
         $recentOrders = DB::table('orders') // Lấy chi tiết 5 đơn hàng gần đây nhất để hiển thị ở trang cá nhân khách
@@ -162,7 +162,7 @@ class CustomerController
         return view('backend.admin.customers.show', compact('customer', 'totalOrders', 'totalSpent', 'recentOrders')); // Load giao diện hồ sơ khách hàng
     }
 
-    // Hàm bật/tắt (Khóa hoặc Mở khóa) trạng thái hoạt động
+    // Hàm bật/tắt, Khóa hoặc Mở khóa trạng thái hoạt động
     public function toggleStatus(Request $request, $id)
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
@@ -188,7 +188,7 @@ class CustomerController
             return redirect()->route('admin.customers.index')->with('error', 'Không có khách hàng nào được chọn!');
         }
 
-        // Xóa cứng (Hard Delete)
+        // Xóa cứng, Hard Delete
         $deletedCount = 0;
         $failedCount = 0;
 
@@ -199,7 +199,7 @@ class CustomerController
                 $customer->delete();
                 $deletedCount++;
             } catch (QueryException $e) {
-                // Lỗi rảng buộc khóa ngoại (ví dụ có đơn hàng)
+                // Lỗi rảng buộc khóa ngoại, ví dụ có đơn hàng
                 if ($e->getCode() == "23000") {
                     // Khóa tài khoản thay vì xóa
                     $customer->is_active = 0;
@@ -232,15 +232,15 @@ class CustomerController
     {
         $customer = User::where('role', 'customer')->findOrFail($id);
 
-        // 1. Name: trim khoảng trắng
+        // Name: trim khoảng trắng
         if ($request->has('name')) {
             $request->merge(['name' => preg_replace('/\s+/', ' ', trim($request->name))]);
         }
-        // 2. Email: chuyển về chữ thường
+        // Email: chuyển về chữ thường
         if ($request->has('email')) {
             $request->merge(['email' => strtolower(trim($request->email))]);
         }
-        // 6. Address: trim khoảng trắng
+        // Address: trim khoảng trắng
         if ($request->has('address')) {
             $request->merge(['address' => trim($request->address)]);
         }
@@ -295,10 +295,10 @@ class CustomerController
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần xóa
         try {
-            $customer->delete(); // Thực hiện xóa cứng (Hard Delete) bản ghi khách hàng khỏi Database
+            $customer->delete(); // Thực hiện xóa cứng, Hard Delete bản ghi khách hàng khỏi Database
             return redirect()->back()->with('success', 'Xóa khách hàng thành công!');
         } catch (QueryException $e) {
-            if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại (Foreign Key Constraint) khi khách hàng có đơn hàng/đánh giá
+            if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại, Foreign Key Constraint khi khách hàng có đơn hàng/đánh giá
                 $customer->is_active = 0;
                 $customer->save(); // Khóa tài khoản khách hàng để tránh làm hỏng dữ liệu báo cáo đơn hàng
                 return redirect()->back()->with('warning', 'Khách hàng có lịch sử giao dịch nên tài khoản chỉ bị khóa!');

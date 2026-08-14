@@ -44,13 +44,13 @@ class TrackDailyVisit
             'updated_at' => now(),
         ]);
 
-        // Chưa có dòng nào cho ngày hôm nay (lượt truy cập đầu
+        // Chưa có dòng nào cho ngày hôm nay lượt truy cập đầu
         if ($updated === 0) {
             try {
                 Setting::setValue($key, 1, 'stats', 'integer');
                 return;
             } catch (QueryException $e) {
-                // Một request khác vừa kịp tạo dòng này trước (cột key
+                // Một request khác vừa kịp tạo dòng này trước cột key
                 DB::table('settings')->where('key', $key)->update([
                     'value' => DB::raw('COALESCE(value, 0) + 1'),
                     'updated_at' => now(),

@@ -406,7 +406,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Thông báo lỗi chung của form — mục 9) -->
+                                <!-- Thông báo lỗi chung của form, mục 9 -->
                                 <p id="addressFormError" class="text-sm text-error font-medium mt-3 hidden"></p>
 
                                 <!-- Actions -->

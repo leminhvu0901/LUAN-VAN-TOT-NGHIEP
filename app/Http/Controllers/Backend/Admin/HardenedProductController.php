@@ -192,7 +192,7 @@ class HardenedProductController
     }
 
     /**
-     * Xóa một ảnh phụ trong bộ sưu tập ảnh (Gallery) của sản phẩm — dùng ở trang sửa sản phẩm.
+     * Xóa một ảnh phụ trong bộ sưu tập ảnh của sản phẩm, dùng ở trang sửa sản phẩm.
      */
     public function deleteGalleryImage($id)
     {

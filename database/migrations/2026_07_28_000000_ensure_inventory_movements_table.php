@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 // Migration bổ sung bảng inventory_movements nếu chưa tồn tại trên production.
-// Nguyên nhân: migration harden_commerce_workflows (batch 16) đã fail lần đầu trên Railway
+// Nguyên nhân: migration harden_commerce_workflows, batch 16 đã fail lần đầu trên Railway
 // nên chỉ tạo được order_material_consumptions, inventory_movements bị bỏ sót dù migration
 // đã được đánh dấu là "Ran". Migration này tạo lại idempotently.
 return new class extends Migration
@@ -14,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         if (Schema::hasTable('inventory_movements')) {
-            return; // Bảng đã tồn tại (local/môi trường đã đầy đủ) — bỏ qua
+            return; // Bảng đã tồn tại, local/môi trường đã đầy đủ, bỏ qua
         }
 
         $orderUsesBigInt = DB::getDriverName() !== 'mysql'

@@ -10,8 +10,8 @@ return new class extends Migration
     // Run the migrations.
     public function up(): void
     {
-        // Chức năng "Ca làm việc" đã bị loại bỏ khỏi toàn bộ code (routes, controller, model,
-        // view, JS) — cột/bảng này không còn được đọc/ghi ở đâu, dọn dẹp schema theo yêu cầu.
+        // Chức năng "Ca làm việc" đã bị loại bỏ khỏi toàn bộ code routes, controller, model
+        // view, JS, cột/bảng này không còn được đọc/ghi ở đâu, dọn dẹp schema theo yêu cầu.
         Schema::table('orders', function (Blueprint $table) {
             if (Schema::hasColumn('orders', 'shift_id')) {
                 $table->dropForeign(['shift_id']);
@@ -25,7 +25,7 @@ return new class extends Migration
     // Reverse the migrations.
     public function down(): void
     {
-        // Khôi phục lại đúng schema gốc (không khôi phục được dữ liệu ca cũ đã mất khi drop).
+        // Khôi phục lại đúng schema gốc, không khôi phục được dữ liệu ca cũ đã mất khi drop.
         $usersUsesBigInt = DB::getDriverName() !== 'mysql'
             || str_contains(strtolower((string) (DB::selectOne("SHOW COLUMNS FROM users WHERE Field = 'id'")->Type ?? '')), 'bigint');
 

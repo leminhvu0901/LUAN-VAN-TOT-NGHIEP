@@ -13,13 +13,13 @@ return new class extends Migration
             return;
         }
 
-        // Dò kiểu thật của cột đích trước khi tạo — xem ghi chú đầy đủ trong migration
+        // Dò kiểu thật của cột đích trước khi tạo, xem ghi chú đầy đủ trong migration
         // promotion_products cùng ngày.
         $promotionIdIsBigInt = $this->idColumnIsBigInt('promotions');
         $productIdIsBigInt = $this->idColumnIsBigInt('products');
 
         Schema::create('promotion_buy_x_get_y', function (Blueprint $table) use ($promotionIdIsBigInt, $productIdIsBigInt) {
-            // Ép InnoDB tường minh — xem ghi chú trong migration promotion_products cùng ngày.
+            // Ép InnoDB tường minh, xem ghi chú trong migration promotion_products cùng ngày.
             $table->engine = 'InnoDB';
             $table->id();
 
@@ -49,7 +49,7 @@ return new class extends Migration
 
             // Giới hạn số LẦN áp dụng công thức trong 1 đơn (null = không giới hạn, số lần = floor(mua/X)).
             $table->unsignedInteger('max_applications_per_order')->nullable();
-            // Có tự động thêm quà vào đơn khi đủ điều kiện hay không (mặc định có).
+            // Có tự động thêm quà vào đơn khi đủ điều kiện hay không, mặc định có.
             $table->boolean('auto_add_gift')->default(true);
             $table->timestamps();
         });

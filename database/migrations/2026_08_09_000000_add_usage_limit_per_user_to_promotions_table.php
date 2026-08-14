@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::table('promotions', function (Blueprint $table) {
             if (!Schema::hasColumn('promotions', 'usage_limit_per_user')) {
                 // Số lần TỐI ĐA mà 1 tài khoản được dùng mã này. NULL = không giới hạn.
-                // Giữ nguyên hành vi cũ (mỗi người chỉ dùng 1 lần) bằng cách backfill = 1 cho mã đã có.
+                // Giữ nguyên hành vi cũ, mỗi người chỉ dùng 1 lần bằng cách backfill = 1 cho mã đã có.
                 $table->unsignedInteger('usage_limit_per_user')->nullable()->after('usage_limit');
             }
         });

@@ -154,12 +154,14 @@
     @include('frontend.components.bottom-nav')
 
     <script>
-    // Đóng/mở thanh sidebar Bộ lọc trên di động,    function toggleFilter() {
+    // Đóng mở thanh sidebar bộ lọc trên di động, desktop luôn hiện sẵn nên ít khi gọi tới
+    function toggleFilter() {
         const sidebar = document.querySelector('.p-sidebar');
         if (sidebar) sidebar.classList.toggle('open');
     }
 
-    // Cập nhật nhãn hiển thị khoảng giá và tô màu phần thanh    function updatePriceLabel(val) {
+    // Cập nhật nhãn khoảng giá và tô màu phần thanh trượt đã kéo qua mỗi khi người dùng kéo
+    function updatePriceLabel(val) {
         const formatted = parseInt(val).toLocaleString('vi-VN');
         document.getElementById('price-label').textContent = '0đ – ' + formatted + 'đ';
 
@@ -170,14 +172,16 @@
         }
     }
 
-    // Khởi tạo nhãn + màu thanh trượt giá đúng theo giá trị    window.addEventListener('DOMContentLoaded', () => {
+    // Khởi tạo nhãn và màu thanh trượt giá theo giá trị server giữ lại qua query string
+    window.addEventListener('DOMContentLoaded', () => {
         const slider = document.getElementById('price-slider');
         if (slider) {
             updatePriceLabel(slider.value);
         }
     });
 
-    // Xóa nội dung ô tìm kiếm rồi submit    function clearSearchAndSubmit() {
+    // Xóa nội dung ô tìm kiếm ở cả sidebar lẫn navbar rồi submit lại form lọc ngay
+    function clearSearchAndSubmit() {
         const searchInput = document.getElementById('filter-search');
         if (searchInput) searchInput.value = '';
         const navSearchInput = document.getElementById('search-input');
@@ -185,19 +189,22 @@
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
 
-    // Submit form lọc ngay khi người dùng đổi 1 lựa chọn    function submitFilterForm() {
+    // Submit form lọc ngay khi đổi lựa chọn, chỉ tự submit trên desktop còn di động phải bấm Áp dụng
+    function submitFilterForm() {
         if (window.innerWidth > 640) document.getElementById('filter-form').requestSubmit();
     }
 
     const sortSelect = document.getElementById('sort-select');
     let grid = document.getElementById('product-grid');
 
-    // Sắp xếp lại lưới sản phẩm
+    // Sắp xếp lại thứ tự các thẻ sản phẩm đã có sẵn trong DOM, không lọc hay phân trang lại
+    function applySortAndFilter() {
         if (!sortSelect || !grid) return;
         const sortBy = sortSelect.value;
         const cards = Array.from(grid.querySelectorAll('.p-product-card'));
 
-        // Tiêu chí sắp xếp tương ứng từng lựa chọn trong        cards.sort((a, b) => {
+        // Tiêu chí sắp xếp tương ứng từng lựa chọn trong dropdown
+        cards.sort((a, b) => {
             if (sortBy === 'popular') return parseInt(b.dataset.sold || 0) - parseInt(a.dataset.sold || 0);
             if (sortBy === 'discount') {
                 const hasSaleB = b.querySelector('.home-prod-card__badge--sale') ? 1 : 0;
@@ -212,10 +219,12 @@
             return 0;
         });
 
-        // AppendChild trên 1 phần tử đã có sẵn trong DOM sẽ di        cards.forEach(card => {
+            // appendChild trên phần tử đã có trong DOM sẽ di chuyển nó tới cuối chứ không tạo bản sao
+        cards.forEach(card => {
             grid.appendChild(card);
 
-            // Đổi badge nào được hiển thị trên thẻ sản phẩm cho khớp            const hotBadge = card.querySelector('.home-prod-card__badge--hot');
+            // Đổi badge hiển thị cho khớp tiêu chí đang sắp xếp, mỗi thẻ chỉ hiện tối đa 1 badge
+            const hotBadge = card.querySelector('.home-prod-card__badge--hot');
             const newBadge = card.querySelector('.home-prod-card__badge--new');
             const saleBadge = card.querySelector('.home-prod-card__badge--sale');
             if (sortBy === 'newest') {
@@ -239,7 +248,9 @@
         applySortAndFilter(); // Chạy 1 lần lúc tải trang để áp dụng đúng lựa chọn sắp xếp mặc định
     }
 
-    // // Dropdown sắp xếp tùy biến        const dropdown = document.getElementById('sort-dropdown');
+    // Dropdown sắp xếp tùy biến, bọc trong IIFE để biến cục bộ không rò ra scope ngoài
+    (function () {
+        const dropdown = document.getElementById('sort-dropdown');
         const toggle = document.getElementById('sort-dropdown-toggle');
         const menu = document.getElementById('sort-dropdown-menu');
         const label = document.getElementById('sort-dropdown-label');
@@ -266,7 +277,8 @@
             if (menu.hidden) openMenu(); else closeMenu();
         });
 
-        // Bấm chọn 1 lựa chọn trong menu: đổi trạng thái "đang        menu.addEventListener('click', function (event) {
+        // Bấm chọn 1 lựa chọn trong menu thì đổi nhãn, đồng bộ sang select gốc rồi đóng menu
+        menu.addEventListener('click', function (event) {
             const option = event.target.closest('.p-sort-dropdown__option');
             if (!option) return;
 
@@ -292,7 +304,8 @@
         });
     })();
 
-    // Khi submit form lọc, tự đóng sidebar bộ lọc lại trước    const filterForm = document.getElementById('filter-form');
+    // Khi submit form lọc thì tự đóng sidebar lại trước khi trang tải lại, tránh sidebar đè nội dung
+    const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.addEventListener('submit', function () {
             const sidebar = document.querySelector('.p-sidebar');

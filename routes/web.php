@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║    1. KHÁCH HÀNG - TUYẾN ĐƯỜNG CÔNG KHAI (CUSTOMER - PUBLIC ROUTES)   ║
+// ║ 1. KHÁCH HÀNG, TUYẾN ĐƯỜNG CÔNG KHAI, CUSTOMER, PUBLIC ROUTES ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->group(function () {
@@ -22,7 +22,7 @@ Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->grou
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║          2. XÁC THỰC TÀI KHOẢN (AUTHENTICATION & OTP ROUTES)          ║
+// ║ 2. XÁC THỰC TÀI KHOẢN, AUTHENTICATION & OTP ROUTES ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 // Chuyển hướng đến trang chủ và hiển thị modal đăng ký
@@ -79,7 +79,7 @@ Route::post('/reset-password', [App\Http\Controllers\Frontend\AuthController::cl
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║    3. KHÁCH HÀNG - ĐÃ ĐĂNG NHẬP (CUSTOMER - AUTHENTICATED ROUTES)     ║
+// ║ 3. KHÁCH HÀNG, ĐÃ ĐĂNG NHẬP, CUSTOMER, AUTHENTICATED ROUTES ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 Route::middleware(['auth'])->group(function () {
@@ -114,7 +114,7 @@ Route::middleware(['auth'])->group(function () {
     // Cập nhật nội dung đánh giá sản phẩm
     Route::put('/orders/{orderId}/products/{productId}/review', [App\Http\Controllers\Frontend\ReviewController::class, 'update'])->name('review.update');
 
-    // Bật/Tắt yêu thích sản phẩm (nút thả tim) [TRẢ VỀ JSON/AJAX CHO JS]
+    // Bật/Tắt yêu thích sản phẩm, nút thả tim [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/favorite/toggle', [App\Http\Controllers\Frontend\ProfileController::class, 'toggleFavorite'])->name('favorite.toggle');
 
     // Thêm sản phẩm vào giỏ hàng [TRẢ VỀ JSON/AJAX CHO JS]
@@ -156,7 +156,7 @@ Route::middleware(['auth'])->group(function () {
     // Cấu hình địa chỉ làm địa chỉ mặc định nhận hàng
     Route::post('/profile/address/{id}/default', [App\Http\Controllers\Frontend\ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
 
-    // Trang điền thông tin và thanh toán đơn hàng (Checkout)
+    // Trang điền thông tin và thanh toán đơn hàng, Checkout
     Route::get('/checkout', [App\Http\Controllers\Frontend\CartController::class, 'checkout'])
         ->middleware(\App\Http\Middleware\RedirectStaffFromFrontend::class)->name('checkout');
 
@@ -183,17 +183,17 @@ Route::middleware(['auth'])->group(function () {
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 4. THANH TOÁN ONLINE - KÊNH IPN SERVER-TO-SERVER (PAYMENT IPN ROUTING)║
+// ║ 4. THANH TOÁN ONLINE, KÊNH IPN SERVER-TO-SERVER, PAYMENT IPN ROUTING║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 
-// Kênh nhận dữ liệu trạng thái IPN tự động từ VNPay (Server-to-Server)
+// Kênh nhận dữ liệu trạng thái IPN tự động từ VNPay, Server-to-Server
 Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController::class, 'handleIpn'])->name('vnpay.ipn');
 
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║               5. TIỆN ÍCH CHUNG (GENERAL UTILITIES)                   ║
+// ║ 5. TIỆN ÍCH CHUNG, GENERAL UTILITIES ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 // Lấy thông tin giỏ hàng hiện tại phục vụ hiển thị Sidebar [TRẢ VỀ JSON/AJAX CHO JS]
@@ -202,7 +202,7 @@ Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCa
 
 // =========================================================================
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║              6. QUẢN TRỊ VIÊN - ADMIN (ADMINISTRATOR ROUTES)          ║
+// ║ 6. QUẢN TRỊ VIÊN, ADMIN, ADMINISTRATOR ROUTES ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
 // =========================================================================
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
@@ -210,17 +210,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Trang tổng quan báo cáo quản trị Admin Dashboard
     Route::get('/dashboard', [App\Http\Controllers\Backend\Admin\DashboardController::class, 'index'])->name('dashboard');
 
-    // --- QUẢN LÝ KHÁCH HÀNG (CUSTOMER MANAGEMENT) ---
+    // --- QUẢN LÝ KHÁCH HÀNG, CUSTOMER MANAGEMENT ---
     // Xóa hàng loạt tài khoản khách hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('customers/bulk-delete', [App\Http\Controllers\Backend\Admin\CustomerController::class, 'bulkDelete'])->name('customers.bulk_delete');
 
     // Khóa hoặc mở khóa tài khoản khách hàng [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('customers/{id}/toggle-status', [App\Http\Controllers\Backend\Admin\CustomerController::class, 'toggleStatus'])->name('customers.toggle_status');
 
-    // Quản lý thông tin tài khoản khách hàng (CRUD)
+    // Quản lý thông tin tài khoản khách hàng, CRUD
     Route::resource('customers', App\Http\Controllers\Backend\Admin\CustomerController::class);
 
-    // --- QUẢN LÝ ĐƠN HÀNG (ORDER MANAGEMENT) ---
+    // --- QUẢN LÝ ĐƠN HÀNG, ORDER MANAGEMENT ---
     // Xem danh sách toàn bộ đơn hàng của cửa hàng
     Route::get('/orders', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'index'])->name('orders.index');
 
@@ -245,34 +245,34 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Xóa hàng loạt các đơn hàng được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/bulk-delete', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'bulkDelete'])->name('orders.bulk_delete');
 
-    // --- QUẢN LÝ SẢN PHẨM & DANH MỤC (PRODUCT & CATEGORY MANAGEMENT) ---
+    // --- QUẢN LÝ SẢN PHẨM & DANH MỤC, PRODUCT & CATEGORY MANAGEMENT ---
     // Xóa hàng loạt sản phẩm được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('products/bulk-delete', [App\Http\Controllers\Backend\Admin\HardenedProductController::class, 'bulkDelete'])->name('products.bulk_delete');
 
-    // Quản lý danh mục món nước sản phẩm (CRUD)
+    // Quản lý danh mục món nước sản phẩm, CRUD
     Route::resource('products', App\Http\Controllers\Backend\Admin\HardenedProductController::class)->except(['show']);
 
-    // Xóa hình ảnh thư viện sản phẩm (Gallery)
+    // Xóa hình ảnh thư viện sản phẩm, Gallery
     Route::delete('products/gallery/{id}', [App\Http\Controllers\Backend\Admin\HardenedProductController::class, 'deleteGalleryImage'])->name('products.gallery.destroy');
 
     // Xóa hàng loạt danh mục được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('categories/bulk-delete', [App\Http\Controllers\Backend\Admin\CategoryController::class, 'bulkDelete'])->name('categories.bulk_delete');
 
-    // Quản lý danh mục món nước của cửa hàng (CRUD)
+    // Quản lý danh mục món nước của cửa hàng, CRUD
     Route::resource('categories', App\Http\Controllers\Backend\Admin\CategoryController::class)->except(['show']);
 
-    // --- QUẢN LÝ KHUYẾN MÃI (PROMOTION MANAGEMENT) ---
+    // --- QUẢN LÝ KHUYẾN MÃI, PROMOTION MANAGEMENT ---
     // Xóa hàng loạt mã khuyến mãi được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('promotions/bulk-delete', [App\Http\Controllers\Backend\Admin\PromotionController::class, 'bulkDelete'])->name('promotions.bulk_delete');
 
-    // Quản lý các chương trình khuyến mãi và mã ưu đãi (CRUD)
+    // Quản lý các chương trình khuyến mãi và mã ưu đãi, CRUD
     Route::resource('promotions', App\Http\Controllers\Backend\Admin\PromotionController::class)->except(['show']);
 
-    // --- QUẢN LÝ ĐÁNH GIÁ (REVIEW MANAGEMENT) ---
+    // --- QUẢN LÝ ĐÁNH GIÁ, REVIEW MANAGEMENT ---
     // Xóa hàng loạt đánh giá sản phẩm được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('reviews/bulk-delete', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'bulkDelete'])->name('reviews.bulk_delete');
 
-    // Quản lý danh sách đánh giá của khách hàng (CRUD)
+    // Quản lý danh sách đánh giá của khách hàng, CRUD
     Route::resource('reviews', App\Http\Controllers\Backend\Admin\ReviewController::class)->except(['show']);
 
     // Ẩn hoặc hiện bình luận đánh giá ngoài giao diện khách [TRẢ VỀ JSON/AJAX CHO JS]
@@ -281,35 +281,35 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Xóa hình ảnh đi kèm bình luận đánh giá
     Route::delete('reviews/{id}/image', [App\Http\Controllers\Backend\Admin\ReviewController::class, 'deleteImage'])->name('reviews.delete_image');
 
-    // --- QUẢN LÝ BANNER QUẢNG CÁO (BANNER MANAGEMENT) ---
+    // --- QUẢN LÝ BANNER QUẢNG CÁO, BANNER MANAGEMENT ---
     // Xóa hàng loạt các banner được chọn [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('banners/bulk-delete', [App\Http\Controllers\Backend\Admin\BannerController::class, 'bulkDelete'])->name('banners.bulk_delete');
 
     // Khóa hoặc mở hoạt động của các banner trang chủ [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('banners/{id}/toggle-status', [App\Http\Controllers\Backend\Admin\BannerController::class, 'toggleStatus'])->name('banners.toggle_status');
 
-    // Quản lý các banner trang chủ của cửa hàng (CRUD)
+    // Quản lý các banner trang chủ của cửa hàng, CRUD
     Route::resource('banners', App\Http\Controllers\Backend\Admin\BannerController::class)->except(['show']);
 
-    // --- BÁO CÁO THỐNG KÊ (REPORTS MANAGEMENT) ---
+    // --- BÁO CÁO THỐNG KÊ, REPORTS MANAGEMENT ---
     // Trang hiển thị thống kê báo cáo của cửa hàng
     Route::get('reports', [App\Http\Controllers\Backend\Admin\ReportController::class, 'index'])->name('reports.index');
 
     // Xuất báo cáo hoạt động thống kê ra tệp tin
     Route::get('reports/export', [App\Http\Controllers\Backend\Admin\ReportController::class, 'export'])->name('reports.export');
 
-    // --- CẤU HÌNH HỆ THỐNG (SYSTEM SETTINGS) ---
+    // --- CẤU HÌNH HỆ THỐNG, SYSTEM SETTINGS ---
     // Trang cấu hình thông số và thiết lập hệ thống
     Route::get('settings', [App\Http\Controllers\Backend\Admin\SettingController::class, 'index'])->name('settings.index');
 
     // Cập nhật giá trị các thiết lập hệ thống
     Route::put('settings', [App\Http\Controllers\Backend\Admin\SettingController::class, 'update'])->name('settings.update');
 
-    // --- QUẢN LÝ KHO NGUYÊN LIỆU (INVENTORY MANAGEMENT) ---
+    // --- QUẢN LÝ KHO NGUYÊN LIỆU, INVENTORY MANAGEMENT ---
     // Xóa hàng loạt các loại nguyên vật liệu trong kho [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('materials/bulk-delete', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'bulkDelete'])->name('materials.bulk_delete');
 
-    // Quản lý danh mục các loại nguyên vật liệu trong kho (CRUD)
+    // Quản lý danh mục các loại nguyên vật liệu trong kho, CRUD
     Route::resource('materials', App\Http\Controllers\Backend\Admin\MaterialController::class)->except(['create', 'edit', 'show']);
 
     // Xem lịch sử nhập kho của một loại nguyên liệu
@@ -327,14 +327,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Thực hiện xuất kho nguyên vật liệu để pha chế nước uống
     Route::post('materials/imports/{import}/consume-batch', [App\Http\Controllers\Backend\Admin\MaterialController::class, 'consumeBatch'])->name('materials.imports.consume_batch');
 
-    // --- QUẢN LÝ TÀI KHOẢN NHÂN VIÊN (STAFF ACCOUNTS MANAGEMENT) ---
+    // --- QUẢN LÝ TÀI KHOẢN NHÂN VIÊN, STAFF ACCOUNTS MANAGEMENT ---
     // Khóa hoặc kích hoạt tài khoản nhân viên [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('staff-accounts/{id}/toggle-status', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'toggleStatus'])->name('staff_accounts.toggle_status');
 
     // Cập nhật quyền hạn/phân loại vai trò của nhân viên [TRẢ VỀ JSON/AJAX CHO JS]
     Route::patch('staff-accounts/{id}/staff-type', [App\Http\Controllers\Backend\Staff\StaffAccountController::class, 'updateType'])->name('staff_accounts.update_type');
 
-    // Quản lý thông tin tài khoản các nhân viên cửa hàng (CRUD)
+    // Quản lý thông tin tài khoản các nhân viên cửa hàng, CRUD
     Route::resource('staff-accounts', App\Http\Controllers\Backend\Staff\StaffAccountController::class)->names('staff_accounts')->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
     // Thống kê số đơn hàng giao thành công của từng nhân viên giao hàng theo ngày/tuần/tháng/năm/tùy chọn
@@ -343,7 +343,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 
 
 // |--------------------------------------------------------------------------
-// | 7. NHÂN VIÊN - LỄ TÂN (STAFF RECEPTIONIST ROUTES)
+// | 7. NHÂN VIÊN, LỄ TÂN, STAFF RECEPTIONIST ROUTES
 // |--------------------------------------------------------------------------
 
 Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', \App\Http\Middleware\IsReceptionist::class])->group(function () {
@@ -351,11 +351,11 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     // Trang tổng quan của nhân viên lễ tân
     Route::get('/dashboard', [App\Http\Controllers\Backend\Staff\Reception\DashboardController::class, 'index'])->name('dashboard');
 
-    // --- QUẢN LÝ ĐƠN HÀNG (POS & ORDER MANAGEMENT) ---
+    // --- QUẢN LÝ ĐƠN HÀNG, POS & ORDER MANAGEMENT ---
     // Xem danh sách đơn hàng cần xử lý
     Route::get('/orders', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'index'])->name('orders.index');
 
-    // Mở trang tạo đơn hàng trực tiếp tại quầy cho khách (POS)
+    // Mở trang tạo đơn hàng trực tiếp tại quầy cho khách, POS
     Route::get('/orders/create', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'createOrder'])->name('orders.create');
 
     // Tính toán trước tổng tiền đơn hàng tại quầy qua AJAX [TRẢ VỀ JSON/AJAX CHO JS]
@@ -388,7 +388,7 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
     // Lễ tân xác nhận đã nhận đủ tiền mặt từ khách tại quầy [TRẢ VỀ JSON/AJAX CHO JS]
     Route::post('/orders/{order}/confirm-cash', [App\Http\Controllers\Backend\Staff\Reception\OrderController::class, 'confirmCashPayment'])->name('orders.confirm_cash');
 
-    // --- QUẢN LÝ KHO VẬT TƯ TẠI QUẦY (LOCAL INVENTORY MANAGEMENT) ---
+    // --- QUẢN LÝ KHO VẬT TƯ TẠI QUẦY, LOCAL INVENTORY MANAGEMENT ---
     // Xem danh sách nguyên vật liệu kho tại quầy lễ tân
     Route::get('/materials', [App\Http\Controllers\Backend\Staff\Reception\MaterialController::class, 'index'])->name('materials.index');
 
@@ -404,14 +404,14 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
         'consumeBatch'
     ])->name('materials.imports.consume_batch');
 
-    // --- QUẢN LÝ KHUYẾN MÃI & HỒ SƠ CÁ NHÂN (PROMOTIONS & PROFILE) ---
+    // --- QUẢN LÝ KHUYẾN MÃI & HỒ SƠ CÁ NHÂN, PROMOTIONS & PROFILE ---
     // Xem danh sách các mã khuyến mãi đang hoạt động
     Route::get('/promotions', [App\Http\Controllers\Backend\Staff\Reception\PromotionController::class, 'index'])->name('promotions.index');
 
     // Xem thông tin hồ sơ tài khoản cá nhân của lễ tân
     Route::get('/profile', [App\Http\Controllers\Backend\Staff\StaffProfileController::class, 'edit'])->name('profile.edit');
 
-    // --- ĐỐI SOÁT COD SHIPPER (COD SETTLEMENT) ---
+    // --- ĐỐI SOÁT COD SHIPPER, COD SETTLEMENT ---
     // Trang đối soát nộp tiền mặt COD của nhân viên giao hàng
     Route::get('/cod-settlement', [App\Http\Controllers\Backend\Staff\Reception\CodController::class, 'index'])->name('cod_settlement.index');
 
@@ -424,7 +424,7 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
 
 
 // |--------------------------------------------------------------------------
-// | 8. NHÂN VIÊN - GIAO HÀNG (STAFF DELIVERY/SHIPPER ROUTES)
+// | 8. NHÂN VIÊN, GIAO HÀNG, STAFF DELIVERY/SHIPPER ROUTES
 // |--------------------------------------------------------------------------
 
 Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \App\Http\Middleware\IsDelivery::class])->group(function () {
@@ -441,7 +441,7 @@ Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \A
     // Shipper xác nhận đang đi giao đơn hàng này [TRẢ VỀ JSON KHI GỌI AJAX]
     Route::patch('/orders/{order}/ship', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'ship'])->name('orders.ship');
 
-    // Shipper xác nhận đã giao đơn hàng thành công và thu tiền COD (nếu có) [TRẢ VỀ JSON KHI GỌI AJAX]
+    // Shipper xác nhận đã giao đơn hàng thành công và thu tiền COD, nếu có [TRẢ VỀ JSON KHI GỌI AJAX]
     Route::patch('/orders/{order}/complete', [App\Http\Controllers\Backend\Staff\Delivery\OrderController::class, 'complete'])->name('orders.complete');
 
     // Shipper báo cáo giao hàng thất bại kèm theo lý do cụ thể [TRẢ VỀ JSON KHI GỌI AJAX]

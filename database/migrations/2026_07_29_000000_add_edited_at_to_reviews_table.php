@@ -10,8 +10,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            // NULL = chưa từng sửa. Khách chỉ được sửa đánh giá của mình ĐÚNG 1 LẦN (xem
-            // ReviewController::update) — có giá trị ở đây là đã dùng hết lượt sửa, không cho sửa nữa
+            // NULL = chưa từng sửa. Khách chỉ được sửa đánh giá của mình ĐÚNG 1 LẦN xem
+            // ReviewController::update, có giá trị ở đây là đã dùng hết lượt sửa, không cho sửa nữa
             // dù vẫn còn trong hạn 7 ngày.
             if (!Schema::hasColumn('reviews', 'edited_at')) {
                 $table->timestamp('edited_at')->nullable();

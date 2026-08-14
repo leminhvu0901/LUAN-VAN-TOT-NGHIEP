@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // Lưu tọa độ GPS của địa chỉ giao hàng ngay tại thời điểm đặt đơn (snapshot, không tham chiếu
-    // user_addresses vì địa chỉ khách có thể sửa/xóa sau này) — để nhân viên vận chuyển mở đúng
-    // điểm trên bản đồ thay vì tìm theo chuỗi địa chỉ text (dễ ra nhiều kết quả trùng tên đường).
+    // Lưu tọa độ GPS của địa chỉ giao hàng ngay tại thời điểm đặt đơn snapshot, không tham chiếu
+    // user_addresses vì địa chỉ khách có thể sửa/xóa sau này, để nhân viên vận chuyển mở đúng
+    // điểm trên bản đồ thay vì tìm theo chuỗi địa chỉ text, dễ ra nhiều kết quả trùng tên đường.
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {

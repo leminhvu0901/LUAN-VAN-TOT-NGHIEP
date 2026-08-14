@@ -14,13 +14,13 @@ class CategoryController
     {
         $query = Category::query()->withCount('products');
 
-        // 1. Tìm kiếm theo tên
+        // Tìm kiếm theo tên
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%");
         }
 
-        // 2. Lọc theo trạng thái (active / inactive / all)
+        // Lọc theo trạng thái, active / inactive / all
         if ($request->filled('status') && $request->status !== 'all') {
             if ($request->status === 'active') {
                 $query->where('is_active', 1);
@@ -29,7 +29,7 @@ class CategoryController
             }
         }
 
-        // 3. Sắp xếp
+        // Sắp xếp
         switch ($request->sort) {
             case 'newest':
                 $query->orderBy('created_at', 'desc');

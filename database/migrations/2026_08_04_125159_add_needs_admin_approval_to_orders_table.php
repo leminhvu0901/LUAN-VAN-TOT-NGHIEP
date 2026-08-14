@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             // Cờ đánh dấu lễ tân đã gửi yêu cầu Admin phê duyệt đơn hàng giá trị lớn.
-            // true = đang chờ admin duyệt, false (mặc định) = không cần duyệt hoặc đã duyệt xong.
+            // true = đang chờ admin duyệt, false, mặc định = không cần duyệt hoặc đã duyệt xong.
             $table->boolean('needs_admin_approval')->default(false)->after('status');
         });
     }

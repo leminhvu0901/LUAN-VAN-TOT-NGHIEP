@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use SoftDeletes; // Cho phép xóa mềm (không xóa hẳn khỏi DB, chỉ đánh dấu deleted_at)
+    use SoftDeletes; // Cho phép xóa mềm, không xóa hẳn khỏi DB, chỉ đánh dấu deleted_at
     protected $table = 'orders';
-    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
+    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường, không khóa trường nào
 
-    // Tự động ép kiểu các cột lưu ngày giờ từ chuỗi (string)
+    // Tự động ép kiểu các cột lưu ngày giờ từ chuỗi, string
     protected $casts = [
         'paid_at' => 'datetime',                // Thời điểm thanh toán thành công
         'inventory_reserved_at' => 'datetime',  // Thời điểm khóa/giữ hàng trong kho tạm thời
-        'inventory_released_at' => 'datetime',  // Thời điểm hoàn trả lại kho (nếu đơn bị hủy)
+        'inventory_released_at' => 'datetime',  // Thời điểm hoàn trả lại kho, nếu đơn bị hủy
         'cod_settled_at' => 'datetime',         // Thời điểm bàn giao tiền COD giữa shipper và lễ tân
-        'refunded_at' => 'datetime',            // Thời điểm hoàn tiền cho khách (hoàn qua Momo)
+        'refunded_at' => 'datetime',            // Thời điểm hoàn tiền cho khách, hoàn qua Momo
         'completed_at' => 'datetime',           // Thời điểm đơn hàng chuyển sang trạng thái hoàn thành
     ];
 

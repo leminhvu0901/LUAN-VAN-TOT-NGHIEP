@@ -8,7 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-// "Dịch vụ gửi thông báo (Email)".
+// "Dịch vụ gửi thông báo, Email".
 class NotificationService
 {
     // GỬI THÔNG BÁO
@@ -33,7 +33,7 @@ class NotificationService
         // Lấy địa chỉ email của khách hàng: ưu tiên lấy từ quan hệ $order->user, nếu không có thì truy vấn trực tiếp từ bảng users
         $email = $order->user?->email ?: User::query()->whereKey($order->user_id)->value('email');
         if (!$email) {
-            return; // Khách hàng không có email (hoặc là khách mua vãng lai không tài khoản), không gửi
+            return; // Khách hàng không có email, hoặc là khách mua vãng lai không tài khoản, không gửi
         }
 
         // Dòng tiêu đề và thông tin chung
@@ -106,7 +106,7 @@ class NotificationService
             if ($item->ice_level)
                 $details[] = 'Đá: ' . $item->ice_level;
 
-            // Topping lưu trong cột options (JSON) là mảng string
+            // Topping lưu trong cột options, JSON là mảng string
             $toppings = collect($item->options ?? [])
                 ->filter()
                 ->implode(', ');
@@ -140,7 +140,7 @@ class NotificationService
             return;
         }
 
-        // Lấy email nhận thông báo của Admin từ cấu hình (mặc
+        // Lấy email nhận thông báo của Admin từ cấu hình mặc
         $email = Setting::getValue('notification_email', 'admin@happytea.com');
         if (!$email) {
             return;
@@ -171,7 +171,7 @@ class NotificationService
                 $message->to($to)->subject($subject);
             });
         } catch (\Throwable $e) {
-            // Bắt mọi lỗi xảy ra khi gửi mail (ví dụ: cấu hình SMTP
+            // Bắt mọi lỗi xảy ra khi gửi mail ví dụ: cấu hình SMTP
             Log::error('NotificationService: failed to send email', [
                 'to' => $to,
                 'subject' => $subject,

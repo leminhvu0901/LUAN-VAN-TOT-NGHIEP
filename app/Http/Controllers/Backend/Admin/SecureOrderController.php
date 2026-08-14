@@ -19,7 +19,7 @@ class SecureOrderController
     // Hàm lấy danh sách và hiển thị tất cả đơn hàng lên
     public function index(Request $request)
     {
-        $status = $request->query('status'); // Lấy tham số trạng thái từ đường dẫn URL (query string)
+        $status = $request->query('status'); // Lấy tham số trạng thái từ đường dẫn URL, query string
         $query = Order::query()->latest(); // Khởi tạo đối tượng truy vấn Builder của bảng orders, mặc định sắp xếp đơn mới nhất lên đầu
 
         if ($request->query('status')) {
@@ -48,7 +48,7 @@ class SecureOrderController
         $page = LengthAwarePaginator::resolveCurrentPage(); // Xác định trang hiện tại từ URL phục vụ phân trang thủ công
         $paginator = new LengthAwarePaginator($collection->slice(($page - 1) * 10, 10)->values(), $collection->count(), 10, $page, [
             'path' => LengthAwarePaginator::resolveCurrentPath(),
-            'query' => $request->query(), // Tạo bộ phân trang thủ công (10 đơn/trang) cho Collection
+            'query' => $request->query(), // Tạo bộ phân trang thủ công, 10 đơn/trang cho Collection
         ]);
         $labels = [
             'pending' => ['Chờ xác nhận', 'warning'],
@@ -62,7 +62,7 @@ class SecureOrderController
             $created = Carbon::parse($order->created_at); // Phân tích định dạng thời gian tạo đơn bằng Carbon
             return [
                 'id' => $order->id,
-                'code' => $order->order_code ?: '#HPY-' . $order->id, // Trả về ID và mã đơn hàng (hoặc mã mặc định dự phòng nếu chưa có mã chính thức)
+                'code' => $order->order_code ?: '#HPY-' . $order->id, // Trả về ID và mã đơn hàng, hoặc mã mặc định dự phòng nếu chưa có mã chính thức
                 'customer_name' => $order->customer_name,
                 'customer_phone' => $order->customer_phone,
                 'total' => number_format($order->final_amount, 0, ',', '.') . ' VNĐ', // Định dạng số tiền có dấu phân cách hàng nghìn

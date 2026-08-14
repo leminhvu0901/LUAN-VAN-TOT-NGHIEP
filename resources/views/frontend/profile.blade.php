@@ -1022,7 +1022,7 @@
                 });
             });
 
-            // Gán ra window để các onclick="showTab(...)" inline trong HTML gọi được
+            // Gán ra window để các onclick="showTab..." inline trong HTML gọi được
             window.showTab = showTab;
         </script>
 

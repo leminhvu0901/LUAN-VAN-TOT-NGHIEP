@@ -119,7 +119,7 @@
     @push('scripts')
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Xử lý thay đổi loại vai trò nhân viên (pha chế hoặc giao hàng)
+            // Xử lý thay đổi loại vai trò nhân viên, pha chế hoặc giao hàng
             document.addEventListener('change', function (e) {
                 if (e.target && e.target.classList.contains('staff-type-select')) {
                     const select = e.target;

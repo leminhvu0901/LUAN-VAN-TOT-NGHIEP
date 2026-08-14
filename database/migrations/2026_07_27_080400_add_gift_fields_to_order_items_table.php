@@ -10,14 +10,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('order_items', function (Blueprint $table) {
-            // Đánh dấu dòng quà tặng (Mua X tặng Y) — unit_price luôn = 0, không tính vào doanh thu.
+            // Đánh dấu dòng quà tặng, Mua X tặng Y, unit_price luôn = 0, không tính vào doanh thu.
             if (!Schema::hasColumn('order_items', 'is_gift')) {
                 $table->boolean('is_gift')->default(false)->after('note');
             }
         });
 
         if (!Schema::hasColumn('order_items', 'source_promotion_id')) {
-            // Dò kiểu thật của promotions.id trước khi thêm cột — xem ghi chú đầy đủ trong migration
+            // Dò kiểu thật của promotions.id trước khi thêm cột, xem ghi chú đầy đủ trong migration
             // promotion_products cùng đợt. nullOnDelete để KHÔNG mất lịch sử đơn hàng cũ nếu sau này
             // khuyến mãi bị xóa khỏi hệ thống.
             $promotionIdIsBigInt = $this->idColumnIsBigInt('promotions');

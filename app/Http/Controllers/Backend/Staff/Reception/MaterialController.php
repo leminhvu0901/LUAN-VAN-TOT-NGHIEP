@@ -65,7 +65,7 @@ class MaterialController
 
         // Thu thập số liệu thống kê chung cho các thẻ báo cáo ở
         $totalItems = Material::count(); // Tổng số loại vật tư trong hệ thống
-        $lowStockItems = Material::where('current_stock', '<', 5)->where('current_stock', '>', 0)->count(); // Số vật tư sắp hết (dưới 5)
+        $lowStockItems = Material::where('current_stock', '<', 5)->where('current_stock', '>', 0)->count(); // Số vật tư sắp hết, dưới 5
         $outOfStockItems = Material::where('current_stock', 0)->count(); // Số vật tư đã hết hàng hoàn toàn
 
         // Số lượng lô hàng sắp hết hạn trong 30 ngày tới
@@ -127,7 +127,7 @@ class MaterialController
         return redirect()->route('staff.reception.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
 
-    // Xuất kho trực tiếp từ một lô hàng cụ thể — dùng khi
+    // Xuất kho trực tiếp từ một lô hàng cụ thể, dùng khi
     public function consumeBatch(Request $request, MaterialImport $import)
     {
         $request->merge([
@@ -158,7 +158,7 @@ class MaterialController
             $consumeQty = (float) $validated['quantity'];
             $remainingQuantity = (float) $lockedImport->remaining_quantity;
 
-            if ((float) $lockedImport->quantity <= 0) { // Kiểm tra tính hợp lệ của lô hàng (phải là lô nhập)
+            if ((float) $lockedImport->quantity <= 0) { // Kiểm tra tính hợp lệ của lô hàng, phải là lô nhập
                 throw ValidationException::withMessages([
                     'quantity' => 'Chỉ có thể xuất kho từ một phiếu nhập kho.',
                 ]);
@@ -238,12 +238,12 @@ class MaterialController
         ]);
     }
 
-    // Bộ lọc tìm kiếm nguyên liệu nâng cao (Lọc theo Tên/Mã
+    // Bộ lọc tìm kiếm nguyên liệu nâng cao Lọc theo Tên/Mã
     private function applyMaterialFilters($query, Request $request): void
     {
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
-            $materialId = preg_replace('/^VT[-\s]*0*/iu', '', $search); // Tách lấy ID số từ chuỗi mã vật tư (VD: VT-0004 -> 4)
+            $materialId = preg_replace('/^VT[-\s]*0*/iu', '', $search); // Tách lấy ID số từ chuỗi mã vật tư, VD: VT-0004 -> 4
 
             $query->where(function ($subQuery) use ($search, $materialId) {
                 $subQuery->where('name', 'like', '%' . $search . '%'); // Tìm theo tên nguyên liệu

@@ -54,7 +54,7 @@ class InventoryService
             $totalOldValue = bcmul((string) $locked->current_stock, (string) $locked->unit_price, 4);
             // Tồn kho mới = Tồn kho cũ + Số lượng nhập mới
             $newStock = bcadd((string) $locked->current_stock, $quantity, 2);
-            // Giá vốn bình quân mới = (Giá trị kho cũ + Tổng tiền lô mới) / Tồn kho mới
+            // Giá vốn bình quân mới =, Giá trị kho cũ + Tổng tiền lô mới / Tồn kho mới
             $newAvgPrice = bcdiv(bcadd($totalOldValue, $totalPrice, 4), $newStock, 4);
 
             // Kiểm tra giới hạn giá vốn tối đa

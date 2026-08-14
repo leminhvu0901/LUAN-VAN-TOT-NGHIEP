@@ -24,7 +24,7 @@ class SettingController
                 }
             }
         } catch (\Exception $e) {
-            // Bảng chưa tồn tại (mới cài đặt, chưa chạy migrate) ->
+            // Bảng chưa tồn tại, mới cài đặt, chưa chạy migrate ->
         }
 
         // Giá trị mặc định cho lần đầu cài đặt hoặc key nào đó
@@ -84,7 +84,7 @@ class SettingController
             $settings['loyalty_point_value'] = '1';
         }
 
-        // Chỉ kiểm tra ĐÃ có cấu hình VNPay sandbox hay chưa,
+        // Chỉ kiểm tra ĐÃ có cấu hình VNPay sandbox hay chưa
         $vnpayEnvConfig = config("services.vnpay.sandbox", []);
         $paymentStatus = [
             'vnpay' => (!empty($vnpayEnvConfig['tmn_code']) && !empty($vnpayEnvConfig['hash_secret'])),
@@ -135,7 +135,7 @@ class SettingController
             'date_format' => 'Trường :attribute định dạng thời gian H:i không hợp lệ.'
         ];
 
-        // Danh sách key hợp lệ của từng tab — chỉ những key trong đúng $section mới được ghi vào DB
+        // Danh sách key hợp lệ của từng tab, chỉ những key trong đúng $section mới được ghi vào DB
         $allowedKeys = [
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
             'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
@@ -267,7 +267,7 @@ class SettingController
 
         $fields = $allowedKeys[$section] ?? [];
 
-        // Ghi từng key trong 1 transaction — nếu 1 key lỗi giữa
+        // Ghi từng key trong 1 transaction, nếu 1 key lỗi giữa
         DB::transaction(function () use ($fields, $section, $types, $request) {
             // Các trường giờ hoạt động: nếu bỏ trống thì giữ nguyên
             $timeFields = ['store_open_time', 'store_close_time'];
@@ -294,7 +294,7 @@ class SettingController
             if ($request->hasFile('store_logo')) {
                 $file = $request->file('store_logo');
                 $extension = $file->getClientOriginalExtension();
-                // Dùng UUID thay vì time() (chỉ chính xác tới giây) - 2
+                // Dùng UUID thay vì time(), chỉ chính xác tới giây - 2
                 $fileName = 'logo_' . (string) Str::uuid() . '.' . $extension;
 
                 // Giá trị lưu DB là đường dẫn tuyệt đối nên asset($shopLogo) ở các view dùng lại

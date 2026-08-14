@@ -127,8 +127,7 @@
 
             if (!bulkDeleteBtn || !selectedCountSpan) return;
 
-        // Cập nhật trạng thái hiển thị và số lượng của nút xóa hàng loạt
-        function updateBulkDeleteButton() {
+            // Cập nhật trạng thái hiển thị và số lượng của nút xóa hàng loạt
             const count = window.selectedOrderIds.size;
             selectedCountSpan.textContent = count;
 

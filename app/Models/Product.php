@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $table = 'products';
-    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường (không khóa trường nào)
+    protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường, không khóa trường nào
 
     /**
      * Mối quan hệ: Sản phẩm thuộc về một Danh mục (Category)
@@ -69,7 +69,7 @@ class Product extends Model
     {
         $now = now();
 
-        // 1. Quét khuyến mãi áp dụng trực tiếp cho sản phẩm này
+        // Quét khuyến mãi áp dụng trực tiếp cho sản phẩm này
         $productPromos = $this->promotions()
             ->where('is_active', 1)
             ->where(function ($q) use ($now) {
@@ -83,7 +83,7 @@ class Product extends Model
             })
             ->get();
 
-        // 2. Quét khuyến mãi áp dụng cho toàn bộ danh mục chứa
+        // Quét khuyến mãi áp dụng cho toàn bộ danh mục chứa
         $categoryPromos = collect();
         if ($this->category_id) {
             $categoryPromos = Promotion::query()
@@ -116,7 +116,7 @@ class Product extends Model
 
         // Lặp qua từng khuyến mãi để tìm cái có mức giảm giá cao nhất
         foreach ($allPromos as $promo) {
-            // Kiểm tra điều kiện lặp lại (theo giờ, theo các ngày
+            // Kiểm tra điều kiện lặp lại theo giờ, theo các ngày
             if ($promo->is_recurring) {
                 $nowStr = $now->format('H:i:s');
                 $currentDay = $now->dayOfWeekIso;
@@ -152,7 +152,7 @@ class Product extends Model
         }
 
         $rawSalePrice = max(0, (float) $this->base_price - $maxDiscount);
-        // Làm tròn LÊN đến bội số 1.000đ gần nhất (Ceil to
+        // Làm tròn LÊN đến bội số 1.000đ gần nhất Ceil to
         $salePrice = ceil($rawSalePrice / 1000) * 1000;
 
         // Nếu làm tròn lên vô tình làm giá bán mới lớn hơn hoặc

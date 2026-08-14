@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
-    // Các cột dữ liệu được phép điền nhanh (mass-assign)
+    // Các cột dữ liệu được phép điền nhanh, mass-assign
     protected $fillable = ['group', 'key', 'value', 'type'];
 
     /**
@@ -33,7 +33,7 @@ class Setting extends Model
                 return null;
             }
 
-            // Chuyển kiểu dữ liệu từ chuỗi (string) trong DB về kiểu
+            // Chuyển kiểu dữ liệu từ chuỗi, string trong DB về kiểu
             $type = strtolower($setting->type ?? 'string');
 
             switch ($type) {

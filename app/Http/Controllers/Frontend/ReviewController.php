@@ -22,7 +22,7 @@ class ReviewController
     {
         $userId = Auth::id();
 
-        // 1. Xác minh đơn hàng có thuộc về user này và ở trạng
+        // Xác minh đơn hàng có thuộc về user này và ở trạng
         $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -33,7 +33,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không tìm thấy đơn hàng hợp lệ để đánh giá.');
         }
 
-        // 2. Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
+        // Xác minh sản phẩm có thực sự nằm trong đơn hàng này không
         $orderItem = OrderItem::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -43,14 +43,14 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Sản phẩm này không thuộc đơn hàng của bạn.');
         }
 
-        // 3. Tìm kiếm đánh giá hiện có của sản phẩm trong đơn
+        // Tìm kiếm đánh giá hiện có của sản phẩm trong đơn
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
             ->where('user_id', $userId)
             ->first();
 
-        // 4. Lấy thông tin sản phẩm và trung bình điểm số, số
+        // Lấy thông tin sản phẩm và trung bình điểm số, số
         $product = Product::query()
             ->select(
                 'products.*',
@@ -67,7 +67,7 @@ class ReviewController
             abort(404);
         }
 
-        // 5. Lấy danh sách các đánh giá khác đang hiển thị công
+        // Lấy danh sách các đánh giá khác đang hiển thị công
         $reviewsQuery = Review::query()
             ->join('users', 'reviews.user_id', '=', 'users.id')
             ->where('reviews.product_id', $productId)
@@ -87,7 +87,7 @@ class ReviewController
             ->paginate(5)
             ->withQueryString();
 
-        // Phân phối tỷ lệ đánh giá (số lượng 5 sao, 4 sao...)
+        // Phân phối tỷ lệ đánh giá, số lượng 5 sao, 4 sao...
         $ratingDistribution = Review::query()
             ->where('product_id', $productId)
             ->where('is_visible', 1)
@@ -115,7 +115,7 @@ class ReviewController
     {
         $userId = Auth::id();
 
-        // 1. Kiểm tra tính hợp lệ của dữ liệu gửi lên (số sao,
+        // Kiểm tra tính hợp lệ của dữ liệu gửi lên số sao
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -133,7 +133,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // 2. Xác minh đơn hàng và món nước một lần nữa
+        // Xác minh đơn hàng và món nước một lần nữa
         $order = Order::query()
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -149,7 +149,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không thể đánh giá sản phẩm này.');
         }
 
-        // 3. Kiểm tra chắc chắn xem sản phẩm này đã được người
+        // Kiểm tra chắc chắn xem sản phẩm này đã được người
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -160,7 +160,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
         }
 
-        // 4. Xử lý lưu các hình ảnh tải lên của đánh giá
+        // Xử lý lưu các hình ảnh tải lên của đánh giá
         $imageNames = [];
         $files = $request->file('images');
 
@@ -173,7 +173,7 @@ class ReviewController
                 if ($image && $image->isValid()) {
                     $ext = $image->getClientOriginalExtension() ?: 'jpg';
                     $imageName = time() . '_' . Str::random(10) . '.' . $ext;
-                    // Di chuyển ảnh vào thư mục upload (nơi gắn ổ đĩa bền
+                    // Di chuyển ảnh vào thư mục upload nơi gắn ổ đĩa bền
                     $image->move(upload_dir('reviews'), $imageName);
                     $imageNames[] = upload_rel('reviews', $imageName);
                 }
@@ -182,7 +182,7 @@ class ReviewController
         // Lưu trữ danh sách ảnh dưới dạng mảng JSON trong DB
         $imageJson = empty($imageNames) ? null : json_encode($imageNames);
 
-        // 5. Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
+        // Ghi thông tin đánh giá mới vào cơ sở dữ liệu.
         try {
             Review::query()->insert([
                 'user_id' => $userId,
@@ -196,7 +196,7 @@ class ReviewController
                 'updated_at' => now()
             ]);
         } catch (QueryException $e) {
-            // Mã lỗi 23000: Vi phạm ràng buộc duy nhất (Unique
+            // Mã lỗi 23000: Vi phạm ràng buộc duy nhất Unique
             if ((int) $e->getCode() === 23000) {
                 return redirect()->route('orders')->with('error', 'Bạn đã đánh giá sản phẩm này rồi.');
             }
@@ -214,7 +214,7 @@ class ReviewController
     {
         $userId = Auth::id();
 
-        // 1. Kiểm tra nhanh (không lock) để chặn sớm các yêu cầu
+        // Kiểm tra nhanh, không lock để chặn sớm các yêu cầu
         $existingReview = Review::query()
             ->where('order_id', $orderId)
             ->where('product_id', $productId)
@@ -225,7 +225,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Không tìm thấy đánh giá để chỉnh sửa.');
         }
 
-        // Chặn nếu đánh giá này đã được chỉnh sửa rồi (mỗi đánh
+        // Chặn nếu đánh giá này đã được chỉnh sửa rồi mỗi đánh
         if ($existingReview->edited_at) {
             return redirect()->route('orders')->with('error', 'Đánh giá này đã được chỉnh sửa 1 lần rồi, bạn không thể sửa thêm nữa.');
         }
@@ -235,7 +235,7 @@ class ReviewController
             return redirect()->route('orders')->with('error', 'Đã quá ' . self::EDIT_WINDOW_DAYS . ' ngày kể từ lúc đánh giá, bạn không thể chỉnh sửa nữa.');
         }
 
-        // 2. Thực hiện validate dữ liệu đầu vào cập nhật
+        // Thực hiện validate dữ liệu đầu vào cập nhật
         $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:150',
@@ -253,7 +253,7 @@ class ReviewController
             'images.*.max' => 'Dung lượng mỗi hình ảnh không được vượt quá 2MB.'
         ]);
 
-        // 3. Xử lý tải hình ảnh mới lên trước khi bắt đầu Lock
+        // Xử lý tải hình ảnh mới lên trước khi bắt đầu Lock
         $newImageNames = [];
         $files = $request->file('images');
         if ($files) {
@@ -270,7 +270,7 @@ class ReviewController
             }
         }
 
-        // 4. Mở Transaction và thực hiện khóa dòng dữ liệu
+        // Mở Transaction và thực hiện khóa dòng dữ liệu
         $result = DB::transaction(function () use ($orderId, $productId, $userId, $request, $newImageNames) {
             $locked = Review::query()
                 ->where('order_id', $orderId)
@@ -307,7 +307,7 @@ class ReviewController
             return ['success' => true, 'review' => $locked];
         });
 
-        // 6. Xử lý khi cập nhật thất bại (Ví dụ: do người dùng
+        // Xử lý khi cập nhật thất bại Ví dụ: do người dùng
         if (!$result['success']) {
             // Xóa toàn bộ các ảnh mới vừa tải lên mà không dùng đến
             foreach ($newImageNames as $img) {

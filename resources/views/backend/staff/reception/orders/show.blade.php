@@ -25,7 +25,7 @@
                     {{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</p>
             </div>
             <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto mt-4 sm:mt-0 print:hidden">
-                {{-- Cho in ngay khi đơn đã xác NHẬN - pha chế cần --}}
+                {{-- Cho in ngay khi đơn đã xác NHẬN, pha chế cần --}}
                 @if (in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
                     <button id="print-prep-ticket-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">

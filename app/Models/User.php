@@ -20,16 +20,16 @@ class User extends Authenticatable
         'name',             // Tên người dùng
         'email',            // Email
         'avatar',           // Ảnh đại diện
-        'password',         // Mật khẩu (đã mã hoá)
+        'password',         // Mật khẩu, đã mã hoá
         'phone',            // Số điện thoại
         'address',          // Địa chỉ
         'points',           // Điểm tích luỹ của khách hàng
-        'membership_level', // Hạng thành viên (new, silver, gold, diamond)
-        'role',             // Quyền hạn (admin, user...)
-        'staff_type',       // Loại nhân viên khi role=staff (receptionist, delivery)
-        'is_active',        // Trạng thái tài khoản (1: hoạt động, 0: khoá)
+        'membership_level', // Hạng thành viên, new, silver, gold, diamond
+        'role',             // Quyền hạn, admin, user...
+        'staff_type',       // Loại nhân viên khi role=staff, receptionist, delivery
+        'is_active',        // Trạng thái tài khoản, 1: hoạt động, 0: khoá
         'lock_reason',      // Lý do khóa tài khoản
-        'oauth_provider',   // Đăng nhập bằng mạng xã hội nào (Google, Facebook...)
+        'oauth_provider',   // Đăng nhập bằng mạng xã hội nào, Google, Facebook...
         'oauth_id',         // ID từ mạng xã hội
         'google_id',        // ID riêng của Google
     ];
@@ -73,11 +73,11 @@ class User extends Authenticatable
         // Tính số điểm nhận được
         $earned = (int) floor($amount / $moneyPerPoint);
 
-        // Nếu số tiền quá nhỏ không được 1 điểm nào thì thoát hàm luôn (return)
+        // Nếu số tiền quá nhỏ không được 1 điểm nào thì thoát hàm luôn, return
         if ($earned <= 0)
             return;
 
-        // Cộng dồn điểm mới vào tổng điểm hiện tại của user (Nếu
+        // Cộng dồn điểm mới vào tổng điểm hiện tại của user Nếu
         $total = (int) ($this->points ?? 0) + $earned;
 
         // TỰ ĐỘNG XẾP HẠNG THÀNH VIÊN DỰA TRÊN TỔNG ĐIỂM

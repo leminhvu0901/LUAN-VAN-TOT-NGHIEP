@@ -13,13 +13,13 @@ return new class extends Migration
             return;
         }
 
-        // Dò kiểu thật của cột đích trước khi tạo — xem ghi chú đầy đủ trong migration
+        // Dò kiểu thật của cột đích trước khi tạo, xem ghi chú đầy đủ trong migration
         // promotion_products cùng ngày.
         $promotionIdIsBigInt = $this->idColumnIsBigInt('promotions');
         $categoryIdIsBigInt = $this->idColumnIsBigInt('categories');
 
         Schema::create('promotion_categories', function (Blueprint $table) use ($promotionIdIsBigInt, $categoryIdIsBigInt) {
-            // Ép InnoDB tường minh — xem ghi chú trong migration promotion_products cùng ngày.
+            // Ép InnoDB tường minh, xem ghi chú trong migration promotion_products cùng ngày.
             $table->engine = 'InnoDB';
             $table->id();
 

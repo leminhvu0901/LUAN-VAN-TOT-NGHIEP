@@ -13,7 +13,7 @@ class DashboardController
     // Hiển thị trang Dashboard tổng quan của quầy Lễ tân.
     public function index()
     {
-        // 1. Thống kê số lượng đơn hàng theo từng trạng thái cần chú ý
+        // Thống kê số lượng đơn hàng theo từng trạng thái cần chú ý
         $pendingOrdersCount = Order::where('status', 'pending')->count(); // Số lượng đơn chờ xác nhận
         $shippingOrdersCount = Order::where('status', 'shipping')->count(); // Số lượng đơn shipper đang đi giao
         $cancelledOrdersCount = Order::where('status', 'cancelled')->count(); // Số lượng đơn bị hủy
@@ -24,7 +24,7 @@ class DashboardController
             ->whereNull('delivery_staff_id')
             ->count();
 
-        // 1.5. Doanh thu hôm nay theo hình thức thanh toán — chỉ
+        // Doanh thu hôm nay theo hình thức thanh toán, chỉ
         $todayRange = [today(), today()->endOfDay()]; // Khai báo khoảng thời gian từ 00:00:00 đến 23:59:59 ngày hôm nay
 
         $cashRevenueToday = (float) Order::whereIn('payment_method', ['cash', 'cod']) // Lấy các đơn trả bằng tiền mặt/tiền COD
@@ -41,9 +41,9 @@ class DashboardController
         $cashRevenuePercent = $totalRevenueToday > 0 ? round($cashRevenueToday / $totalRevenueToday * 100) : 0;
         $transferRevenuePercent = $totalRevenueToday > 0 ? 100 - $cashRevenuePercent : 0;
 
-        // 2. Cảnh báo kho nguyên liệu pha chế
+        // Cảnh báo kho nguyên liệu pha chế
         $outOfStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '<=', 0)->count(); // Nguyên liệu đã hết hoàn toàn
-        $lowStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '>', 0)->where('current_stock', '<', 5)->count(); // Cảnh báo tồn kho sắp hết (dưới 5 đơn vị)
+        $lowStockMaterialsCount = Material::where('is_active', true)->where('current_stock', '>', 0)->where('current_stock', '<', 5)->count(); // Cảnh báo tồn kho sắp hết, dưới 5 đơn vị
 
         // Thống kê số lô nguyên liệu sắp hết hạn sử dụng trong
         $expiringMaterialsCount = Material::where('is_active', true)
@@ -53,7 +53,7 @@ class DashboardController
                     ->whereBetween('expiration_date', [today(), today()->addDays(30)]);
             })->count();
 
-        // 3. Lấy danh sách 5 đơn hàng mới tạo gần đây nhất
+        // Lấy danh sách 5 đơn hàng mới tạo gần đây nhất
         $recentOrders = Order::latest()->limit(5)->get()->map(function ($order) {
             $labels = [ // Đắp class màu và nhãn tiếng Việt tương ứng trạng thái
                 'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],

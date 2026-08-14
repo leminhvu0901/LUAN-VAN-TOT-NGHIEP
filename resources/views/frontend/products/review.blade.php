@@ -72,7 +72,7 @@
                     </div>
                     @endif
 
-                    {{-- Gộp "đã gửi lúc" + "đã chỉnh sửa lúc" vào 1 dòng, --}}
+                    {{-- Gộp "đã gửi lúc" + "đã chỉnh sửa lúc" vào 1 dòng --}}
                     <p class="text-[11px] text-gray-400">
                         Gửi {{ \Carbon\Carbon::parse($existingReview->created_at)->translatedFormat('d/m/Y') }}
                         @if($existingReview->edited_at)

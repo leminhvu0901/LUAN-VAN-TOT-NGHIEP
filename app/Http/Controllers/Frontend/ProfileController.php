@@ -43,7 +43,7 @@ class ProfileController
     // CẬP NHẬT THÔNG TIN TÀI KHOẢN
     public function update(Request $request)
     {
-        // 1. Validate (Kiểm tra) dữ liệu người dùng nhập vào
+        // Validate, Kiểm tra dữ liệu người dùng nhập vào
         $request->validate([
             'name' => 'required|string|max:30', // Bắt buộc nhập tên, tối đa 30 ký tự
             // SĐT phải đúng định dạng số điện thoại VN và không được
@@ -57,7 +57,7 @@ class ProfileController
             'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
         ]);
 
-        // 2. Gom dữ liệu cần cập nhật lại thành mảng
+        // Gom dữ liệu cần cập nhật lại thành mảng
         $updateData = [
             'name' => $request->input('name'),
             'phone' => $request->input('phone'),
@@ -65,10 +65,10 @@ class ProfileController
             'updated_at' => now(),
         ];
 
-        // 3. Xử lý lưu ảnh Avatar (nếu người dùng có cắt ảnh và
+        // Xử lý lưu ảnh Avatar nếu người dùng có cắt ảnh và
         if ($request->filled('cropped_avatar')) {
             $base64Data = $request->input('cropped_avatar');
-            // Tách chuỗi Base64 để lấy định dạng file (png, jpg...)
+            // Tách chuỗi Base64 để lấy định dạng file, png, jpg...
             if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
                 $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
                 $type = strtolower($type[1]);
@@ -90,7 +90,7 @@ class ProfileController
             }
         }
 
-        // 4. Lưu mảng dữ liệu vào Database
+        // Lưu mảng dữ liệu vào Database
         User::query()
             ->where('id', Auth::id())
             ->update($updateData);
@@ -133,7 +133,7 @@ class ProfileController
             $status = 'added';
         }
 
-        // Lấy lại danh sách yêu thích MỚI NHẤT của user (có join
+        // Lấy lại danh sách yêu thích MỚI NHẤT của user có join
         $favorites = Favorite::query()
             ->join('products', 'favorites.product_id', '=', 'products.id')
             ->leftJoin(
@@ -235,7 +235,7 @@ class ProfileController
         $formatted = $request->input('formatted_address');
 
         if ($lat === null || $lng === null || $lat === '' || $lng === '') {
-            // Bỏ "Phường <số>" (Geoapify hiểu sai) + luôn thêm "Việt
+            // Bỏ "Phường <số>", Geoapify hiểu sai + luôn thêm "Việt
             $query = trim($request->input('specific_address') . ', ' . $area['ward'] . ', ' . $area['province']);
             $query = preg_replace('/phường\s*\d+/iu', '', $query);
             $query = preg_replace('/,\s*,/', ',', $query);
@@ -265,7 +265,7 @@ class ProfileController
     // LƯU ĐỊA CHỈ MỚI
     public function storeAddress(Request $request)
     {
-        // 1. Kiểm tra thông tin nhập vào
+        // Kiểm tra thông tin nhập vào
         $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
 
         // 1b. Đối chiếu tỉnh/phường với danh mục hành chính chính thức
@@ -274,7 +274,7 @@ class ProfileController
             return $this->addressError($request, $area['field'], $area['error']);
         }
 
-        // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa
+        // 1c. Xác định tọa độ geocode ở chế độ manual nếu chưa
         $location = $this->resolveLocation($request, $area);
         if (isset($location['error'])) {
             return $this->addressError($request, 'specific_address', $location['error']);
@@ -283,7 +283,7 @@ class ProfileController
         $userId = Auth::id();
         $isDefault = $request->boolean('is_default'); // User có tick chọn làm mặc định không?
 
-        // 2. Logic xử lý Địa chỉ Mặc định
+        // Logic xử lý Địa chỉ Mặc định
         if ($isDefault) {
             // Nếu chọn mặc định, phải gỡ bỏ trạng thái mặc định của
             UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
@@ -295,7 +295,7 @@ class ProfileController
             }
         }
 
-        // 3. Thêm mới vào DB và lấy ID vừa thêm
+        // Thêm mới vào DB và lấy ID vừa thêm
         $id = UserAddress::query()->insertGetId([
             'user_id' => $userId,
             'fullname' => $request->input('fullname'),
@@ -323,7 +323,7 @@ class ProfileController
     // CẬP NHẬT ĐỊA CHỈ
     public function updateAddress(Request $request, $id)
     {
-        // 1. Kiểm tra dữ liệu (giống hệt hàm Store)
+        // Kiểm tra dữ liệu, giống hệt hàm Store
         $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
 
         // 1b. Đối chiếu tỉnh/phường với danh mục hành chính
@@ -332,7 +332,7 @@ class ProfileController
             return $this->addressError($request, $area['field'], $area['error']);
         }
 
-        // 1c. Xác định tọa độ (geocode ở chế độ manual nếu chưa
+        // 1c. Xác định tọa độ geocode ở chế độ manual nếu chưa
         $location = $this->resolveLocation($request, $area);
         if (isset($location['error'])) {
             return $this->addressError($request, 'specific_address', $location['error']);
@@ -341,12 +341,12 @@ class ProfileController
         $userId = Auth::id();
         $isDefault = $request->boolean('is_default');
 
-        // 2. Nếu tick chọn địa chỉ này làm mặc định -> Hủy mặc
+        // Nếu tick chọn địa chỉ này làm mặc định -> Hủy mặc
         if ($isDefault) {
             UserAddress::query()->where('user_id', $userId)->update(['is_default' => false]);
         }
 
-        // 3. Update DB
+        // Update DB
         UserAddress::query()
             ->where('id', $id)
             ->where('user_id', $userId)
@@ -358,7 +358,7 @@ class ProfileController
                 'ward' => $area['ward'],
                 'specific_address' => $request->input('specific_address'),
                 'type' => $request->input('type'),
-                'is_default' => $isDefault, // Có thể bằng true (nếu user tích) hoặc false (nếu user không tích và nó không phải mặc định ban đầu)
+                'is_default' => $isDefault, // Có thể bằng true, nếu user tích hoặc false, nếu user không tích và nó không phải mặc định ban đầu
                 'latitude' => $location['latitude'],
                 'longitude' => $location['longitude'],
                 'location_method' => $location['location_method'],
@@ -389,17 +389,17 @@ class ProfileController
     {
         $userId = Auth::id();
 
-        // 1. Xóa địa chỉ theo id
+        // Xóa địa chỉ theo id
         UserAddress::query()
             ->where('id', $id)
             ->where('user_id', $userId)
             ->delete();
 
-        // 2. Logic Thông minh: Nếu địa chỉ vừa xóa VÔ TÌNH LÀ
+        // Logic Thông minh: Nếu địa chỉ vừa xóa VÔ TÌNH LÀ
         $hasDefault = UserAddress::query()->where('user_id', $userId)->where('is_default', true)->exists();
 
         if (!$hasDefault) {
-            // Lấy địa chỉ bất kỳ (cũ nhất) còn sót lại trong DB để
+            // Lấy địa chỉ bất kỳ, cũ nhất còn sót lại trong DB để
             $first = UserAddress::query()->where('user_id', $userId)->first();
             if ($first) {
                 UserAddress::query()->where('id', $first->id)->update(['is_default' => true]);
@@ -412,7 +412,7 @@ class ProfileController
         return redirect()->route('checkout')->with('success', 'Đã xóa địa chỉ giao hàng.');
     }
 
-    // Đặt một địa chỉ đã lưu làm mặc định — chỉ tác động nếu
+    // Đặt một địa chỉ đã lưu làm mặc định, chỉ tác động nếu
     public function setDefaultAddress(Request $request, $id)
     {
         $userId = Auth::id();
@@ -431,7 +431,7 @@ class ProfileController
     // Đổi mật khẩu tài khoản
     public function changePassword(Request $request)
     {
-        // 1. Validate dữ liệu nhập vào (Bắt buộc phải nhập Mật
+        // Validate dữ liệu nhập vào Bắt buộc phải nhập Mật
         $request->validate([
             'current_password' => 'required',
             // Mật khẩu mới phải >= 6 ký tự và có field `new_password_confirmation` nhập trùng khớp
@@ -446,17 +446,17 @@ class ProfileController
 
         $user = Auth::user();
 
-        // 2. Kiểm tra Mật khẩu cũ có đúng không (dùng
+        // Kiểm tra Mật khẩu cũ có đúng không dùng
         if (!Hash::check($request->input('current_password'), $user->password)) {
             return $this->passwordError('current_password', 'Mật khẩu hiện tại không chính xác.');
         }
 
-        // 3. Mật khẩu mới không được giống hệt mật khẩu cũ
+        // Mật khẩu mới không được giống hệt mật khẩu cũ
         if ($request->input('current_password') === $request->input('new_password')) {
             return $this->passwordError('new_password', 'Mật khẩu mới phải khác mật khẩu hiện tại.');
         }
 
-        // 4. Mã hóa (Hash) mật khẩu mới và lưu xuống Database
+        // Mã hóa, Hash mật khẩu mới và lưu xuống Database
         User::query()
             ->where('id', $user->id)
             ->update([

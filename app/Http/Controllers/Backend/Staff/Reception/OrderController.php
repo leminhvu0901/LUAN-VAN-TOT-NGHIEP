@@ -70,7 +70,7 @@ class OrderController
 
         $page = LengthAwarePaginator::resolveCurrentPage(); // Đọc trang hiện tại từ URL phục vụ phân trang Collection thủ công
         $paginator = new LengthAwarePaginator(
-            $collection->slice(($page - 1) * 10, 10)->values(), // Cắt lấy dữ liệu của trang hiện tại (10 đơn/trang)
+            $collection->slice(($page - 1) * 10, 10)->values(), // Cắt lấy dữ liệu của trang hiện tại, 10 đơn/trang
             $collection->count(), // Tổng số đơn hàng sau khi lọc
             10,
             $page,
@@ -130,7 +130,7 @@ class OrderController
             ->selectRaw('COALESCE(order_items.product_name, products.name) as product_name')
             ->selectRaw('COALESCE(order_items.product_image, products.image) as product_image')->get();
 
-        $order->loadMissing('deliveryStaff'); // Nạp thông tin tài khoản nhân viên vận chuyển (nếu có)
+        $order->loadMissing('deliveryStaff'); // Nạp thông tin tài khoản nhân viên vận chuyển, nếu có
 
         // Chỉ lấy danh sách tài khoản shipper đang hoạt động nếu
         $deliveryStaffs = $order->delivery_type === 'delivery'
@@ -146,7 +146,7 @@ class OrderController
         return view('backend.staff.reception.orders.show', compact('order', 'items', 'deliveryStaffs', 'storeInfo'));
     }
 
-    // Cập nhật trạng thái đơn hàng (Xác nhận, Hủy đơn,...).
+    // Cập nhật trạng thái đơn hàng, Xác nhận, Hủy đơn....
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -193,7 +193,7 @@ class OrderController
         return redirect()->back()->with('success', 'Đã gửi yêu cầu phê duyệt đơn hàng đến Quản trị viên!');
     }
 
-   // Duyệt đơn hàng trực tiếp tại quầy (dành cho Lễ tân khi
+   // Duyệt đơn hàng trực tiếp tại quầy dành cho Lễ tân khi
     public function approveDirectly(Request $request, Order $order)
     {
         $order->update([
@@ -205,7 +205,7 @@ class OrderController
         return back()->with('success', 'Đã phê duyệt đơn hàng thành công!');
     }
 
-   // Phân công Nhân viên vận chuyển (Shipper) cho đơn giao
+   // Phân công Nhân viên vận chuyển, Shipper cho đơn giao
     public function assignDelivery(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -223,10 +223,10 @@ class OrderController
         return back()->with('success', 'Đã phân công nhân viên giao hàng!');
     }
 
-    // Hiển thị màn hình Tạo đơn tại quầy (POS) cho Lễ tân.
+    // Hiển thị màn hình Tạo đơn tại quầy, POS cho Lễ tân.
     public function createOrder()
     {
-        // Vẫn lấy cả sản phẩm hết hàng - đưa xuống cuối danh sách
+        // Vẫn lấy cả sản phẩm hết hàng, đưa xuống cuối danh sách
         $products = Product::with([
             'category',
             'sizes',
@@ -246,8 +246,8 @@ class OrderController
     }
 
 
-    // Xem trước tổng tiền đơn hàng tại quầy (POS) qua AJAX
-    //   tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy (pickup) nên phí giao hàng = 0.
+    // Xem trước tổng tiền đơn hàng tại quầy, POS qua AJAX
+    //   tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy, pickup nên phí giao hàng = 0.
     public function previewTotal(Request $request)
     {
         $cart = Cart::query()->where('user_id', Auth::id())->first();
@@ -325,12 +325,12 @@ class OrderController
                 'gift_product_name' => $g['gift_product']->name,
                 'quantity' => $g['granted_quantity'],
             ])->values(),
-            // Danh sách mã lễ tân bấm chọn được với giỏ hiện tại —
+            // Danh sách mã lễ tân bấm chọn được với giỏ hiện tại
             'available_promotions' => $this->applicablePromotionsForPos($items, $subtotal, $totalQuantity, $orderOwner),
         ])->header('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
 
-    // Các mã khuyến mãi mà giỏ tại quầy hiện tại dùng được,
+    // Các mã khuyến mãi mà giỏ tại quầy hiện tại dùng được
     private function applicablePromotionsForPos($items, float $subtotal, int $totalQuantity, ?User $orderOwner): \Illuminate\Support\Collection
     {
         $promotions = Promotion::query()
@@ -388,7 +388,7 @@ class OrderController
         return 'Giảm ' . number_format($promo->value, 0, ',', '.') . 'đ';
     }
 
-    // Lưu và tạo Đơn hàng mới tại quầy (POS).
+    // Lưu và tạo Đơn hàng mới tại quầy, POS.
     public function storeOrder(Request $request)
     {
 
@@ -396,11 +396,11 @@ class OrderController
             'payment_method' => ['required', 'in:cash,vnpay'],
             'note' => ['nullable', 'string', 'max:500'],
             'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
-            // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên — để trống = khách vãng lai.
+            // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên, để trống = khách vãng lai.
             'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'customer')],
-            // Chỉ có ý nghĩa khi đã chọn customer_id — validate ràng
+            // Chỉ có ý nghĩa khi đã chọn customer_id, validate ràng
             'points_to_redeem' => ['nullable', 'integer', 'min:0'],
-            // Mã khuyến mãi lễ tân nhập tay (tùy chọn) — nếu để
+            // Mã khuyến mãi lễ tân nhập tay, tùy chọn, nếu để
             'coupon_code' => ['nullable', 'string', 'max:50'],
         ], [
             'payment_method.required' => 'Vui lòng chọn phương thức thanh toán.',
@@ -422,7 +422,7 @@ class OrderController
             'idempotency_key' => (string) Str::uuid(), // Key chống trùng lặp dữ liệu khi nhấn đúp chuột gửi yêu cầu
             'delivery_type' => 'pickup',
             'pickup_mode' => $validated['pickup_mode'] ?? 'dine_in',
-            // Luôn gửi key này (kể cả null) để OrderService gắn đúng
+            // Luôn gửi key này, kể cả null để OrderService gắn đúng
             'customer_id' => $customer?->id,
             'customer_name' => $customer->name ?? 'Khách tại quầy',
             'customer_phone' => $customer->phone ?? null,
@@ -441,7 +441,7 @@ class OrderController
             $response = redirect()->route('staff.reception.orders.show', $order->id)
                 ->with('success', "Đã tạo đơn {$order->order_code}. Vui lòng xác nhận đã thu tiền mặt để hoàn tất.");
         }
-        // Giao diện POS tạo đơn qua fetch (Accept:
+        // Giao diện POS tạo đơn qua fetch Accept:
         if ($request->expectsJson()) {
             if ($response instanceof JsonResponse) {
                 return $response; // Trả về phản hồi của VNPay nếu là JsonResponse

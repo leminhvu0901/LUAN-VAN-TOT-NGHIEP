@@ -11,7 +11,7 @@
 
 <body class="@yield('body_class')">
 
-    {{-- Nạp thanh điều hướng phía trên - hiển thị chung --}}
+    {{-- Nạp thanh điều hướng phía trên, hiển thị chung --}}
     @include('frontend.components.navbar')
 
     {{-- Phần thân chính của trang web --}}
@@ -20,7 +20,7 @@
         @yield('content')
     </main>
 
-    {{-- Nạp chân trang - hiển thị chung ở cuối mọi trang --}}
+    {{-- Nạp chân trang, hiển thị chung ở cuối mọi trang --}}
     @include('frontend.components.footer')
 
     {{-- Modals xác thực --}}

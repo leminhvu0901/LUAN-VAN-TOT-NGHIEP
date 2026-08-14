@@ -9,7 +9,7 @@ class Review extends Model
     // Tên bảng quản lý các đánh giá sản phẩm trong DB
     protected $table = 'reviews';
 
-    // Cho phép điền hàng loạt cho tất cả các trường (không
+    // Cho phép điền hàng loạt cho tất cả các trường không
     protected $guarded = [];
 
     // Tự động ép kiểu dữ liệu khi lấy từ DB ra

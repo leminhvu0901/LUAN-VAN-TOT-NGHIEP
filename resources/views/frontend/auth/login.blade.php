@@ -27,7 +27,7 @@
             <form action="{{ route('login.post') }}" method="POST">
                 @csrf
 
-                {{-- Luôn render sẵn (ẩn bằng "hidden") vì form submit qua fetch, JS cần sẵn chỗ để hiện lỗi --}}
+                {{-- Luôn render sẵn, ẩn bằng "hidden" vì form submit qua fetch, JS cần sẵn chỗ để hiện lỗi --}}
                 <div id="login-error-alert" class="l-error-alert {{ $errors->has('login_error') ? '' : 'hidden' }}">
                     {{ $errors->first('login_error') }}
                 </div>
@@ -104,7 +104,7 @@
 </div>
 
 <script>
-    // Tự bung modal ngay khi tải trang nếu Backend đánh dấu data-show-login="true" (vd login lỗi)
+    // Tự bung modal ngay khi tải trang nếu Backend đánh dấu data-show-login="true", vd login lỗi
     document.addEventListener('DOMContentLoaded', function() {
         const loginModal = document.getElementById('login-modal');
         if (loginModal && loginModal.getAttribute('data-show-login') === 'true') {

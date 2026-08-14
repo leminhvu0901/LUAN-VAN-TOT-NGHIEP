@@ -71,7 +71,7 @@ class ReviewController
         $activeReviews = Review::where('is_visible', 1)->count();
         $hiddenReviews = Review::where('is_visible', 0)->count();
 
-        // Trả view chính (full page)
+        // Trả view chính, full page
         return  view('backend.admin.reviews.index', compact('reviews', 'totalReviews', 'activeReviews', 'hiddenReviews'));
     }
 
@@ -85,7 +85,7 @@ class ReviewController
         return redirect()->back()->with('success', 'Trạng thái đánh giá đã được cập nhật!');
     }
 
-  // Hiển thị form tạo đánh giá mới (thường dùng cho admin
+  // Hiển thị form tạo đánh giá mới thường dùng cho admin
     public function create()
     {
         // Thường admin không tự tạo đánh giá, nhưng để có form
@@ -158,7 +158,7 @@ class ReviewController
         $images = $review->image ? json_decode($review->image, true) : [];
         if (!is_array($images)) $images = [];
 
-        // Xóa các ảnh admin tick chọn — cả trong mảng lẫn file
+        // Xóa các ảnh admin tick chọn, cả trong mảng lẫn file
         if ($request->has('delete_images') && is_array($request->delete_images)) {
             foreach ($request->delete_images as $delImg) {
                 if (($key = array_search($delImg, $images)) !== false) {
@@ -236,7 +236,7 @@ class ReviewController
     }
 
 
-    // xóa các file ảnh (JSON array đường dẫn) gắn với 1 đánh giá
+    // xóa các file ảnh, JSON array đường dẫn gắn với 1 đánh giá
     private function deleteReviewImageFiles(Review $review): void
     {
         $images = $review->image ? json_decode($review->image, true) : [];

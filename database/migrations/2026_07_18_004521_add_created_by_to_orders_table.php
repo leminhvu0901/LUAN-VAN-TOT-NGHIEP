@@ -10,7 +10,7 @@ return new class extends Migration
     // Run the migrations.
     public function up(): void
     {
-        // users.id trong DB này là `int` thường (không phải bigint) — foreignId() mặc định tạo
+        // users.id trong DB này là `int` thường, không phải bigint, foreignId() mặc định tạo
         // unsignedBigInteger, gây lỗi "incompatible" khi ràng buộc khóa ngoại. Cùng pattern đã dùng
         // cho delivery_staff_id/assigned_by ở migration 2026_07_17_090100.
         $usersUsesBigInt = DB::getDriverName() !== 'mysql'

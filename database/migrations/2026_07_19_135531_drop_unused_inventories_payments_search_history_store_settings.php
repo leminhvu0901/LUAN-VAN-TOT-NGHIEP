@@ -10,12 +10,12 @@ return new class extends Migration
     // Run the migrations.
     public function up(): void
     {
-        // 4 bảng không còn được bất kỳ code nào đọc/ghi (đã khảo sát toàn bộ app/, resources/,
-        // routes/, tests/) — đều là leftover từ thiết kế cũ đã bị thay thế:
+        // 4 bảng không còn được bất kỳ code nào đọc/ghi đã khảo sát toàn bộ app/, resources/
+        // routes/, tests/, đều là leftover từ thiết kế cũ đã bị thay thế:
         // - inventories: tồn kho generic cũ, đã thay bằng materials/material_imports.
         // - payments: đã thay bằng các cột payment_status/payment_method/paid_at ngay trong orders.
         // - search_history: không có code nào ghi log tìm kiếm.
-        // - store_settings: đã thay bằng bảng settings key-value (Setting::getValue(...)).
+        // - store_settings: đã thay bằng bảng settings key-value (Setting::getValue...).
         // Đã xác nhận không có bảng nào khác có khóa ngoại trỏ tới 4 bảng này.
         Schema::dropIfExists('inventories');
         Schema::dropIfExists('payments');
@@ -26,7 +26,7 @@ return new class extends Migration
     // Reverse the migrations.
     public function down(): void
     {
-        // Chỉ khôi phục lại đúng cấu trúc bảng gốc — KHÔNG khôi phục được dữ liệu đã mất khi drop.
+        // Chỉ khôi phục lại đúng cấu trúc bảng gốc, KHÔNG khôi phục được dữ liệu đã mất khi drop.
         $usersUsesBigInt = DB::getDriverName() !== 'mysql'
             || str_contains(strtolower((string) (DB::selectOne("SHOW COLUMNS FROM users WHERE Field = 'id'")->Type ?? '')), 'bigint');
 

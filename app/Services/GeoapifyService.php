@@ -12,7 +12,7 @@ class GeoapifyService
         return config('services.geoapify.key'); // Đọc API key Geoapify cấu hình trong file config/services.php
     }
 
-    // Tính khoảng cách lái xe thực tế (km) giữa hai tọa độ
+    // Tính khoảng cách lái xe thực tế, km giữa hai tọa độ
     public function drivingDistanceKm(float $originLat, float $originLng, float $destLat, float $destLng): ?float
     {
         $key = $this->apiKey(); // Lấy API Key phục vụ gọi API bên ngoài
@@ -21,7 +21,7 @@ class GeoapifyService
         }
 
         try {
-            // Gọi API tính toán tuyến đường (Routing API) của Geoapify
+            // Gọi API tính toán tuyến đường, Routing API của Geoapify
             $response = Http::timeout(8)->get('https://api.geoapify.com/v1/routing', [ // Gọi HTTP GET đến dịch vụ Routing của Geoapify
                 'waypoints' => "{$originLat},{$originLng}|{$destLat},{$destLng}",
                 'mode' => 'drive',
@@ -46,7 +46,7 @@ class GeoapifyService
         }
     }
 
-    // Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý (vĩ độ
+    // Chuyển đổi địa chỉ dạng chữ thành tọa độ địa lý vĩ độ
     public function geocodeAddress(string $address, ?float $biasLat = null, ?float $biasLng = null): ?array
     {
         $key = $this->apiKey(); // Lấy API Key phục vụ gọi API bên ngoài
@@ -55,7 +55,7 @@ class GeoapifyService
         }
 
         try {
-            // Chuẩn bị tham số cho API tra cứu địa chỉ (Geocoding API)
+            // Chuẩn bị tham số cho API tra cứu địa chỉ, Geocoding API
             $params = [
                 'text' => $address,
                 'lang' => 'vi',
@@ -79,7 +79,7 @@ class GeoapifyService
             // Lấy danh sách thuộc tính kết quả tìm kiếm địa chỉ từ JSON
             $props = $response->json('features.0.properties');
 
-            // Bắt buộc phải có đủ tọa độ Vĩ độ (lat) và Kinh độ (lon)
+            // Bắt buộc phải có đủ tọa độ Vĩ độ, lat và Kinh độ, lon
             if (!isset($props['lat'], $props['lon'])) {
                 return null;
             }

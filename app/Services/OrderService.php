@@ -8,7 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Promotion;
 use App\Models\User;
 use App\Models\UserAddress;
-// Nạp công cụ tương tác Database (Chạy transaction,
+// Nạp công cụ tương tác Database Chạy transaction
 use Illuminate\Support\Facades\DB;
 // Nạp ngoại lệ ValidationException để ném lỗi dữ liệu
 use Illuminate\Validation\ValidationException;
@@ -24,7 +24,7 @@ class OrderService
     ) {
     }
 
-  // tao mới đơn hàng trong hệ thống (bao gồm kiểm tra cửa
+  // tao mới đơn hàng trong hệ thống bao gồm kiểm tra cửa
     public function create(User $user, array $payload, string $paymentMethod): Order
     {
         // Kiểm tra Idempotency Key: Đề phòng mạng lag khách bấm
@@ -34,10 +34,10 @@ class OrderService
             return $existing;
         }
 
-        // Đơn tự đến lấy tại quầy (pickup) thì không cần tính
+        // Đơn tự đến lấy tại quầy, pickup thì không cần tính
         $isPickup = ($payload['delivery_type'] ?? 'delivery') === 'pickup';
 
-        // Xác định "khách hàng đứng tên đơn hàng" (orderOwner):
+        // Xác định "khách hàng đứng tên đơn hàng", orderOwner:
         // Nếu khách tự đặt hàng online, 'customer_id' không có và hệ thống mặc định lấy tài khoản của chính $user hiện tại.
         $hasExplicitOrderOwner = array_key_exists('customer_id', $payload);
         if ($hasExplicitOrderOwner) {
@@ -48,7 +48,7 @@ class OrderService
         if ($orderOwnerId === $user->id) {
             $orderOwner = $user;
         } elseif ($orderOwnerId) {
-            // Role='customer' đã được validate ở nơi gọi (vd Reception/OrderController::storeOrder()
+            // Role='customer' đã được validate ở nơi gọi vd Reception/OrderController::storeOrder
             // dùng
             $orderOwner = User::query()->find($orderOwnerId); // Tìm tài khoản khách hàng trong Database
             if (!$orderOwner) {
@@ -58,7 +58,7 @@ class OrderService
             $orderOwner = null; // Khách vãng lai mua tại quầy không có tài khoản thành viên
         }
 
-        // Xác định địa chỉ giao hàng (nếu là đơn vận chuyển)
+        // Xác định địa chỉ giao hàng, nếu là đơn vận chuyển
         $address = null;
         if (!$isPickup) {
             if (!$orderOwner) {
@@ -70,13 +70,13 @@ class OrderService
             }
         }
 
-        // 1. Kiểm tra trạng thái hoạt động: Cửa hàng có đang mở
+        // Kiểm tra trạng thái hoạt động: Cửa hàng có đang mở
         $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
         if (!$receiveEnabled) {
             throw ValidationException::withMessages(['cart' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
         }
 
-        // 2. Kiểm tra giờ đóng/mở cửa của quán
+        // Kiểm tra giờ đóng/mở cửa của quán
         $open = \App\Models\Setting::getValue('store_open_time', '08:00');
         $close = \App\Models\Setting::getValue('store_close_time', '22:00');
         $now = now()->format('H:i');
@@ -84,7 +84,7 @@ class OrderService
         $isOpen = false;
         if ($open < $close) {
             $isOpen = ($now >= $open && $now <= $close);
-        } else { // Khung giờ hoạt động xuyên đêm (Ví dụ: từ 22:00 đến 03:00 sáng hôm sau)
+        } else { // Khung giờ hoạt động xuyên đêm, Ví dụ: từ 22:00 đến 03:00 sáng hôm sau
             $isOpen = ($now >= $open || $now <= $close);
         }
 
@@ -104,7 +104,7 @@ class OrderService
             $selectedIds = null;
         }
 
-        // Tính toán trước giá tiền giỏ hàng (giá trị thô) để
+        // Tính toán trước giá tiền giỏ hàng, giá trị thô để
         $previewItems = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds); // Gọi CartPricingService tính giá sản phẩm
         $previewSubtotal = $this->cartPricing->subtotal($previewItems); // Gọi CartPricingService tính tổng tiền tạm tính thô
 
@@ -138,7 +138,7 @@ class OrderService
             $pointsToRedeem = (int) ($payload['points_to_redeem'] ?? 0);
             $pointsDiscount = $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal); // Gọi hàm nội bộ để tính số tiền giảm khi đổi điểm tích lũy
 
-            // Xác định kênh bán hàng (Pickup tại quầy hoặc Delivery
+            // Xác định kênh bán hàng Pickup tại quầy hoặc Delivery
             if ($isPickup) {
                 $channel = 'pickup';
             } else {
@@ -151,7 +151,7 @@ class OrderService
             } else {
                 $manualCode = null;
             }
-            // Không nhập mã thì đơn KHÔNG có khuyến mãi — kể cả đơn
+            // Không nhập mã thì đơn KHÔNG có khuyến mãi, kể cả đơn
             if ($manualCode === null) {
                 $promotion = null;
                 $autoResult = ['promotion' => null, 'discount' => 0.0, 'gifts' => []];
@@ -173,22 +173,22 @@ class OrderService
             $couponDiscount = $autoResult['discount'];
             $giftEntries = $autoResult['gifts'] ?? [];
 
-            // Tính toán giảm giá theo hạng thành viên (Silver, Gold,
+            // Tính toán giảm giá theo hạng thành viên Silver, Gold
             $membershipDiscount = $this->membershipDiscount($orderOwner, $subtotal); // Gọi hàm nội bộ để tính mức giảm giá tri ân theo thứ hạng thành viên
 
-            // Tổng hợp các khoản giảm giá (đảm bảo số tiền giảm tối
+            // Tổng hợp các khoản giảm giá đảm bảo số tiền giảm tối
             $discount = min($subtotal, $couponDiscount + $membershipDiscount + $pointsDiscount);
             // Số tiền thanh toán cuối cùng = Tổng tiền sản phẩm + Phí ship + Phí thời tiết - Số tiền giảm giá
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discount);
 
-            // Sinh mã đơn hàng ngẫu nhiên không trùng lặp (dạng
+            // Sinh mã đơn hàng ngẫu nhiên không trùng lặp dạng
             do {
                 $orderCode = 'HPY-' . strtoupper(bin2hex(random_bytes(4)));
             } while (Order::withTrashed()->where('order_code', $orderCode)->exists());
 
             // Tách các giá trị cần truyền vào câu lệnh tạo đơn hàng thành các khối if-else dễ hiểu:
 
-            // Xác định ai là người tạo đơn (Lễ tân/Admin tạo hộ hoặc
+            // Xác định ai là người tạo đơn Lễ tân/Admin tạo hộ hoặc
             if (in_array($user->role, ['staff', 'admin'], true)) {
                 $createdBy = $user->id;
             } else {
@@ -248,7 +248,7 @@ class OrderService
                 $estimatedTime = now()->addMinutes(45); // Đơn ship hoàn thành trong 45 phút
             }
 
-            // 1. Lưu bản ghi đơn hàng mới (Order) vào CSDL
+            // Lưu bản ghi đơn hàng mới, Order vào CSDL
             $order = Order::create([ // Lưu thông tin chung đơn hàng vào Database
                 'order_code' => $orderCode,
                 'idempotency_key' => $payload['idempotency_key'],
@@ -278,7 +278,7 @@ class OrderService
                 'points_redeemed' => $pointsToRedeem,
             ]);
 
-            // 2. Tạo chi tiết đơn hàng (OrderItem) cho các món nước
+            // Tạo chi tiết đơn hàng, OrderItem cho các món nước
             foreach ($items as $item) {
                 OrderItem::create([ // Lưu thông tin từng món nước mua của đơn hàng vào bảng order_items
                     'order_id' => $order->id,
@@ -296,7 +296,7 @@ class OrderService
                 ]);
             }
 
-            // 3. Tạo chi tiết đơn hàng cho các sản phẩm quà tặng của mã combo khách đã áp (giá bán = 0đ)
+            // Tạo chi tiết đơn hàng cho các sản phẩm quà tặng của mã combo khách đã áp, giá bán = 0đ
             foreach ($giftEntries as $entry) {
                 $comboItemNames = $entry['combo_items']->map(fn($ci) => $ci->quantity . ' ' . $ci->product->name)->implode(' + ');
                 OrderItem::create([ // Lưu thông tin quà tặng combo với đơn giá 0đ
@@ -317,17 +317,17 @@ class OrderService
                 ]);
             }
 
-            // 4. Dọn dẹp giỏ hàng: Xóa các sản phẩm đã được đưa vào
+            // Dọn dẹp giỏ hàng: Xóa các sản phẩm đã được đưa vào
             $itemIds = $items->pluck('id');
             DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
             DB::table('cart_items')->whereIn('id', $itemIds)->delete();
 
-            // Tăng số lượt đã dùng của mã khách áp (mã combo cũng
+            // Tăng số lượt đã dùng của mã khách áp mã combo cũng
             if ($promotion) {
                 $promotion->increment('used_count');
             }
 
-            // 5. Trừ điểm tích lũy của khách hàng thành viên nếu
+            // Trừ điểm tích lũy của khách hàng thành viên nếu
             if ($pointsToRedeem > 0) {
                 $lockedOwner = User::query()->lockForUpdate()->findOrFail($orderOwner->id); // Khóa dòng user trong DB
                 $lockedOwner->points = max(0, $lockedOwner->points - $pointsToRedeem);
@@ -335,7 +335,7 @@ class OrderService
             }
 
             return $order->fresh('items');
-        }, 3); // Thử lại tối đa 3 lần nếu có tranh chấp khóa (deadlock)
+        }, 3); // Thử lại tối đa 3 lần nếu có tranh chấp khóa, deadlock
     }
 
    // Xem trước số tiền giảm khi lễ tân nhập thủ công một mã
@@ -365,7 +365,7 @@ class OrderService
             // Thực hiện tính toán và kiểm tra thông qua hàm
             return ['discount' => $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal), 'error' => null];
         } catch (ValidationException $e) {
-            // Nếu không đủ điều kiện (ví dụ: vượt hạn mức, chưa đủ
+            // Nếu không đủ điều kiện ví dụ: vượt hạn mức, chưa đủ
             return ['discount' => 0, 'error' => collect($e->errors())->flatten()->first()];
         }
     }

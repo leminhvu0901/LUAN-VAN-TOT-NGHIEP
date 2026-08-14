@@ -13,13 +13,13 @@ class Material extends Model
 {
     use HasFactory;
 
-    // Các cột cho phép thêm/sửa hàng loạt (Mass Assignment)
+    // Các cột cho phép thêm/sửa hàng loạt, Mass Assignment
     protected $fillable = [
-        'name',          // Tên nguyên liệu (VD: Trà đen, Sữa tươi, Đường...)
-        'unit',          // Đơn vị tính (VD: g, ml, túi...)
+        'name',          // Tên nguyên liệu, VD: Trà đen, Sữa tươi, Đường...
+        'unit',          // Đơn vị tính, VD: g, ml, túi...
         'unit_price',    // Giá vốn trên mỗi đơn vị nguyên liệu
-        'current_stock', // Số lượng tồn kho hiện tại (tổng các lô nhập)
-        'is_active',     // Trạng thái hoạt động (true: đang dùng, false: ngừng sử dụng)
+        'current_stock', // Số lượng tồn kho hiện tại, tổng các lô nhập
+        'is_active',     // Trạng thái hoạt động, true: đang dùng, false: ngừng sử dụng
     ];
 
     /**

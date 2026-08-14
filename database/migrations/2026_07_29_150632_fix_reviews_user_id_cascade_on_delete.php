@@ -6,10 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    // reviews.user_id was always meant to cascadeOnDelete() (see
-    // 2026_06_17_000000_create_missing_commerce_tables.php), but on
+    // reviews.user_id was always meant to cascadeOnDelete see
+    // 2026_06_17_000000_create_missing_commerce_tables.php, but on
     // environments where the reviews table already existed before that
-    // migration ran, the real constraint drifted to NO ACTION/RESTRICT —
+    // migration ran, the real constraint drifted to NO ACTION/RESTRICT
     // blocking admin hard-delete of any customer who left a review.
     // This corrects the live constraint to match the code's own intent.
     public function up(): void

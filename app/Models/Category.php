@@ -16,10 +16,10 @@ class Category extends Model
     // Cho phép thêm mới hoặc sửa đổi hàng loạt dữ liệu trên
     protected $guarded = [];
 
-    // Tự động ép kiểu các cột dữ liệu khi lấy từ DB ra (ví
+    // Tự động ép kiểu các cột dữ liệu khi lấy từ DB ra ví
     protected $casts = [
-        'is_active' => 'boolean',      // Trạng thái hoạt động (true/false)
-        'display_order' => 'integer',  // Thứ tự hiển thị danh mục (số nguyên)
+        'is_active' => 'boolean',      // Trạng thái hoạt động, true/false
+        'display_order' => 'integer',  // Thứ tự hiển thị danh mục, số nguyên
     ];
 
     /**

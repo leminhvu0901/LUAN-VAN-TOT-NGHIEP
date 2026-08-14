@@ -15,16 +15,16 @@ use Laravel\Socialite\Facades\Socialite;
 
 class AuthController
 {
-    // Thời gian hiệu lực của mã OTP (giây).
+    // Thời gian hiệu lực của mã OTP, giây.
     private const OTP_LIFETIME_SECONDS = 60;
 
-    // Thời hạn của quyền đặt lại mật khẩu (giây) tính từ lúc
+    // Thời hạn của quyền đặt lại mật khẩu, giây tính từ lúc
     private const RESET_PASSWORD_WINDOW_SECONDS = 60;
 
     // HÀM XỬ LÝ THÔNG TIN ĐĂNG KÝ TÀI KHOẢN
     public function postRegister(Request $request)
     {
-        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào
+        // Kiểm tra tính hợp lệ của dữ liệu đầu vào
         $request->validate([
             'full_name' => [
                 'required',
@@ -66,15 +66,15 @@ class AuthController
 
         $email = $request->input('email');
 
-        // 2. Kiểm tra xem Email đăng ký đã tồn tại chưa
+        // Kiểm tra xem Email đăng ký đã tồn tại chưa
         if (User::where('email', $email)->exists()) {
             return back()->withErrors(['register_error' => 'Email đã được sử dụng.'])->withInput();
         }
 
-        // 3. Tạo mã OTP gồm 4 số ngẫu nhiên
+        // Tạo mã OTP gồm 4 số ngẫu nhiên
         $otp = rand(1000, 9999);
 
-        // 4. Lưu dữ liệu đăng ký tạm thời vào Session (Chưa lưu
+        // Lưu dữ liệu đăng ký tạm thời vào Session Chưa lưu
         session([
             'register_data' => [
                 'name' => $request->input('full_name'),
@@ -89,7 +89,7 @@ class AuthController
             'verify_otp_time' => now()
         ]);
 
-        // 5. Gửi email chứa mã OTP xác nhận tài khoản — bọc try/catch
+        // Gửi email chứa mã OTP xác nhận tài khoản, bọc try/catch
         try {
             Mail::raw("Mã xác minh OTP của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
                 $message->to($email)->subject('Mã xác minh tài khoản');
@@ -107,7 +107,7 @@ class AuthController
     // XÁC NHẬN MÃ OTP
     public function postVerifyOtp(Request $request)
     {
-        // 1. Kiểm tra định dạng dữ liệu OTP
+        // Kiểm tra định dạng dữ liệu OTP
         $request->validate([
             'otp' => 'required|array',
             'otp.*' => 'required|numeric'
@@ -122,7 +122,7 @@ class AuthController
         $email = $request->session()->get('verify_email');
         $registerData = $request->session()->get('register_data');
 
-        // 2. So khớp mã OTP người dùng nhập với mã đã gửi
+        // So khớp mã OTP người dùng nhập với mã đã gửi
         if ($enteredOtp == $sessionOtp) {
             if ($sessionTime) {
                 $otpIssuedAt = Carbon::parse($sessionTime);
@@ -221,7 +221,7 @@ class AuthController
     // XỬ LÝ THÔNG TIN ĐĂNG NHẬP
     public function postLogin(Request $request)
     {
-        // 1. Kiểm tra tính bắt buộc của Email và Mật khẩu
+        // Kiểm tra tính bắt buộc của Email và Mật khẩu
         $request->validate([
             'email' => 'required|string',
             'password' => 'required|string',
@@ -233,7 +233,7 @@ class AuthController
         $email = $request->input('email');
         $password = $request->input('password');
 
-        // 2. Thực hiện đăng nhập bằng facade Auth e
+        // Thực hiện đăng nhập bằng facade Auth e
         if (Auth::attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
             $user = Auth::user();
 
@@ -320,7 +320,7 @@ class AuthController
                 }
             }
 
-            // Tài khoản đã bị khóa (is_active = 0): không cho vào
+            // Tài khoản đã bị khóa, is_active = 0: không cho vào
             if (!$user->is_active) {
                 return redirect('/login')->withErrors([
                     'login_error' => $user->lock_reason
@@ -353,7 +353,7 @@ class AuthController
     // XỬ LÝ YÊU CẦU QUÊN MẬT KHẨU
     public function postForgotPassword(Request $request)
     {
-        // 1. Kiểm tra định dạng trường email nhập vào
+        // Kiểm tra định dạng trường email nhập vào
         $request->validate([
             'recovery_contact' => 'required|email'
         ], [
@@ -364,11 +364,11 @@ class AuthController
         $email = $request->input('recovery_contact');
         $user = User::where('email', $email)->first();
 
-        // 2. Nếu email nhập vào không tồn tại trong hệ thống
+        // Nếu email nhập vào không tồn tại trong hệ thống
         if (!$user) {
             return redirect('/')->with('show_forgot', true)->withErrors(['forgot_error' => 'Email không tồn tại trong hệ thống.'])->withInput();
         }
-        // 3. Tạo mã OTP phục hồi mật khẩu gồm 4 chữ số
+        // Tạo mã OTP phục hồi mật khẩu gồm 4 chữ số
         $otp = rand(1000, 9999);
         session([
             'verify_email' => $email,
@@ -376,7 +376,7 @@ class AuthController
             'verify_otp_time' => now(),
             'is_forgot_password' => true // Đánh dấu đây là phiên xác thực quên mật khẩu
         ]);
-        // 4. Gửi email chứa mã OTP khôi phục mật khẩu
+        // Gửi email chứa mã OTP khôi phục mật khẩu
         try {
             Mail::raw("Mã xác minh khôi phục mật khẩu của bạn là: $otp. Mã này sẽ hết hạn trong 60 giây.", function ($message) use ($email) {
                 $message->to($email)->subject('Khôi phục mật khẩu');
@@ -423,7 +423,7 @@ class AuthController
             return redirect('/')->withErrors(['reset_error' => $message]);
         }
 
-        // 1. Kiểm tra tính hợp lệ và độ mạnh của mật khẩu mới nhập vào
+        // Kiểm tra tính hợp lệ và độ mạnh của mật khẩu mới nhập vào
         $request->validate([
             'password' => [
                 'required',
@@ -447,7 +447,7 @@ class AuthController
         $user = User::where('email', $email)->first();
 
         if ($user) {
-            // Cập nhật mật khẩu mới (Mã hóa bcrypt mật khẩu trước khi lưu)
+            // Cập nhật mật khẩu mới, Mã hóa bcrypt mật khẩu trước khi lưu
             $user->password = Hash::make($request->input('password'));
             $user->save();
 

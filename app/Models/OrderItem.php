@@ -21,7 +21,7 @@ class OrderItem extends Model
 
     // Cấu hình ép kiểu dữ liệu khi lấy dữ liệu ra khỏi cơ sở
     protected $casts = [
-        'options' => 'array', // Ép kiểu cột 'options' lưu dưới dạng JSON ở DB thành mảng array trong PHP (để lưu topping, size...)
+        'options' => 'array', // Ép kiểu cột 'options' lưu dưới dạng JSON ở DB thành mảng array trong PHP, để lưu topping, size...
     ];
 
     /**

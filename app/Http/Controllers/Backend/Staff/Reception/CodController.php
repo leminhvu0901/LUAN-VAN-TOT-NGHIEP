@@ -18,7 +18,7 @@ class CodController
     // Hiển thị giao diện đối soát tiền COD cho từng nhân
     public function index()
     {
-        // Lấy danh sách toàn bộ nhân viên giao hàng (Shipper)
+        // Lấy danh sách toàn bộ nhân viên giao hàng, Shipper
         $deliveryStaffList = User::where('role', 'staff')->where('staff_type', 'delivery')->orderBy('name')->get();
 
         // Gom nhóm các đơn hàng hoàn thành cần nộp tiền theo
@@ -26,7 +26,7 @@ class CodController
             $unsettledOrders = Order::where('delivery_staff_id', $staff->id) // Tìm đơn do Shipper này phụ trách
                 ->where('payment_method', 'cod') // Phương thức thanh toán khi nhận hàng
                 ->where('status', 'completed') // Đơn giao đã hoàn thành công
-                ->whereNull('cod_settled_at') // Tiền mặt thu hộ chưa được đối soát (chưa nộp quầy)
+                ->whereNull('cod_settled_at') // Tiền mặt thu hộ chưa được đối soát, chưa nộp quầy
                 ->orderBy('created_at')
                 ->get();
 
@@ -51,13 +51,13 @@ class CodController
     // Xác nhận đối soát cho một đơn hàng COD riêng lẻ
     public function settleOne(Request $request, Order $order)
     {
-        $this->sv_orderWorkflow->settleCod($order, Auth::id()); // Gọi workflow service đánh dấu đơn hàng đã nộp tiền (lưu ID người nhận là lễ tân hiện tại)
+        $this->sv_orderWorkflow->settleCod($order, Auth::id()); // Gọi workflow service đánh dấu đơn hàng đã nộp tiền, lưu ID người nhận là lễ tân hiện tại
         $message = "Đã xác nhận nhận tiền COD cho đơn {$order->order_code}.";
 
         return back()->with('success', $message);
     }
 
-    // Xác nhận đối soát toàn bộ (tất cả) đơn hàng COD còn
+    // Xác nhận đối soát toàn bộ, tất cả đơn hàng COD còn
     public function settleAll(Request $request, User $deliveryStaff)
     {
         // Ngăn chặn nếu đối tượng truyền vào không phải là tài

@@ -373,7 +373,7 @@
                         @endphp
                         <a href="{{ route('product.show', $rel->slug) }}" class="pd-rel-card">
                             <div class="pd-rel-card__img-wrap">
-                                {{-- Nhãn trạng thái hot, new hoặc discount - ưu tiên --}}
+                                {{-- Nhãn trạng thái hot, new hoặc discount, ưu tiên --}}
                                 @if ($relDiscount && !$relIsOos)
                                     <span class="home-prod-card__badge home-prod-card__badge--sale">🏷️
                                         {{ $relDiscount['label'] }}</span>
@@ -443,13 +443,13 @@
                 let toppingAdj = 0;
                 const productId = wrapper ? (parseInt(wrapper.getAttribute('data-product-id')) || 0) : 0;
 
-                // Tính lại giá 1 ly theo công thức: giá gốc + phụ phí size + tổng phụ phí topping,
+                // Tính lại giá 1 ly theo công thức: giá gốc + phụ phí size + tổng phụ phí topping
                 function updatePrice() {
                     const unitPrice = basePrice + sizeAdj + toppingAdj;
                     document.getElementById('pd-price').textContent = unitPrice.toLocaleString('vi-VN') + 'đ';
                 }
 
-                // Tăng/giảm số lượng ly muốn mua (nút +/-), không cho xuống dưới 1; kèm hiệu ứng "nảy
+                // Tăng/giảm số lượng ly muốn mua, nút +/-, không cho xuống dưới 1; kèm hiệu ứng "nảy
                 window.changeQty = function(delta) {
                     qty = Math.max(1, qty + delta);
                     document.getElementById('pd-qty-val').textContent = qty;
@@ -461,7 +461,8 @@
                     el.classList.add('pd-qty__val--bump');
                 };
 
-                // Chọn 1 Size: đổi trạng thái "đang chọn" trong nhóm nút                window.selectSize = function(btn) {
+                // Chọn 1 size thì đổi nút đang active, đọc phụ phí từ data-price-adj rồi tính lại giá hiển thị
+                window.selectSize = function(btn) {
                     document.querySelectorAll('#pd-sizes .pd-chip').forEach(b => b.classList.remove('is-active'));
                     btn.classList.add('is-active');
 
@@ -469,13 +470,15 @@
                     updatePrice();
                 };
 
-                // Hàm dùng chung cho các nhóm lựa chọn không ảnh hưởng tới giá                window.selectOption = function(btn, groupId) {
+                // Hàm dùng chung cho nhóm lựa chọn không ảnh hưởng giá như mức đường và mức đá
+                window.selectOption = function(btn, groupId) {
                     document.querySelectorAll('#' + groupId + ' .pd-chip').forEach(b => b.classList.remove(
                     'is-active'));
                     btn.classList.add('is-active');
                 };
 
-                // Xử lý khi tích/bỏ tích 1 checkbox Topping: cộng dồn                window.handleToppingChange = function(inputEl = null) {
+                // Tích hoặc bỏ tích topping thì cộng dồn lại tổng phụ phí, tính lại giá và cập nhật dòng tóm tắt
+                window.handleToppingChange = function(inputEl = null) {
                     if (inputEl) {
                         const labelEl = inputEl.closest('.topping-item-label');
                         labelEl.classList.toggle('is-selected', inputEl.checked);
@@ -506,7 +509,7 @@
                     }
                 };
 
-                // Đóng/mở menu thả xuống danh sách Topping (dạng dropdown tùy biến, không dùng <select>
+                // Đóng/mở menu thả xuống danh sách Topping dạng dropdown tùy biến, không dùng <select>
                 const toppingDropdownBtn = document.getElementById('toppingDropdown');
                 if (toppingDropdownBtn) {
                     const dropdownContainer = toppingDropdownBtn.closest('.dropdown');
@@ -540,7 +543,8 @@
                 // Thêm sản phẩm vào giỏ hàng
                 window.addToCartFromDetail = function() {
                     const btn = document.getElementById('pd-add-cart');
-                    // Tạm khóa nút + đổi icon/label sang "Đang thêm..." để                    btn.disabled = true;
+                                    // Tạm khóa nút để tránh bấm nhiều lần gây thêm trùng sản phẩm khi mạng chậm
+                    btn.disabled = true;
                     btn.innerHTML =
                         '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Đang thêm...';
 

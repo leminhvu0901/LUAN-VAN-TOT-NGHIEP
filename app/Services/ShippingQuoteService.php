@@ -62,13 +62,13 @@ class ShippingQuoteService
             $destLat = (float) $address->latitude;
             $destLng = (float) $address->longitude;
 
-            // Ưu tiên 1: Geoapify Routing API — khoảng cách lái xe thực tế
+            // Ưu tiên 1: Geoapify Routing API, khoảng cách lái xe thực tế
             $distance = $this->geoapify->drivingDistanceKm($storeLat, $storeLng, $destLat, $destLng);
             if ($distance !== null) {
                 return ['distance_km' => $distance, 'is_mock' => false];
             }
 
-            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService (chỉ
+            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService chỉ
             if (config('services.openroute.key')) {
                 try {
                     $response = Http::timeout(8)
@@ -85,7 +85,7 @@ class ShippingQuoteService
             }
         }
 
-        // Ưu tiên 3 (luôn có): chưa có tọa độ hoặc cả 2 API đều
+        // Ưu tiên 3, luôn có: chưa có tọa độ hoặc cả 2 API đều
         $district = mb_strtolower((string) $address->district);
         $estimate = match (true) {
             str_contains($district, '8') => 1.5,
@@ -101,7 +101,7 @@ class ShippingQuoteService
         return ['distance_km' => $estimate, 'is_mock' => true];
     }
 
-    // Nhãn hiển thị cho từng nhóm thời tiết (dùng chung cho
+    // Nhãn hiển thị cho từng nhóm thời tiết dùng chung cho
     public const WEATHER_LABELS = [
         'none' => 'Bình thường',
         'light_rain' => 'Mưa nhỏ',
@@ -120,7 +120,7 @@ class ShippingQuoteService
         };
     }
 
-    // Mức phụ thu (%) của từng nhóm, lấy từ Cài đặt để admin
+    // Mức phụ thu, % của từng nhóm, lấy từ Cài đặt để admin
     private function percentForGroup(string $group): int
     {
         return match ($group) {
@@ -161,7 +161,7 @@ class ShippingQuoteService
     {
         $none = ['fee' => 0.0, 'group' => 'none', 'label' => self::WEATHER_LABELS['none']];
 
-        // Miễn phí giao hàng thì không thu phụ thu (phụ thu tính
+        // Miễn phí giao hàng thì không thu phụ thu phụ thu tính
         if ($shippingFee <= 0) {
             return $none;
         }

@@ -44,16 +44,16 @@ class CartPricingService
                 throw ValidationException::withMessages(['cart' => 'Giỏ hàng có sản phẩm đã ngừng kinh doanh.']);
             }
 
-            // 2. Kiểm tra tính hợp lệ của số lượng mua (phải từ 1
+            // Kiểm tra tính hợp lệ của số lượng mua phải từ 1
             if (!is_numeric($item->quantity) || (int) $item->quantity < 1 || (int) $item->quantity > 99) {
                 throw ValidationException::withMessages(['cart' => 'Số lượng sản phẩm trong giỏ không hợp lệ.']);
             }
 
-            // Lấy giá cơ bản của sản phẩm (base_price) làm mốc giá ban đầu
+            // Lấy giá cơ bản của sản phẩm, base_price làm mốc giá ban đầu
             $price = (float) $item->product->base_price;
             $size = null;
 
-            // 3. Nếu khách chọn Size (Ví dụ: Size M, Size L), tìm
+            // Nếu khách chọn Size, Ví dụ: Size M, Size L, tìm
             if ($item->size_name) {
                 $size = ProductSize::query()->where('product_id', $item->product_id)
                     ->where('size_name', $item->size_name)->first();
@@ -67,7 +67,7 @@ class CartPricingService
             $toppingIds = $item->toppings->pluck('topping_id')->unique()->values();
             $allowedToppings = collect();
 
-            // 4. Nếu khách hàng có chọn Topping
+            // Nếu khách hàng có chọn Topping
             if ($toppingIds->isNotEmpty()) {
                 $allowedToppings = Topping::query()
                     ->join('product_toppings', 'product_toppings.topping_id', '=', 'toppings.id')
@@ -85,11 +85,11 @@ class CartPricingService
                 $price += (float) $allowedToppings->sum('price');
             }
 
-            // Gán 2 thuộc tính ảo (calculated_unit_price và
+            // Gán 2 thuộc tính ảo calculated_unit_price và
             $item->setAttribute('calculated_unit_price', $price);
             $item->setAttribute('calculated_toppings', $allowedToppings);
 
-            // 5. Đồng bộ lại giá tiền vào bảng `cart_items` trong
+            // Đồng bộ lại giá tiền vào bảng `cart_items` trong
             if ((float) $item->unit_price !== $price) {
                 DB::table('cart_items')->where('id', $item->id)->update(['unit_price' => $price, 'updated_at' => now()]);
                 $item->unit_price = $price;
@@ -102,7 +102,7 @@ class CartPricingService
     // hàm tính tổng số tiền của giỏ hàng trước khi áp dụng
     public function subtotal(Collection $items): float
     {
-        // Tổng tiền = tổng của các (giá mỗi sản phẩm * số lượng tương ứng)
+        // Tổng tiền = tổng của các, giá mỗi sản phẩm * số lượng tương ứng
         return (float) $items->sum(fn ($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
 }

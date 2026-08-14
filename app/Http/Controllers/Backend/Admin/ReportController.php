@@ -42,20 +42,20 @@ class ReportController
         $periodLabel = $data['start']->format('d/m/Y') . ' - ' . $data['end']->format('d/m/Y');
 
         // Thứ tự gọi = thứ tự tab hiện trong file Excel
-        // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu,
+        // Sheet "Tổng quan", các chỉ số tổng hợp doanh thu
         $this->buildOverviewSheet($spreadsheet->getActiveSheet(), $data, $periodLabel);
-        // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ
+        // Sheet "Doanh thu theo ngày", 1 dòng/ngày trong kỳ
         $this->buildRevenueByDaySheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số
+        // Sheet "Sản phẩm bán chạy", Top 5 sản phẩm theo số
         $this->buildTopProductsSheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu
+        // Sheet "Doanh thu theo danh mục", số lượng + doanh thu
         $this->buildCategorySheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu
+        // Sheet "Khách hàng thân thiết", Top 5 khách chi tiêu
         $this->buildTopCustomersSheet($spreadsheet->createSheet(), $data, $periodLabel);
-        // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng
+        // Sheet "Tồn kho nguyên liệu", nguyên liệu đã hết hàng
         $this->buildInventorySheet($spreadsheet->createSheet(), $data, $periodLabel);
 
-        // Mở file ra là thấy tab đầu tiên (Tổng quan), không
+        // Mở file ra là thấy tab đầu tiên, Tổng quan, không
         $spreadsheet->setActiveSheetIndex(0);
 
         $fileName = 'bao-cao-happy-tea_' . $data['start']->format('Ymd') . '-' . $data['end']->format('Ymd') . '.xlsx';
@@ -84,7 +84,7 @@ class ReportController
         return 4;
     }
 
- // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
+ // Định dạng dòng tiêu đề cột nền xanh, chữ trắng, có
     private function styleHeaderRow(Worksheet $sheet, int $row, string $lastColumn): void
     {
         $range = 'A' . $row . ':' . $lastColumn . $row;
@@ -111,7 +111,7 @@ class ReportController
         }
     }
 
-    // Sheet "Tổng quan" — các chỉ số tổng hợp (doanh thu,
+    // Sheet "Tổng quan", các chỉ số tổng hợp doanh thu
     private function buildOverviewSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Tổng quan');
@@ -120,7 +120,7 @@ class ReportController
 
         $headerRow = $row;
         $sheet->fromArray(['Chỉ số', 'Giá trị', 'So với kỳ trước'], null, 'A' . $headerRow);
-        // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
+        // Định dạng dòng tiêu đề cột nền xanh, chữ trắng, có
         $this->styleHeaderRow($sheet, $headerRow, 'C');//
 
         $row++;
@@ -135,7 +135,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $row, 'C');
     }
 
-    // Sheet "Doanh thu theo ngày" — 1 dòng/ngày trong kỳ
+    // Sheet "Doanh thu theo ngày", 1 dòng/ngày trong kỳ
     private function buildRevenueByDaySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Doanh thu theo ngày');
@@ -144,14 +144,14 @@ class ReportController
 
         $headerRow = $row;
         $sheet->fromArray(['Ngày', 'Doanh thu (đ)', 'Số đơn hoàn thành'], null, 'A' . $headerRow);
-        // Định dạng dòng tiêu đề cột (nền xanh, chữ trắng, có
+        // Định dạng dòng tiêu đề cột nền xanh, chữ trắng, có
         $this->styleHeaderRow($sheet, $headerRow, 'C');
 
         $row++;
         $chart = $data['revenueChartData'];
         foreach ($chart['labels'] as $index => $label) {
             $sheet->setCellValue('A' . $row, $label);
-            // Ghi số THÔ (không format chuỗi) để Excel còn tính
+            // Ghi số THÔ, không format chuỗi để Excel còn tính
             $sheet->setCellValue('B' . $row, (float) ($chart['revenue'][$index] ?? 0));
             $sheet->setCellValue('C' . $row, (int) ($chart['orders'][$index] ?? 0));
             $row++;
@@ -170,7 +170,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $row, 'C');
     }
 
-    // Sheet "Sản phẩm bán chạy" — Top 5 sản phẩm theo số
+    // Sheet "Sản phẩm bán chạy", Top 5 sản phẩm theo số
     private function buildTopProductsSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Sản phẩm bán chạy');
@@ -201,7 +201,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
     }
 
-    // Sheet "Doanh thu theo danh mục" — số lượng + doanh thu
+    // Sheet "Doanh thu theo danh mục", số lượng + doanh thu
     private function buildCategorySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Doanh thu theo danh mục');
@@ -230,7 +230,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
     }
 
-    // Sheet "Khách hàng thân thiết" — Top 5 khách chi tiêu
+    // Sheet "Khách hàng thân thiết", Top 5 khách chi tiêu
     private function buildTopCustomersSheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Khách hàng thân thiết');
@@ -262,7 +262,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'E');
     }
 
-    // Sheet "Tồn kho nguyên liệu" — nguyên liệu đã hết hàng
+    // Sheet "Tồn kho nguyên liệu", nguyên liệu đã hết hàng
     private function buildInventorySheet(Worksheet $sheet, array $data, string $periodLabel): void
     {
         $sheet->setTitle('Tồn kho nguyên liệu');
@@ -299,7 +299,7 @@ class ReportController
         $preset = $request->input('preset', '30_days');
         $now = Carbon::now();
 
-        // 1. Xác định khoảng thời gian hiện tại và khoảng thời
+        // Xác định khoảng thời gian hiện tại và khoảng thời
         switch ($preset) {
             case 'today':
                 $start = $now->copy()->startOfDay();
@@ -352,7 +352,7 @@ class ReportController
                 break;
         }
 
-        // 2. Hàm tính toán xu hướng tăng/giảm (%)
+        // Hàm tính toán xu hướng tăng/giảm, %
         $getTrend = function ($current, $previous) {
             if ($previous == 0) {
                 return $current > 0 ? ['text' => '+100%', 'color' => 'text-emerald-600', 'direction' => 'up'] : ['text' => '0%', 'color' => 'text-gray-400', 'direction' => 'none'];
@@ -366,7 +366,7 @@ class ReportController
             return ['text' => '0%', 'color' => 'text-gray-400', 'direction' => 'none'];
         };
 
-        // 3. Tính toán các chỉ số thống kê trong kỳ hiện tại
+        // Tính toán các chỉ số thống kê trong kỳ hiện tại
         $revenue = (float) Order::where('status', 'completed')->whereBetween('created_at', [$start, $end])->sum('final_amount');
         $ordersCount = Order::whereBetween('created_at', [$start, $end])->count();
         $completedCount = Order::where('status', 'completed')->whereBetween('created_at', [$start, $end])->count();
@@ -376,7 +376,7 @@ class ReportController
             $q->where('status', 'completed')->whereBetween('created_at', [$start, $end]);
         })->sum('quantity');
 
-        // 4. Tính toán các chỉ số thống kê trong kỳ trước để so sánh
+        // Tính toán các chỉ số thống kê trong kỳ trước để so sánh
         $prevRevenue = (float) Order::where('status', 'completed')->whereBetween('created_at', [$prevStart, $prevEnd])->sum('final_amount');
         $prevOrdersCount = Order::whereBetween('created_at', [$prevStart, $prevEnd])->count();
         $prevCompletedCount = Order::where('status', 'completed')->whereBetween('created_at', [$prevStart, $prevEnd])->count();
@@ -432,7 +432,7 @@ class ReportController
             ],
         ];
 
-        // 5. Lấy doanh thu & số đơn theo ngày (Biểu đồ doanh thu)
+        // Lấy doanh thu & số đơn theo ngày, Biểu đồ doanh thu
         $dailyData = Order::where('status', 'completed')
             ->whereBetween('created_at', [$start, $end])
             ->selectRaw('DATE(created_at) as date, SUM(final_amount) as revenue, COUNT(id) as orders_count')
@@ -460,7 +460,7 @@ class ReportController
             'orders' => $chartOrders,
         ];
 
-        // 6. Biểu đồ trạng thái đơn hàng
+        // Biểu đồ trạng thái đơn hàng
         $orderStatuses = Order::whereBetween('created_at', [$start, $end])
             ->selectRaw('status, COUNT(id) as count')
             ->groupBy('status')
@@ -492,8 +492,8 @@ class ReportController
             'percentages' => $statusPercentages,
         ];
 
-        // 6b. Biểu đồ so sánh doanh thu Tại quầy (pickup) và Đặt
-        // đã hoàn thành (completed), giống cách tính $revenue ở trên để khớp với "Tổng doanh thu".
+        // 6b. Biểu đồ so sánh doanh thu Tại quầy, pickup và Đặt
+        // đã hoàn thành, completed, giống cách tính $revenue ở trên để khớp với "Tổng doanh thu".
         $pickupRevenue = (float) Order::where('status', 'completed')
             ->where('delivery_type', 'pickup')
             ->whereBetween('created_at', [$start, $end])
@@ -508,8 +508,8 @@ class ReportController
             'amounts' => [$pickupRevenue, $deliveryRevenue],
         ];
 
-        // 6c. Biểu đồ số lượng đơn hàng theo kênh bán — đếm TẤT
-        // thái), khớp với cách tính "Tổng đơn hàng" ($ordersCount) ở thẻ tổng quan phía trên.
+        // 6c. Biểu đồ số lượng đơn hàng theo kênh bán, đếm TẤT
+        // thái, khớp với cách tính "Tổng đơn hàng", $ordersCount ở thẻ tổng quan phía trên.
         $pickupOrdersCount = Order::where('delivery_type', 'pickup')->whereBetween('created_at', [$start, $end])->count();
         $deliveryOrdersCount = Order::where('delivery_type', 'delivery')->whereBetween('created_at', [$start, $end])->count();
 
@@ -518,7 +518,7 @@ class ReportController
             'counts' => [$pickupOrdersCount, $deliveryOrdersCount],
         ];
 
-        // 7. Báo cáo sản phẩm bán chạy (Top 5)
+        // Báo cáo sản phẩm bán chạy, Top 5
         $topProducts = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
@@ -544,7 +544,7 @@ class ReportController
             $p->image_url = upload_url($p->image) ?: asset('images/products/placeholder.jpg');
         }
 
-        // 8. Báo cáo doanh thu theo danh mục
+        // Báo cáo doanh thu theo danh mục
         $categoryStats = OrderItem::query()
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('products', 'products.id', '=', 'order_items.product_id')
@@ -565,7 +565,7 @@ class ReportController
             $c->percentage = round(($c->total_revenue / $totalCategoryRevenue) * 100, 1);
         }
 
-        // 9. Báo cáo khách hàng (Top 5 khách hàng chi tiêu nhiều nhất)
+        // Báo cáo khách hàng, Top 5 khách hàng chi tiêu nhiều nhất
         $topCustomers = Order::query()
             ->where('status', 'completed')
             ->whereBetween('created_at', [$start, $end])
@@ -580,7 +580,7 @@ class ReportController
             ->limit(5)
             ->get();
 
-        // 10. Báo cáo tồn kho nguyên liệu
+        // Báo cáo tồn kho nguyên liệu
         $lowStockMaterials = Material::where('is_active', true)
             ->where('current_stock', '>', 0)
             ->where('current_stock', '<=', 10)
@@ -594,14 +594,14 @@ class ReportController
             ->limit(5)
             ->get();
 
-        // Tính tổng giá trị tồn kho ước tính hiện tại — mỗi lô
+        // Tính tổng giá trị tồn kho ước tính hiện tại, mỗi lô
         $estimatedInventoryValue = (float) MaterialImport::where('remaining_quantity', '>', 0)
             ->get()
             ->sum(function ($import) {
                 return $import->remaining_quantity * ($import->quantity > 0 ? ($import->total_price / $import->quantity) : 0);
             });
 
-        // 11. Đơn hàng gần đây (Top 5 đơn đặt gần đây nhất)
+        // Đơn hàng gần đây, Top 5 đơn đặt gần đây nhất
         $recentOrders = Order::latest()
             ->limit(5)
             ->get()

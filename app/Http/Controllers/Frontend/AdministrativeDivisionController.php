@@ -17,7 +17,7 @@ class AdministrativeDivisionController
     {
         $provinces = $this->service->provinces(); // Gọi service lấy danh sách tỉnh
 
-        // Nếu service trả về null (lỗi nguồn dữ liệu) → báo lỗi 503
+        // Nếu service trả về null, lỗi nguồn dữ liệu → báo lỗi 503
         if ($provinces === null) {
             return response()->json([
                 'success' => false,
@@ -33,7 +33,7 @@ class AdministrativeDivisionController
     {
         $wards = $this->service->wardsOf($provinceCode); // Lọc phường/xã theo mã tỉnh
 
-        // Nếu service trả về null (mã tỉnh không hợp lệ hoặc lỗi
+        // Nếu service trả về null mã tỉnh không hợp lệ hoặc lỗi
         if ($wards === null) {
             return response()->json([
                 'success' => false,
@@ -41,6 +41,6 @@ class AdministrativeDivisionController
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => $wards]); // checkout.js - loadWardsFor()
+        return response()->json(['success' => true, 'data' => $wards]); // checkout.js, loadWardsFor()
     }
 }

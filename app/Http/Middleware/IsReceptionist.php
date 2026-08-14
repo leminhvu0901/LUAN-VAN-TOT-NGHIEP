@@ -15,26 +15,26 @@ class IsReceptionist
      */
     public function handle(Request $request, Closure $next)
     {
-        // 1. Kiểm tra đăng nhập: Nếu chưa đăng nhập, chuyển
+        // Kiểm tra đăng nhập: Nếu chưa đăng nhập, chuyển
         if (!Auth::check()) {
             return redirect('/login')->with('error', 'Vui lòng đăng nhập.');
         }
 
         $user = Auth::user();
 
-        // 2. Kiểm tra vai trò: Cho phép Admin (để quản lý/test) hoặc Nhân viên lễ tân (staff + staff_type=receptionist) đi tiếp
+        // Kiểm tra vai trò: Cho phép Admin, để quản lý/test hoặc Nhân viên lễ tân, staff + staff_type=receptionist đi tiếp
         if ($user->role === 'admin' || ($user->role === 'staff' && $user->staff_type === 'receptionist')) {
             // Chia sẻ biến 'sidebarView' ra toàn bộ View để nạp đúng
             View::share('sidebarView', 'backend.components.staff-reception-sidebar');
             return $next($request);
         }
 
-        // 3. Nếu người dùng là Nhân viên giao hàng (delivery) cố
+        // Nếu người dùng là Nhân viên giao hàng, delivery cố
         if ($user->role === 'staff' && $user->staff_type === 'delivery') {
             return redirect()->route('staff.delivery.dashboard');
         }
 
-        // 4. Các trường hợp còn lại (Ví dụ: Khách hàng thông
+        // Các trường hợp còn lại Ví dụ: Khách hàng thông
         abort(403);
     }
 }

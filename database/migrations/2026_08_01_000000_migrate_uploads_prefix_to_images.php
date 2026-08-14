@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-// Dự án không còn deploy Railway (chỉ chạy local) nên bỏ hẳn quy ước "public/uploads/" (Railway
-// Volume bền vững qua các lần deploy) — giờ chỉ còn 1 quy ước "public/images/" (giống dữ liệu
-// seed/legacy đã có sẵn). Migration này chuyển các dòng đang lưu tiền tố "uploads/" về dạng trần,
+// Dự án không còn deploy Railway, chỉ chạy local nên bỏ hẳn quy ước "public/uploads/" Railway
+// Volume bền vững qua các lần deploy), giờ chỉ còn 1 quy ước "public/images/" (giống dữ liệu
+// seed/legacy đã có sẵn. Migration này chuyển các dòng đang lưu tiền tố "uploads/" về dạng trần
 // đồng thời di chuyển vật lý file tương ứng từ public/uploads/... sang public/images/....
 //
-// Không dùng Eloquent (Query Builder thuần) để vẫn chạy đúng nếu model sau này đổi khác.
+// Không dùng Eloquent, Query Builder thuần để vẫn chạy đúng nếu model sau này đổi khác.
 return new class extends Migration
 {
     private const PREFIXED_COLUMNS = [
@@ -28,7 +28,7 @@ return new class extends Migration
         $this->migrateAbsoluteSetting();
     }
 
-    // Cột kiểu "products/x.jpg" — tiền tố "uploads/" nằm ngay đầu chuỗi.
+    // Cột kiểu "products/x.jpg", tiền tố "uploads/" nằm ngay đầu chuỗi.
     private function migrateRelativeColumn(string $table, string $column): void
     {
         if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
@@ -47,7 +47,7 @@ return new class extends Migration
         }
     }
 
-    // settings.store_logo lưu dạng tuyệt đối "/uploads/logo/x.png" (khác 2 cột trên).
+    // settings.store_logo lưu dạng tuyệt đối "/uploads/logo/x.png", khác 2 cột trên.
     private function migrateAbsoluteSetting(): void
     {
         if (!Schema::hasTable('settings')) {
@@ -65,8 +65,8 @@ return new class extends Migration
         DB::table('settings')->where('id', $row->id)->update(['value' => $newValue]);
     }
 
-    // Không được để 1 file lỗi/thiếu làm hỏng cả migration — DB vẫn là nguồn sự thật, cứ cập nhật
-    // cột dù di chuyển file thất bại (ảnh vỡ 1 dòng không tệ hơn ảnh vỡ do thiếu file từ trước).
+    // Không được để 1 file lỗi/thiếu làm hỏng cả migration, DB vẫn là nguồn sự thật, cứ cập nhật
+    // cột dù di chuyển file thất bại, ảnh vỡ 1 dòng không tệ hơn ảnh vỡ do thiếu file từ trước.
     private function moveFileIfExists(string $from, string $to): void
     {
         try {
@@ -84,8 +84,8 @@ return new class extends Migration
     }
 
     // Best-effort: dựng lại tiền tố "uploads/" cho các dòng hiện đang trỏ vào đúng những file đã di
-    // chuyển ở up(). Giới hạn đã biết: không phân biệt được dòng nào vốn dĩ đã là legacy (bare path)
-    // từ trước khi up() chạy — nếu có dữ liệu legacy trùng tên file mới được thêm sau up(), rollback
+    // chuyển ở up(). Giới hạn đã biết: không phân biệt được dòng nào vốn dĩ đã là legacy, bare path
+    // từ trước khi up() chạy, nếu có dữ liệu legacy trùng tên file mới được thêm sau up(), rollback
     // có thể gắn nhầm tiền tố cho dòng đó.
     public function down(): void
     {
@@ -93,8 +93,8 @@ return new class extends Migration
             if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
                 continue;
             }
-            // Không có cách xác định lại chính xác tập hợp dòng đã migrate — bỏ qua rollback dữ liệu
-            // relative (an toàn hơn là đoán sai và gắn nhầm tiền tố cho dữ liệu legacy có sẵn).
+            // Không có cách xác định lại chính xác tập hợp dòng đã migrate, bỏ qua rollback dữ liệu
+            // relative, an toàn hơn là đoán sai và gắn nhầm tiền tố cho dữ liệu legacy có sẵn.
         }
     }
 };

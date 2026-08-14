@@ -4,14 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-// 1 sản phẩm bắt buộc (kèm số lượng) trong danh sách combo (scope=combo) — nhiều dòng / promotion,
+// 1 sản phẩm bắt buộc, kèm số lượng trong danh sách combo, scope=combo, nhiều dòng / promotion
 // khách phải mua ĐỦ TẤT CẢ các dòng của cùng 1 promotion
 class PromotionComboItem extends Model
 {
     // Tên bảng quản lý các sản phẩm trong combo
     protected $table = 'promotion_combo_items';
 
-    // Cho phép điền hàng loạt cho tất cả các trường (không
+    // Cho phép điền hàng loạt cho tất cả các trường không
     protected $guarded = [];
 
     /**

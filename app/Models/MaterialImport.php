@@ -9,14 +9,14 @@ class MaterialImport extends Model
 {
     use HasFactory;
 
-    // Các cột dữ liệu được phép điền nhanh (mass-assign) khi
+    // Các cột dữ liệu được phép điền nhanh, mass-assign khi
     protected $fillable = [
         'material_id',       // ID của nguyên liệu được nhập
         'quantity',          // Số lượng nhập kho ban đầu
         'total_price',       // Tổng số tiền nhập lô này
         'note',              // Ghi chú hoặc thông tin lý do nhập/xuất
         'expiration_date',   // Ngày hết hạn của lô nguyên liệu
-        'remaining_quantity' // Số lượng còn lại khả dụng trong lô (dùng để trừ kho theo lô)
+        'remaining_quantity' // Số lượng còn lại khả dụng trong lô, dùng để trừ kho theo lô
     ];
 
     // Tự động chuyển kiểu dữ liệu khi truy vấn từ Database

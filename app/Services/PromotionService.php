@@ -45,7 +45,7 @@ class PromotionService
             throw ValidationException::withMessages(['coupon_code' => $validity['message']]);
         }
 
-        // Combo có cách tính riêng (mua đủ tổ hợp món mới được
+        // Combo có cách tính riêng mua đủ tổ hợp món mới được
         if ($promotion->scope === 'combo') {
             return $this->resolveComboCode($promotion, $items);
         }
@@ -171,7 +171,7 @@ class PromotionService
             'product' => $this->eligibleSubtotalForProducts($promotion, $items), // Gọi hàm tính tổng tiền theo danh sách sản phẩm
             // Gọi hàm tính tổng tiền riêng theo danh mục
             'category' => $this->eligibleSubtotalForCategories($promotion, $items), // Gọi hàm tính tổng tiền theo danh mục
-            // Mặc định (toàn đơn hàng) -> cộng tổng tiền tất cả món
+            // Mặc định, toàn đơn hàng -> cộng tổng tiền tất cả món
             default => (float) $items->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity),
         };
     }
@@ -271,7 +271,7 @@ class PromotionService
     {
         if ($promotion->is_recurring) {
             $nowStr = $now->format('H:i:s');
-            // dayOfWeekIso: Lấy thứ trong tuần (1 là Thứ 2, 7 là Chủ nhật)
+            // dayOfWeekIso: Lấy thứ trong tuần, 1 là Thứ 2, 7 là Chủ nhật
             $currentDay = $now->dayOfWeekIso;
 
             if (
@@ -290,7 +290,7 @@ class PromotionService
             return true;
         }
 
-        // gt: lớn hơn (sau thời gian kết thúc), lt: nhỏ hơn
+        // gt: lớn hơn, sau thời gian kết thúc, lt: nhỏ hơn
         if ($promotion->end_at && $now->gt($promotion->end_at)) {
             return false;
         }

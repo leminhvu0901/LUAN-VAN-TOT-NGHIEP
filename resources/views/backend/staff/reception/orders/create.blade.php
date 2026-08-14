@@ -354,7 +354,8 @@
         window.posPreviewTotalUrl = '{{ route('staff.reception.orders.preview_total') }}';
         window.posCustomerSearchUrl = '{{ route('staff.reception.customers.search') }}';
 
-        // Toàn bộ logic trang pos tạo đơn tại quầy: tìm khách,        (function() {
+        // Toàn bộ logic trang POS tạo đơn tại quầy, bọc trong IIFE để không rò biến ra global
+        (function() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ||
                 document.querySelector('input[name="_token"]')?.value;
 
@@ -375,7 +376,7 @@
                 return Number(value).toLocaleString('vi-VN') + 'đ';
             }
 
-            // IIFE riêng cho khối "Tìm khách hàng" — cô lập biến searchTimer/selectedBox... khỏi phần còn lại của trang
+            // IIFE riêng cho khối "Tìm khách hàng", cô lập biến searchTimer/selectedBox... khỏi phần còn lại của trang
             (function() {
                 const searchInput = document.getElementById('pos-customer-search');
                 const resultsBox = document.getElementById('pos-customer-results');
@@ -416,7 +417,7 @@
 
                 clearBtn.addEventListener('click', clearCustomer);
 
-                // Debounce 400ms — gõ số điểm xong mới tính lại tổng, không gọi API mỗi lần gõ 1 ký tự
+                // Debounce 400ms, gõ số điểm xong mới tính lại tổng, không gọi API mỗi lần gõ 1 ký tự
                 let pointsTimer = null;
                 pointsInput.addEventListener('input', function() {
                     clearTimeout(pointsTimer);
@@ -496,7 +497,8 @@
                 if (totalEl) totalEl.textContent = formatMoney(total);
             }
 
-            // Đổ dữ liệu từ API preview-total vào bảng tổng tiền —            function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts,
+            // Đổ dữ liệu từ API preview-total vào bảng tổng tiền, mỗi dòng chỉ hiện khi giá trị lớn hơn 0
+            function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts,
                 membershipDiscount, pointsDiscount) {
                 document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
@@ -564,7 +566,8 @@
                 return checked ? checked.value : 'dine_in';
             }
 
-            // Gọi API preview-total lấy số liệu mới nhất theo            function refreshPreviewTotal() {
+            // Gọi API preview-total lấy số liệu mới nhất mỗi khi có yếu tố ảnh hưởng tới tổng tiền
+            function refreshPreviewTotal() {
                 const customerIdInput = document.getElementById('pos-customer-id');
                 const couponInput = document.getElementById('pos-coupon-code');
                 const feedbackEl = document.getElementById('pos-coupon-feedback');
@@ -686,7 +689,8 @@
                 return parts.join(' • ');
             }
 
-            // Tải lại toàn bộ giỏ hàng từ server và vẽ lại danh sách            function refreshCart() {
+            // Tải lại toàn bộ giỏ hàng từ server và vẽ lại danh sách sau mỗi lần thêm hoặc xóa món
+            function refreshCart() {
                 fetch('/cart', {
                         headers: {
                             Accept: 'application/json'
@@ -735,7 +739,8 @@
 
             let activeCategoryId = '';
 
-            // Lọc lưới sản phẩm theo cả từ khóa tìm kiếm và danh mục            function applyProductFilters() {
+            // Lọc lưới sản phẩm theo cả từ khóa tìm kiếm và danh mục đang chọn, thuần CSS không gọi server
+            function applyProductFilters() {
                 const needle = document.getElementById('pos-product-search').value.trim().toLowerCase();
                 document.querySelectorAll('.pos-product-card').forEach(function(card) {
                     const matchesName = card.dataset.name.includes(needle);
@@ -764,7 +769,8 @@
                 applyProductFilters();
             });
 
-            // Modal "Chọn size/đường/đá/topping" khi bấm 1 sản phẩm            const modal = document.getElementById('pos-product-modal');
+            // State của modal chọn size, đường, đá, topping, reset mỗi lần mở lại cho sản phẩm khác
+            const modal = document.getElementById('pos-product-modal');
             let currentProduct = null;
             let selectedSize = null;
             let selectedSugar = '100';
@@ -779,7 +785,7 @@
                 });
             }
 
-            // Tính giá 1 dòng trong modal = (giá gốc + phụ thu size + tổng topping) × số lượng
+            // Tính giá 1 dòng trong modal =, giá gốc + phụ thu size + tổng topping × số lượng
             function computeModalPrice() {
                 let price = currentProduct.base_price;
                 if (selectedSize) {
@@ -798,7 +804,8 @@
                 document.getElementById('pos-modal-price').textContent = formatMoney(computeModalPrice());
             }
 
-            // Mở modal cho 1 sản phẩm — dựng lại toàn bộ chip            function openProductModal(product) {
+            // Mở modal cho 1 sản phẩm, dựng lại toàn bộ chip size và topping từ dữ liệu JSON gắn sẵn
+            function openProductModal(product) {
                 currentProduct = product;
                 selectedSize = product.sizes.length > 0 ? product.sizes[0].size_name : null;
                 selectedSugar = '100';
@@ -860,7 +867,8 @@
                 currentProduct = null;
             }
 
-            // Toàn bộ lưới sản phẩm dùng 1 listener chung thay vì            document.getElementById('pos-product-grid').addEventListener('click', function(event) {
+            // Lưới sản phẩm dùng 1 listener chung thay vì gắn riêng từng nút, vẫn chạy khi lưới lọc lại
+            document.getElementById('pos-product-grid').addEventListener('click', function(event) {
                 const btn = event.target.closest('.pos-add-btn');
                 if (!btn) return;
                 openProductModal(JSON.parse(btn.dataset.product));
@@ -917,7 +925,8 @@
                 renderModalPrice();
             });
 
-            // Bấm "Thêm vào giỏ" trong modal — gọi thẳng route            document.getElementById('pos-modal-add').addEventListener('click', function() {
+            // Bấm Thêm vào giỏ trong modal, disable nút trong lúc chờ để tránh bấm 2 lần thêm trùng
+            document.getElementById('pos-modal-add').addEventListener('click', function() {
                 if (!currentProduct) return;
                 const addBtn = this;
                 addBtn.disabled = true;
@@ -952,7 +961,8 @@
                     });
             });
 
-            // Cũng dùng event delegation — danh sách giỏ hàng bị vẽ            document.getElementById('pos-cart-items').addEventListener('click', function(event) {
+            // Cũng dùng listener chung vì danh sách giỏ hàng bị vẽ lại toàn bộ mỗi lần refreshCart
+            document.getElementById('pos-cart-items').addEventListener('click', function(event) {
                 const btn = event.target.closest('.pos-remove-btn');
                 if (!btn) return;
 
@@ -982,7 +992,7 @@
                 document.body.style.overflow = 'hidden';
             }
 
-            // Chỉ ẩn cột giỏ hàng trên mobile — desktop luôn hiện cột giỏ cố định, không đóng được
+            // Chỉ ẩn cột giỏ hàng trên mobile, desktop luôn hiện cột giỏ cố định, không đóng được
             function closeMobileCart() {
                 if (!cartColumn) return;
                 if (window.innerWidth < 1024) {
@@ -1003,7 +1013,8 @@
                 }
             });
 
-            // Style lại radio button dạng "thẻ bấm" — tô màu thẻ            function wireToggleGroup(selector, activeClasses) {
+            // Style lại radio button dạng thẻ bấm, dùng chung cho cả nhóm thanh toán và loại đơn
+            function wireToggleGroup(selector, activeClasses) {
                 document.querySelectorAll(selector).forEach(function(radio) {
                     radio.addEventListener('change', function() {
                         document.querySelectorAll(selector).forEach(function(r) {
@@ -1026,7 +1037,8 @@
                 'text-primary'
             ]);
 
-            // Đổi loại đơn -> ghi vào input ẩn pickup-mode để submit            function applyOrderType() {
+            // Đổi loại đơn thì ghi vào input ẩn pickup-mode và tính lại tổng vì có mã chỉ áp cho pickup
+            function applyOrderType() {
                 document.getElementById('pos-pickup-mode').value = getCurrentOrderType();
                 refreshPreviewTotal();
             }
@@ -1035,7 +1047,7 @@
                 radio.addEventListener('change', applyOrderType);
             });
 
-            // Disable nút "Đặt hàng" ngay khi submit — chặn bấm đúp tạo trùng đơn khi mạng chậm
+            // Disable nút "Đặt hàng" ngay khi submit, chặn bấm đúp tạo trùng đơn khi mạng chậm
             const orderForm = document.getElementById('pos-order-form');
             const submitBtn = document.getElementById('pos-submit-btn');
             if (orderForm && submitBtn) {

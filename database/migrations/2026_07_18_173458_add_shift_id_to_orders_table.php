@@ -11,8 +11,8 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             if (!Schema::hasColumn('orders', 'shift_id')) {
-                // staff_shifts.id do chính migration này tạo (bigIncrements chuẩn) nên không gặp vấn
-                // đề "incompatible" như users.id — không cần pattern fallback int/bigint ở đây.
+                // staff_shifts.id do chính migration này tạo, bigIncrements chuẩn nên không gặp vấn
+                // đề "incompatible" như users.id, không cần pattern fallback int/bigint ở đây.
                 $table->foreignId('shift_id')->nullable()->after('created_by')->constrained('staff_shifts')->nullOnDelete();
             }
         });
