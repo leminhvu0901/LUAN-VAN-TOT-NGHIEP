@@ -182,7 +182,7 @@ class OrderWorkflowService
         }, 3);
     }
 
-    // Giao thất bại và ghi nhận thông tin hoàn tiền MoMo/VnPay
+    // Giao thất bại và ghi nhận thông tin hoàn tiền VNPay
     public function markDeliveryFailedWithRefund(Order $order, string $reason, string $failureType, string $refundTransactionId): Order
     {
         return DB::transaction(function () use ($order, $reason, $failureType, $refundTransactionId) {

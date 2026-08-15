@@ -104,7 +104,7 @@ class OrderController
             $refundResult = app(VnpayController::class)->requestRefund($order);
 
             if ($refundResult['success']) {
-                // Giao thất bại và ghi nhận thông tin hoàn tiền MoMo/VnPay
+                // Giao thất bại và ghi nhận thông tin hoàn tiền VNPay
                 $this->sv_orderWorkflow->markDeliveryFailedWithRefund($order, $validated['reason'], $validated['failure_type'], $refundResult['transId']); // Ghi nhận thất bại kèm cập nhật hoàn tiền
                 return $this->success('history', 'Đã hoàn tiền và ghi nhận giao hàng thất bại.');
             }

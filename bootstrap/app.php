@@ -26,7 +26,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Bỏ qua kiểm tra CSRF cho các route chỉ định
         $middleware->validateCsrfTokens(except: [
-            'checkout/momo/ipn',
             'login',
             'logout',
             'checkout',
