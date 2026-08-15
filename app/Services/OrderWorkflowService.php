@@ -208,31 +208,24 @@ class OrderWorkflowService
     public function refundAndCancel(Order $order, string $refundTransactionId, string $cancelReason): Order
     {
         return DB::transaction(function () use ($order, $refundTransactionId, $cancelReason) {
-            // Khóa dòng dữ liệu để đối soát hoàn tiền
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-            // Nếu đơn đã được hoàn tiền trước đó thì bỏ qua
             if ($locked->payment_status === 'refunded') {
                 return $locked;
             }
-            // Chỉ hoàn tiền cho những đơn đã thanh toán thành công
             if ($locked->payment_status !== 'paid') {
                 throw ValidationException::withMessages(['status' => 'Đơn hàng không ở trạng thái đã thanh toán.']);
             }
-            // Chỉ cho phép hủy đơn hoàn tiền khi đơn chưa đi giao
             if (!in_array($locked->status, ['pending', 'confirmed'], true)) {
                 throw ValidationException::withMessages(['status' => 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.']);
             }
-            // Kiểm tra lý do hủy
             if (mb_strlen(trim($cancelReason)) < 5) {
                 throw ValidationException::withMessages(['cancel_reason' => 'Vui lòng nhập lý do hủy ít nhất 5 ký tự.']);
             }
-            // Cập nhật trạng thái đã hoàn tiền
             $locked->forceFill([
                 'payment_status' => 'refunded',
                 'refund_transaction_id' => $refundTransactionId,
                 'refunded_at' => now(),
             ]);
-            // Hoàn lại khuyến mãi điểm tích lũy và chuyển trạng thái hủy
             $this->applyCancelCleanup($locked, $cancelReason); // Hoàn trả điểm, lượt dùng mã cho khách
             $locked->status = 'cancelled';
             $locked->save();
@@ -245,17 +238,12 @@ class OrderWorkflowService
     public function settleCod(Order $order, int $settledByUserId): Order
     {
         return DB::transaction(function () use ($order, $settledByUserId) {
-            // Khóa đơn hàng để đối soát tiền mặt
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
-            // Chỉ áp dụng đối soát cho đơn COD đã hoàn thành giao hàng
             if ($locked->payment_method !== 'cod' || $locked->status !== 'completed') {
                 throw ValidationException::withMessages([
                     'cod' => 'Chỉ đơn COD đã hoàn thành mới cần đối soát.',
                 ]);
             }
-
-            // Ghi nhận thời gian đối soát và người thực hiện đối soát
             if (!$locked->cod_settled_at) {
                 $locked->forceFill(['cod_settled_at' => now(), 'cod_settled_by' => $settledByUserId])->save();
             }
@@ -314,12 +302,9 @@ class OrderWorkflowService
     // Hoàn lại lượt dùng khuyến mãi và điểm tích lũy của
     private function applyCancelCleanup(Order $locked, string $cancelReason): void
     {
-        // Hoàn trả lượt dùng mã khuyến mãi nếu đơn có áp dụng
         if ($locked->promotion_id) {
             DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count'); // Trừ số lượt đã dùng của mã
         }
-
-        // Hoàn trả điểm tích lũy khách đã tiêu dùng cho đơn hàng này
         if ((int) $locked->points_redeemed > 0 && $locked->user_id) {
             User::query()->lockForUpdate()->where('id', $locked->user_id) // Khóa dòng user
                 ->increment('points', (int) $locked->points_redeemed); // Cộng lại điểm tích lũy của khách
@@ -331,15 +316,11 @@ class OrderWorkflowService
     private function lockShippingOrderAndValidate(Order $order, string $reason): Order
     {
         $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
-        // Chỉ cho phép báo lỗi đối với đơn hàng đang trong trạng
         if ($locked->status !== 'shipping') {
             throw ValidationException::withMessages([
                 'status' => 'Chỉ đơn đang giao mới được đánh dấu giao thất bại.',
             ]);
         }
-
-        // Kiểm tra lý do giao thất bại
         if (mb_strlen(trim($reason)) < 5) {
             throw ValidationException::withMessages([
                 'delivery_failed_reason' => 'Vui lòng nhập lý do giao thất bại ít nhất 5 ký tự.',
@@ -352,19 +333,15 @@ class OrderWorkflowService
     // Cập nhật thông tin giao hàng thất bại và hoàn trả ưu
     private function applyDeliveryFailedCleanup(Order $locked, string $reason, string $failureType): void
     {
-        // Hoàn lại lượt dùng mã khuyến mãi
         if ($locked->promotion_id) {
             DB::table('promotions')->where('id', $locked->promotion_id)->where('used_count', '>', 0)->decrement('used_count');
         }
-
-        // Hoàn lại điểm tích lũy
         if ((int) $locked->points_redeemed > 0 && $locked->user_id) {
             User::query()->lockForUpdate()->where('id', $locked->user_id)
                 ->increment('points', (int) $locked->points_redeemed);
         }
 
         $reason = trim($reason);
-        // Lưu thông tin giao hàng thất bại chi tiết
         $locked->forceFill([
             'status' => 'cancelled',
             'cancel_reason' => 'Giao hàng thất bại: ' . $reason,
@@ -381,26 +358,18 @@ class OrderWorkflowService
         if (!$order->user_id || (int) $order->loyalty_points_awarded > 0) {
             return;
         }
-
-        // Kiểm tra tính năng tích điểm có đang được kích hoạt không
         $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
         if (!$loyaltyEnabled) {
             return;
         }
-
-        // Lấy hạn mức quy đổi điểm tích lũy từ cấu hình hệ thống
         $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
         if ($moneyPerPoint <= 0) {
             return;
         }
-
-        // Tính số điểm tích lũy nhận được
         $points = (int) floor((float) $order->final_amount / $moneyPerPoint);
         if ($points <= 0) {
             return;
         }
-
-        // Tiến hành cộng điểm vào tài khoản thành viên
         $user = User::query()->lockForUpdate()->find($order->user_id); // Khóa dòng user trong DB
         if (!$user) {
             return;

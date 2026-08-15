@@ -9,14 +9,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Đếm số lượt truy cập trang web trong ngày hôm nay.
- *
- * Mỗi phiên truy cập chỉ được tính 1 lần/ngày (dựa vào cờ lưu trong session), nên con số này là
- * "số lượt khách vào xem trong ngày" chứ không phải tổng số trang đã mở.
- */
 class TrackDailyVisit
 {
+    // Số ngày giữ lại số liệu, quá hạn sẽ bị dọn để bảng settings không phình ra mãi
+    private const KEEP_DAYS = 30;
+
     public function handle(Request $request, Closure $next)
     {
         $today = today()->toDateString();
@@ -29,14 +26,7 @@ class TrackDailyVisit
         return $next($request);
     }
 
-    /**
-     * Cộng thêm 1 lượt truy cập.
-     *
-     * Cộng thẳng bằng câu lệnh UPDATE của database (COALESCE(value, 0) + 1) thay vì đọc giá trị cũ
-     * ra PHP rồi ghi lại: nếu đọc trước ghi sau, hai người vào web cùng lúc sẽ cùng đọc được N rồi
-     * cùng ghi N+1, làm mất 1 lượt. Để database tự cộng thì dù bao nhiêu người vào một lúc cũng
-     * không sót lượt nào.
-     */
+    // Cộng thêm 1 lượt truy cập
     private function increaseTodayCounter(string $key): void
     {
         $updated = DB::table('settings')->where('key', $key)->update([
@@ -44,21 +34,38 @@ class TrackDailyVisit
             'updated_at' => now(),
         ]);
 
-        // Chưa có dòng nào cho ngày hôm nay lượt truy cập đầu
+        // Chưa có dòng nào cho hôm nay
         if ($updated === 0) {
             try {
                 Setting::setValue($key, 1, 'stats', 'integer');
+                // Dòng của hôm nay vừa được tạo nghĩa là đã sang ngày mới, tiện thể dọn số liệu cũ
+                $this->pruneOldCounters();
+                Cache::forget("setting.{$key}");
                 return;
             } catch (QueryException $e) {
-                // Một request khác vừa kịp tạo dòng này trước cột key
                 DB::table('settings')->where('key', $key)->update([
                     'value' => DB::raw('COALESCE(value, 0) + 1'),
                     'updated_at' => now(),
                 ]);
             }
         }
-
-        // Setting::getValue() cache vĩnh viễn nên phải xoá cache
         Cache::forget("setting.{$key}");
+    }
+
+    // Xoá số liệu truy cập quá hạn giữ lại.
+    private function pruneOldCounters(): void
+    {
+        $cutoff = 'daily_visits:' . today()->subDays(self::KEEP_DAYS)->toDateString();
+        $staleKeys = DB::table('settings')
+            ->where('key', 'like', 'daily_visits:%')
+            ->where('key', '<', $cutoff)
+            ->pluck('key');
+        if ($staleKeys->isEmpty()) {
+            return;
+        }
+        DB::table('settings')->whereIn('key', $staleKeys)->delete();
+        foreach ($staleKeys as $staleKey) {
+            Cache::forget("setting.{$staleKey}");
+        }
     }
 }

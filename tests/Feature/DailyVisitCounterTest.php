@@ -76,4 +76,43 @@ class DailyVisitCounterTest extends TestCase
         // Cộng dồn đọc từ DB nên phải ra 100. Nếu đọc từ cache (10) rồi ghi lại sẽ chỉ ra 11.
         $this->assertSame(100, $this->currentCount());
     }
+
+    private function seedVisitRow(string $date, int $value = 99): void
+    {
+        DB::table('settings')->insert([
+            'key' => 'daily_visits:' . $date,
+            'value' => $value,
+            'type' => 'integer',
+            'group' => 'stats',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    // Số liệu quá hạn giữ lại bị dọn ngay lúc tạo dòng đếm cho ngày mới, nhờ vậy không cần cron
+    // mà bảng settings vẫn không phình ra vô hạn theo thời gian.
+    public function test_old_counters_are_pruned_when_a_new_day_starts(): void
+    {
+        $expired = today()->subDays(45)->toDateString();
+        $kept = today()->subDays(10)->toDateString();
+        $this->seedVisitRow($expired);
+        $this->seedVisitRow($kept);
+
+        $this->get('/')->assertOk();
+
+        $this->assertDatabaseMissing('settings', ['key' => 'daily_visits:' . $expired]);
+        $this->assertDatabaseHas('settings', ['key' => 'daily_visits:' . $kept]);
+        $this->assertSame(1, $this->currentCount());
+    }
+
+    // Việc dọn chỉ được đụng vào khoá daily_visits, các thiết lập vận hành phải còn nguyên.
+    public function test_pruning_does_not_touch_other_settings(): void
+    {
+        Setting::setValue('store_open_time', '08:00', 'general', 'string');
+        $this->seedVisitRow(today()->subDays(45)->toDateString());
+
+        $this->get('/')->assertOk();
+
+        $this->assertDatabaseHas('settings', ['key' => 'store_open_time']);
+    }
 }

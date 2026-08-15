@@ -165,11 +165,9 @@ class ShippingQuoteService
         if ($shippingFee <= 0) {
             return $none;
         }
-
         if (Setting::getValue('weather_surcharge_enabled', '0') != '1') {
             return $none;
         }
-
         $group = $this->currentWeatherGroup($lat, $lng);//thoi tiet hien tai dược ap dung
         $percent = $this->percentForGroup($group);//muc phu thu thoi tiet
         if ($percent <= 0) {

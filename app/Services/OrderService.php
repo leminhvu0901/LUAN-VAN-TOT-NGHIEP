@@ -6,8 +6,10 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Promotion;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
+use Illuminate\Support\Collection;
 // Nạp công cụ tương tác Database Chạy transaction
 use Illuminate\Support\Facades\DB;
 // Nạp ngoại lệ ValidationException để ném lỗi dữ liệu
@@ -61,13 +63,13 @@ class OrderService
             }
         }
         //  Cửa hàng có đang mở
-        $receiveEnabled = (bool) \App\Models\Setting::getValue('orders_enabled', true);
+        $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         if (!$receiveEnabled) {
             throw ValidationException::withMessages(['cart' => 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.']);
         }
         // Kiểm tra giờ
-        $open = \App\Models\Setting::getValue('store_open_time', '08:00');
-        $close = \App\Models\Setting::getValue('store_close_time', '22:00');
+        $open = Setting::getValue('store_open_time', '08:00');
+        $close = Setting::getValue('store_close_time', '22:00');
         $now = now()->format('H:i');
         $isOpen = false;
         if ($open < $close) {
@@ -83,13 +85,11 @@ class OrderService
         if (!$cart) {
             throw ValidationException::withMessages(['cart' => 'Giỏ hàng của bạn đang trống.']);
         }
-
         if (isset($payload['selected_item_ids']) && is_array($payload['selected_item_ids']) && count($payload['selected_item_ids']) > 0) {
             $selectedIds = array_map('intval', $payload['selected_item_ids']);
         } else {
             $selectedIds = null;
         }
-
         // Tính toán trước giá tiền giỏ hàng, giá trị thô để
         $previewItems = $this->cartPricing->pricedItems($cart, selectedIds: $selectedIds);
         $previewSubtotal = $this->cartPricing->subtotal($previewItems);
@@ -99,32 +99,26 @@ class OrderService
         } else {
             // Tính toán khoảng cách và phí ship dựa vào địa chỉ của
             $quote = $this->shipping->quote($address, $previewSubtotal, $orderOwner);
-            $maxDistance = (float) \App\Models\Setting::getValue('shipping_max_distance_km', ShippingQuoteService::MAX_DELIVERY_KM);
+            $maxDistance = (float) Setting::getValue('shipping_max_distance_km', ShippingQuoteService::MAX_DELIVERY_KM);
             if ($quote['distance_km'] > $maxDistance) {
                 throw ValidationException::withMessages(['address_id' => "Địa chỉ vượt quá phạm vi giao hàng {$maxDistance} km."]);
             }
         }
-
         return DB::transaction(function () use ($user, $payload, $paymentMethod, $address, $cart, $previewSubtotal, $quote, $isPickup, $selectedIds, $orderOwner, $orderOwnerId) {
-            // Khóa giỏ hàng và nạp giá chính thức bên trong Transaction
             $lockedCart = Cart::query()->whereKey($cart->id)->where('user_id', $user->id)->lockForUpdate()->firstOrFail();
             $items = $this->cartPricing->pricedItems($lockedCart, true, $selectedIds);
             $subtotal = $this->cartPricing->subtotal($items);
             $totalQuantity = (int) $items->sum('quantity');
-            // Đề phòng trường hợp giá sản phẩm
             if (abs($subtotal - $previewSubtotal) > 0.01) {
                 throw ValidationException::withMessages(['cart' => 'Giá giỏ hàng vừa thay đổi, vui lòng kiểm tra lại.']);
             }
-            // Tính toán giảm giá từ điểm tích lũy quy đổi
             $pointsToRedeem = (int) ($payload['points_to_redeem'] ?? 0);
             $pointsDiscount = $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal); // Gọi hàm nội bộ để tính số tiền giảm khi đổi điểm tích lũy
-            // Xác định kênh bán hàng Pickup tại quầy hoặc Delivery
             if ($isPickup) {
                 $channel = 'pickup';
             } else {
                 $channel = 'delivery';
             }
-
             $tempCoupon = $payload['coupon_code'] ?? null;
             if (filled($tempCoupon)) {
                 $manualCode = $payload['coupon_code'];
@@ -160,8 +154,6 @@ class OrderService
             } else {
                 $createdBy = null;
             }
-
-            // Xác định tên khách nhận hàng
             if ($isPickup) {
                 if (array_key_exists('customer_name', $payload)) {
                     $customerName = $payload['customer_name'];
@@ -171,8 +163,6 @@ class OrderService
             } else {
                 $customerName = $address->fullname;
             }
-
-            // Xác định số điện thoại khách nhận hàng
             if ($isPickup) {
                 if (array_key_exists('customer_phone', $payload)) {
                     $customerPhone = $payload['customer_phone'];
@@ -182,8 +172,6 @@ class OrderService
             } else {
                 $customerPhone = $address->phone;
             }
-
-            // Xác định địa chỉ giao hàng, kinh độ, vĩ độ
             if ($isPickup) {
                 $deliveryAddress = null;
                 $deliveryLatitude = null;
@@ -193,8 +181,6 @@ class OrderService
                 $deliveryLatitude = $address->latitude;
                 $deliveryLongitude = $address->longitude;
             }
-
-            // Xác định mã giảm giá
             if ($promotion) {
                 $couponCode = $promotion->code;
                 $promotionId = $promotion->id;
@@ -202,8 +188,6 @@ class OrderService
                 $couponCode = null;
                 $promotionId = null;
             }
-
-            // Xác định hình thức đơn hàng và cách lấy hàng
             if ($isPickup) {
                 $deliveryType = 'pickup';
                 $pickupMode = $payload['pickup_mode'] ?? 'dine_in';
@@ -213,7 +197,6 @@ class OrderService
                 $pickupMode = null;
                 $estimatedTime = now()->addMinutes(45); // Đơn ship hoàn thành trong 45 phút
             }
-
             // Lưu bản ghi đơn hàng mới, Order vào CSDL
             $order = Order::create([ // Lưu thông tin chung đơn hàng vào Database
                 'order_code' => $orderCode,
@@ -243,7 +226,6 @@ class OrderService
                 'customer_note' => $payload['note'] ?? null,
                 'points_redeemed' => $pointsToRedeem,
             ]);
-
             // Tạo chi tiết đơn hàng, OrderItem cho các món nước
             foreach ($items as $item) {
                 OrderItem::create([ // Lưu thông tin từng món nước mua của đơn hàng vào bảng order_items
@@ -261,11 +243,10 @@ class OrderService
                     'note' => null,
                 ]);
             }
-
             // Tạo chi tiết đơn hàng cho các sản phẩm quà tặng của mã combo khách đã áp, giá bán = 0đ
             foreach ($giftEntries as $entry) {
                 $comboItemNames = $entry['combo_items']->map(fn($ci) => $ci->quantity . ' ' . $ci->product->name)->implode(' + ');
-                OrderItem::create([ // Lưu thông tin quà tặng combo với đơn giá 0đ
+                OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $entry['gift_product']->id,
                     'product_name' => $entry['gift_product']->name,
@@ -273,7 +254,7 @@ class OrderService
                     'product_image' => $entry['gift_product']->image,
                     'size_name' => null,
                     'quantity' => $entry['granted_quantity'],
-                    'unit_price' => 0, // Hàng tặng đơn giá 0đ
+                    'unit_price' => 0,
                     'sugar_level' => null,
                     'ice_level' => null,
                     'options' => [],
@@ -282,12 +263,9 @@ class OrderService
                     'source_promotion_id' => $entry['promotion']->id,
                 ]);
             }
-
-            // Dọn dẹp giỏ hàng: Xóa các sản phẩm đã được đưa vào
             $itemIds = $items->pluck('id');
             DB::table('cart_item_toppings')->whereIn('cart_item_id', $itemIds)->delete();
             DB::table('cart_items')->whereIn('id', $itemIds)->delete();
-            // Tăng số lượt đã dùng của mã khách áp mã combo cũng
             if ($promotion) {
                 $promotion->increment('used_count');
             }
@@ -305,7 +283,7 @@ class OrderService
    // Xem trước số tiền giảm khi lễ tân nhập thủ công một mã
     public function previewManualCoupon(
         string $code,
-        \Illuminate\Support\Collection $items,
+        Collection $items,
         ?User $orderOwner,
         float $subtotal,
         ?string $deliveryType = null,
@@ -326,10 +304,8 @@ class OrderService
     public function previewPointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): array
     {
         try {
-            // Thực hiện tính toán và kiểm tra thông qua hàm
             return ['discount' => $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal), 'error' => null];
         } catch (ValidationException $e) {
-            // Nếu không đủ điều kiện ví dụ: vượt hạn mức, chưa đủ
             return ['discount' => 0, 'error' => collect($e->errors())->flatten()->first()];
         }
     }
@@ -344,12 +320,12 @@ class OrderService
             throw ValidationException::withMessages(['points_to_redeem' => 'Không thể dùng điểm tích lũy cho khách vãng lai.']);
         }
         // Kiểm tra xem chương trình tích điểm đổi quà có đang
-        $loyaltyEnabled = \App\Models\Setting::getValue('loyalty_enabled', '1') == '1';
+        $loyaltyEnabled = Setting::getValue('loyalty_enabled', '1') == '1';
         if (!$loyaltyEnabled) {
             throw ValidationException::withMessages(['points_to_redeem' => 'Chương trình tích điểm hiện đang tạm đóng.']);
         }
         // Kiểm tra số điểm tối thiểu mỗi lần quy đổi
-        $minPointsToRedeem = (int) \App\Models\Setting::getValue('loyalty_min_points_to_redeem', 10);
+        $minPointsToRedeem = (int) Setting::getValue('loyalty_min_points_to_redeem', 10);
         if ($pointsToRedeem < $minPointsToRedeem) {
             throw ValidationException::withMessages(['points_to_redeem' => "Số điểm tối thiểu để được quy đổi là {$minPointsToRedeem}."]);
         }
@@ -359,10 +335,10 @@ class OrderService
             throw ValidationException::withMessages(['points_to_redeem' => 'Số điểm quy đổi vượt quá số dư hiện có.']);
         }
         // Tính số tiền giảm giá tối đa cho phép dựa trên tỷ lệ trần
-        $maxRedeemPercent = (float) \App\Models\Setting::getValue('loyalty_max_redeem_percent', 100);
+        $maxRedeemPercent = (float) Setting::getValue('loyalty_max_redeem_percent', 100);
         $maxDiscountMoney = $subtotal * ($maxRedeemPercent / 100);
         // Quy đổi điểm thành tiền số tiền giảm = số điểm * tỷ giá quy đổi
-        $pointValue = (float) \App\Models\Setting::getValue('loyalty_point_value', 1);
+        $pointValue = (float) Setting::getValue('loyalty_point_value', 1);
         $pointsDiscount = $pointsToRedeem * $pointValue;
 
         // Nếu số tiền giảm vượt mức quy định chặn lại báo lỗi

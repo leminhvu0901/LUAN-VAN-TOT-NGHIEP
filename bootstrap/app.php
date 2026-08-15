@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Middleware\TrackDailyVisit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     // Cấu hình Routing
@@ -18,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Đếm lượt truy cập trong ngày
         $middleware->web(append: [
-            \App\Http\Middleware\TrackDailyVisit::class,
+            TrackDailyVisit::class,
         ]);
 
         // Bỏ qua kiểm tra CSRF cho các route chỉ định
@@ -37,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // Xử lý Ngoại lệ
     ->withExceptions(function (Exceptions $exceptions): void {
         // Xử lý lỗi khi dung lượng file upload vượt quá giới hạn
-        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Tổng dung lượng file quá lớn. Vui lòng giảm bớt kích thước ảnh.'], 413);
             }
