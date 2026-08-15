@@ -930,6 +930,15 @@ class StaffRoleWorkflowTest extends TestCase
         $response->assertSessionHas('error');
     }
 
+    // Token chống tạo trùng đơn, màn hình tạo đơn phát ra và form gửi kèm khi submit.
+    private function posToken(): string
+    {
+        $token = (string) \Illuminate\Support\Str::uuid();
+        session(['pos_order_token' => $token]);
+
+        return $token;
+    }
+
     private function makeProduct(array $overrides = []): Product
     {
         $categoryId = DB::table('categories')->insertGetId([
@@ -978,6 +987,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 2])->assertOk();
 
         $response = $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash',
             'note' => 'Ít đá',
         ]);
@@ -1008,7 +1018,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 2])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertEquals('unpaid', $order->payment_status);
 
@@ -1044,7 +1054,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
 
         $response = $this->get("/staff/reception/orders/{$order->id}");
@@ -1101,7 +1111,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
 
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'bank_transfer']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'bank_transfer']);
         $response->assertSessionHasErrors('payment_method');
         $this->assertNull(Order::where('created_by', $receptionist->id)->latest()->first());
     }
@@ -1472,7 +1482,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
 
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertNull($order->delivery_latitude);
@@ -1565,7 +1575,7 @@ class StaffRoleWorkflowTest extends TestCase
             'toppings' => [$topping->id],
         ])->assertOk();
 
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
 
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $item = $order->items()->first();
@@ -1592,7 +1602,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
 
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         // Dùng orderByDesc('id') thay vì latest() (created_at) vì thời gian đã bị đóng băng qua
         // travelTo() — 2 đơn tạo liên tiếp có cùng created_at, sắp theo created_at không đảm bảo lấy
         // đúng đơn vừa tạo sau cùng.
@@ -1600,7 +1610,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('dine_in', $firstOrder->pickup_mode);
 
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'pickup_mode' => 'takeaway']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'pickup_mode' => 'takeaway']);
         $secondOrder = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertEquals('takeaway', $secondOrder->pickup_mode);
     }
@@ -1659,7 +1669,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'customer_id' => $customer->id]);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'customer_id' => $customer->id]);
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNotNull($order);
@@ -1680,7 +1690,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNotNull($order);
@@ -1701,7 +1711,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'customer_id' => $goldCustomer->id]);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'customer_id' => $goldCustomer->id]);
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         // Hạng gold = giảm 5% trên subtotal 100.000đ = 5.000đ
@@ -1722,6 +1732,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
         $response = $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash', 'customer_id' => $customer->id, 'points_to_redeem' => 20,
         ]);
         $response->assertSessionHasNoErrors();
@@ -1745,7 +1756,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'points_to_redeem' => 20]);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'points_to_redeem' => 20]);
 
         $response->assertSessionHasErrors('points_to_redeem');
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
@@ -1896,6 +1907,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         // Tạo đơn thật với cùng tham số phải khớp CHÍNH XÁC số preview vừa hiển thị ở trên.
         $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash', 'customer_id' => $customer->id,
             'points_to_redeem' => 20, 'coupon_code' => 'POSPTS10',
         ])->assertSessionHasNoErrors();
@@ -1917,7 +1929,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->postJson('/staff/reception/orders', ['payment_method' => 'cash', 'points_to_redeem' => 20]);
+        $response = $this->postJson('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'points_to_redeem' => 20]);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('points_to_redeem');
@@ -1935,7 +1947,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->postJson('/staff/reception/orders', ['payment_method' => 'cash']);
+        $response = $this->postJson('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
 
         $response->assertOk();
         $response->assertJson(['success' => true]);
@@ -1957,7 +1969,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']); // Khách vãng lai -> user_id null
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']); // Khách vãng lai -> user_id null
 
         $this->actingAs($admin);
         $response = $this->delete("/admin/staff-accounts/{$receptionist->id}");
@@ -1980,7 +1992,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'manual20']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'manual20']);
         $response->assertSessionHasNoErrors();
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
@@ -2004,12 +2016,13 @@ class StaffRoleWorkflowTest extends TestCase
 
         // Khách vãng lai (không chọn ai) -> không có tài khoản để đạt hạng gold -> bị từ chối
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'GOLDONLY']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'GOLDONLY']);
         $response->assertSessionHasErrors('coupon_code');
 
         // Chọn đúng khách hạng gold -> dùng được
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
         $response = $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash', 'coupon_code' => 'GOLDONLY', 'customer_id' => $goldCustomer->id,
         ]);
         $response->assertSessionHasNoErrors();
@@ -2049,6 +2062,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
         $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash', 'customer_id' => $customer->id, 'points_to_redeem' => 20,
         ]);
 
@@ -2081,6 +2095,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
         $response = $this->post('/staff/reception/orders', [
+            'idempotency_key' => $this->posToken(),
             'payment_method' => 'cash',
             'delivery_type' => 'delivery',
             'customer_id' => $customer->id,
@@ -2105,7 +2120,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cod']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cod']);
 
         $response->assertSessionHasErrors('payment_method');
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
@@ -2124,7 +2139,7 @@ class StaffRoleWorkflowTest extends TestCase
         $this->actingAs($receptionist);
 
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $response->assertSessionHasNoErrors();
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
@@ -2157,7 +2172,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         // Không gửi coupon_code -> không có khuyến mãi nào được áp.
         // orderByDesc('id') chứ không phải latest(): travelTo đóng băng đồng hồ nên 2 đơn có cùng created_at.
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNull($order->promotion_id);
         $this->assertEquals(0, (float) $order->discount_amount);
@@ -2165,7 +2180,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         // Lễ tân bấm chọn mã -> lúc này mới được giảm.
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'AUTO10']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'AUTO10']);
 
         $picked = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertEquals($promotion->id, $picked->promotion_id);
@@ -2193,7 +2208,7 @@ class StaffRoleWorkflowTest extends TestCase
 
         $this->actingAs($receptionist);
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
 
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertNull($order->promotion_id);
@@ -2557,7 +2572,7 @@ class StaffRoleWorkflowTest extends TestCase
         ]);
 
         // Số xem trước phải khớp chính xác với đơn tạo thật
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'PREVIEW10']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'PREVIEW10']);
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertEquals(90000, (float) $order->final_amount);
     }
@@ -2582,7 +2597,7 @@ class StaffRoleWorkflowTest extends TestCase
         $preview = $this->getJson('/staff/reception/orders/preview-total');
         $preview->assertJson(['subtotal' => 100000, 'discount' => 0, 'promotion_code' => null, 'final_amount' => 100000]);
 
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $order = Order::where('created_by', $receptionist->id)->latest()->first();
         $this->assertNull($order->promotion_id);
         $this->assertEquals(100000, (float) $order->final_amount);
@@ -2663,13 +2678,13 @@ class StaffRoleWorkflowTest extends TestCase
 
         // Chỉ 1 món (80.000đ, đủ tiền tối thiểu 70.000đ nhưng CHƯA đủ 2 món) -> bị từ chối
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'COMBO2TEST']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'COMBO2TEST']);
         $response->assertSessionHasErrors(['coupon_code' => 'Đơn hàng cần mua tối thiểu 2 món để dùng mã này.']);
         $this->assertNull(Order::where('created_by', $receptionist->id)->first());
 
         // Thêm món thứ 2 (đủ 2 món) -> dùng mã thành công
         $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $response = $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'COMBO2TEST']);
+        $response = $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'COMBO2TEST']);
         $response->assertSessionHasNoErrors();
 
         $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
@@ -2703,7 +2718,7 @@ class StaffRoleWorkflowTest extends TestCase
             ->assertJson(['discount' => 0, 'promotion_code' => null])
             ->assertJsonPath('coupon_error', 'Đơn hàng cần mua tối thiểu 2 món để dùng mã này.');
 
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash']);
         $firstOrder = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNull($firstOrder->promotion_id);
 
@@ -2714,7 +2729,7 @@ class StaffRoleWorkflowTest extends TestCase
             ->assertOk()
             ->assertJson(['available_promotions' => [['code' => 'AUTOCOMBO']]]);
 
-        $this->post('/staff/reception/orders', ['payment_method' => 'cash', 'coupon_code' => 'AUTOCOMBO']);
+        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'coupon_code' => 'AUTOCOMBO']);
         $secondOrder = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
         $this->assertNotNull($secondOrder->promotion_id);
         $this->assertEquals(15000, (float) $secondOrder->discount_amount);

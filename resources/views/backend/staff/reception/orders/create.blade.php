@@ -150,6 +150,8 @@
                 <form id="pos-order-form" action="{{ route('staff.reception.orders.store') }}" method="POST"
                     class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
                     @csrf
+                    {{-- Bấm đúp sẽ gửi lên cùng token này, server nhận ra là một lần đặt hàng nên không tạo đơn thứ hai --}}
+                    <input type="hidden" name="idempotency_key" value="{{ $posToken }}">
 
                     @php
                         // Lấy hình thức nhận món tại quầy

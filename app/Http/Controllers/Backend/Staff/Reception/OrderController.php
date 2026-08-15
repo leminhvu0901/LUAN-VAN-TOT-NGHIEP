@@ -242,7 +242,11 @@ class OrderController
             ? User::where('role', 'customer')->find(old('customer_id'))
             : null;
 
-        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'vnpayEnabled', 'selectedCustomer'));
+        // Token chống tạo trùng đơn, phải sinh ở đây và nhúng vào form thì bấm đúp mới gửi lên cùng một giá trị
+        $posToken = (string) Str::uuid();
+        session(['pos_order_token' => $posToken]);
+
+        return view('backend.staff.reception.orders.create', compact('products', 'categories', 'vnpayEnabled', 'selectedCustomer', 'posToken'));
     }
 
 
@@ -396,6 +400,8 @@ class OrderController
             'payment_method' => ['required', 'in:cash,vnpay'],
             'note' => ['nullable', 'string', 'max:500'],
             'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
+            // Token chống trùng đơn, lấy từ input ẩn trong form chứ không sinh ở đây
+            'idempotency_key' => ['required', 'uuid'],
             // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên, để trống = khách vãng lai.
             'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'customer')],
             // Chỉ có ý nghĩa khi đã chọn customer_id, validate ràng
@@ -407,7 +413,16 @@ class OrderController
             'payment_method.in' => 'Phương thức thanh toán không hợp lệ.',
             'pickup_mode.in' => 'Loại đơn không hợp lệ.',
             'customer_id.exists' => 'Khách hàng không hợp lệ.',
+            'idempotency_key.required' => 'Phiên tạo đơn không hợp lệ, vui lòng tải lại trang.',
+            'idempotency_key.uuid' => 'Phiên tạo đơn không hợp lệ, vui lòng tải lại trang.',
         ]);
+
+        // Token phải khớp với token đã phát khi mở màn hình tạo đơn, chặn gửi lại form cũ sau khi đã đặt xong
+        if (!hash_equals((string) session('pos_order_token'), $validated['idempotency_key'])) {
+            throw ValidationException::withMessages([
+                'idempotency_key' => 'Đơn này đã được tạo hoặc phiên đã hết hạn, vui lòng tải lại trang.',
+            ]);
+        }
 
         $customer = !empty($validated['customer_id'])
             ? User::where('role', 'customer')->find($validated['customer_id'])
@@ -419,7 +434,7 @@ class OrderController
         }
 
         $payload = [ // Chuẩn bị thông tin cấu trúc dữ liệu gửi vào OrderService
-            'idempotency_key' => (string) Str::uuid(), // Key chống trùng lặp dữ liệu khi nhấn đúp chuột gửi yêu cầu
+            'idempotency_key' => $validated['idempotency_key'], // Key chống trùng lặp dữ liệu khi nhấn đúp chuột gửi yêu cầu
             'delivery_type' => 'pickup',
             'pickup_mode' => $validated['pickup_mode'] ?? 'dine_in',
             // Luôn gửi key này, kể cả null để OrderService gắn đúng
@@ -433,6 +448,9 @@ class OrderController
 
         $paymentMethod = $validated['payment_method'];
         $order = $this->sv_orderService->create(Auth::user(), $payload, $paymentMethod); // Gọi OrderService để xử lý lưu đơn hàng chính thức
+
+        // Dùng xong thì huỷ token, lần gửi lại form cũ sẽ bị chặn ngay ở bước kiểm tra phía trên
+        session()->forget('pos_order_token');
 
         if ($paymentMethod === 'vnpay') {
             // Lễ tân bấm "Thanh toán VNPay" cho một đơn tại quầy đã

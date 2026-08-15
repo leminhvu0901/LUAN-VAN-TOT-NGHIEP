@@ -74,27 +74,23 @@ class InventoryService
         });
     }
 
-    // Tính toán lại tồn kho thực tế và giá vốn bình quân từ
+    // Tính toán lại tồn kho thực tế và giá vốn bình quân
     public function recalculateMaterialCost(int $materialId): void
     {
-        // Lấy tất cả các lô hàng còn hạn sử dụng và còn số lượng tồn
         $lots = MaterialImport::query()->where('material_id', $materialId)
             ->where('quantity', '>', 0)->where('remaining_quantity', '>', 0)->get();
 
         $stock = (float) $lots->sum('remaining_quantity');
-
         // Tính tổng giá trị kho còn lại của các lô
         $value = (float) $lots->sum(function ($lot) {
             return (float) $lot->remaining_quantity * ((float) $lot->total_price / (float) $lot->quantity);
         });
-
         // Xác định giá vốn bình quân mới dựa vào lượng tồn kho
         if ($stock > 0) {
             $unitPrice = $value / $stock;
         } else {
             $unitPrice = 0;
         }
-
         // Cập nhật thông số mới nhất vào bảng nguyên vật liệu
         Material::query()->whereKey($materialId)->update([ // Cập nhật lại tồn kho và giá vốn bình quân mới
             'current_stock' => $stock,

@@ -14,48 +14,33 @@ class NotificationService
     // GỬI THÔNG BÁO
     public function orderPlaced(Order $order): void
     {
-        $this->sendCustomerConfirmation($order); // Gọi hàm gửi mail xác nhận cho khách hàng
-        $this->sendAdminNewOrderAlert($order);   // Gọi hàm gửi mail thông báo cho Admin
+        $this->sendCustomerConfirmation($order);
+        $this->sendAdminNewOrderAlert($order);
     }
 
-    /**
-     * private: Chỉ dùng nội bộ trong class này.
-     * sendCustomerConfirmation(Order $order): Gửi email xác nhận chi tiết đơn hàng cho khách hàng.
-     * - Tham số Order $order: Đơn hàng cần xác nhận.
-     */
+    //Gửi email xác nhận chi tiết đơn hàng
     private function sendCustomerConfirmation(Order $order): void
     {
-        // Kiểm tra cấu hình hệ thống: Nếu tính năng gửi email
         if (Setting::getValue('order_confirmation_email_enabled', '1') != '1') {
             return;
         }
-
-        // Lấy địa chỉ email của khách hàng: ưu tiên lấy từ quan hệ $order->user, nếu không có thì truy vấn trực tiếp từ bảng users
         $email = $order->user?->email ?: User::query()->whereKey($order->user_id)->value('email');
         if (!$email) {
-            return; // Khách hàng không có email, hoặc là khách mua vãng lai không tài khoản, không gửi
+            return;
         }
-
-        // Dòng tiêu đề và thông tin chung
         $body = "Chào {$order->customer_name},\n\n"
             . "Đơn hàng {$order->order_code} của bạn đã được ghi nhận thành công.\n\n"
             . $this->buildOrderItemsSection($order);
-
-        // Tổng kết đơn hàng
         $body .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             . 'Tổng tiền: ' . number_format((float) $order->final_amount, 0, ',', '.') . "đ\n"
             . 'Phương thức thanh toán: ' . strtoupper($order->payment_method) . "\n"
             . "Địa chỉ giao: {$order->delivery_address}\n\n"
             . "Cảm ơn bạn đã đặt hàng tại Happy Tea! 🍵\n"
             . 'Chúng tôi sẽ chuẩn bị đơn ngay và liên hệ nếu cần thêm thông tin.';
-
-        // Gọi hàm gửi mail
-        $this->send($email, 'Xác nhận đơn hàng ' . $order->order_code, $body); // Gọi hàm gửi mail thô để thực thi gửi thư xác nhận
+        $this->send($email, 'Xác nhận đơn hàng ' . $order->order_code, $body);
     }
 
-    /**
-     * Gửi email yêu cầu Admin phê duyệt đơn hàng giá trị lớn (do lễ tân yêu cầu).
-     */
+   //Gửi email yêu cầu Admin phê duyệt
     public function sendAdminApprovalRequest(Order $order): void
     {
         $email = Setting::getValue('notification_email', 'admin@happytea.com');
@@ -79,15 +64,9 @@ class NotificationService
         $this->send($email, "[Cần duyệt] Đơn hàng {$order->order_code} — {$amount}đ", $body);
     }
 
-    /**
-     * private: Chỉ dùng nội bộ.
-     * buildOrderItemsSection(Order $order): Dựng đoạn nội dung liệt kê chi tiết từng sản phẩm trong đơn
-     * (tên, size, đường, đá, topping, số lượng, đơn giá, thành tiền) để chèn vào các email liên quan đến đơn hàng.
-     * Dùng chung cho email xác nhận khách hàng và email yêu cầu Admin phê duyệt để tránh trùng lặp logic.
-     */
+   //Dựng đoạn nội dung liệt kê chi tiết
     private function buildOrderItemsSection(Order $order): string
     {
-        // Load danh sách sản phẩm trong đơn kèm tên sản phẩm
         $items = $order->items()->with('product')->get();
 
         $section = "------------------------------\n"
@@ -96,8 +75,6 @@ class NotificationService
 
         foreach ($items as $i => $item) {
             $productName = $item->product?->name ?? 'Sản phẩm';
-
-            // Các tuỳ chọn size / đường / đá
             $details = [];
             if ($item->size_name)
                 $details[] = 'Size ' . $item->size_name;
@@ -105,8 +82,6 @@ class NotificationService
                 $details[] = 'Đường ' . $item->sugar_level . '%';
             if ($item->ice_level)
                 $details[] = 'Đá: ' . $item->ice_level;
-
-            // Topping lưu trong cột options, JSON là mảng string
             $toppings = collect($item->options ?? [])
                 ->filter()
                 ->implode(', ');
@@ -128,25 +103,16 @@ class NotificationService
         return $section;
     }
 
-    /**
-     * private: Chỉ dùng nội bộ.
-     * sendAdminNewOrderAlert(Order $order): Gửi email thông báo cho Admin/Quản lý khi có đơn hàng mới trên hệ thống.
-     * - Tham số Order $order: Đơn hàng mới cần thông báo.
-     */
+    //gửi email thông báo cho Admin
     private function sendAdminNewOrderAlert(Order $order): void
     {
-        // Kiểm tra cấu hình: Nếu tính năng thông báo admin bị
         if (Setting::getValue('new_order_admin_notification_enabled', '1') != '1') {
             return;
         }
-
-        // Lấy email nhận thông báo của Admin từ cấu hình mặc
         $email = Setting::getValue('notification_email', 'admin@happytea.com');
         if (!$email) {
             return;
         }
-
-        // Soạn thảo nội dung thông báo
         $body = "Có đơn hàng mới: {$order->order_code}\n"
             . "Khách hàng: {$order->customer_name} - {$order->customer_phone}\n"
             . 'Tổng tiền: ' . number_format((float) $order->final_amount, 0, ',', '.') . "đ\n"
@@ -156,22 +122,14 @@ class NotificationService
         $this->send($email, 'Đơn hàng mới ' . $order->order_code, $body); // Gọi hàm gửi mail thô để thực thi gửi thư cảnh báo
     }
 
-    /**
-     * private: Chỉ dùng nội bộ.
-     * send(string $to, string $subject, string $body): Thực hiện việc gửi email thô (raw email) sử dụng Mail driver của Laravel.
-     * - Tham số string $to: Địa chỉ email người nhận.
-     * - Tham số string $subject: Tiêu đề email.
-     * - Tham số string $body: Nội dung email.
-     */
+   //Thực hiện việc gửi email
     private function send(string $to, string $subject, string $body): void
     {
         try {
-            // Sử dụng Mail::raw để gửi email dạng văn bản thuần túy
-            Mail::raw($body, function ($message) use ($to, $subject) { // Gọi API Mail::raw gửi thư qua cấu hình SMTP
+            Mail::raw($body, function ($message) use ($to, $subject) {
                 $message->to($to)->subject($subject);
             });
         } catch (\Throwable $e) {
-            // Bắt mọi lỗi xảy ra khi gửi mail ví dụ: cấu hình SMTP
             Log::error('NotificationService: failed to send email', [
                 'to' => $to,
                 'subject' => $subject,

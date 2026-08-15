@@ -175,7 +175,6 @@ class OrderWorkflowService
         return DB::transaction(function () use ($order, $reason, $failureType) {
             // Xác thực và khóa đơn hàng đang giao
             $locked = $this->lockShippingOrderAndValidate($order, $reason); // Xác thực tính hợp lệ trạng thái đang giao hàng
-
             // Xử lý các nghiệp vụ hoàn trả và hủy đơn
             $this->applyDeliveryFailedCleanup($locked, $reason, $failureType); // Hoàn nguyên tồn kho, điểm thưởng và hủy khuyến mãi
             $locked->save();
@@ -198,7 +197,6 @@ class OrderWorkflowService
                     'refunded_at' => now(),
                 ]);
             }
-
             // Dọn dẹp khuyến mãi và hủy đơn hàng
             $this->applyDeliveryFailedCleanup($locked, $reason, $failureType); // Thực hiện hoàn nguyên khuyến mãi cho đơn giao thất bại
             $locked->save();
@@ -212,35 +210,29 @@ class OrderWorkflowService
         return DB::transaction(function () use ($order, $refundTransactionId, $cancelReason) {
             // Khóa dòng dữ liệu để đối soát hoàn tiền
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
             // Nếu đơn đã được hoàn tiền trước đó thì bỏ qua
             if ($locked->payment_status === 'refunded') {
                 return $locked;
             }
-
             // Chỉ hoàn tiền cho những đơn đã thanh toán thành công
             if ($locked->payment_status !== 'paid') {
                 throw ValidationException::withMessages(['status' => 'Đơn hàng không ở trạng thái đã thanh toán.']);
             }
-
             // Chỉ cho phép hủy đơn hoàn tiền khi đơn chưa đi giao
             if (!in_array($locked->status, ['pending', 'confirmed'], true)) {
                 throw ValidationException::withMessages(['status' => 'Chỉ có thể hoàn tiền cho đơn đang chờ xác nhận/đã xác nhận.']);
             }
-
             // Kiểm tra lý do hủy
             if (mb_strlen(trim($cancelReason)) < 5) {
                 throw ValidationException::withMessages(['cancel_reason' => 'Vui lòng nhập lý do hủy ít nhất 5 ký tự.']);
             }
-
             // Cập nhật trạng thái đã hoàn tiền
             $locked->forceFill([
                 'payment_status' => 'refunded',
                 'refund_transaction_id' => $refundTransactionId,
                 'refunded_at' => now(),
             ]);
-
-            // Hoàn lại khuyến mãi/điểm tích lũy và chuyển trạng thái hủy
+            // Hoàn lại khuyến mãi điểm tích lũy và chuyển trạng thái hủy
             $this->applyCancelCleanup($locked, $cancelReason); // Hoàn trả điểm, lượt dùng mã cho khách
             $locked->status = 'cancelled';
             $locked->save();
