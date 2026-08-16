@@ -9,49 +9,37 @@ class Product extends Model
     protected $table = 'products';
     protected $guarded = []; // Cho phép điền hàng loạt cho tất cả các trường, không khóa trường nào
 
-    /**
-     * Mối quan hệ: Sản phẩm thuộc về một Danh mục (Category)
-     */
+    // Mối quan hệ: Sản phẩm thuộc về một Danh mục (Category)
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
 
-    /**
-     * Mối quan hệ: Một sản phẩm có nhiều Kích cỡ khác nhau (ProductSize - ví dụ: M, L)
-     */
+    // Mối quan hệ: Một sản phẩm có nhiều Kích cỡ khác nhau (ProductSize - ví dụ: M, L)
     public function sizes()
     {
         return $this->hasMany(ProductSize::class, 'product_id');
     }
 
-    /**
-     * Mối quan hệ: Một sản phẩm có nhiều hình ảnh đi kèm, sắp xếp theo thứ tự hiển thị
-     */
+    // Mối quan hệ: Một sản phẩm có nhiều hình ảnh đi kèm, sắp xếp theo thứ tự hiển thị
     public function images()
     {
         return $this->hasMany(ProductImage::class, 'product_id')->orderBy('display_order');
     }
 
-    /**
-     * Mối quan hệ: Một sản phẩm có thể thêm nhiều loại Topping (thông qua bảng product_toppings)
-     */
+    // Mối quan hệ: Một sản phẩm có thể thêm nhiều loại Topping (thông qua bảng product_toppings)
     public function toppings()
     {
         return $this->belongsToMany(Topping::class, 'product_toppings');
     }
 
-    /**
-     * Mối quan hệ: Khuyến mãi áp dụng riêng cho sản phẩm này (scope='product')
-     */
+    // Mối quan hệ: Khuyến mãi áp dụng riêng cho sản phẩm này (scope='product')
     public function promotions()
     {
         return $this->belongsToMany(Promotion::class, 'promotion_products');
     }
 
-    /**
-     * Accessor: Lấy URL hình ảnh đầy đủ của sản phẩm. Trả về ảnh mặc định (placeholder) nếu không có ảnh
-     */
+    // Accessor: Lấy URL hình ảnh đầy đủ của sản phẩm. Trả về ảnh mặc định (placeholder) nếu không có ảnh
     public function getImageUrlAttribute()
     {
         if (empty($this->image)) {
@@ -61,10 +49,7 @@ class Product extends Model
         return upload_url($this->image);
     }
 
-    /**
-     * Accessor: Tính toán và lấy thông tin chương trình giảm giá tốt nhất đang được áp dụng cho sản phẩm này
-     * Trả về mảng thông tin [promotion, discount_amount, sale_price, old_price, percent, label] hoặc null
-     */
+    // Accessor: Tính toán và lấy thông tin chương trình giảm giá tốt nhất đang được áp dụng cho sản phẩm này, trả về mảng thông tin [promotion, discount_amount, sale_price, old_price, percent, label] hoặc null
     public function getDiscountInfoAttribute()
     {
         $now = now();

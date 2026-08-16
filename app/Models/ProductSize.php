@@ -15,10 +15,7 @@ class ProductSize extends Model
     // Cho phép thêm mới hoặc cập nhật hàng loạt trên tất cả
     protected $guarded = [];
 
-    /**
-     * Mối quan hệ Nhiều - Một (Belongs To) với model Product.
-     * Mỗi cấu hình size (ví dụ: Size L của Trà sữa trân châu) chỉ thuộc về một sản phẩm (Product) duy nhất.
-     */
+    // Mối quan hệ Nhiều - Một (Belongs To) với model Product, mỗi cấu hình size (ví dụ: Size L của Trà sữa trân châu) chỉ thuộc về một sản phẩm (Product) duy nhất
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');

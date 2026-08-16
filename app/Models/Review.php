@@ -17,19 +17,13 @@ class Review extends Model
         'edited_at' => 'datetime', // Ép kiểu cột thời điểm chỉnh sửa đánh giá sang Carbon DateTime
     ];
 
-    /**
-     * Mối quan hệ Nhiều - Một (Belongs To) với model Product.
-     * Mỗi đánh giá (Review) sẽ thuộc về một sản phẩm (Product) cụ thể.
-     */
+    // Mối quan hệ Nhiều - Một (Belongs To) với model Product, mỗi đánh giá (Review) sẽ thuộc về một sản phẩm (Product) cụ thể
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
 
-    /**
-     * Mối quan hệ Nhiều - Một (Belongs To) với model User.
-     * Mỗi đánh giá (Review) được viết bởi một tài khoản khách hàng (User) duy nhất.
-     */
+    // Mối quan hệ Nhiều - Một (Belongs To) với model User, mỗi đánh giá (Review) được viết bởi một tài khoản khách hàng (User) duy nhất
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class, 'user_id');

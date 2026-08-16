@@ -19,10 +19,7 @@ class Promotion extends Model
         'requires_staff_verification' => 'boolean', // Mã cần nhân viên xác nhận, không tự động áp
     ];
 
-    /**
-     * Quan hệ 1-N với bảng Order.
-     * Một mã khuyến mãi có thể được áp dụng cho nhiều đơn hàng.
-     */
+    // Quan hệ 1-N với bảng Order, một mã khuyến mãi có thể được áp dụng cho nhiều đơn hàng
     public function orders()
     {
         return $this->hasMany(Order::class, 'promotion_id');
@@ -63,8 +60,7 @@ class Promotion extends Model
             return ['valid' => false, 'message' => "Mã giảm giá này chỉ áp dụng cho {$requiredChannel}."];
         }
 
-        // KIỂM TRA TRẠNG THÁI CHUNG
-        // Nếu admin đã tắt mã này, is_active = 0 thì báo lỗi ngay
+        // KIỂM TRA TRẠNG THÁI CHUNG, nếu admin đã tắt mã này, is_active = 0 thì báo lỗi ngay
         if (!$this->is_active) {
             return ['valid' => false, 'message' => 'Mã giảm giá đã ngừng hoạt động.'];
         }
@@ -146,8 +142,7 @@ class Promotion extends Model
             }
         }
 
-        // KIỂM TRA GIỚI HẠN SỐ LẦN DÙNG CỦA 1 TÀI KHOẢN, usage_limit_per_user, NULL = không giới hạn
-        // Đếm số đơn hàng user này đã dùng mã này mà chưa bị huỷ
+        // KIỂM TRA GIỚI HẠN SỐ LẦN DÙNG CỦA 1 TÀI KHOẢN, usage_limit_per_user, NULL = không giới hạn, Đếm số đơn hàng user này đã dùng mã này mà chưa bị huỷ
         if ($user && $this->usage_limit_per_user !== null) {
             $usedCount = Order::query()
                 ->where('promotion_id', $this->id)

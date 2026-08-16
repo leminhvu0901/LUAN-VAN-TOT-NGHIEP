@@ -11,11 +11,7 @@ class User extends Authenticatable
     // Các traits mặc định của Laravel dành cho User
     use HasFactory, Notifiable;
 
-    /**
-     * $fillable: Danh sách các cột trong bảng `users` được phép "Gán dữ liệu hàng loạt" (Mass Assignment).
-     * Ví dụ khi gọi User::create([...]), chỉ những cột được liệt kê ở đây mới được phép lưu vào Database.
-     * Điều này giúp bảo mật, ngăn chặn hacker chèn thêm dữ liệu vào các cột nhạy cảm.
-     */
+    // $fillable: Danh sách các cột trong bảng `users` được phép "Gán dữ liệu hàng loạt" (Mass Assignment), ví dụ khi gọi User::create([...]), chỉ những cột được liệt kê ở đây mới được phép lưu vào Database, Điều này giúp bảo mật, ngăn chặn hacker chèn thêm dữ liệu vào các cột nhạy cảm
     protected $fillable = [
         'name',             // Tên người dùng
         'email',            // Email
@@ -34,20 +30,13 @@ class User extends Authenticatable
         'google_id',        // ID riêng của Google
     ];
 
-    /**
-     * $hidden: Danh sách các cột cần bị ẨN ĐI khi chuyển dữ liệu User thành dạng Mảng (Array) hoặc chuỗi JSON.
-     * Cực kỳ quan trọng để bảo mật! Không bao giờ để lộ mật khẩu và token ra ngoài API.
-     */
+    // $hidden: Danh sách các cột cần bị ẨN ĐI khi chuyển dữ liệu User thành dạng Mảng (Array) hoặc chuỗi JSON, Cực kỳ quan trọng để bảo mật! Không bao giờ để lộ mật khẩu và token ra ngoài API
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * $casts: Tự động ép kiểu dữ liệu cho các cột khi lấy từ Database ra hoặc ghi vào.
-     * Ở đây, cột 'password' được ép kiểu thành 'hashed', nghĩa là Laravel sẽ tự động băm (mã hoá) 
-     * mật khẩu bằng Bcrypt mỗi khi bạn gán mật khẩu mới cho user.
-     */
+    // $casts: Tự động ép kiểu dữ liệu cho các cột khi lấy từ Database ra hoặc ghi vào, Ở đây, cột 'password' được ép kiểu thành 'hashed', nghĩa là Laravel sẽ tự động băm (mã hoá), mật khẩu bằng Bcrypt mỗi khi bạn gán mật khẩu mới cho user
     protected function casts(): array
     {
         return [
@@ -55,11 +44,7 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * HÀM CỘNG ĐIỂM TÍCH LŨY VÀ TỰ ĐỘNG NÂNG HẠNG THÀNH VIÊN
-     * Tổng số tiền khách hàng đã thanh toán (đơn vị VNĐ)
-     * Quy tắc: Cứ 1,000 VNĐ = 1 điểm.
-     */
+    // HÀM CỘNG ĐIỂM TÍCH LŨY VÀ TỰ ĐỘNG NÂNG HẠNG THÀNH VIÊN, Tổng số tiền khách hàng đã thanh toán (đơn vị VNĐ), Quy tắc: Cứ 1,000 VNĐ = 1 điểm
     public function awardPoints(int|float $amount): void
     {
         $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
@@ -103,18 +88,13 @@ class User extends Authenticatable
         );
     }
 
-    /**
-     * Mối quan hệ: Các đơn hàng đã giao thành công mà nhân viên vận chuyển (staff_type=delivery) này phụ trách.
-     * Dùng để thống kê số đơn giao được theo ngày/tuần/tháng/năm.
-     */
+    // Mối quan hệ: Các đơn hàng đã giao thành công mà nhân viên vận chuyển (staff_type=delivery) này phụ trách, dùng để thống kê số đơn giao được theo ngày/tuần/tháng/năm
     public function completedDeliveries()
     {
         return $this->hasMany(Order::class, 'delivery_staff_id')->where('status', 'completed');
     }
 
-    /**
-     * Mối quan hệ: Các đơn hàng mà nhân viên vận chuyển này giao thất bại (đơn bị hủy do giao không thành công).
-     */
+    // Mối quan hệ: Các đơn hàng mà nhân viên vận chuyển này giao thất bại (đơn bị hủy do giao không thành công).
     public function failedDeliveries()
     {
         return $this->hasMany(Order::class, 'delivery_staff_id')->whereNotNull('delivery_failed_at');

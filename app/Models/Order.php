@@ -21,25 +21,19 @@ class Order extends Model
         'completed_at' => 'datetime',           // Thời điểm đơn hàng chuyển sang trạng thái hoàn thành
     ];
 
-    /**
-     * Mối quan hệ: Một đơn hàng chứa nhiều Chi tiết dòng sản phẩm (OrderItem - trà sữa, topping, size...)
-     */
+    // Mối quan hệ: Một đơn hàng chứa nhiều Chi tiết dòng sản phẩm (OrderItem - trà sữa, topping, size...)
     public function items()
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }
 
-    /**
-     * Mối quan hệ: Đơn hàng thuộc về một Khách hàng đặt mua (User)
-     */
+    // Mối quan hệ: Đơn hàng thuộc về một Khách hàng đặt mua (User)
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Mối quan hệ: Đơn hàng được phân công cho một Nhân viên vận chuyển đi giao (User vai trò delivery)
-     */
+    // Mối quan hệ: Đơn hàng được phân công cho một Nhân viên vận chuyển đi giao (User vai trò delivery)
     public function deliveryStaff()
     {
         return $this->belongsTo(User::class, 'delivery_staff_id');

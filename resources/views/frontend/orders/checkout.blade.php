@@ -3,6 +3,7 @@
 @section('body_class', 'profile-body')
 
 @section('content')
+    {{-- nạp thư viện Leaflet.js --}}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <div
         class="min-h-screen bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container pb-24">
@@ -20,7 +21,7 @@
         </header>
 
         <div class="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-            
+
             @if (session('error') || $errors->any())
                 <div
                     class="bg-error-container text-on-error-container border border-error p-4 rounded-xl mb-6 flex items-center gap-3 shadow-sm">
@@ -204,7 +205,7 @@
                                 </div>
 
                                 <!-- Segmented control: 3 phương thức xác định vị trí độc lập -->
-                                
+
                                 <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4"
                                     role="tablist" aria-label="Phương thức xác định vị trí">
                                     <button type="button" data-method="gps" onclick="setLocationMethod('gps')"
@@ -385,7 +386,7 @@
                                         </label>
                                     </div>
 
-                                    
+
                                     <div id="mapColumn" class="flex flex-col h-full space-y-3">
                                         <label class="text-xs font-bold text-on-surface-variant ml-1">Vị trí trên bản
                                             đồ</label>
@@ -764,7 +765,7 @@
                 </div>
             </form>
         </div>
-
+        {{-- nạp thư viện Leaflet.js --}}
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             window.checkoutConfig = {

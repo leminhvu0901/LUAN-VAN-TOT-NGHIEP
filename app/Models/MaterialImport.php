@@ -24,10 +24,7 @@ class MaterialImport extends Model
         'expiration_date' => 'date', // Chuyển cột ngày hết hạn sang đối tượng Carbon Date để dễ xử lý thời gian
     ];
 
-    /**
-     * Mối quan hệ Nhiều - Một (BelongsTo) với model Material.
-     * Mỗi lô nhập kho (MaterialImport) sẽ tương ứng với duy nhất 1 nguyên liệu (Material).
-     */
+    // Mối quan hệ Nhiều - Một (BelongsTo) với model Material, mỗi lô nhập kho (MaterialImport) sẽ tương ứng với duy nhất 1 nguyên liệu (Material)
     public function material()
     {
         return $this->belongsTo(Material::class);

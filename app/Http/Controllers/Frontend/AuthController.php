@@ -288,7 +288,7 @@ class AuthController
         return Socialite::driver('google')->redirect();
     }
 
-    // XỬ LÝ THÔNG TIN GG TRẢ VỀ
+    // XỬ LÝ THÔNG TIN google TRẢ VỀ
     public function handleGoogleCallback()
     {
         try {

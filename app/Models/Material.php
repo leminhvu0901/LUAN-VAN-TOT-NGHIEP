@@ -5,10 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Model quản lý Nguyên liệu (Material) trong kho.
- * Liên kết trực tiếp với bảng 'materials' trong cơ sở dữ liệu.
- */
+// Model quản lý Nguyên liệu (Material) trong kho, liên kết trực tiếp với bảng 'materials' trong cơ sở dữ liệu
 class Material extends Model
 {
     use HasFactory;
@@ -22,19 +19,13 @@ class Material extends Model
         'is_active',     // Trạng thái hoạt động, true: đang dùng, false: ngừng sử dụng
     ];
 
-    /**
-     * Mối quan hệ One-to-Many (Một - Nhiều) với model MaterialImport.
-     * Một nguyên liệu có thể được nhập về theo nhiều lô khác nhau.
-     */
+    // Mối quan hệ One-to-Many (Một - Nhiều) với model MaterialImport, một nguyên liệu có thể được nhập về theo nhiều lô khác nhau
     public function imports()
     {
         return $this->hasMany(MaterialImport::class);
     }
 
-    /**
-     * Mối quan hệ Many-to-Many (Nhiều - Nhiều) với model Product thông qua bảng trung gian 'product_materials'.
-     * Một nguyên liệu có thể nằm trong công thức của nhiều sản phẩm khác nhau (chứa thêm lượng tiêu thụ 'quantity_used').
-     */
+    // Mối quan hệ Many-to-Many (Nhiều - Nhiều) với model Product thông qua bảng trung gian 'product_materials', một nguyên liệu có thể nằm trong công thức của nhiều sản phẩm khác nhau (chứa thêm lượng tiêu thụ 'quantity_used')
     public function products()
     {
         return $this->belongsToMany(Product::class, 'product_materials')
