@@ -27,28 +27,19 @@
 
                 <ul class="flex flex-col gap-3 mt-2 list-none p-0">
                     <li class="flex items-start gap-3">
-                        <svg class="w-5 h-5 footer-icon-custom mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <i class="fa-solid fa-location-dot text-emerald-600 mt-1 flex-shrink-0 text-base"></i>
                         <span class="text-[#475569] leading-relaxed">{{ $shopAddress }}</span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <svg class="w-5 h-5 footer-icon-custom flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
+                        <i class="fa-solid fa-phone text-emerald-600 flex-shrink-0 text-sm"></i>
                         <span class="text-[#475569]">Hotline: <a href="tel:{{ str_replace(' ', '', $shopPhone) }}" class="font-bold footer-hotline-custom no-underline">{{ $shopPhone }}</a></span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <svg class="w-5 h-5 footer-icon-custom flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
+                        <i class="fa-solid fa-envelope text-emerald-600 flex-shrink-0 text-sm"></i>
                         <span class="text-[#475569]">Email: <a href="mailto:{{ $shopEmail }}" class="footer-link-custom">{{ $shopEmail }}</a></span>
                     </li>
                     <li class="flex items-center gap-3">
-                        <svg class="w-5 h-5 footer-icon-custom flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <i class="fa-solid fa-clock text-emerald-600 flex-shrink-0 text-sm"></i>
                         <span class="text-[#475569]">Giờ mở cửa: {{ $shopHours }}</span>
                     </li>
                 </ul>
@@ -61,7 +52,7 @@
                 <div class="footer-column flex flex-col">
                     <h6 class="footer-header footer-title-custom uppercase flex justify-between items-center w-full pb-2 border-b border-gray-200 md:border-none">
                         <span>DANH MỤC</span>
-                        <span class="material-symbols-outlined footer-icon md:hidden">expand_more</span>
+                        <i class="fa-solid fa-chevron-down footer-icon md:hidden text-xs"></i>
                     </h6>
                     <ul class="footer-links flex flex-col gap-2 list-none p-0 mt-2">
                         @php
@@ -86,7 +77,7 @@
                 <div class="footer-column flex flex-col">
                     <h6 class="footer-header footer-title-custom uppercase flex justify-between items-center w-full pb-2 border-b border-gray-200 md:border-none">
                         <span>VỀ CHÚNG TÔI</span>
-                        <span class="material-symbols-outlined footer-icon md:hidden">expand_more</span>
+                        <i class="fa-solid fa-chevron-down footer-icon md:hidden text-xs"></i>
                     </h6>
                     <ul class="footer-links flex flex-col gap-2 list-none p-0 mt-2">
                         <li><a href="#!" class="footer-link-custom">Giới thiệu</a></li>
@@ -100,7 +91,7 @@
                 <div class="footer-column flex flex-col">
                     <h6 class="footer-header footer-title-custom uppercase flex justify-between items-center w-full pb-2 border-b border-gray-200 md:border-none">
                         <span>HỖ TRỢ KHÁCH HÀNG</span>
-                        <span class="material-symbols-outlined footer-icon md:hidden">expand_more</span>
+                        <i class="fa-solid fa-chevron-down footer-icon md:hidden text-xs"></i>
                     </h6>
                     <ul class="footer-links flex flex-col gap-2 list-none p-0 mt-2">
                         <li><a href="#!" class="footer-link-custom">Hướng dẫn mua hàng</a></li>
@@ -114,7 +105,7 @@
                 <div class="footer-column flex flex-col">
                     <h6 class="footer-header footer-title-custom uppercase flex justify-between items-center w-full pb-2 border-b border-gray-200 md:border-none">
                         <span>ĐIỀU KHOẢN & CHÍNH SÁCH</span>
-                        <span class="material-symbols-outlined footer-icon md:hidden">expand_more</span>
+                        <i class="fa-solid fa-chevron-down footer-icon md:hidden text-xs"></i>
                     </h6>
                     <ul class="footer-links flex flex-col gap-2 list-none p-0 mt-2">
                         <li><a href="#!" class="footer-link-custom">Điều khoản dịch vụ</a></li>

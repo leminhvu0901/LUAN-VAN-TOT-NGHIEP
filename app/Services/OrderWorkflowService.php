@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class OrderWorkflowService
 {
+    // Đơn tại onl
     private const TRANSITIONS = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['shipping', 'cancelled'],
@@ -18,9 +20,7 @@ class OrderWorkflowService
     ];
 
 
-    // Đơn tại quầy, pickup không có bước giao hàng, khách
-    // xác nhận xong là hoàn thành luôn. Giữ 'shipping' => ['completed', 'cancelled'] để tương thích
-    // ngược cho các đơn pickup cũ, nếu có đã lỡ ở trạng
+    // Đơn tại quầy
     private const PICKUP_TRANSITIONS = [
         'pending' => ['confirmed', 'cancelled'],
         'confirmed' => ['completed', 'cancelled'],
@@ -30,38 +30,29 @@ class OrderWorkflowService
     ];
 
     // Khởi tạo dịch vụ xử lý quy trình đơn hàng
-    public function __construct(private readonly NotificationService $notifications) {}
+    public function __construct(private readonly NotificationService $notifications)
+    {
+    }
 
     // Chuyển trạng thái đơn hàng và xử lý các điều kiện
     public function transition(Order $order, string $newStatus, ?string $cancelReason = null): Order
     {
         return DB::transaction(function () use ($order, $newStatus, $cancelReason) {
-            // Khóa dòng dữ liệu đơn hàng để tránh xung đột ghi đè
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
-            // Nếu trạng thái mới trùng trạng thái cũ thì trả về luôn
             if ($newStatus === $locked->status) {
                 return $locked;
             }
-
-            // Chọn sơ đồ chuyển trạng thái dựa trên loại nhận hàng
             if ($locked->delivery_type === 'pickup') {
                 $transitions = self::PICKUP_TRANSITIONS;
             } else {
                 $transitions = self::TRANSITIONS;
             }
-
-            // Kiểm tra trạng thái mới có hợp lệ trong sơ đồ không
             if (!in_array($newStatus, $transitions[$locked->status] ?? [], true)) {
                 throw ValidationException::withMessages(['status' => "Không thể chuyển từ {$locked->status} sang {$newStatus}."]);
             }
-
-            // Đơn tiền mặt tại quầy phải thu tiền trước khi xác nhận
             if ($newStatus === 'confirmed' && $locked->payment_method === 'cash' && $locked->payment_status !== 'paid') {
                 throw ValidationException::withMessages(['status' => 'Cần xác nhận đã thu tiền mặt trước khi xác nhận đơn hàng.']);
             }
-
-            // Xử lý khi đơn hàng bị hủy
             if ($newStatus === 'cancelled') {
                 if (mb_strlen(trim((string) $cancelReason)) < 5) {
                     throw ValidationException::withMessages(['cancel_reason' => 'Vui lòng nhập lý do hủy ít nhất 5 ký tự.']);
@@ -99,21 +90,14 @@ class OrderWorkflowService
         $wasAlreadyPaid = false;
 
         $result = DB::transaction(function () use ($order, $transactionId, $amount, $paidAtOverride, &$wasAlreadyPaid) {
-            // Khóa đơn hàng để đối soát thông tin thanh toán
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
-            // Kiểm tra số tiền thanh toán có khớp với hóa đơn không
             if (abs((float) $locked->final_amount - $amount) > 0.01) {
                 throw ValidationException::withMessages(['amount' => 'Số tiền thanh toán không khớp đơn hàng.']);
             }
-
-            // Nếu đơn hàng đã được ghi nhận thanh toán trước đó
             if ($locked->payment_status === 'paid') {
                 $wasAlreadyPaid = true;
                 return $locked;
             }
-
-            // Cập nhật thông tin thanh toán thành công
             if ($paidAtOverride) {
                 $paidAt = $paidAtOverride;
             } else {
@@ -127,8 +111,6 @@ class OrderWorkflowService
             ])->save();
             return $locked;
         }, 3);
-
-        // Gửi thông báo đặt hàng thành công nếu thanh toán lần đầu
         if (!$wasAlreadyPaid) {
             $this->notifications->orderPlaced($result); // Gửi email xác nhận đơn hàng mới cho khách và quản lý
         }
@@ -140,25 +122,18 @@ class OrderWorkflowService
     public function assignDeliveryStaff(Order $order, int $deliveryStaffId, int $assignedByUserId): Order
     {
         return DB::transaction(function () use ($order, $deliveryStaffId, $assignedByUserId) {
-            // Khóa đơn hàng để cập nhật thông tin người vận chuyển
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
-
-            // Chỉ phân công khi đơn đang ở trạng thái đã xác nhận
             if ($locked->status !== 'confirmed') {
                 throw ValidationException::withMessages([
                     'status' => 'Chỉ có thể phân công giao hàng cho đơn đã xác nhận.',
                 ]);
             }
-
-            // Tìm và kiểm tra nhân viên vận chuyển có hợp lệ không
             $deliveryStaff = User::query()->find($deliveryStaffId);
             if (!$deliveryStaff || $deliveryStaff->role !== 'staff' || $deliveryStaff->staff_type !== 'delivery' || !$deliveryStaff->is_active) {
                 throw ValidationException::withMessages([
                     'delivery_staff_id' => 'Nhân viên giao hàng không hợp lệ hoặc đã bị khóa.',
                 ]);
             }
-
-            // Lưu thông tin người giao hàng được gán
             $locked->forceFill([
                 'delivery_staff_id' => $deliveryStaff->id,
                 'assigned_by' => $assignedByUserId,
@@ -173,9 +148,7 @@ class OrderWorkflowService
     public function markDeliveryFailed(Order $order, string $reason, string $failureType): Order
     {
         return DB::transaction(function () use ($order, $reason, $failureType) {
-            // Xác thực và khóa đơn hàng đang giao
             $locked = $this->lockShippingOrderAndValidate($order, $reason); // Xác thực tính hợp lệ trạng thái đang giao hàng
-            // Xử lý các nghiệp vụ hoàn trả và hủy đơn
             $this->applyDeliveryFailedCleanup($locked, $reason, $failureType); // Hoàn nguyên tồn kho, điểm thưởng và hủy khuyến mãi
             $locked->save();
             return $locked->fresh();
@@ -187,9 +160,7 @@ class OrderWorkflowService
     {
         return DB::transaction(function () use ($order, $reason, $failureType, $refundTransactionId) {
             // Xác thực và khóa đơn hàng đang giao
-            $locked = $this->lockShippingOrderAndValidate($order, $reason); // Khóa và xác thực đơn giao hàng
-
-            // Cập nhật trạng thái tiền đã hoàn nếu trước đó đã thanh toán
+            $locked = $this->lockShippingOrderAndValidate($order, $reason);
             if ($locked->payment_status === 'paid') {
                 $locked->forceFill([
                     'payment_status' => 'refunded',
@@ -198,8 +169,7 @@ class OrderWorkflowService
                 ]);
             }
             // Dọn dẹp khuyến mãi và hủy đơn hàng
-            $this->applyDeliveryFailedCleanup($locked, $reason, $failureType); // Thực hiện hoàn nguyên khuyến mãi cho đơn giao thất bại
-            $locked->save();
+            $this->applyDeliveryFailedCleanup($locked, $reason, $failureType);
             return $locked->fresh();
         }, 3);
     }
@@ -265,7 +235,6 @@ class OrderWorkflowService
                 ->lockForUpdate()
                 ->get();
 
-            // Đánh dấu đối soát cho từng đơn hàng
             foreach ($orders as $order) {
                 $order->forceFill(['cod_settled_at' => now(), 'cod_settled_by' => $settledByUserId])->save();
             }
@@ -358,11 +327,11 @@ class OrderWorkflowService
         if (!$order->user_id || (int) $order->loyalty_points_awarded > 0) {
             return;
         }
-        $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
+        $loyaltyEnabled = (bool) Setting::getValue('loyalty_enabled', true);
         if (!$loyaltyEnabled) {
             return;
         }
-        $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
+        $moneyPerPoint = (float) Setting::getValue('loyalty_money_per_point', 10000);
         if ($moneyPerPoint <= 0) {
             return;
         }

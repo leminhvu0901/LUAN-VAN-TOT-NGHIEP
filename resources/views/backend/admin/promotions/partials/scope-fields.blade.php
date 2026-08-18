@@ -14,16 +14,16 @@
 @endphp
 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-        <span class="material-symbols-outlined text-violet-500 text-[20px] icon-fill">category</span>
+        <i class="fa-solid fa-layer-group text-violet-500 text-[18px]"></i>
         Phạm vi áp dụng
     </h3>
 
     @php
         $scopeOptions = [
-            'order' => ['icon' => 'receipt_long', 'title' => 'Giảm toàn đơn', 'desc' => 'Giảm trên tổng tiền cả đơn hàng'],
-            'product' => ['icon' => 'local_cafe', 'title' => 'Giảm theo sản phẩm', 'desc' => 'Chỉ giảm trên các món được chọn'],
-            'category' => ['icon' => 'folder', 'title' => 'Giảm theo danh mục', 'desc' => 'Chỉ giảm trên các danh mục được chọn'],
-            'combo' => ['icon' => 'redeem', 'title' => 'Combo', 'desc' => 'Mua đủ nhiều sản phẩm, giảm giá và/hoặc tặng quà'],
+            'order' => ['icon' => 'fa-receipt', 'title' => 'Giảm toàn đơn', 'desc' => 'Giảm trên tổng tiền cả đơn hàng'],
+            'product' => ['icon' => 'fa-mug-hot', 'title' => 'Giảm theo sản phẩm', 'desc' => 'Chỉ giảm trên các món được chọn'],
+            'category' => ['icon' => 'fa-folder', 'title' => 'Giảm theo danh mục', 'desc' => 'Chỉ giảm trên các danh mục được chọn'],
+            'combo' => ['icon' => 'fa-gift', 'title' => 'Combo', 'desc' => 'Mua đủ nhiều sản phẩm, giảm giá và/hoặc tặng quà'],
         ];
     @endphp
 
@@ -35,7 +35,7 @@
                 <input type="radio" name="scope" value="{{ $value }}" class="hidden" {{ $selectedScope === $value ? 'checked' : '' }}>
                 <div
                     class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 flex-shrink-0">
-                    <span class="material-symbols-outlined text-[20px]">{{ $opt['icon'] }}</span>
+                    <i class="fa-solid {{ $opt['icon'] }} text-[18px]"></i>
                 </div>
                 <div>
                     <p class="font-semibold text-sm text-gray-800">{{ $opt['title'] }}</p>
@@ -110,13 +110,12 @@
                         <input name="combo_quantities[]" type="number" min="1" value="{{ $row['quantity'] }}"
                             placeholder="SL" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                         <button type="button" class="js-remove-combo-item w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg"
-                            title="Xóa sản phẩm"><span class="material-symbols-outlined">delete</span></button>
+                            title="Xóa sản phẩm"><i class="fa-solid fa-trash-can text-sm"></i></button>
                     </div>
                 @endforeach
             </div>
             <button type="button" id="add-combo-item"
-                class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1"><span
-                    class="material-symbols-outlined text-[18px]">add</span>Thêm sản phẩm</button>
+                class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1"><i class="fa-solid fa-plus text-[14px]"></i>Thêm sản phẩm</button>
             @error('combo_product_ids')
             <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>

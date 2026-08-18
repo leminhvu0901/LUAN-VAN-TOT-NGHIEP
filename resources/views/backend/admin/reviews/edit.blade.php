@@ -10,7 +10,7 @@
         <a href="{{ route('admin.reviews.index') }}"
             onclick="smartGoBack(event)"
             class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors shrink-0">
-            <span class="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div class="min-w-0">
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Chi tiết đánh giá #{{ $review->id }}</h2>
@@ -38,7 +38,7 @@
                 <!-- Card: Thông tin chính -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-600 text-[20px] icon-fill">reviews</span>
+                        <i class="fa-solid fa-star text-amber-600 text-base"></i>
                         Nội dung đánh giá
                     </h3>
                     <div class="space-y-5">
@@ -46,7 +46,7 @@
                         <!-- Sản phẩm -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">inventory_2</span>
+                                <i class="fa-solid fa-box text-gray-400 text-sm"></i>
                                 Sản phẩm đánh giá
                             </label>
                             <input type="text" disabled value="{{ $review->product->name }}"
@@ -56,7 +56,7 @@
                         <!-- Số sao -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-amber-500 icon-fill">star</span>
+                                <i class="fa-solid fa-star text-amber-500 text-sm"></i>
                                 Số sao đánh giá <span class="text-red-500">*</span>
                             </label>
                             <select name="rating" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
@@ -71,7 +71,7 @@
                         <!-- Nội dung -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">chat</span>
+                                <i class="fa-solid fa-comment text-gray-400 text-sm"></i>
                                 Nhận xét của khách
                             </label>
                             <textarea id="review-comment" name="comment" rows="4" maxlength="200"
@@ -88,7 +88,7 @@
                         <!-- Quản lý Hình ảnh -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">image</span>
+                                <i class="fa-solid fa-image text-gray-400 text-sm"></i>
                                 Quản lý hình ảnh đính kèm
                             </label>
                             
@@ -109,7 +109,7 @@
                                                 
                                                 <!-- Nút X góc phải trên -->
                                                 <button type="button" data-image="{{ $img }}" data-id="{{ $review->id }}" data-index="{{ $index }}" class="js-delete-review-image absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 backdrop-blur text-gray-500 flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white" title="Xóa ảnh này ngay lập tức">
-                                                    <span class="material-symbols-outlined text-[16px] font-bold">close</span>
+                                                    <i class="fa-solid fa-xmark text-[13px] font-bold"></i>
                                                 </button>
                                             </div>
                                         @endforeach
@@ -137,7 +137,7 @@
                 <!-- Card: Trạng thái -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-500 text-[20px] icon-fill">toggle_on</span>
+                        <i class="fa-solid fa-toggle-on text-amber-500 text-base"></i>
                         Trạng thái
                     </h3>
                     <label class="flex items-center gap-3 cursor-pointer">
@@ -160,13 +160,13 @@
                 <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
                         class="w-full sm:flex-1 px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 organic-shadow transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">save</span>
+                        <i class="fa-solid fa-floppy-disk text-sm"></i>
                         Lưu
                     </button>
                     <a href="{{ route('admin.reviews.index') }}"
                         onclick="smartGoBack(event)"
                         class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-200">
-                        <span class="material-symbols-outlined text-[20px]">cancel</span>
+                        <i class="fa-solid fa-xmark text-sm"></i>
                         Hủy
                     </a>
                 </div>
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'absolute top-1 left-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600';
-                    removeBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] font-bold">close</span>';
+                    removeBtn.innerHTML = '<i class="fa-solid fa-xmark text-[11px] font-bold"></i>';
                     removeBtn.title = 'Bỏ chọn ảnh này';
                     removeBtn.onclick = function() {
                         const dt = new DataTransfer();

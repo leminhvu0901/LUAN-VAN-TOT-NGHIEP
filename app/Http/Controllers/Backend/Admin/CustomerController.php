@@ -12,7 +12,7 @@ class CustomerController
     // Hàm lấy danh sách khách hàng và hiển thị, lọc
     public function index(Request $request)
     {
-        $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng, role = customer
+        $query = User::whereIn('role', ['customer', 'admin']); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng, role = customer
 
         // Lọc theo tìm kiếm, tên, email, sđt
         if ($request->filled('search')) {
@@ -75,7 +75,7 @@ class CustomerController
 
         $inactiveCount = User::where('role', 'customer')->where('is_active', 0)->count(); // Đếm số lượng tài khoản khách hàng đang bị khóa
 
-        return view('backend.admin.customers.index', compact( // Load giao diện trang quản lý khách hàng
+        return view('backend.admin.customers.index', compact(
             'customers',
             'totalCustomers',
             'diamondCount',
@@ -91,7 +91,6 @@ class CustomerController
     {
         return view('backend.admin.customers.create'); // Load giao diện form thêm mới khách hàng
     }
-
 
     // Hàm xử lý lưu thông tin khách hàng mới vào Database.
     public function store(Request $request)
@@ -188,11 +187,17 @@ class CustomerController
             return redirect()->route('admin.customers.index')->with('error', 'Không có khách hàng nào được chọn!');
         }
 
+        // Không cho phép Admin xóa chính mình trong xóa hàng loạt
+        $currentAdminId = auth()->id();
+        if (in_array($currentAdminId, $ids)) {
+            return redirect()->route('admin.customers.index')->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
+        }
+
         // Xóa cứng, Hard Delete
         $deletedCount = 0;
         $failedCount = 0;
 
-        $customers = User::whereIn('id', $ids)->where('role', 'customer')->get();
+        $customers = User::whereIn('id', $ids)->whereIn('role', ['customer', 'admin'])->get();
 
         foreach ($customers as $customer) {
             try {
@@ -215,22 +220,20 @@ class CustomerController
             return redirect()->route('admin.customers.index')->with('success', "Đã xóa {$deletedCount} KH. Có {$failedCount} KH có lịch sử (đơn hàng/đánh giá) nên được chuyển sang KHÓA.");
         }
 
-        return redirect()->route('admin.customers.index')->with('success', 'Đã xóa thành công các khách hàng đã chọn!');
+        return redirect()->route('admin.customers.index')->with('success', 'Đã xóa thành công các tài khoản đã chọn!');
     }
 
-    /**
-     * Hàm hiển thị giao diện form chỉnh sửa thông tin cho một khách hàng cụ thể.
-     */
+    //Hàm hiển thị giao diện form chỉnh sửa thông tin cho một tài khoản cụ thể.
     public function edit($id)
     {
-        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần sửa đổi
-        return view('backend.admin.customers.edit', compact('customer')); // Load giao diện form sửa đổi thông tin khách hàng
+        $customer = User::whereIn('role', ['customer', 'admin'])->findOrFail($id); // Tìm tài khoản theo ID cần sửa đổi
+        return view('backend.admin.customers.edit', compact('customer')); // Load giao diện form sửa đổi thông tin tài khoản
     }
 
-    // Hàm xử lý cập nhật các thông tin khách hàng
+    // Hàm xử lý cập nhật các thông tin tài khoản
     public function update(Request $request, $id)
     {
-        $customer = User::where('role', 'customer')->findOrFail($id);
+        $customer = User::whereIn('role', ['customer', 'admin'])->findOrFail($id);
 
         // Name: trim khoảng trắng
         if ($request->has('name')) {
@@ -267,11 +270,10 @@ class CustomerController
         $data = $request->except(['password', 'password_confirmation', 'avatar']);
 
         if ($request->filled('password')) {
-            $data['password'] = $request->password; // Will be hashed automatically by User model casts
+            $data['password'] = $request->password;
         }
 
         if ($request->hasFile('avatar')) {
-            // Delete old avatar if it's not a remote URL and not empty
             if ($customer->avatar && !str_starts_with($customer->avatar, 'http')) {
                 $oldPath = avatar_path($customer->avatar);
                 if ($oldPath && file_exists($oldPath)) {
@@ -285,23 +287,29 @@ class CustomerController
             $data['avatar'] = upload_rel('avatars', $filename);
         }
 
-        $customer->update($data); // Thực hiện cập nhật các thay đổi mới vào CSDL
+        $customer->update($data);
 
-        return redirect()->route('admin.customers.index')->with('success', 'Cập nhật khách hàng thành công!'); // Chuyển hướng về trang quản lý khách hàng
+        return redirect()->route('admin.customers.index')->with('success', 'Cập nhật khách hàng thành công!');
     }
 
-    // Hàm xử lý xóa một khách hàng cụ thể ra khỏi hệ thống
+    // Hàm xử lý xóa một tài khoản cụ thể ra khỏi hệ thống
     public function destroy($id)
     {
-        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID cần xóa
+        $user = User::whereIn('role', ['customer', 'admin'])->findOrFail($id);
+
+        // Không cho phép Admin xóa chính mình
+        if ($user->id === auth()->id()) {
+            return redirect()->back()->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
+        }
+
         try {
-            $customer->delete(); // Thực hiện xóa cứng, Hard Delete bản ghi khách hàng khỏi Database
-            return redirect()->back()->with('success', 'Xóa khách hàng thành công!');
+            $user->delete();
+            return redirect()->back()->with('success', 'Xóa tài khoản thành công!');
         } catch (QueryException $e) {
-            if ($e->getCode() == "23000") { // Xử lý lỗi ràng buộc khóa ngoại, Foreign Key Constraint khi khách hàng có đơn hàng/đánh giá
-                $customer->is_active = 0;
-                $customer->save(); // Khóa tài khoản khách hàng để tránh làm hỏng dữ liệu báo cáo đơn hàng
-                return redirect()->back()->with('warning', 'Khách hàng có lịch sử giao dịch nên tài khoản chỉ bị khóa!');
+            if ($e->getCode() == "23000") {
+                $user->is_active = 0;
+                $user->save();
+                return redirect()->back()->with('warning', 'Tài khoản có lịch sử giao dịch nên chỉ bị khóa thay vì xóa!');
             }
             throw $e;
         }

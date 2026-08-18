@@ -13,19 +13,19 @@
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <button type="button" id="bulk-deselect-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <i class="fa-solid fa-arrow-rotate-left text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                 </button>
 
                 <div id="bulk-delete-container" class="hidden flex-1 sm:flex-none">
                     <button type="button" class="js-bulk-delete w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100" title="Xóa đã chọn">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                        <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                         <span class="font-semibold whitespace-nowrap">Xóa (<span id="selected-count" class="font-bold">0</span>)</span>
                     </button>
                 </div>
 
                 <a href="{{ route('admin.customers.create') }}" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-medium text-sm shadow-sm hover:shadow-md whitespace-nowrap">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">add</span>
+                    <i class="fa-solid fa-plus text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Thêm Khách hàng</span>
                 </a>
             </div>
@@ -36,9 +36,9 @@
         <div class="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pb-2 sm:pb-0 snap-x snap-mandatory hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             <!-- Card 1: Tổng khách hàng -->
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl p-5 border border-indigo-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">group</span>
+                <i class="fa-solid fa-users text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">group</span>
+                    <i class="fa-solid fa-users text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Tổng tài khoản</p>
@@ -48,9 +48,9 @@
 
             <!-- Card 2: Hạng Diamond & Gold -->
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl p-5 border border-amber-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-amber-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">workspace_premium</span>
+                <i class="fa-solid fa-crown text-8xl absolute -bottom-4 -right-4 text-amber-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">workspace_premium</span>
+                    <i class="fa-solid fa-crown text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Diamond & Gold</p>
@@ -60,9 +60,9 @@
 
             <!-- Card 3: Khách hàng mới -->
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">person_add</span>
+                <i class="fa-solid fa-user-plus text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">person_add</span>
+                    <i class="fa-solid fa-user-plus text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Mới đăng ký</p>
@@ -72,9 +72,9 @@
 
             <!-- Card 4: Bị khóa -->
             <div class="stat-card snap-center shrink-0 w-[85%] sm:w-auto group bg-gradient-to-br from-rose-50 to-rose-100/50 rounded-2xl p-5 border border-rose-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-rose-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">block</span>
+                <i class="fa-solid fa-user-lock text-8xl absolute -bottom-4 -right-4 text-rose-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-rose-100 flex items-center justify-center text-rose-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">block</span>
+                    <i class="fa-solid fa-user-lock text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Tài khoản bị khóa</p>
@@ -93,7 +93,7 @@
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button" onclick="toggleFilterPanel('filter-wrapper')" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors shrink-0 border border-gray-100" title="Mở bộ lọc">
-                    <span class="material-symbols-outlined text-[20px]">filter_list</span>
+                    <i class="fa-solid fa-filter text-[14px]"></i>
                 </button>
             </div>
 
@@ -102,7 +102,7 @@
                     class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-stretch sm:items-center w-full">
     
                     <div class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 w-full sm:w-72 relative focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all">
-                        <span class="material-symbols-outlined text-gray-400">search</span>
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-[14px] shrink-0"></i>
                         <input type="text" name="search" value="{{ request('search') }}"
                             class="bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none"
                             placeholder="Tìm tên, email, SĐT...">

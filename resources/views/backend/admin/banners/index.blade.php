@@ -16,21 +16,21 @@
                 <button type="button" id="bulk-deselect-btn"
                     class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200"
                     title="Bỏ chọn tất cả">
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <i class="fa-solid fa-arrow-rotate-left text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                 </button>
 
                 <button type="button" id="bulk-delete-btn"
                     class="hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100"
                     title="Xóa đã chọn">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                    <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Xóa <span id="selected-count" class="mx-1">0</span>
                         banner</span>
                 </button>
 
                 <a href="{{ route('admin.banners.create') }}"
                     class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all border border-emerald-600">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">add</span>
+                    <i class="fa-solid fa-plus text-[14px] shrink-0"></i>
                     <span class="whitespace-nowrap">Thêm banner</span>
                 </a>
             </div>
@@ -60,12 +60,12 @@
                     <p id="total-banners-stat" class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                         {{ number_format($totalBanners) }}</p>
                     <p class="text-emerald-600 font-medium text-[10px] sm:text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">view_carousel</span> banner
+                        <i class="fa-solid fa-images text-[11px]"></i> banner
                     </p>
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm icon-fill">view_carousel</span>
+                    <i class="fa-solid fa-images text-sm"></i>
                 </div>
             </div>
 
@@ -77,12 +77,12 @@
                     <p id="active-banners-stat" class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                         {{ number_format($activeBanners) }}</p>
                     <p class="text-emerald-600 font-medium text-[10px] sm:text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">check_circle</span> hoạt động
+                        <i class="fa-solid fa-circle-check text-[11px]"></i> hoạt động
                     </p>
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm icon-fill">check_circle</span>
+                    <i class="fa-solid fa-circle-check text-sm"></i>
                 </div>
             </div>
 
@@ -94,12 +94,12 @@
                     <p id="upcoming-banners-stat" class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                         {{ number_format($upcomingBanners) }}</p>
                     <p class="text-blue-500 font-medium text-[10px] sm:text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">schedule</span> lên lịch
+                        <i class="fa-solid fa-clock text-[11px]"></i> lên lịch
                     </p>
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm icon-fill">schedule</span>
+                    <i class="fa-solid fa-clock text-sm"></i>
                 </div>
             </div>
 
@@ -111,13 +111,13 @@
                     <p id="expired-banners-stat" class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                         {{ number_format($expiredBanners) }}</p>
                     <p class="text-red-500 font-medium text-[10px] sm:text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">history_toggle_off</span> hết
+                        <i class="fa-solid fa-calendar-xmark text-[11px]"></i> hết
                         hiệu lực
                     </p>
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm icon-fill">history_toggle_off</span>
+                    <i class="fa-solid fa-calendar-xmark text-sm"></i>
                 </div>
             </div>
 
@@ -129,13 +129,13 @@
                     <p id="inactive-banners-stat" class="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                         {{ number_format($inactiveBanners) }}</p>
                     <p class="text-gray-500 font-medium text-[10px] sm:text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[13px] sm:text-[14px]">visibility_off</span> tắt hiển
+                        <i class="fa-solid fa-eye-slash text-[11px]"></i> tắt hiển
                         thị
                     </p>
                 </div>
                 <div
                     class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-100 group-hover:scale-110 transition-all flex-shrink-0">
-                    <span class="material-symbols-outlined text-sm icon-fill">visibility_off</span>
+                    <i class="fa-solid fa-eye-slash text-sm"></i>
                 </div>
             </div>
         </div>
@@ -147,7 +147,7 @@
                 <button type="button"
                     onclick="toggleFilterPanel('filter-wrapper')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ
+                    <i class="fa-solid fa-filter text-[14px]"></i> <span class="hidden sm:inline">Bộ
                         lọc</span>
                 </button>
             </div>
@@ -160,7 +160,7 @@
                     <!-- Tìm kiếm -->
                     <div
                         class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[280px] shrink-0">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-[14px] shrink-0"></i>
                         <input type="text" name="search" id="search-input" value="{{ request('search') }}"
                             class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
                             placeholder="Tìm banner...">
@@ -181,7 +181,7 @@
                         class="custom-select-init px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 outline-none transition-colors hover:border-emerald-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full sm:w-[calc(50%-0.375rem)] lg:w-[180px] shrink-0">
                         <option value="order_asc" {{ request('sort', 'order_asc') == 'order_asc' ? 'selected' : '' }}>Thứ tự:
                             Nhỏ → Lớn</option>
-                        <option value="order_desc" {{ request('sort') == 'order_desc' ? 'selected' : '' }}>Thứ tự: Lớn → Nhỏ
+                        <option value="order_desc" {{ request('sort', 'order_desc') == 'order_desc' ? 'selected' : '' }}>Thứ tự: Lớn → Nhỏ
                         </option>
                         <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Mới nhất</option>
                         <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
@@ -194,7 +194,7 @@
                         <a href="{{ route('admin.banners.index') }}" id="btn-clear-filter"
                             class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-1.5 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow"
                             style="display: {{ (request('search') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'order_asc')) ? 'flex' : 'none' }};">
-                            <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
+                            <i class="fa-solid fa-filter-circle-xmark text-[16px] shrink-0"></i>
                             <span class="whitespace-nowrap font-medium">Xóa lọc</span>
                         </a>
                     </div>

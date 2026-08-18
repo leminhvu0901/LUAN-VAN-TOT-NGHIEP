@@ -16,9 +16,9 @@
         <!-- Thống kê tổng quan -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div class="stat-card group bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl p-5 border border-indigo-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">local_shipping</span>
+                <i class="fa-solid fa-truck text-8xl absolute -bottom-4 -right-4 text-indigo-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-indigo-100 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">local_shipping</span>
+                    <i class="fa-solid fa-truck text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Nhân viên giao hàng</p>
@@ -27,9 +27,9 @@
             </div>
 
             <div class="stat-card group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none">check_circle</span>
+                <i class="fa-solid fa-circle-check text-8xl absolute -bottom-4 -right-4 text-emerald-500/5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">check_circle</span>
+                    <i class="fa-solid fa-circle-check text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Đang hoạt động</p>
@@ -38,9 +38,9 @@
             </div>
 
             <div class="stat-card group bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl p-5 border border-amber-100/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center gap-4 relative overflow-hidden">
-                <span class="material-symbols-outlined text-8xl absolute -bottom-4 -right-4 text-amber-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none">inventory_2</span>
+                <i class="fa-solid fa-box text-8xl absolute -bottom-4 -right-4 text-amber-500/5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 select-none"></i>
                 <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-amber-100 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform duration-300 z-10">
-                    <span class="material-symbols-outlined text-2xl icon-fill">inventory_2</span>
+                    <i class="fa-solid fa-box text-xl"></i>
                 </div>
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Đơn đã giao (trong kỳ)</p>
@@ -80,7 +80,7 @@
 
                 <div class="flex items-center gap-2">
                     <button type="submit" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium text-sm shadow-sm hover:shadow-md whitespace-nowrap">
-                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                        <i class="fa-solid fa-filter text-[14px]"></i>
                         Lọc
                     </button>
                 </div>
@@ -180,7 +180,7 @@
                 </div>
             @else
                 <div class="text-center py-16 px-4 bg-white w-full">
-                    <span class="material-symbols-outlined text-6xl text-gray-200 mb-4 select-none">local_shipping</span>
+                    <i class="fa-solid fa-truck text-6xl text-gray-200 mb-4 select-none"></i>
                     <h3 class="text-lg font-bold text-gray-900 mb-1">Chưa có nhân viên giao hàng nào</h3>
                     <p class="text-gray-500 text-sm max-w-sm mx-auto">Thêm nhân viên và gán loại "Nhân viên giao hàng" trong trang Quản lý Nhân viên.</p>
                 </div>

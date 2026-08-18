@@ -84,7 +84,6 @@ class SecureOrderController
         return view('backend.admin.orders.index', compact('stats', 'orders', 'paginator'))->with('currentStatus', $status); // Trả về trang index chính thức
     }
 
-
     // Hàm hiển thị thông tin chi tiết của một đơn hàng cụ thể.
     public function show($id)
     {
@@ -129,7 +128,7 @@ class SecureOrderController
         return back()->with('success', 'Đã phê duyệt đơn hàng ' . $order->order_code . ' thành công!');
     }
 
-   // Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
+    // Hàm xóa một đơn hàng khỏi hệ thống theo ID cụ thể.
     public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id); // Tìm đơn hàng theo ID hoặc ném lỗi 404

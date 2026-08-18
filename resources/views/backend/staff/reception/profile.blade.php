@@ -7,7 +7,7 @@
         <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hồ sơ cá nhân</h2>
 
         <div class="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-sm">
-            <span class="material-symbols-outlined text-[20px] mt-0.5">lock</span>
+            <i class="fa-solid fa-lock text-base mt-0.5 shrink-0"></i>
             <span>Bạn chỉ có thể xem thông tin tài khoản. Nếu cần đổi tên, số điện thoại, mật khẩu hoặc loại nhân viên, vui lòng liên hệ quản trị viên (admin) để được cập nhật.</span>
         </div>
 

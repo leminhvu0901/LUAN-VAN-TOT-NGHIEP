@@ -27,11 +27,11 @@
                     <p class="font-semibold text-xs text-gray-500 truncate">Tổng mặt hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($totalItems) }}</p>
                     <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">category</span> đang quản lý
+                        <i class="fa-solid fa-shapes text-xs"></i> đang quản lý
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">inventory_2</span>
+                    <i class="fa-solid fa-box text-base"></i>
                 </div>
             </div>
 
@@ -41,11 +41,11 @@
                     <p class="font-semibold text-xs text-gray-500 truncate">Sắp hết hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($lowStockItems) }}</p>
                     <p class="text-orange-500 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">warning</span> sắp hết
+                        <i class="fa-solid fa-triangle-exclamation text-xs"></i> sắp hết
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">production_quantity_limits</span>
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
                 </div>
             </div>
 
@@ -55,11 +55,11 @@
                     <p class="font-semibold text-xs text-gray-500 truncate">Hết hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($outOfStockItems ?? 0) }}</p>
                     <p class="text-red-500 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">error</span> cần nhập gấp
+                        <i class="fa-solid fa-circle-exclamation text-xs"></i> cần nhập gấp
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
+                    <i class="fa-solid fa-cart-arrow-down text-base"></i>
                 </div>
             </div>
 
@@ -73,7 +73,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">event_upcoming</span>
+                    <i class="fa-solid fa-clock-rotate-left text-base"></i>
                 </div>
             </div>
 
@@ -87,7 +87,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">event_busy</span>
+                    <i class="fa-solid fa-calendar-xmark text-base"></i>
                 </div>
             </div>
 
@@ -101,7 +101,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
+                    <i class="fa-solid fa-ban text-base"></i>
                 </div>
             </div>
 
@@ -115,7 +115,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">payments</span>
+                    <i class="fa-solid fa-money-bill-wave text-base"></i>
                 </div>
             </div>
 
@@ -129,7 +129,7 @@
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">assignment_return</span>
+                    <i class="fa-solid fa-arrow-rotate-left text-base"></i>
                 </div>
             </div>
         </div>
@@ -141,14 +141,14 @@
                 <button type="button"
                     onclick="toggleFilterPanel('filter-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
+                    <i class="fa-solid fa-filter text-xs"></i> <span class="hidden sm:inline">Bộ lọc</span>
                 </button>
             </div>
 
             <form id="filter-form" action="{{ route('staff.reception.materials.index') }}" method="GET" class="hidden lg:flex flex-col w-full transition-all">
                 <div class="flex flex-wrap items-center gap-3 w-full">
                     <div class="w-full sm:w-[calc(50%-0.375rem)] lg:w-auto lg:flex-1 flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm shrink-0"></i>
                         <input type="text" name="search" id="search-input" value="{{ request('search') }}"
                             class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
                             placeholder="Tên vật tư, mã VT...">
@@ -177,7 +177,7 @@
                         <a href="{{ route('staff.reception.materials.index') }}" id="btn-clear-filter"
                             style="display: {{ (request('search') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};"
                             class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-semibold text-sm rounded-xl hover:bg-gray-200 transition-all shadow-sm">
-                            <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
+                            <i class="fa-solid fa-filter-circle-xmark text-sm shrink-0"></i>
                             <span class="whitespace-nowrap">Xóa lọc</span>
                         </a>
                     </div>

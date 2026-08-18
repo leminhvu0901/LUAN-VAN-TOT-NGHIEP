@@ -167,9 +167,7 @@ class AuthController
         return $this->otpError('Mã OTP không chính xác. Vui lòng thử lại.');
     }
 
-    /**
-     * Trả lỗi xác thực OTP: quay lại modal OTP kèm thông báo lỗi.
-     */
+    // Trả lỗi xác thực OTP: quay lại modal OTP kèm thông báo lỗi.
     private function otpError(string $message)
     {
         return back()->withErrors(['otp_error' => $message]);
@@ -265,9 +263,7 @@ class AuthController
         return $this->loginError($request, 'Thông tin đăng nhập không chính xác.');
     }
 
-    /**
-     * Trả lỗi đăng nhập: quay lại modal đăng nhập kèm thông báo lỗi và giữ lại email đã nhập.
-     */
+    // Trả lỗi đăng nhập
     private function loginError(Request $request, string $message)
     {
         return back()->withErrors(['login_error' => $message])->withInput($request->only('email'));
@@ -344,7 +340,6 @@ class AuthController
 
             return redirect('/');
         } catch (\Exception $e) {
-            // Ghi lỗi chi tiết vào hệ thống log để lập trình viên theo dõi
             Log::error('Google Login Error: ' . $e->getMessage());
             return redirect('/login')->withErrors(['login_error' => 'Đăng nhập bằng Google thất bại. Vui lòng thử lại.']);
         }
@@ -389,9 +384,7 @@ class AuthController
         return back()->with('show_otp', true);
     }
 
-    /**
-     * Hiển thị giao diện cho phép nhập Mật khẩu mới (chỉ chạy sau khi đã qua bước nhập OTP hợp lệ).
-     */
+    // Hiển thị giao diện cho phép nhập Mật khẩu mới
     public function getResetPassword(Request $request)
     {
         if (!$this->hasValidResetPermission($request)) {//KHONG CO QUYEN

@@ -70,10 +70,10 @@ class CartPricingService
         return $items;
     }
 
-    // hàm tính tổng số tiền của giỏ hàng trước khi áp dụng
+    // hàm tính tổng số tiền của giỏ hàng , chưa áp mã 
     public function subtotal(Collection $items): float
     {
-        return (float) $items->sum(fn ($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
+        return (float) $items->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
 }
 

@@ -30,12 +30,12 @@
                         </div>
                         
                         <!-- Stars rating -->
-                        <div class="flex text-amber-400 text-[13px] shrink-0">
+                        <div class="flex items-center gap-0.5 text-amber-400 text-[11px] shrink-0">
                             @for ($i = 0; $i < 5; $i++)
                                 @if ($i < $review->rating)
-                                    ★
+                                    <i class="fa-solid fa-star text-amber-400"></i>
                                 @else
-                                    <span class="text-gray-200">★</span>
+                                    <i class="fa-solid fa-star text-gray-200"></i>
                                 @endif
                             @endfor
                         </div>
@@ -43,7 +43,7 @@
 
                     @if ($review->product)
                         <div class="text-[11px] font-semibold text-blue-600 mt-1 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[12px]">local_cafe</span>
+                            <i class="fa-solid fa-mug-hot text-[11px]"></i>
                             <span>{{ $review->product->name }}</span>
                         </div>
                     @endif

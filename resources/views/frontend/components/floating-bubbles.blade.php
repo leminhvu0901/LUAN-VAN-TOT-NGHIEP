@@ -12,10 +12,7 @@
 <div class="floating-bubbles" id="floating-bubbles">
     <button type="button" id="floating-cart-btn" class="floating-bubble floating-bubble--cart"
         aria-label="Giỏ hàng của bạn" title="Giỏ hàng của bạn">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-        </svg>
+        <i class="fa-solid fa-cart-shopping"></i>
         
         <span id="floating-cart-badge" class="floating-bubble__badge {{ $floatingCartCount > 0 ? '' : 'floating-bubble__badge--hidden' }}">{{ $floatingCartCount }}</span>
     </button>

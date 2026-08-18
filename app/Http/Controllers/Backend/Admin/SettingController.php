@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class SettingController
 {
-   // Trang cấu hình thông số và thiết lập hệ thống
+    // Trang cấu hình thông số và thiết lập hệ thống
     public function index()
     {
         // Đọc toàn bộ cấu hình đã lưu trong DB thành mảng key => value
@@ -111,10 +111,10 @@ class SettingController
             }
         }
 
-        return  view('backend.admin.settings.index', compact('settings', 'paymentStatus', 'existingLogos'));
+        return view('backend.admin.settings.index', compact('settings', 'paymentStatus', 'existingLogos'));
     }
 
-     // Cập nhật giá trị các thiết lập hệ thống
+    // Cập nhật giá trị các thiết lập hệ thống
     public function update(Request $request)
     {
         // Form cấu hình chia theo từng tab

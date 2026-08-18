@@ -22,7 +22,6 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerOrderController
 {
-    // Sử dụng Dependency Injection để nạp các dịch vụ xử lý
     public function __construct(
         private readonly OrderService $orders,
         private readonly NotificationService $notifications,
@@ -37,15 +36,10 @@ class CustomerOrderController
             ->where(fn($builder) => $builder->where('payment_method', '!=', 'vnpay')
                 ->orWhereNull('payment_method')->orWhere('payment_status', '!=', 'unpaid'));
 
-        // Áp dụng bộ lọc trạng thái nếu hợp lệ
         if (in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
             $query->where('status', $status);
         }
-
-        // Lấy danh sách đơn hàng mới nhất và thực hiện phân
         $orders = $query->latest()->paginate(10);
-
-        // Chuẩn hóa lại thông tin sản phẩm trong từng chi tiết
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
                 $item->product_name = $item->product_name ?: $item->product?->name;
@@ -53,56 +47,35 @@ class CustomerOrderController
                 $item->product_slug = $item->product?->slug;
             }
         }
-
-        // Lấy danh sách các sản phẩm mà người dùng hiện tại đã
         $reviewedItems = Review::query()->where('user_id', Auth::id())->whereNotNull('order_id')
             ->select('order_id', 'product_id')->get();
-
-        // Trả về view lịch sử mua hàng kèm theo các dữ liệu đã xử lý
         return view('frontend.orders.index', compact('orders', 'status', 'reviewedItems'));
     }
 
-   
     // XỬ LÝ TẠO ĐƠN VỚI HÌNH THỨC THANH TOÁN COD
     public function store(Request $request)
     {
-        // Kiểm tra tính hợp lệ của dữ liệu đầu vào khi gửi
         $validated = $request->validate([
-            'address_id' => ['required', 'integer'], // Địa chỉ giao nhận hàng
-            'coupon_code' => ['nullable', 'string', 'max:50'], // Mã giảm giá, nếu có
-            'note' => ['nullable', 'string', 'max:500'], // Ghi chú thêm
-            'idempotency_key' => ['required', 'uuid'], // Token chống gửi trùng lặp đơn hàng
-            'points_to_redeem' => ['nullable', 'integer', 'min:0'], // Điểm thưởng quy đổi
-            'selected_item_ids' => ['nullable', 'array'], // Danh sách các sản phẩm chọn thanh toán
+            'address_id' => ['required', 'integer'],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'idempotency_key' => ['required', 'uuid'],
+            'points_to_redeem' => ['nullable', 'integer', 'min:0'],
+            'selected_item_ids' => ['nullable', 'array'],
             'selected_item_ids.*' => ['integer', 'min:1'],
         ]);
-
-        // Kiểm tra xem Token thanh toán có khớp với Session hiện
         $this->assertCheckoutToken($validated['idempotency_key']);
-
-        // Kiểm tra xem cửa hàng hiện tại có đang mở cửa và nhận
         $this->assertStoreOpen();
-
-        // Kiểm tra cấu hình hệ thống xem phương thức COD có đang
         $codEnabled = Setting::getValue('cod_enabled', '1');
         if ($codEnabled != '1') {
             throw ValidationException::withMessages(['checkout' => 'Phương thức thanh toán COD hiện đang tạm khóa.']);
         }
-
-        // Thực hiện tạo đơn hàng mới trong cơ sở dữ liệu qua
         $order = $this->orders->create(Auth::user(), $validated, 'cod');
-
-        // Gửi thông báo đặt hàng thành công đến hệ thống
         $this->notifications->orderPlaced($order);
-
-        // Xóa sạch token thanh toán và danh sách sản phẩm đã
         session()->forget('checkout_token');
         session()->forget('selected_cart_item_ids');
-
-        // Chuyển hướng về trang lịch sử đơn hàng kèm theo thông
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
-
 
     // MUA LẠI
     public function reorder(Order $order)
@@ -237,17 +210,13 @@ class CustomerOrderController
         return redirect()->back()->with('success', "Đơn hàng #{$order->order_code} đã được hủy và hoàn tiền {$gatewayLabel} thành công!");
     }
 
-    /**
-     * Trả về thông báo lỗi hủy đơn dạng redirect back kèm flash message.
-     */
+    // Trả về thông báo lỗi hủy đơn dạng redirect back kèm flash message.
     private function cancelError(string $message)
     {
         return redirect()->back()->with('error', $message);
     }
 
-    /**
-     * Xác minh Token thanh toán chống spam/gửi trùng lặp
-     */
+    // Xác minh Token thanh toán chống spam/gửi trùng lặp
     private function assertCheckoutToken(string $token): void
     {
         if (!hash_equals((string) session('checkout_token'), $token)) {
@@ -255,9 +224,7 @@ class CustomerOrderController
         }
     }
 
-    /**
-     * Kiểm tra trạng thái đóng/mở cửa và quyền nhận đơn của quán
-     */
+    // Kiểm tra trạng thái đóng mở cửa và quyền nhận đơn của quán
     private function assertStoreOpen(): void
     {
         // Kiểm tra cấu hình bật/tắt nhận đơn hàng của quán

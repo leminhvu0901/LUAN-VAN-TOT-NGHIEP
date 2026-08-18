@@ -55,7 +55,7 @@ class VnpayController
         $this->configValid = !empty($this->tmnCode) && !empty($this->hashSecret);
     }
 
-   // Trả lỗi đúng định dạng theo kiểu request.
+    // Trả lỗi đúng định dạng theo kiểu request.
     private function checkoutError(Request $request, string $message)
     {
         if ($request->expectsJson()) {
@@ -86,20 +86,20 @@ class VnpayController
 
         $userId = Auth::id();
 
-        // 0a. Kiểm tra trạng thái tắt nhận đơn hàng từ trang
+        //  Kiểm tra trạng thái tắt nhận đơn hàng từ trang
         $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
         if (!$receiveEnabled) {
             return $this->checkoutError($request, 'Cửa hàng hiện đang tạm ngưng nhận đơn hàng.');
         }
 
-        // 0b. Kiểm tra giờ hoạt động, đọc từ Settings admin
+        // Kiểm tra giờ hoạt động, đọc từ Settings admin
         $open = Setting::getValue('store_open_time', '08:00');
         $close = Setting::getValue('store_close_time', '22:00');
         $nowStr = now()->format('H:i');
 
         if ($open < $close) {
             $isOpen = ($nowStr >= $open && $nowStr <= $close);
-        } else { // Khung giờ mở qua đêm, vd 22:00 -> 03:00 sáng hôm sau, hoặc 00:00-00:00 nghĩa là mở 24/7
+        } else {
             $isOpen = ($nowStr >= $open || $nowStr <= $close);
         }
 
@@ -271,7 +271,6 @@ class VnpayController
 
             DB::commit();
         } catch (ValidationException $e) {
-            // Mã giảm giá không hợp lệ/hết lượt: trả đúng thông báo
             DB::rollBack();
             return $this->checkoutError($request, collect($e->errors())->flatten()->first());
         } catch (\Exception $e) {
@@ -331,7 +330,6 @@ class VnpayController
 
         return $this->vnpUrl . '?' . $query . '&vnp_SecureHash=' . $secureHash;
     }
-
 
     // Gọi API hoàn tiền VNPay cho một đơn đã thanh toán
     public function requestRefund(Order $order): array
@@ -411,7 +409,6 @@ class VnpayController
         }
     }
 
-
     // Lễ tân/admin bấm "Hoàn tiền & Hủy đơn", gọi API VNPay
     public function refundOrder(Request $request, Order $order)
     {
@@ -470,7 +467,7 @@ class VnpayController
         return back()->withErrors(['refund' => $message]);
     }
 
-     // Lễ tân bấm "Thanh toán VNPay" cho một đơn tại quầy đã
+    // Thanh toán lại / tiếp tục thanh toán cho một đơn hàng đã có sẵn bằng VNPay
     public function payExistingOrder(Request $request, Order $order)
     {
         if (!$this->configValid) {
@@ -480,7 +477,7 @@ class VnpayController
         if ($order->payment_method !== 'vnpay' || $order->payment_status === 'paid') {
             return $this->checkoutError($request, 'Đơn hàng này không cần thanh toán qua VNPay.');
         }
-           //buildPaymentUrl() tạo link thanh toán VNPay cho $order, rồi checkoutRedirect() đưa link đó ra cho client
+        //buildPaymentUrl() tạo link thanh toán VNPay cho $order, rồi checkoutRedirect() đưa link đó ra cho client
         return $this->checkoutRedirect($request, $this->buildPaymentUrl($order, $request));
     }
 
@@ -517,7 +514,7 @@ class VnpayController
         return hash_equals($expectedHash, $receivedHash);
     }
 
-   // Hàm này dọn giỏ hàng của khách sau khi đặt hàng VNPay
+    // Hàm này dọn giỏ hàng của khách sau khi đặt hàng VNPay
     private function clearOrderedCartItems(Order $order): void
     {
         $cart = Cart::query()->where('user_id', $order->user_id)->first();
@@ -536,7 +533,7 @@ class VnpayController
         }
     }
 
-    // NHẬN PHẢN HỒI THANH TOÁN VN PAY
+    // người dùng quay lại sau khi thanh toán
     public function handleReturn(Request $request)
     {
         $data = $request->query();
@@ -603,7 +600,7 @@ class VnpayController
         return redirect()->route('checkout')->with('error', 'Bạn đã hủy thanh toán VNPay. Giỏ hàng của bạn vẫn được giữ nguyên.');
     }
 
-   // VNPay gọi về, server-to-server để xác nhận thanh toán
+    //VNPay gửi xác nhận thanh toán cho server
     public function handleIpn(Request $request)
     {
         $data = $request->query();

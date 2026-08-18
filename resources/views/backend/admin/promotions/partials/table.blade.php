@@ -36,7 +36,7 @@
                     @endif
                     @if($promo->requires_staff_verification)
                         <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md font-bold text-[10px] uppercase border border-rose-200" title="Mã này không tự động áp — cần nhân viên xác nhận">
-                            <span class="material-symbols-outlined text-[11px]">verified_user</span>
+                            <i class="fa-solid fa-shield-halved text-[10px]"></i>
                             Cần xác nhận
                         </span>
                     @endif
@@ -57,11 +57,11 @@
                     <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Loại giảm</span>
                     @if($promo->type === 'percent')
                         <span class="inline-flex items-center gap-0.5 text-xs font-bold text-violet-700">
-                            <span class="material-symbols-outlined text-[16px]">percent</span> Phần trăm
+                            <i class="fa-solid fa-percent text-[13px]"></i> Phần trăm
                         </span>
                     @else
                         <span class="inline-flex items-center gap-0.5 text-xs font-bold text-blue-700">
-                            <span class="material-symbols-outlined text-[16px]">payments</span> Cố định
+                            <i class="fa-solid fa-money-bill text-[13px]"></i> Cố định
                         </span>
                     @endif
                 </div>
@@ -110,11 +110,11 @@
             <!-- Usage limit & time -->
             <div class="flex flex-col gap-1.5 text-xs text-gray-600 px-1">
                 <div class="flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-gray-400">autorenew</span>
+                    <i class="fa-solid fa-rotate text-[13px] text-gray-400"></i>
                     <span>Đã dùng: <strong class="text-gray-900">{{ $promo->used_count ?? 0 }}</strong> / {{ $promo->usage_limit ? $promo->usage_limit . ' lượt' : 'Không giới hạn' }}</span>
                 </div>
                 <div class="flex items-start gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-gray-400 mt-0.5">schedule</span>
+                    <i class="fa-solid fa-clock text-[13px] text-gray-400 mt-0.5"></i>
                     <div class="flex flex-col min-w-0" style="overflow-wrap: anywhere; word-break: break-word;">
                         @if($promo->is_recurring)
                             @php
@@ -161,7 +161,7 @@
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.promotions.edit', $promo->id) }}"
                         class="px-3.5 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                        <i class="fa-solid fa-pen text-[12px]"></i>
                         Sửa
                     </a>
                     <form method="POST" action="{{ route('admin.promotions.destroy', $promo->id) }}"
@@ -170,7 +170,7 @@
                         @method('DELETE')
                         <button type="submit"
                             class="px-3.5 py-2 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            <i class="fa-solid fa-trash-can text-[12px]"></i>
                             Xóa
                         </button>
                     </form>
@@ -180,7 +180,7 @@
     @empty
         <div class="bg-white p-8 rounded-2xl organic-shadow border border-gray-100 text-center flex flex-col items-center">
             <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner mb-3">
-                <span class="material-symbols-outlined text-4xl text-gray-300">local_offer</span>
+                <i class="fa-solid fa-ticket text-3xl text-gray-300"></i>
             </div>
             <p class="font-bold text-gray-600 text-sm">Không tìm thấy khuyến mãi nào</p>
             <p class="text-xs text-gray-400 mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
@@ -234,7 +234,7 @@
                                 <span class="font-bold text-gray-800 font-mono tracking-wide text-sm">{{ $promo->code }}</span>
                                 @if($promo->requires_staff_verification)
                                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded-md font-bold text-[10px] uppercase border border-rose-200" title="Không tự động áp — cần nhân viên xác nhận">
-                                        <span class="material-symbols-outlined text-[11px]">verified_user</span>
+                                        <i class="fa-solid fa-shield-halved text-[10px]"></i>
                                         Cần xác nhận
                                     </span>
                                 @endif
@@ -247,11 +247,11 @@
                     <td class="px-3 py-3">
                         @if($promo->type === 'percent')
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-50 text-violet-700 rounded-lg font-semibold text-xs border border-violet-100">
-                                <span class="material-symbols-outlined text-[14px]">percent</span> Giảm %
+                                <i class="fa-solid fa-percent text-[12px]"></i> Giảm %
                             </span>
                         @else
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-semibold text-xs border border-blue-100">
-                                <span class="material-symbols-outlined text-[14px]">payments</span> Giảm tiền
+                                <i class="fa-solid fa-money-bill text-[12px]"></i> Giảm tiền
                             </span>
                         @endif
                     </td>
@@ -299,7 +299,7 @@
                                     $promoDays = is_array($promo->recurring_days) ? $promo->recurring_days : [];
                                     $dayLabels = array_map(function($d) use ($days) { return $days[$d] ?? ''; }, $promoDays);
                                 @endphp
-                                <span class="font-semibold text-amber-600 flex items-center gap-0.5"><span class="material-symbols-outlined text-[14px]">autorenew</span> Lặp: {{ implode(', ', $dayLabels) ?: 'Hàng ngày' }}</span>
+                                <span class="font-semibold text-amber-600 flex items-center gap-0.5"><i class="fa-solid fa-rotate text-[12px]"></i> Lặp: {{ implode(', ', $dayLabels) ?: 'Hàng ngày' }}</span>
                                 <span class="text-gray-400">{{ $promo->recurring_start_time ? \Carbon\Carbon::parse($promo->recurring_start_time)->format('H:i') : '00:00' }} - {{ $promo->recurring_end_time ? \Carbon\Carbon::parse($promo->recurring_end_time)->format('H:i') : '23:59' }}</span>
                             @else
                                 <span><span class="font-medium text-gray-400">Từ:</span> {{ $promo->start_at ? \Carbon\Carbon::parse($promo->start_at)->format('d/m/Y') : '—' }}</span>
@@ -344,14 +344,14 @@
                         <div class="flex justify-center gap-1.5">
                             <a href="{{ route('admin.promotions.edit', $promo->id) }}"
                                 class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100" title="Sửa">
-                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                <i class="fa-solid fa-pen text-[14px]"></i>
                             </a>
                             <form method="POST" action="{{ route('admin.promotions.destroy', $promo->id) }}"
                                 onsubmit="return confirm('Xóa mã khuyến mãi này? Hành động này không thể hoàn tác.');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-100" title="Xóa">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    <i class="fa-solid fa-trash-can text-[14px]"></i>
                                 </button>
                             </form>
                         </div>
@@ -362,7 +362,7 @@
                     <td colspan="10" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center gap-3 text-gray-400">
                             <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                                <span class="material-symbols-outlined text-4xl text-gray-300">local_offer</span>
+                                <i class="fa-solid fa-ticket text-3xl text-gray-300"></i>
                             </div>
                             <div class="space-y-1">
                                 <p class="font-bold text-gray-600 text-base">Không tìm thấy khuyến mãi nào</p>

@@ -9,7 +9,7 @@
                 <a href="{{ route('admin.materials.index') }}"
                     onclick="smartGoBack(event)"
                     class="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-500 hover:text-gray-900 transition-colors">
-                    <span class="material-symbols-outlined">arrow_back</span>
+                    <i class="fa-solid fa-arrow-left text-[14px]"></i>
                 </a>
                 <div>
                     <h2 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Chi tiết vật tư: {{ $material->name }}</h2>
@@ -25,13 +25,13 @@
                     data-name="{{ $material->name }}" data-unit="{{ $material->unit }}"
                     data-price="{{ $material->unit_price }}" data-has-imports="{{ $imports->isNotEmpty() ? 'true' : 'false' }}"
                     >
-                    <span class="material-symbols-outlined text-[20px]">edit</span> Sửa thông tin
+                    <i class="fa-solid fa-pen text-[14px]"></i> Sửa thông tin
                 </button>
                 @if($activeLotsCount > 0)
                     <button type="button" disabled
                         title="Không thể xóa vì vật tư vẫn còn {{ $activeLotsCount }} lô hàng trong kho"
                         class="flex-1 md:flex-none justify-center px-4 py-2 bg-gray-100 border border-gray-200 text-gray-400 rounded-lg font-medium cursor-not-allowed flex items-center gap-2 whitespace-nowrap">
-                        <span class="material-symbols-outlined text-[20px]">delete</span> Còn {{ $activeLotsCount }} lô hàng
+                        <i class="fa-solid fa-trash-can text-[14px]"></i> Còn {{ $activeLotsCount }} lô hàng
                     </button>
                 @else
                     <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST"
@@ -40,7 +40,7 @@
                         @method('DELETE')
                         <button type="submit"
                             class="w-full justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center gap-2 whitespace-nowrap">
-                            <span class="material-symbols-outlined text-[20px]">delete</span> Xóa vật tư
+                            <i class="fa-solid fa-trash-can text-[14px]"></i> Xóa vật tư
                         </button>
                     </form>
                 @endif
@@ -116,7 +116,7 @@
                     <div class="mt-4 flex justify-end">
                         <button type="submit"
                             class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
-                            <span class="material-symbols-outlined text-[20px]">add_box</span> Lưu phiếu nhập
+                            <i class="fa-solid fa-square-plus text-[16px]"></i> Lưu phiếu nhập
                         </button>
                     </div>
                 </form>
@@ -130,8 +130,8 @@
 
             <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
-                    <h3 class="font-bold text-gray-900 flex items-center"><span
-                            class="material-symbols-outlined align-middle mr-1.5 text-emerald-600">login</span>Lịch sử Nhập
+                    <h3 class="font-bold text-gray-900 flex items-center"><i
+                            class="fa-solid fa-boxes-packing align-middle mr-1.5 text-emerald-600"></i>Lịch sử Nhập
                         kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $nhapKho->count() }} phiếu nhập</span>
                 </div>
@@ -146,7 +146,7 @@
                                     <span class="text-sm font-extrabold text-gray-900">Lô: LOT-{{ $import->id }}</span>
                                 </div>
                                 <span class="text-xs text-gray-400 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                                    <i class="fa-solid fa-clock text-[12px]"></i>
                                     {{ $import->created_at->format('d/m/Y H:i') }}
                                 </span>
                             </div>
@@ -216,7 +216,7 @@
                                         data-note="{{ $import->note ?? '' }}"
                                         data-consumed="{{ max($import->quantity - $import->remaining_quantity, 0) }}"
                                         data-min-expiration-date="{{ $import->created_at->copy()->addDay()->format('Y-m-d') }}">
-                                        <span class="material-symbols-outlined text-[16px]">edit</span> Sửa
+                                        <i class="fa-solid fa-pen text-[14px]"></i> Sửa
                                     </button>
                                 @endif
                                 @if($import->remaining_quantity > 0)
@@ -224,20 +224,20 @@
                                         class="js-consume-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-amber-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                                         data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.consume_batch', $import) }}"
                                         data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
-                                        <span class="material-symbols-outlined text-[16px]">outbox</span> Xuất
+                                        <i class="fa-solid fa-arrow-up-from-bracket text-[14px]"></i> Xuất
                                     </button>
                                     <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
                                         class="js-dispose-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                                         data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
                                         data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
-                                        <span class="material-symbols-outlined text-[16px]">delete_sweep</span> Hủy lô
+                                        <i class="fa-solid fa-trash-can text-[14px]"></i> Hủy lô
                                     </button>
                                 @endif
                             </div>
                         </div>
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
-                            <span class="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
+                            <i class="fa-solid fa-boxes-stacked text-3xl text-gray-300"></i>
                             <span class="text-xs font-semibold">Chưa có dữ liệu nhập kho.</span>
                         </div>
                     @endforelse
@@ -319,7 +319,7 @@
                                             data-note="{{ $import->note ?? '' }}"
                                             data-consumed="{{ max($import->quantity - $import->remaining_quantity, 0) }}"
                                             data-min-expiration-date="{{ $import->created_at->copy()->addDay()->format('Y-m-d') }}">
-                                            <span class="material-symbols-outlined">edit</span>
+                                            <i class="fa-solid fa-pen text-[14px]"></i>
                                         </button>
                                     @endif
                                     @if($import->remaining_quantity > 0)
@@ -327,13 +327,13 @@
                                             class="js-consume-batch p-1 text-gray-400 hover:text-amber-600 transition-colors mr-1"
                                             data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.consume_batch', $import) }}"
                                             data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
-                                            <span class="material-symbols-outlined">outbox</span>
+                                            <i class="fa-solid fa-arrow-up-from-bracket text-[14px]"></i>
                                         </button>
                                         <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
                                             class="js-dispose-batch p-1 text-gray-400 hover:text-red-600 transition-colors"
                                             data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
                                             data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
-                                            <span class="material-symbols-outlined">delete_sweep</span>
+                                            <i class="fa-solid fa-trash-can text-[14px]"></i>
                                         </button>
                                     @endif
                                 </td>
@@ -352,8 +352,8 @@
 
             <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
-                    <h3 class="font-bold text-gray-900 flex items-center"><span
-                            class="material-symbols-outlined align-middle mr-1.5 text-red-600">logout</span>Lịch sử Xuất
+                    <h3 class="font-bold text-gray-900 flex items-center"><i
+                            class="fa-solid fa-box-open align-middle mr-1.5 text-red-600"></i>Lịch sử Xuất
                         kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
                 </div>
@@ -368,7 +368,7 @@
                                     <span class="text-sm font-extrabold text-red-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </div>
                                 <span class="text-xs text-gray-400 flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[14px]">schedule</span>
+                                    <i class="fa-solid fa-clock text-[12px]"></i>
                                     {{ $export->created_at->format('d/m/Y H:i') }}
                                 </span>
                             </div>
@@ -394,12 +394,11 @@
                         </div>
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
-                            <span class="material-symbols-outlined text-3xl text-gray-300">inventory_2</span>
+                            <i class="fa-solid fa-boxes-stacked text-3xl text-gray-300"></i>
                             <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho.</span>
                         </div>
                     @endforelse
                 </div>
-
                 <!-- Giao diện Desktop -->
                 <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -449,7 +448,7 @@
                         class="text-blue-600">{{ old('_form_context') === 'dispose-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span></h3>
                 <button type="button" data-close-modal="modal-dispose-batch"
                     class="text-gray-400 hover:text-gray-600">
-                    <span class="material-symbols-outlined">close</span>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <form id="form-dispose-batch" method="POST" action="{{ old('_form_context') === 'dispose-batch' ? old('_form_action') : '' }}" class="p-6">
@@ -498,7 +497,7 @@
                         class="text-blue-600">{{ old('_form_context') === 'consume-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span></h3>
                 <button type="button" data-close-modal="modal-consume-batch"
                     class="text-gray-400 hover:text-gray-600">
-                    <span class="material-symbols-outlined">close</span>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <form id="form-consume-batch" method="POST" action="{{ old('_form_context') === 'consume-batch' ? old('_form_action') : '' }}" class="p-6">
@@ -545,7 +544,7 @@
                 <h3 class="font-bold text-lg text-gray-900">Sửa Thông Tin Vật Tư</h3>
                 <button type="button" data-close-modal="modal-edit"
                     class="text-gray-400 hover:text-gray-600">
-                    <span class="material-symbols-outlined">close</span>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <form id="form-edit" method="POST" action="{{ old('_form_context') === 'material-edit' ? old('_form_action') : '' }}" class="p-6">
@@ -607,7 +606,7 @@
                 <h3 class="font-bold text-lg text-gray-900">Sửa Phiếu Nhập Lô <span id="edit-import-id-text" class="text-blue-600">{{ old('_form_context') === 'import-edit' ? 'LOT-' . old('_import_id') : '' }}</span></h3>
                 <button type="button" data-close-modal="modal-edit-import"
                     class="text-gray-400 hover:text-gray-600">
-                    <span class="material-symbols-outlined">close</span>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <form id="form-edit-import" method="POST" action="{{ old('_form_context') === 'import-edit' ? old('_form_action') : '' }}" class="p-6">

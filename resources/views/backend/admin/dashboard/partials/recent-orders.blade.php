@@ -28,7 +28,7 @@
                         <td class="py-3 px-3 text-center text-gray-500">{{ $order['time'] }}</td>
                         <td class="py-3 px-3 text-right font-bold text-emerald-600">{{ $order['total'] }}</td>
                         <td class="py-3 px-3 text-center">
-                            <span class="inline-block px-2.5 py-1 text-xs font-semibold rounded-lg {{ $order['status_class'] }}">
+                            <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-semibold rounded-full {{ $order['status_class'] }}">
                                 {{ $order['status_label'] }}
                             </span>
                         </td>
@@ -36,7 +36,7 @@
                             <a href="{{ route('admin.orders.show', $order['id']) }}" 
                                class="inline-flex items-center justify-center p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" 
                                title="Xem chi tiết đơn hàng">
-                                <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                <i class="fa-solid fa-eye text-[14px]"></i>
                             </a>
                         </td>
                     </tr>
@@ -62,11 +62,11 @@
                     <span>{{ $order['time'] }}</span>
                 </div>
                 <div class="flex items-center justify-between mt-1 pt-2 border-t border-gray-100">
-                    <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-lg {{ $order['status_class'] }}">
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[11px] font-semibold rounded-full {{ $order['status_class'] }}">
                         {{ $order['status_label'] }}
                     </span>
                     <a href="{{ route('admin.orders.show', $order['id']) }}" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600">
-                        Chi tiết <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        Chi tiết <i class="fa-solid fa-arrow-right text-[11px]"></i>
                     </a>
                 </div>
             </div>

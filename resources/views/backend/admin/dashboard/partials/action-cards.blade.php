@@ -48,9 +48,9 @@
             <div class="absolute inset-0 {{ $style['bg'] }} opacity-20 pointer-events-none"></div>
 
             <div class="flex items-center justify-between relative z-10">
-                <span class="material-symbols-outlined text-[22px] p-2.5 rounded-xl {{ $style['icon_bg'] }} shrink-0">
-                    {{ $task['icon'] }}
-                </span>
+                <div class="w-10 h-10 rounded-xl {{ $style['icon_bg'] }} flex items-center justify-center shrink-0">
+                    <i class="{{ $task['icon'] }} text-base"></i>
+                </div>
                 
                 @if ($task['count'] > 0)
                     <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-bold rounded-full {{ $style['badge'] }}">

@@ -4381,9 +4381,12 @@ h6>a:hover,
 }
 
 /* happy navbar (fixed partial) */
-.happy-navbar,
-.happy-navbar * {
+.happy-navbar {
   font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+}
+
+.happy-navbar i[class*="fa-"] {
+  font-family: "Font Awesome 6 Free" !important;
 }
 
 .happy-navbar__row {
@@ -4554,6 +4557,10 @@ h6>a:hover,
   border-radius: 9999px;
   background: transparent;
   color: #6b7280;
+}
+
+.happy-navbar__icon-btn i {
+  font-size: 18px;
 }
 
 .happy-navbar__icon-btn:hover {
@@ -5835,6 +5842,25 @@ dù chiều cao input có lệch vài pixel giữa các hệ CSS khác nhau tron
   transform: scale(1.12);
 }
 
+.p-add-btn i {
+  font-size: 11px;
+}
+
+.p-product-card-wishlist i {
+  font-size: 14px;
+  color: #9ca3af;
+  transition: all 0.2s ease;
+}
+
+.p-product-card-wishlist.is-active i {
+  color: #ef4444;
+}
+
+.p-product-star-svg {
+  color: #f59e0b;
+  font-size: 12px;
+}
+
 /* Responsive â€“ Products Page */
 @media (max-width: 900px) {
   .p-product-grid {
@@ -6174,8 +6200,18 @@ dù chiều cao input có lệch vài pixel giữa các hệ CSS khác nhau tron
   background: #fee2e2;
 }
 
+.wl-item__remove-btn i {
+  font-size: 13px;
+  color: #ef4444;
+}
+
 .wl-item__cart-btn {
   background: #ecfdf5;
+}
+
+.wl-item__cart-btn i {
+  font-size: 13px;
+  color: #10b981;
 }
 
 .wl-item__cart-btn:hover {
@@ -7160,6 +7196,10 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   height: 30px;
 }
 
+.home-cat-card__icon i {
+  font-size: 28px;
+}
+
 .home-cat-card:hover .home-cat-card__icon {
   transform: scale(1.1);
 }
@@ -7392,6 +7432,15 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   display: block;
 }
 
+.home-prod-card__wishlist i {
+  font-size: 12px;
+}
+
+.home-prod-card__star {
+  color: #f59e0b;
+  font-size: 13px;
+}
+
 .home-prod-card__add-btn {
   width: 24px;
   height: 24px;
@@ -7406,6 +7455,10 @@ animation: dividerPulse 2.5s ease-in-out infinite;
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   flex-shrink: 0;
+}
+
+.home-prod-card__add-btn i {
+  font-size: 12px;
 }
 
 .home-prod-card__add-btn:hover {
@@ -7497,6 +7550,10 @@ chuyển ra đây để mobile thu gọn lại được) */
   justify-content: center;
   margin-bottom: 1.1rem;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.home-feat-card__icon i {
+  font-size: 22px;
 }
 
 .home-feat-card:hover .home-feat-card__icon {
@@ -8825,7 +8882,22 @@ chuyển ra đây để mobile thu gọn lại được) */
 
 .pd-review-stars {
   display: flex;
-  gap: 1px;
+  align-items: center;
+  gap: 2px;
+}
+
+.pd-review-stars i {
+  font-size: 13px;
+}
+
+.pd-review-stars i.pd-star--filled,
+.pd-review-stars i.text-amber-400 {
+  color: #f59e0b !important;
+}
+
+.pd-review-stars i.pd-star--empty,
+.pd-review-stars i.text-gray-300 {
+  color: #d1d5db !important;
 }
 
 .pd-review-date {
@@ -12334,6 +12406,10 @@ html {
   border: none;
   text-decoration: none;
   transition: transform 0.2s ease;
+}
+
+.floating-bubble i {
+  font-size: 22px;
 }
 
 .floating-bubble:hover {

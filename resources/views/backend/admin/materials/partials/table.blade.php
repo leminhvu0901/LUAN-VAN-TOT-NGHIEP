@@ -59,9 +59,16 @@
                 <div class="flex justify-between items-start gap-3">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
-                            <span class="material-symbols-outlined text-emerald-600 text-2xl">
-                                {{ str_contains(strtolower($material->name), 'ly') || str_contains(strtolower($material->name), 'nắp') ? 'local_cafe' : (str_contains(strtolower($material->name), 'trà') || str_contains(strtolower($material->name), 'cà phê') ? 'eco' : 'bubble_chart') }}
-                            </span>
+                            @php
+                                $matIcon = 'fa-cubes';
+                                $lowerName = strtolower($material->name);
+                                if (str_contains($lowerName, 'ly') || str_contains($lowerName, 'nắp')) {
+                                    $matIcon = 'fa-mug-hot';
+                                } elseif (str_contains($lowerName, 'trà') || str_contains($lowerName, 'cà phê')) {
+                                    $matIcon = 'fa-leaf';
+                                }
+                            @endphp
+                            <i class="fa-solid {{ $matIcon }} text-emerald-600 text-xl"></i>
                         </div>
                         <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-base font-bold text-gray-900 truncate max-w-[150px]" title="{{ $material->name }}">{{ $material->name }}</span>
@@ -94,11 +101,11 @@
 
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.materials.imports', $material->id) }}" class="flex-1 text-center py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-1">
-                        <span class="material-symbols-outlined text-[16px]">visibility</span> Chi tiết
+                        <i class="fa-solid fa-eye text-[14px]"></i> Chi tiết
                     </a>
                     @if($isDeleteBlocked)
                         <button type="button" disabled class="px-3 py-2 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed text-xs font-semibold flex items-center justify-center gap-1">
-                            <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                            <i class="fa-solid fa-trash-can text-[14px]"></i> Xóa
                         </button>
                     @else
                         <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0"
@@ -106,7 +113,7 @@
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="px-3 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                                <i class="fa-solid fa-trash-can text-[14px]"></i> Xóa
                             </button>
                         </form>
                     @endif
@@ -199,9 +206,16 @@
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
-                                <span class="material-symbols-outlined text-emerald-600">
-                                    {{ str_contains(strtolower($material->name), 'ly') || str_contains(strtolower($material->name), 'nắp') ? 'local_cafe' : (str_contains(strtolower($material->name), 'trà') || str_contains(strtolower($material->name), 'cà phê') ? 'eco' : 'bubble_chart') }}
-                                </span>
+                                @php
+                                    $matIcon = 'fa-cubes';
+                                    $lowerName = strtolower($material->name);
+                                    if (str_contains($lowerName, 'ly') || str_contains($lowerName, 'nắp')) {
+                                        $matIcon = 'fa-mug-hot';
+                                    } elseif (str_contains($lowerName, 'trà') || str_contains($lowerName, 'cà phê')) {
+                                        $matIcon = 'fa-leaf';
+                                    }
+                                @endphp
+                                <i class="fa-solid {{ $matIcon }} text-emerald-600 text-lg"></i>
                             </div>
                             <span class="font-semibold text-sm text-gray-900 truncate max-w-[150px] xl:max-w-[250px]" title="{{ $material->name }}">{{ $material->name }}</span>
                         </div>
@@ -234,13 +248,13 @@
                             <a href="{{ route('admin.materials.imports', $material->id) }}"
                                 class="text-primary hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md transition-colors inline-block"
                                 title="Xem chi tiết">
-                                <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                <i class="fa-solid fa-eye text-[14px]"></i>
                             </a>
                             @if($isDeleteBlocked)
                                 <button type="button" disabled
                                     class="p-1.5 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed"
                                     title="Không thể xóa vì vật tư vẫn còn {{ $material->active_lots_count }} lô hàng trong kho">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    <i class="fa-solid fa-trash-can text-[14px]"></i>
                                 </button>
                             @else
                                 <form action="{{ route('admin.materials.destroy', $material->id) }}" method="POST" class="js-material-delete-form inline-block m-0 p-0"
@@ -248,7 +262,7 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">
-                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        <i class="fa-solid fa-trash-can text-[14px]"></i>
                                     </button>
                                 </form>
                             @endif
@@ -259,7 +273,7 @@
                 <tr>
                     <td colspan="8" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center justify-center">
-                            <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                            <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3"></i>
                             <p class="text-gray-500 text-lg font-medium">Không tìm thấy vật tư nào</p>
                             <p class="text-gray-400 text-sm mt-1">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
                         </div>

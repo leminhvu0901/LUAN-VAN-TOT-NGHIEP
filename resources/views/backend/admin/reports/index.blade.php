@@ -16,7 +16,7 @@
                 <button type="button" id="export-btn"
                     class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-all border border-emerald-600 shadow-sm min-h-[44px]"
                     title="Xuất báo cáo ra file Excel (.xlsx)">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">table_view</span>
+                    <i class="fa-solid fa-file-excel text-base shrink-0"></i>
                     <span class="whitespace-nowrap">Xuất Excel</span>
                 </button>
             </div>
@@ -52,7 +52,7 @@
                                 class="w-full border border-gray-200 rounded-xl pl-3 pr-10 py-2.5 outline-none text-gray-700 text-base md:text-sm font-medium bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer h-11 md:h-10"
                                 placeholder="Chọn ngày bắt đầu">
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                                <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                                <i class="fa-solid fa-calendar-days text-sm"></i>
                             </div>
                         </div>
                     </div>
@@ -66,7 +66,7 @@
                                 class="w-full border border-gray-200 rounded-xl pl-3 pr-10 py-2.5 outline-none text-gray-700 text-base md:text-sm font-medium bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
                                 placeholder="Chọn ngày kết thúc">
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400">
-                                <span class="material-symbols-outlined text-[18px]">calendar_month</span>
+                                <i class="fa-solid fa-calendar-days text-sm"></i>
                             </div>
                         </div>
                     </div>
@@ -75,14 +75,14 @@
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
                         <button type="submit"
                             class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 min-h-[44px] h-11 sm:h-10">
-                            <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                            <i class="fa-solid fa-filter text-sm"></i>
                             <span>Áp dụng</span>
                         </button>
 
                         <a href="{{ route('admin.reports.index', ['preset' => '30_days']) }}" id="btn-clear-filter"
                             class="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-50 text-slate-600 border border-slate-200/85 font-semibold text-sm rounded-xl hover:bg-slate-100 hover:text-slate-800 transition-colors shadow-sm min-h-[44px] h-11 sm:h-10"
                             style="display: {{ $preset != '30_days' ? 'flex' : 'none' }};">
-                            <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+                            <i class="fa-solid fa-filter-circle-xmark text-sm"></i>
                             <span>Xóa lọc</span>
                         </a>
                     </div>

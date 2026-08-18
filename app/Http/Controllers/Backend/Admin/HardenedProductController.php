@@ -14,10 +14,7 @@ use Illuminate\Validation\Rule;
 
 class HardenedProductController
 {
-    /**
-     * Hàm lấy danh sách và hiển thị tất cả sản phẩm phục vụ trang quản trị.
-     * Hỗ trợ tìm kiếm, lọc theo danh mục, trạng thái hoạt động, sắp xếp và phân trang
-     */
+    // Lấy danh sách sản phẩm cho trang quản trị, hỗ trợ tìm kiếm, lọc theo danh mục và trạng thái, sắp xếp và phân trang
     public function index(Request $request)
     {
         $query = Product::query()->with('category');
@@ -46,9 +43,7 @@ class HardenedProductController
         return view('backend.admin.products.index', $data);
     }
 
-    /**
-     * Hàm hiển thị giao diện form để thêm mới một sản phẩm.
-     */
+    // Hàm hiển thị giao diện form để thêm mới một sản phẩm.
     public function create(Request $request)
     {
         return view('backend.admin.products.create', [
@@ -58,10 +53,7 @@ class HardenedProductController
         ]);
     }
 
-    /**
-     * Hàm hiển thị giao diện form chỉnh sửa thông tin cho một sản phẩm.
-     * Nạp trước thông tin các kích cỡ (sizes), topping, và bộ sưu tập ảnh (gallery).
-     */
+    // Hiển thị form chỉnh sửa sản phẩm, nạp sẵn kích cỡ, topping và bộ sưu tập ảnh
     public function edit(Product $product, Request $request)
     {
         $product->load(['sizes', 'toppings', 'images']);
@@ -73,11 +65,7 @@ class HardenedProductController
         ]);
     }
 
-    /**
-     * Hàm xử lý lưu thông tin sản phẩm mới vào Database.
-     * Thực hiện validate dữ liệu form, tạo Slug, tự động sinh mã SKU nếu trống,
-     * chạy DB Transaction lưu thông tin sản phẩm, lưu album ảnh phụ và đồng bộ toppings/sizes.
-     */
+    // Lưu sản phẩm mới
     public function store(Request $request)
     {
         $validated = $this->validateProduct($request);
@@ -102,11 +90,7 @@ class HardenedProductController
         return redirect($this->safeReturnUrl($request))->with('success', 'Thêm sản phẩm thành công!');
     }
 
-    /**
-     * Hàm xử lý cập nhật các thông tin chỉnh sửa của sản phẩm vào Database.
-     * Thực hiện xác thực validate, chạy DB Transaction ghi đè dữ liệu,
-     * upload ảnh mới, xóa tệp ảnh cũ khỏi máy chủ để tránh rác ổ đĩa.
-     */
+    // Cập nhật sản phẩm, chạy transaction ghi đè dữ liệu, tải ảnh mới lên rồi xoá ảnh cũ khỏi ổ đĩa để tránh rác
     public function update(Request $request, Product $product)
     {
         $validated = $this->validateProduct($request, $product);
@@ -154,9 +138,7 @@ class HardenedProductController
         return route('admin.products.index'); // Nếu không an toàn hoặc trống, mặc định quay về trang danh sách sản phẩm
     }
 
-    /**
-     * Hàm xử lý xóa một sản phẩm cụ thể khỏi hệ thống.
-     */
+    // Hàm xử lý xóa một sản phẩm cụ thể khỏi hệ thống.
     public function destroy(Product $product, Request $request)
     {
         if (DB::table('order_items')->where('product_id', $product->id)->exists()) {
@@ -191,9 +173,7 @@ class HardenedProductController
         return back()->with('success', $message);
     }
 
-    /**
-     * Xóa một ảnh phụ trong bộ sưu tập ảnh của sản phẩm, dùng ở trang sửa sản phẩm.
-     */
+    // Xóa một ảnh phụ trong bộ sưu tập ảnh của sản phẩm, dùng ở trang sửa sản phẩm.
     public function deleteGalleryImage($id)
     {
         $image = ProductImage::findOrFail($id); // Tìm ảnh phụ theo ID hoặc ném lỗi 404
@@ -204,6 +184,7 @@ class HardenedProductController
         return redirect()->route('admin.products.edit', $productId)->with('success', 'Đã xóa ảnh.');
     }
 
+    //kiểm tra dữ liệu form
     private function validateProduct(Request $request, ?Product $product = null): array
     {
         $galleryLimit = max(0, 5 - ($product?->images()->count() ?? 0));
@@ -251,11 +232,13 @@ class HardenedProductController
         ]);
     }
 
+    //lấy ra những field chính của sản phẩm để lưu vào bảng
     private function productData(array $validated): array
     {
         return collect($validated)->only(['name', 'category_id', 'base_price', 'sku', 'description'])->toArray();
     }
 
+    //Dùng để đồng bộ dữ liệu phụ liên quan đến sản phẩm.
     private function syncOptions(Product $product, array $validated): void
     {
         $product->toppings()->sync($validated['topping_ids'] ?? []);
@@ -274,6 +257,7 @@ class HardenedProductController
         }
     }
 
+    //Tạo mã SKU ngẫu nhiên cho sản phẩm.
     private function generateSku(): string
     {
         do
@@ -281,6 +265,7 @@ class HardenedProductController
         return $sku;
     }
 
+    //Upload và lưu ảnh lên thư mục của hệ thống.
     private function storeImage($file, string $directory, array &$uploaded): string
     {
         $filename = (string) Str::uuid() . '.' . strtolower($file->getClientOriginalExtension());
@@ -290,6 +275,7 @@ class HardenedProductController
         return $relative;
     }
 
+    //Upload nhiều ảnh phụ cho sản phẩm.
     private function storeGallery(Product $product, array $files, array &$uploaded): void
     {
         foreach ($files as $file) {
@@ -297,6 +283,7 @@ class HardenedProductController
         }
     }
 
+    //Xử lý khi xóa sản phẩm.
     private function deleteProduct(Product $product): array
     {
         $files = $product->images->pluck('image_path')->all();
@@ -309,6 +296,7 @@ class HardenedProductController
         return $files;
     }
 
+    //Xóa file ảnh thật trên ổ đĩa sau khi xóa sản phẩm hoặc ảnh phụ.
     private function deleteFiles(array $paths): void
     {
         foreach (array_unique($paths) as $path) {

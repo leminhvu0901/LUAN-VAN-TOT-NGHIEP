@@ -12,20 +12,12 @@
 
             {{-- Nút quay lại màn hình đăng nhập --}}
             <button id="switch-to-login-back" type="button" class="l-back-btn" aria-label="Quay lại Đăng nhập">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
+                <i class="fa-solid fa-arrow-left text-lg"></i>
             </button>
 
             {{-- Nút dấu X dùng để đóng Modal đăng ký --}}
             <button id="close-register" type="button" class="l-close-btn" aria-label="Đóng">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
             {{-- Tiêu đề của biểu mẫu --}}
@@ -73,7 +65,7 @@
                             class="l-input has-password-toggle @error('password') is-invalid @enderror" required />
                         
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="password" aria-label="Hiện/ẩn mật khẩu">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
                     {{-- Hiển thị lỗi xác thực cụ thể cho trường Mật khẩu --}}
@@ -89,7 +81,7 @@
                         <input id="password_confirmation" name="password_confirmation" type="password"
                             placeholder="Nhập lại mật khẩu" class="l-input has-password-toggle" required />
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="password_confirmation" aria-label="Hiện/ẩn mật khẩu">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
                 </div>

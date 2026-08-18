@@ -17,6 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     
     {{-- Thư viện Tailwind CSS CDN --}}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -115,9 +116,7 @@
 
     {{-- SCRIPT ĐIỀU KHIỂN GIAO DIỆN & TIỆN ÍCH TOÀN HỆ THỐNG ADMIN --}}
     <script>
-    // ==========================================
-    // A. Điều khiển Sidebar, Mobile & Desktop
-    // ==========================================
+    // Điều khiển Sidebar, Mobile & Desktop
     document.addEventListener('DOMContentLoaded', function () {
         const mobileMenuBtn = document.getElementById('mobile-menu-btn');
         const mobileCloseBtn = document.getElementById('mobile-close-btn');
@@ -156,10 +155,8 @@
         }
     });
 
-    // ==========================================
-    // B. Custom Select Dropdown UI
-    // Tự động biến đổi các thẻ <select class="custom-select-init"> thành dropdown UI hiện đại
-    // ==========================================
+ 
+    // Custom Select Dropdown UI
     window.initCustomSelects = function () {
         const selects = document.querySelectorAll('select.custom-select-init');
         selects.forEach(select => {
@@ -181,7 +178,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 w-full flex items-center justify-between cursor-pointer transition-colors hover:border-emerald-300 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 min-h-[40px] sm:min-h-[38px]';
-            button.innerHTML = `<span class="truncate pr-2 select-label-text">${selectedOption ? selectedOption.text : ''}</span><span class="material-symbols-outlined text-[18px] text-gray-400 shrink-0">expand_more</span>`;
+            button.innerHTML = `<span class="truncate pr-2 select-label-text">${selectedOption ? selectedOption.text : ''}</span><i class="fa-solid fa-chevron-down text-gray-400 text-xs shrink-0"></i>`;
             container.appendChild(button);
 
             // Tạo danh sách menu các option để lựa chọn
@@ -266,10 +263,8 @@
         }, { once: false });
     };
 
-    // ==========================================
-    // C. Bộ Helper Thông Báo AdminAlert, SweetAlert2
-    // Cung cấp các hàm hiển thị hộp thoại, toast, popup xác nhận đồng bộ trên toàn trang Admin
-    // ==========================================
+
+    //  Bộ Helper Thông Báo AdminAlert, SweetAlert2
     window.AdminAlert = {
         // Toast góc trên bên phải báo Thành công, tự động đóng sau 3s
         success: function (message, title = 'Thành công!') {
@@ -343,10 +338,9 @@
         }
     };
 
-    // ==========================================
-    // D. Tự động hiển thị Flash Messages từ Session Laravel
-    // Nhận dữ liệu window.flashSuccessMessage/flashErrorMessages từ partial backend.partials.flash_messages
-    // ==========================================
+  
+    // Tự động hiển thị Flash Messages từ Session Laravel
+ 
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof Swal !== 'undefined') {
             const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
@@ -364,11 +358,7 @@
         }
     });
 
-    // ==========================================
-    // E. Các hàm tiện ích hỗ trợ trang danh sách quản trị
-    // ==========================================
-    
-    // Nút "Quay lại thông minh": Nếu trang trước cùng domain thì dùng history.back() để giữ nguyên bộ lọc/trang hiện tại
+    //  Các hàm tiện ích hỗ trợ trang danh sách qu 
     window.smartGoBack = function (event) {
         if (document.referrer.includes(window.location.host)) {
             event.preventDefault();

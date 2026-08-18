@@ -8,7 +8,7 @@
         <a href="{{ route('admin.banners.index') }}"
             onclick="smartGoBack(event)"
             class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 organic-shadow transition-colors">
-            <span class="material-symbols-outlined">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Chỉnh sửa banner</h2>
@@ -69,14 +69,14 @@
                         <img id="image-preview" src="{{ $banner->image_url ? $fullImageUrl : '#' }}" alt="Preview" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <button type="button" onclick="triggerFileInput();" class="px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-all flex items-center gap-1.5 shadow">
-                                <span class="material-symbols-outlined text-[18px]">cached</span> Thay đổi
+                                <i class="fa-solid fa-arrows-rotate text-[14px]"></i> Thay đổi
                             </button>
                         </div>
                     </div>
 
                     <!-- Upload Input Box -->
                     <div id="upload-placeholder" onclick="triggerFileInput();" class="{{ $banner->image_url ? 'hidden' : '' }} w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-emerald-500 hover:bg-emerald-50/10 cursor-pointer transition-all">
-                        <span class="material-symbols-outlined text-4xl text-gray-400">cloud_upload</span>
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400"></i>
                         <span class="text-sm font-semibold text-gray-600">Nhấp để tải lên ảnh banner</span>
                         <span class="text-xs text-gray-400">Định dạng JPEG, PNG, WEBP tối đa 10MB (Tỷ lệ gợi ý 5.7:1)</span>
                     </div>
@@ -106,7 +106,7 @@
                         <input type="text" name="start_at" id="start_at" value="{{ old('start_at', $banner->start_at) }}"
                             class="banner-date-picker w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white"
                             placeholder="Chọn ngày giờ bắt đầu">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">calendar_month</span>
+                        <i class="fa-solid fa-calendar-days absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[14px]"></i>
                     </div>
                 </div>
 
@@ -119,7 +119,7 @@
                         <input type="text" name="end_at" id="end_at" value="{{ old('end_at', $banner->end_at) }}"
                             class="banner-date-picker w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white"
                             placeholder="Chọn ngày giờ kết thúc">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">calendar_month</span>
+                        <i class="fa-solid fa-calendar-days absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[14px]"></i>
                     </div>
                 </div>
             </div>

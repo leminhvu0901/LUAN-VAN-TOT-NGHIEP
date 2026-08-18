@@ -43,41 +43,31 @@ class ProfileController
     // CẬP NHẬT THÔNG TIN TÀI KHOẢN
     public function update(Request $request)
     {
-        // Validate, Kiểm tra dữ liệu người dùng nhập vào
         $request->validate([
-            'name' => 'required|string|max:30', // Bắt buộc nhập tên, tối đa 30 ký tự
-            // SĐT phải đúng định dạng số điện thoại VN và không được
+            'name' => 'required|string|max:30',
             'phone' => ['nullable', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'unique:users,phone,' . Auth::id()],
             'address' => 'nullable|string|max:255',
-            'cropped_avatar' => 'nullable|string', // Chuỗi ảnh Avatar dạng Base64
+            'cropped_avatar' => 'nullable|string',
         ], [
             'name.required' => 'Vui lòng nhập họ tên.',
             'name.max' => 'Họ và tên tối đa 30 ký tự.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
             'phone.unique' => 'Số điện thoại này đã được đăng ký bởi tài khoản khác.',
         ]);
-
-        // Gom dữ liệu cần cập nhật lại thành mảng
         $updateData = [
             'name' => $request->input('name'),
             'phone' => $request->input('phone'),
             'address' => $request->input('address'),
             'updated_at' => now(),
         ];
-
-        // Xử lý lưu ảnh Avatar nếu người dùng có cắt ảnh và
         if ($request->filled('cropped_avatar')) {
             $base64Data = $request->input('cropped_avatar');
-            // Tách chuỗi Base64 để lấy định dạng file, png, jpg...
             if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
                 $base64Data = substr($base64Data, strpos($base64Data, ',') + 1);
                 $type = strtolower($type[1]);
-
-                // Kiểm tra định dạng hợp lệ
                 if (in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
                     $decodedData = base64_decode($base64Data);
                     if ($decodedData !== false) {
-                        // Đặt tên file ảnh ngẫu nhiên để tránh trùng lặp
                         $filename = time() . '_' . Str::random(10) . '.' . $type;
                         $dir = upload_dir('avatars');
                         if (!is_dir($dir)) {
@@ -94,8 +84,6 @@ class ProfileController
         User::query()
             ->where('id', Auth::id())
             ->update($updateData);
-
-        // Mặc định email không thay đổi qua form này vì liên
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
     }
 
@@ -117,14 +105,14 @@ class ProfileController
 
         $status = '';
         if ($exists) {
-            // Nếu đã thả tim rồi -> Bấm lần nữa là Xóa khỏi danh sách
+            // Nếu đã thả tim rồi Bấm lần nữa là Xóa khỏi danh sách
             Favorite::query()
                 ->where('user_id', $userId)
                 ->where('product_id', $productId)
                 ->delete();
             $status = 'removed';
         } else {
-            // Nếu chưa có -> Thêm vào danh sách yêu thích
+            // Nếu chưa có Thêm vào danh sách yêu thích
             Favorite::query()->insert([
                 'user_id' => $userId,
                 'product_id' => $productId,
@@ -154,7 +142,6 @@ class ProfileController
             )
             ->get();
 
-        // Trả kết quả về cho Javascript để vẽ lên Ngăn kéo Yêu thích
         return response()->json([
             'success' => true,
             'status' => $status,
@@ -163,9 +150,6 @@ class ProfileController
         ]);
     }
 
-    /**
-     * Thêm Địa chỉ giao hàng mới
-     */
     // Ngưỡng confidence tối thiểu để chấp nhận kết quả
     private const GEOCODE_MIN_CONFIDENCE = 0.3;
 
@@ -196,7 +180,7 @@ class ProfileController
         ];
     }
 
-    // Đối chiếu province_code/ward_code khách gửi với danh
+    // Đối chiếu province_code/ward_code khách hợp lệ với dữ liệu hành chính thật của hệ thống hay không
     private function resolveAdministrativeArea(Request $request): array
     {
         $service = app(AdministrativeDivisionService::class);
@@ -326,13 +310,13 @@ class ProfileController
         // Kiểm tra dữ liệu, giống hệt hàm Store
         $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
 
-        // 1b. Đối chiếu tỉnh/phường với danh mục hành chính
+        //  Đối chiếu tỉnh/phường với danh mục hành chính
         $area = $this->resolveAdministrativeArea($request);
         if (isset($area['error'])) {
             return $this->addressError($request, $area['field'], $area['error']);
         }
 
-        // 1c. Xác định tọa độ geocode ở chế độ manual nếu chưa
+        //  Xác định tọa độ geocode ở chế độ manual nếu chưa
         $location = $this->resolveLocation($request, $area);
         if (isset($location['error'])) {
             return $this->addressError($request, 'specific_address', $location['error']);
@@ -372,10 +356,7 @@ class ProfileController
         return redirect()->route('checkout')->with('success', 'Đã cập nhật địa chỉ giao hàng!');
     }
 
-    /**
-     * Trả lỗi lưu địa chỉ đúng định dạng theo kiểu request: JSON 422 cho fetch (modal địa chỉ ở trang
-     * checkout submit qua AJAX nếu còn dùng), redirect-back kèm withErrors() cho form thật.
-     */
+    // Trả lỗi lưu địa chỉ đúng định dạng theo kiểu
     private function addressError(Request $request, string $field, string $message)
     {
         if ($request->expectsJson()) {
@@ -466,9 +447,7 @@ class ProfileController
         return redirect()->back()->with('success', 'Đổi mật khẩu thành công!')->with('active_tab', 'password');
     }
 
-    /**
-     * Trả lỗi đổi mật khẩu: quay lại tab Đổi mật khẩu kèm thông báo lỗi và giữ lại input đã nhập.
-     */
+    // Trả lỗi đổi mật khẩu
     private function passwordError(string $field, string $message)
     {
         return redirect()->back()->withErrors([$field => $message])->withInput();

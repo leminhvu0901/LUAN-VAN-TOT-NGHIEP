@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Services\AdministrativeDivisionService;
 
-// Cung cấp dữ liệu tỉnh/thành + phường/xã cho form địa
 class AdministrativeDivisionController
 {
     // Inject service xử lý dữ liệu địa chính vào controller
@@ -17,7 +16,7 @@ class AdministrativeDivisionController
     {
         $provinces = $this->service->provinces(); // Gọi service lấy danh sách tỉnh
 
-        // Nếu service trả về null, lỗi nguồn dữ liệu → báo lỗi 503
+        // Nếu service trả về null, lỗi nguồn dữ liệu
         if ($provinces === null) {
             return response()->json([
                 'success' => false,
@@ -41,6 +40,6 @@ class AdministrativeDivisionController
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => $wards]); // checkout.js, loadWardsFor()
+        return response()->json(['success' => true, 'data' => $wards]);
     }
 }

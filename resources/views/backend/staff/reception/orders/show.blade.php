@@ -11,9 +11,9 @@
                 <div class="flex items-center gap-3">
                     {{-- Nút quay lại trang danh sách đơn hàng --}}
                     <a href="{{ route('staff.reception.orders.index') }}" onclick="smartGoBack(event)"
-                        class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors shadow-sm"
                         title="Quay lại">
-                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                        <i class="fa-solid fa-arrow-left text-sm"></i>
                     </a>
 
                     {{-- Mã đơn hàng --}}
@@ -29,12 +29,12 @@
                 @if (in_array($order->status, ['confirmed', 'shipping', 'completed'], true))
                     <button id="print-prep-ticket-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
-                        <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                        <i class="fa-solid fa-receipt text-sm"></i>
                         Phiếu pha chế
                     </button>
                     <button id="print-invoice-btn" type="button"
                         class="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm">
-                        <span class="material-symbols-outlined text-[18px]">print</span>
+                        <i class="fa-solid fa-print text-sm"></i>
                         Hóa đơn khách
                     </button>
                 @else
@@ -46,7 +46,7 @@
         {{-- Thông báo lý do hủy đơn --}}
         @if ($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
-                <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
+                <i class="fa-solid fa-circle-info text-red-500 mt-0.5 text-base"></i>
                 <div>
                     <h4 class="font-bold text-red-800">Lý do hủy đơn hàng</h4>
                     <p class="text-sm text-red-600 mt-1">{{ $order->cancel_reason }}</p>
@@ -80,7 +80,7 @@
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-gray-400">sync_alt</span>
+                    <i class="fa-solid fa-rotate text-gray-400 text-base"></i>
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
                         <div class="flex items-center gap-2 mt-1">
@@ -89,7 +89,7 @@
                             @if ($order->needs_admin_approval)
                                 <span
                                     class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê
+                                    <i class="fa-solid fa-hourglass-half text-xs"></i> Chờ Admin phê
                                     duyệt
                                 </span>
                             @endif
@@ -101,12 +101,12 @@
                     @if ($order->needs_admin_approval)
                         <div
                             class="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[18px] text-amber-600">mark_email_unread</span>
+                            <i class="fa-solid fa-envelope text-amber-600 text-sm"></i>
                             <span>Đã gửi email yêu cầu Admin phê duyệt. Vui lòng chờ Admin xác nhận.</span>
                         </div>
                     @elseif($order->status === 'pending' && $cashNotYetCollected)
                         <p class="text-xs text-amber-600 font-medium flex items-center gap-1.5 max-w-xs">
-                            <span class="material-symbols-outlined text-[16px] shrink-0">info</span>
+                            <i class="fa-solid fa-circle-info text-amber-600 text-xs shrink-0"></i>
                             Cần xác nhận đã thu tiền mặt (khối "Thanh toán" bên dưới) trước khi xác nhận đơn.
                         </p>
                     @elseif($order->status === 'pending')
@@ -117,7 +117,7 @@
                                 @csrf
                                 <button type="submit"
                                     class="min-h-[40px] px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-sm flex items-center gap-1.5 shadow-sm transition">
-                                    <span class="material-symbols-outlined text-[18px]">verified_user</span>
+                                    <i class="fa-solid fa-shield-halved text-sm"></i>
                                     Gửi Admin phê duyệt
                                 </button>
                             </form>
@@ -159,8 +159,8 @@
                             @csrf
                             <input type="hidden" name="cancel_reason" id="refund_cancel_reason_input">
                             <button type="button" id="refund-cancel-order-btn"
-                                class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy
+                                class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-money-bill-transfer text-xs"></i> Hoàn tiền & Hủy
                                 đơn
                             </button>
                         </form>
@@ -181,7 +181,7 @@
         {{-- Tình TRẠNG thanh toán --}}
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
             <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-gray-400">payments</span>
+                <i class="fa-solid fa-money-bill-wave text-gray-400 text-base"></i>
                 Thanh toán
             </h3>
             <div class="flex items-center justify-between">
@@ -192,11 +192,11 @@
                     @if ($order->payment_method === 'vnpay')
                         @if (($order->payment_status ?? '') === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
+                                <i class="fa-solid fa-circle-check text-xs"></i> Đã thanh toán
                             </div>
                         @elseif(($order->payment_status ?? '') === 'refunded')
                             <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
+                                <i class="fa-solid fa-rotate-left text-xs"></i> Đã hoàn tiền
                             </div>
                             @if ($order->refunded_at)
                                 <p class="text-xs text-gray-500 mt-1">Lúc
@@ -204,13 +204,13 @@
                             @endif
                         @else
                             <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
+                                <i class="fa-solid fa-clock text-xs"></i> Chờ thanh toán
                             </div>
                         @endif
                     @elseif($order->payment_method === 'cash')
                         @if ($order->payment_status === 'paid')
                             <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thu tiền mặt
+                                <i class="fa-solid fa-circle-check text-xs"></i> Đã thu tiền mặt
                             </div>
                             @if ($order->amount_tendered !== null)
                                 <p class="text-xs text-gray-500 mt-1">
@@ -221,16 +221,14 @@
                             @endif
                         @else
                             <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
-                                <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thu tiền
+                                <i class="fa-solid fa-clock text-xs"></i> Chờ thu tiền
                             </div>
                         @endif
                     @else
                         <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
                     @endif
                 </div>
-                <span class="material-symbols-outlined text-4xl text-gray-200">
-                    {{ $order->payment_method === 'vnpay' ? 'account_balance_wallet' : 'money' }}
-                </span>
+                <i class="fa-solid {{ $order->payment_method === 'vnpay' ? 'fa-wallet' : 'fa-money-bill-wave' }} text-4xl text-gray-200"></i>
             </div>
 
             @if ($order->payment_method === 'vnpay' && !in_array($order->payment_status, ['paid', 'refunded'], true))
@@ -290,7 +288,7 @@
                                             data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center text-gray-300">
-                                            <span class="material-symbols-outlined text-3xl">local_cafe</span>
+                                            <i class="fa-solid fa-mug-hot text-3xl"></i>
                                         </div>
                                     @endif
                                 </div>
@@ -394,7 +392,7 @@
                 {{-- Khối 3: Thông tin Khách hàng --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">person</span>
+                        <i class="fa-solid fa-user text-gray-400 text-base"></i>
                         Khách hàng
                     </h3>
                     <div class="flex items-center gap-3 mb-4">
@@ -412,7 +410,7 @@
                 {{-- Khối 4: Thông tin Giao hàng --}}
                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">local_shipping</span>
+                        <i class="fa-solid fa-truck text-gray-400 text-base"></i>
                         Giao hàng
                     </h3>
                     <div class="flex flex-col gap-4">

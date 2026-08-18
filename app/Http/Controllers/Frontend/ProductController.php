@@ -146,7 +146,6 @@ class ProductController
         ));
     }
 
-
     // Hiển thị danh sách tất cả sản phẩm kèm tính năng tìm
     public function index(Request $request)
     {

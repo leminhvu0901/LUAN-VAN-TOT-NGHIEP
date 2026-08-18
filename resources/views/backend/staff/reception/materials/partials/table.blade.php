@@ -48,9 +48,7 @@
                 <div class="flex justify-between items-start gap-3">
                     <div class="flex items-center gap-3">
                         <div class="w-12 h-12 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-sm">
-                            <span class="material-symbols-outlined text-emerald-600 text-2xl">
-                                {{ str_contains(strtolower($material->name), 'ly') || str_contains(strtolower($material->name), 'nắp') ? 'local_cafe' : (str_contains(strtolower($material->name), 'trà') || str_contains(strtolower($material->name), 'cà phê') ? 'eco' : 'bubble_chart') }}
-                            </span>
+                            <i class="fa-solid {{ str_contains(strtolower($material->name), 'ly') || str_contains(strtolower($material->name), 'nắp') ? 'fa-mug-hot' : (str_contains(strtolower($material->name), 'trà') || str_contains(strtolower($material->name), 'cà phê') ? 'fa-leaf' : 'fa-cubes-stacked') }} text-emerald-600 text-xl"></i>
                         </div>
                         <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-base font-bold text-gray-900 truncate max-w-[180px]" title="{{ $material->name }}">{{ $material->name }}</span>
@@ -81,8 +79,8 @@
                 <hr class="border-gray-100 border-dashed my-1">
 
                 <div class="flex justify-end gap-2">
-                    <a href="{{ route('staff.reception.materials.imports', $material->id) }}" class="w-full text-center py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-1">
-                        <span class="material-symbols-outlined text-[16px]">visibility</span> Chi tiết / Nhập kho
+                    <a href="{{ route('staff.reception.materials.imports', $material->id) }}" class="w-full text-center py-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-eye text-xs"></i> Chi tiết / Nhập kho
                     </a>
                 </div>
             </div>
@@ -180,8 +178,8 @@
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div class="flex items-center justify-center gap-2">
-                            <a href="{{ route('staff.reception.materials.imports', $material->id) }}" class="inline-flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors" title="Xem chi tiết phiếu nhập">
-                                <span class="material-symbols-outlined text-[16px]">visibility</span> Chi tiết / Nhập kho
+                            <a href="{{ route('staff.reception.materials.imports', $material->id) }}" class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors" title="Xem chi tiết phiếu nhập">
+                                <i class="fa-solid fa-eye text-xs"></i> Chi tiết / Nhập kho
                             </a>
                         </div>
                     </td>
@@ -190,7 +188,7 @@
                 <tr>
                     <td colspan="7" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center justify-center">
-                            <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                            <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3"></i>
                             <p class="text-gray-500 text-lg font-medium">Không tìm thấy vật tư nào</p>
                         </div>
                     </td>

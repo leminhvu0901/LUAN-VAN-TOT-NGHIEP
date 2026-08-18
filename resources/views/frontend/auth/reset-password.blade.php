@@ -13,11 +13,7 @@
 
             {{-- Nút biểu tượng chữ X để đóng Modal --}}
             <button id="close-reset-password" type="button" class="l-close-btn" aria-label="Đóng">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
             {{-- Icon ổ khóa kèm dấu tích xanh biểu thị bước xác thực bảo mật --}}
@@ -59,7 +55,7 @@
                             placeholder="Nhập mật khẩu mới" required>
                         {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="reset_password" aria-label="Hiện/ẩn mật khẩu">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
                     @error('password')
@@ -74,7 +70,7 @@
                         <input type="password" id="reset_password_confirmation" name="password_confirmation" class="l-input has-password-toggle"
                             placeholder="Nhập lại mật khẩu mới" required>
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="reset_password_confirmation" aria-label="Hiện/ẩn mật khẩu">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
                 </div>

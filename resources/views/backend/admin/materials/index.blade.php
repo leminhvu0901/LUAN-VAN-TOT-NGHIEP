@@ -13,16 +13,16 @@
             </div>
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <button type="button" id="bulk-deselect-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200" title="Bỏ chọn tất cả">
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <i class="fa-solid fa-arrow-rotate-left text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                 </button>
                 <button type="button" id="bulk-delete-btn" class="hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100" title="Xóa đã chọn">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                    <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Xóa <span id="selected-count" class="mx-1 text-red-700 font-bold">0</span> vật tư</span>
                 </button>
                 <button type="button" data-open-modal="modal-add"
                     class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all w-full sm:w-auto mt-1 sm:mt-0">
-                    <span class="material-symbols-outlined shrink-0">add</span>
+                    <i class="fa-solid fa-plus text-[14px] shrink-0"></i>
                     <span class="whitespace-nowrap">Thêm vật tư mới</span>
                 </button>
             </div>
@@ -51,12 +51,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Tổng mặt hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($totalItems) }}</p>
-                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">category</span> đang quản lý
+                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-boxes-stacked text-[11px]"></i> đang quản lý
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">inventory_2</span>
+                    <i class="fa-solid fa-boxes-stacked text-base"></i>
                 </div>
             </div>
 
@@ -65,12 +65,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Sắp hết hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($lowStockItems) }}</p>
-                    <p class="text-orange-500 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">warning</span> sắp hết
+                    <p class="text-orange-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-triangle-exclamation text-[11px]"></i> sắp hết
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">production_quantity_limits</span>
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
                 </div>
             </div>
 
@@ -79,12 +79,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Hết hàng</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($outOfStockItems ?? 0) }}</p>
-                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">error</span> cần nhập gấp
+                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-circle-exclamation text-[11px]"></i> cần nhập gấp
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
+                    <i class="fa-solid fa-box-open text-base"></i>
                 </div>
             </div>
 
@@ -93,12 +93,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Sắp hết hạn</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($expiringItems ?? 0) }}</p>
-                    <p class="text-amber-500 font-medium text-[11px] flex items-center gap-1 truncate">
+                    <p class="text-amber-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
                         Trong 30 ngày
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">event_upcoming</span>
+                    <i class="fa-solid fa-clock text-base"></i>
                 </div>
             </div>
 
@@ -107,12 +107,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Đã hết hạn</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($expiredItems ?? 0) }}</p>
-                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1 truncate">
+                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
                         Cần tiêu huỷ
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">event_busy</span>
+                    <i class="fa-solid fa-calendar-xmark text-base"></i>
                 </div>
             </div>
 
@@ -121,12 +121,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Đã thu hồi</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($disposedBatchesCount ?? 0) }}</p>
-                    <p class="text-gray-500 font-medium text-[11px] flex items-center gap-1 truncate">
+                    <p class="text-gray-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
                         Lô hàng xuất huỷ
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">remove_shopping_cart</span>
+                    <i class="fa-solid fa-ban text-base"></i>
                 </div>
             </div>
 
@@ -135,12 +135,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Tổng giá trị</p>
                     <p class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{{ number_format(($totalValue ?? 0) / 1000000, 1) }}M</p>
-                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
+                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1.5 truncate">
                         VNĐ
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">payments</span>
+                    <i class="fa-solid fa-money-bill-wave text-base"></i>
                 </div>
             </div>
 
@@ -149,12 +149,12 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Giá trị đã hủy</p>
                     <p class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{{ number_format(($disposedValue ?? 0) / 1000000, 1) }}M</p>
-                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1 truncate">
+                    <p class="text-red-500 font-medium text-[11px] flex items-center gap-1.5 truncate">
                         VNĐ
                     </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">money_off</span>
+                    <i class="fa-solid fa-money-bill-transfer text-base"></i>
                 </div>
             </div>
         </div>
@@ -164,7 +164,7 @@
             <div class="flex items-center justify-between xl:hidden">
                 <h3 class="font-semibold text-gray-700">Bộ lọc & Tìm kiếm</h3>
                 <button type="button" onclick="toggleFilterPanel('filter-wrapper')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
+                    <i class="fa-solid fa-filter text-[14px]"></i> <span class="hidden sm:inline">Bộ lọc</span>
                 </button>
             </div>
 
@@ -174,7 +174,7 @@
                     
                     <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center flex-1 w-full xl:w-auto">
                         <div class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 w-full sm:flex-1 xl:max-w-[280px] relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                            <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                            <i class="fa-solid fa-magnifying-glass text-gray-400 text-[14px] shrink-0"></i>
                             <input type="text" name="search" id="search-input" value="{{ request('search') }}"
                                 class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none text-gray-700"
                                 placeholder="Tìm kiếm vật tư...">
@@ -204,7 +204,7 @@
                     <a href="{{ route('admin.materials.index') }}" id="btn-clear-filter"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
                         style="display: {{ (request('search') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
+                        <i class="fa-solid fa-filter-circle-xmark text-[16px] shrink-0"></i>
                         <span class="whitespace-nowrap font-medium">Xóa lọc</span>
                     </a>
                 </div>
@@ -229,7 +229,7 @@
             <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 class="font-bold text-lg text-gray-900">Thêm Vật Tư Mới</h3>
                 <button type="button" data-close-modal="modal-add" class="text-gray-400 hover:text-gray-600">
-                    <span class="material-symbols-outlined">close</span>
+                    <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <form action="{{ route('admin.materials.store') }}" method="POST" class="p-6">

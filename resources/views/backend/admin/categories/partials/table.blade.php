@@ -38,18 +38,18 @@
                     <div class="flex justify-end gap-2">
                         <a href="{{ route('admin.categories.edit', $category->id) }}"
                             class="px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Sửa">
-                            <span class="material-symbols-outlined text-[16px]">edit</span> Sửa
+                            <i class="fa-solid fa-pen text-[13px]"></i> Sửa
                         </a>
                         @if ($category->products_count > 0)
                             <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 text-gray-400 bg-gray-50 cursor-not-allowed" title="Không thể xóa danh mục đang có sản phẩm" disabled>
-                                <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                                <i class="fa-solid fa-trash-can text-[13px]"></i> Xóa
                             </button>
                         @else
                             <form method="POST" action="{{ route('admin.categories.destroy', $category->id) }}" onsubmit="return confirm('Xóa danh mục này? Hành động này không thể hoàn tác.');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 text-red-600 bg-red-50 hover:bg-red-100" title="Xóa">
-                                    <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                                    <i class="fa-solid fa-trash-can text-[13px]"></i> Xóa
                                 </button>
                             </form>
                         @endif
@@ -107,18 +107,18 @@
                             <div class="flex justify-center gap-1.5">
                                 <a href="{{ route('admin.categories.edit', $category->id) }}"
                                     class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors" title="Sửa">
-                                    <span class="material-symbols-outlined text-[16px] xl:text-[18px]">edit</span>
+                                    <i class="fa-solid fa-pen text-[14px]"></i>
                                 </a>
                                 @if ($category->products_count > 0)
                                     <button type="button" class="p-1.5 rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed" title="Không thể xóa danh mục đang có sản phẩm" disabled>
-                                        <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                        <i class="fa-solid fa-trash-can text-[14px]"></i>
                                     </button>
                                 @else
                                     <form method="POST" action="{{ route('admin.categories.destroy', $category->id) }}" onsubmit="return confirm('Xóa danh mục này? Hành động này không thể hoàn tác.');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 rounded-lg transition-colors text-red-600 bg-red-50 hover:bg-red-100" title="Xóa">
-                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                            <i class="fa-solid fa-trash-can text-[14px]"></i>
                                         </button>
                                     </form>
                                 @endif
@@ -134,7 +134,7 @@
     <div class="p-12 text-center bg-white rounded-b-2xl h-full flex flex-col justify-center">
         <div class="flex flex-col items-center gap-3 text-gray-400">
             <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                <span class="material-symbols-outlined text-4xl text-gray-300">category</span>
+                <i class="fa-solid fa-layer-group text-3xl text-gray-300"></i>
             </div>
             <span class="font-medium text-gray-600 text-base">Không tìm thấy danh mục nào.</span>
             <p class="text-sm">Hãy thử thay đổi điều kiện lọc hoặc từ khóa tìm kiếm.</p>

@@ -15,9 +15,9 @@
         <div class="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all min-w-0">
             <div class="flex items-start justify-between gap-1.5">
                 <span class="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider leading-tight min-h-[2rem] line-clamp-2 break-words">{{ $stat['label'] }}</span>
-                <span class="material-symbols-outlined text-[18px] sm:text-[20px] p-1 sm:p-1.5 rounded-xl border {{ $classes[0] }} shrink-0">
-                    {{ $stat['icon'] }}
-                </span>
+                <div class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl border {{ $classes[0] }} shrink-0">
+                    <i class="{{ $stat['icon'] }} text-xs sm:text-sm"></i>
+                </div>
             </div>
             <div class="mt-3 sm:mt-4 space-y-1.5">
                 <p class="text-[18px] sm:text-2xl font-bold text-gray-900 leading-none break-all overflow-wrap-anywhere reports-stat-val">{{ $stat['value'] }}</p>
@@ -282,7 +282,7 @@
         <div>
             <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
                 <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-gray-500 text-[20px]">warehouse</span>
+                    <i class="fa-solid fa-warehouse text-gray-500 text-base"></i>
                     <div>
                         <h3 class="font-bold text-gray-900 text-sm md:text-base">Tình trạng tồn kho</h3>
                         <p class="text-xs text-gray-400 mt-0.5">Cảnh báo tồn kho nguyên liệu.</p>
@@ -294,7 +294,7 @@
             <div class="p-3 rounded-2xl mb-4 flex items-center justify-between shadow-sm gap-2 reports-inventory-summary">
                 <div class="flex items-center gap-2">
                     <div class="p-1.5 bg-white rounded-xl text-emerald-600 shadow-sm border border-emerald-100/30">
-                        <span class="material-symbols-outlined text-[18px] block">payments</span>
+                        <i class="fa-solid fa-money-bill-wave text-sm block"></i>
                     </div>
                     <div class="flex flex-col">
                         <span class="text-[9px] sm:text-[10px] font-bold text-emerald-700 uppercase tracking-wider leading-none mb-1">Tổng giá trị tồn</span>
@@ -358,7 +358,7 @@
                     @else
                         @if ($outOfStockMaterials->isEmpty())
                             <div class="text-center py-6 text-gray-400 text-xs">
-                                <span class="material-symbols-outlined text-gray-300 text-[28px] mb-1 block">check_circle</span>
+                                <i class="fa-solid fa-circle-check text-gray-300 text-2xl mb-1 block"></i>
                                 Tồn kho nguyên liệu ở trạng thái an toàn.
                             </div>
                         @else
@@ -372,7 +372,7 @@
         <div class="mt-4 pt-3 border-t border-gray-50 text-right">
             <a href="{{ route('admin.materials.index') }}"
                 class="w-full sm:w-auto inline-flex items-center justify-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-bold transition-all hover:gap-1.5 min-h-[40px] h-10 px-3 border border-gray-100 sm:border-0 rounded-xl sm:rounded-none bg-gray-50 sm:bg-transparent mt-2">
-                Xem chi tiết kho <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                Xem chi tiết kho <i class="fa-solid fa-arrow-right text-[11px]"></i>
             </a>
         </div>
     </div>
@@ -417,7 +417,7 @@
                                 <a href="{{ route('admin.orders.show', $order['id']) }}"
                                     class="inline-flex items-center justify-center p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                                     title="Xem chi tiết đơn hàng">
-                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                    <i class="fa-solid fa-eye text-sm"></i>
                                 </a>
                             </td>
                         </tr>
@@ -450,7 +450,7 @@
                         </span>
                         <a href="{{ route('admin.orders.show', $order['id']) }}"
                             class="inline-flex items-center justify-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl min-h-[38px] h-9 px-3 transition-colors">
-                            Chi tiết <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                            Chi tiết <i class="fa-solid fa-arrow-right text-[11px]"></i>
                         </a>
                     </div>
                 </div>
@@ -460,12 +460,12 @@
         <!-- Trạng thái trống của đơn hàng -->
         <div class="flex flex-col items-center justify-center text-center py-10 px-4 rounded-2xl border border-dashed border-gray-200 mt-2 reports-empty-orders">
             <div class="p-3 bg-white rounded-2xl text-gray-400 border border-gray-100 shadow-sm mb-3">
-                <span class="material-symbols-outlined text-[32px] block">package_2</span>
+                <i class="fa-solid fa-box-open text-2xl block"></i>
             </div>
             <h4 class="font-bold text-gray-700 text-sm">Chưa có đơn hàng gần đây</h4>
             <p class="text-xs text-gray-400 mt-1 max-w-[260px]">Các đơn hàng mới phát sinh sẽ tự động xuất hiện tại đây.</p>
             <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl mt-4 hover:bg-emerald-700 transition-all border border-emerald-600 shadow-sm min-h-[40px] h-10">
-                <span class="material-symbols-outlined text-[16px]">visibility</span>
+                <i class="fa-solid fa-eye text-xs"></i>
                 <span>Xem tất cả đơn hàng</span>
             </a>
         </div>

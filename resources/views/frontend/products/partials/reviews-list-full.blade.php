@@ -5,7 +5,7 @@
         @include('frontend.products.partials.review-item-full', ['review' => $review])
     @empty
         <div class="pd-reviews-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <i class="fa-regular fa-comment-dots text-gray-300 text-5xl mb-2"></i>
             @if($isFiltered)
                 <p>Chưa có đánh giá nào phù hợp với bộ lọc đã chọn.</p>
             @else

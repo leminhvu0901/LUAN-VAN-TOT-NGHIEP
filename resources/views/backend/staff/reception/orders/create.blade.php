@@ -97,9 +97,9 @@
                 class="hidden lg:block fixed inset-x-0 lg:inset-auto bottom-0 lg:bottom-auto z-50 lg:z-auto space-y-4 max-h-[85vh] lg:max-h-[calc(100vh-6rem)] overflow-y-auto lg:pr-1 rounded-t-2xl lg:rounded-none bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 lg:sticky lg:top-0 lg:self-start">
                 <div class="lg:hidden flex justify-end">
                     <button type="button" id="pos-cart-close-btn"
-                        class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
+                        class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
                         aria-label="Đóng giỏ hàng">
-                        <span class="material-symbols-outlined text-[20px]">close</span>
+                        <i class="fa-solid fa-xmark text-sm"></i>
                     </button>
                 </div>
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -135,7 +135,7 @@
                         {{-- Quà tặng Mua X Tặng Y: ẩn mặc định, JS hiện khi có dữ liệu --}}
                         <div id="pos-cart-gifts-row" class="hidden">
                             <div class="flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-1 mt-0.5">
-                                <span class="material-symbols-outlined text-[15px]">redeem</span>
+                                <i class="fa-solid fa-gift text-xs"></i>
                                 Quà tặng kèm
                             </div>
                             <ul id="pos-cart-gifts-list" class="space-y-0.5"></ul>
@@ -170,13 +170,13 @@
                                 class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 rounded-xl text-xs font-bold cursor-pointer {{ $posOrderType === 'dine_in' ? $posActiveOrderType : $posInactiveOrderType }}">
                                 <input type="radio" name="order_type" value="dine_in"
                                     {{ $posOrderType === 'dine_in' ? 'checked' : '' }} class="sr-only">
-                                <span class="material-symbols-outlined text-[18px]">restaurant</span> Tại quầy
+                                <i class="fa-solid fa-utensils text-sm"></i> Tại quầy
                             </label>
                             <label
                                 class="pos-order-type-option flex flex-col items-center justify-center gap-1 min-h-[52px] border-2 rounded-xl text-xs font-bold cursor-pointer {{ $posOrderType === 'takeaway' ? $posActiveOrderType : $posInactiveOrderType }}">
                                 <input type="radio" name="order_type" value="takeaway"
                                     {{ $posOrderType === 'takeaway' ? 'checked' : '' }} class="sr-only">
-                                <span class="material-symbols-outlined text-[18px]">takeout_dining</span> Mang đi
+                                <i class="fa-solid fa-bag-shopping text-sm"></i> Mang đi
                             </label>
                         </div>
                         {{-- Gửi thật lên server --}}
@@ -199,7 +199,7 @@
                                 </div>
                                 <button type="button" id="pos-customer-clear"
                                     class="text-emerald-600 hover:text-emerald-800 shrink-0">
-                                    <span class="material-symbols-outlined text-[18px]">close</span>
+                                    <i class="fa-solid fa-xmark text-xs"></i>
                                 </button>
                             </div>
                             <div class="flex items-center gap-2 pt-2 border-t border-emerald-100">
@@ -247,7 +247,7 @@
                                 class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 rounded-xl text-sm font-bold cursor-pointer {{ $posPaymentMethod === 'cash' ? $posActivePayment : $posInactivePayment }}">
                                 <input type="radio" name="payment_method" value="cash"
                                     {{ $posPaymentMethod === 'cash' ? 'checked' : '' }} class="sr-only">
-                                <span class="material-symbols-outlined text-[18px]">payments</span> Tiền mặt
+                                <i class="fa-solid fa-money-bill-wave text-sm"></i> Tiền mặt
                             </label>
 
                             @if ($vnpayEnabled)
@@ -255,7 +255,7 @@
                                     class="pos-payment-option flex items-center justify-center gap-2 min-h-[46px] border-2 rounded-xl text-sm font-bold cursor-pointer {{ $posPaymentMethod === 'vnpay' ? $posActivePayment : $posInactivePayment }}">
                                     <input type="radio" name="payment_method" value="vnpay"
                                         {{ $posPaymentMethod === 'vnpay' ? 'checked' : '' }} class="sr-only">
-                                    <span class="material-symbols-outlined text-[18px]">credit_card</span> VNPay
+                                    <i class="fa-solid fa-credit-card text-sm"></i> VNPay
                                 </label>
                             @endif
                         </div>
@@ -297,8 +297,8 @@
                 <div class="flex items-center justify-between">
                     <h3 class="font-bold text-gray-900 text-lg" id="pos-modal-product-name">Sản phẩm</h3>
                     <button type="button" id="pos-modal-close"
-                        class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                        <span class="material-symbols-outlined text-[18px]">close</span>
+                        class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                        <i class="fa-solid fa-xmark text-sm"></i>
                     </button>
                 </div>
 
@@ -731,7 +731,7 @@
                                 formatMoney(item.unit_price * item.quantity) + '</span>' +
                                 '<button type="button" class="pos-remove-btn text-red-400 hover:text-red-600 shrink-0" data-item-id="' +
                                 item.id + '">' +
-                                '<span class="material-symbols-outlined text-[18px]">close</span></button>';
+                                '<i class="fa-solid fa-xmark text-sm"></i></button>';
                             container.appendChild(row);
                         });
 

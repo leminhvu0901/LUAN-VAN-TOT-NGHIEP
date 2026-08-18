@@ -21,11 +21,11 @@
                 <!-- Thông tin liên hệ -->
                 <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 mt-1 flex flex-col gap-1.5">
                     <div class="flex items-center gap-2 text-sm text-gray-700 overflow-hidden">
-                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">mail</span>
+                        <i class="fa-regular fa-envelope text-[13px] text-gray-400 shrink-0"></i>
                         <span class="truncate" style="overflow-wrap: anywhere; word-break: break-word;">{{ $staff->email }}</span>
                     </div>
                     <div class="flex items-center gap-2 text-sm text-gray-700">
-                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">call</span>
+                        <i class="fa-solid fa-phone text-[13px] text-gray-400 shrink-0"></i>
                         <span>{{ $staff->phone ?? 'Chưa cập nhật' }}</span>
                     </div>
                 </div>
@@ -65,14 +65,14 @@
                     <div class="flex items-center gap-2">
                         <a href="{{ route('admin.staff_accounts.edit', $staff->id) }}"
                             class="text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors" title="Sửa">
-                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                            <i class="fa-solid fa-pen text-[14px]"></i>
                         </a>
                         <form method="POST" action="{{ route('admin.staff_accounts.destroy', $staff->id) }}"
                             onsubmit="return confirm('Xóa vĩnh viễn tài khoản nhân viên này? Hành động này không thể hoàn tác.');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 p-2 rounded-lg transition-colors" title="Xóa">
-                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                <i class="fa-solid fa-trash-can text-[14px]"></i>
                             </button>
                         </form>
                     </div>
@@ -171,14 +171,14 @@
                             <div class="flex items-center justify-center gap-1.5">
                                 <a href="{{ route('admin.staff_accounts.edit', $staff->id) }}"
                                     class="text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 p-1.5 rounded-lg transition-colors shadow-sm" title="Sửa">
-                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    <i class="fa-solid fa-pen text-[13px]"></i>
                                 </a>
                                 <form method="POST" action="{{ route('admin.staff_accounts.destroy', $staff->id) }}"
                                     onsubmit="return confirm('Xóa vĩnh viễn tài khoản nhân viên này? Hành động này không thể hoàn tác.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-rose-500 hover:text-white bg-rose-50 hover:bg-rose-600 p-1.5 rounded-lg transition-colors shadow-sm" title="Xóa">
-                                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        <i class="fa-solid fa-trash-can text-[13px]"></i>
                                     </button>
                                 </form>
                             </div>
@@ -197,7 +197,7 @@
     @endif
 @else
     <div class="text-center py-16 px-4 bg-white w-full">
-        <span class="material-symbols-outlined text-6xl text-gray-200 mb-4 select-none">badge</span>
+        <i class="fa-solid fa-id-badge text-6xl text-gray-200 mb-4 select-none"></i>
         <h3 class="text-lg font-bold text-gray-900 mb-1">Không tìm thấy tài khoản nhân viên nào</h3>
         <p class="text-gray-500 text-sm max-w-sm mx-auto">Vui lòng thử lại với từ khóa tìm kiếm hoặc bộ lọc khác.</p>
     </div>

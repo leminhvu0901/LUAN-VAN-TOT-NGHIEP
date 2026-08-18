@@ -51,8 +51,8 @@
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <a href="{{ route('staff.delivery.orders.show', $order->id) }}" class="font-bold text-gray-900 hover:text-primary">{{ $order->order_code }}</a>
-                            <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1 truncate">
-                                <span class="material-symbols-outlined text-[14px] shrink-0">person</span>
+                            <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1.5 truncate">
+                                <i class="fa-solid fa-user text-[12px] shrink-0"></i>
                                 <span class="truncate">{{ $order->customer_name }} — {{ $order->customer_phone }}</span>
                             </p>
                         </div>
@@ -60,13 +60,13 @@
                     </div>
 
                     <p class="text-sm text-gray-600 leading-snug flex items-start gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0 mt-0.5">location_on</span>
+                        <i class="fa-solid fa-location-dot text-[14px] text-gray-400 shrink-0 mt-0.5"></i>
                         <span>{{ $order->delivery_address }}</span>
                     </p>
 
                     @if($order->customer_note)
                         <p class="text-xs text-amber-800 bg-amber-50 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
-                            <span class="material-symbols-outlined text-[14px] shrink-0 mt-0.5">sticky_note_2</span>
+                            <i class="fa-solid fa-note-sticky text-[12px] shrink-0 mt-0.5"></i>
                             <span>{{ $order->customer_note }}</span>
                         </p>
                     @endif
@@ -91,7 +91,7 @@
                             <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">COD {{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
                         @else
                             <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full inline-flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                <i class="fa-solid fa-circle-check text-[12px]"></i>
                                 Đã thanh toán {{ match($order->payment_method) { 'vnpay' => 'VNPay', default => 'trực tuyến' } }}
                             </span>
                         @endif
@@ -104,7 +104,7 @@
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <a href="tel:{{ $order->customer_phone }}"
                             class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm active:bg-gray-50">
-                            <span class="material-symbols-outlined text-[18px]">call</span> Gọi khách
+                            <i class="fa-solid fa-phone text-sm"></i> Gọi khách
                         </a>
                         @php
                             $mapUrl = ($order->delivery_latitude && $order->delivery_longitude)
@@ -113,7 +113,7 @@
                         @endphp
                         <a href="{{ $mapUrl }}" target="_blank"
                             class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm active:bg-gray-50">
-                            <span class="material-symbols-outlined text-[18px]">map</span> Mở bản đồ
+                            <i class="fa-solid fa-map-location-dot text-sm"></i> Mở bản đồ
                         </a>
                     </div>
 
@@ -149,7 +149,7 @@
                 </div>
             @empty
                 <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">local_shipping</span>
+                    <i class="fa-solid fa-truck text-4xl text-gray-300"></i>
                     <p class="text-sm font-semibold mt-2">Không có đơn nào ở mục này.</p>
                 </div>
             @endforelse

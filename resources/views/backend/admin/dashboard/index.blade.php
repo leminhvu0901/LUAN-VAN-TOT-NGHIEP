@@ -12,7 +12,7 @@
                 <p class="text-gray-500 text-sm mt-1">Theo dõi hoạt động và các tác vụ cần xử lý trong hệ thống.</p>
             </div>
             <div class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm text-xs font-semibold text-gray-600 shrink-0">
-                <span class="material-symbols-outlined text-[16px] text-emerald-600">calendar_today</span>
+                <i class="fa-solid fa-calendar-days text-[14px] text-emerald-600"></i>
                 <span>Hôm nay: {{ \Carbon\Carbon::now()->format('d/m/Y') }}</span>
             </div>
         </div>
@@ -152,9 +152,7 @@
                             <div class="relative">
                                 <!-- Icon dot indicator -->
                                 <span class="absolute -left-[31px] top-0.5 w-4.5 h-4.5 rounded-full ring-4 {{ $colorClass }} flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-[10px] shrink-0 font-bold">
-                                        {{ $act['icon'] }}
-                                    </span>
+                                    <i class="{{ $act['icon'] }} text-[9px] shrink-0"></i>
                                 </span>
                                 
                                 <div class="text-xs">

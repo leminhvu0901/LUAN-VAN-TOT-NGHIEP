@@ -14,7 +14,7 @@
                         onclick="smartGoBack(event)"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                         title="Quay lại">
-                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                        <i class="fa-solid fa-arrow-left text-[14px]"></i>
                     </a>
 
                     {{-- Mã đơn hàng --}}
@@ -29,7 +29,7 @@
                 {{-- Nút in hóa đơn: Lớp 'print:hidden' để ẩn chính --}}
                 <button id="order-print-btn" type="button"
                     class="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 w-full sm:w-auto rounded-lg hover:bg-gray-50 font-medium transition-colors print:hidden">
-                    <span class="material-symbols-outlined text-[20px]">print</span>
+                    <i class="fa-solid fa-print text-[14px]"></i>
                     In hóa đơn
                 </button>
             </div>
@@ -59,7 +59,7 @@
             @if($order->needs_admin_approval)
                 <div class="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-amber-600 text-[28px]">verified_user</span>
+                        <i class="fa-solid fa-shield-halved text-amber-600 text-[24px]"></i>
                         <div>
                             <h4 class="font-bold text-amber-900">Yêu cầu phê duyệt đơn hàng (≥ 500.000đ)</h4>
                             <p class="text-xs text-amber-700 mt-0.5">Đơn hàng này cần Admin phê duyệt trước khi nhân viên lễ tân có thể tiếp tục các bước tiếp theo.</p>
@@ -68,7 +68,7 @@
                     <form action="{{ route('admin.orders.approve', $order->id) }}" method="POST" class="shrink-0">
                         @csrf
                         <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-lg shadow-sm flex items-center gap-1.5 transition active:scale-95">
-                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                            <i class="fa-solid fa-circle-check text-[16px]"></i>
                             Phê duyệt đơn hàng
                         </button>
                     </form>
@@ -77,14 +77,14 @@
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-gray-400">sync_alt</span>
+                    <i class="fa-solid fa-arrows-rotate text-gray-400"></i>
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">Trạng thái đơn hàng</h3>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="badge-status {{ $statusBadgeClass2 }} font-bold text-xs inline-block px-2.5 py-1">{{ $statusLabel2 }}</span>
                             @if($order->needs_admin_approval)
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                    <span class="material-symbols-outlined text-[14px]">hourglass_top</span> Chờ Admin phê duyệt
+                                    <i class="fa-solid fa-hourglass-half text-[11px]"></i> Chờ Admin phê duyệt
                                 </span>
                             @endif
                         </div>
@@ -119,8 +119,8 @@
                         <form id="refund-cancel-order-form" action="{{ route('admin.orders.refund', $order->id) }}" method="POST">
                             @csrf
                             <input type="hidden" name="cancel_reason" id="refund_cancel_reason_input">
-                            <button type="button" id="refund-cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">currency_exchange</span> Hoàn tiền & Hủy đơn
+                            <button type="button" id="refund-cancel-order-btn" class="min-h-[40px] px-4 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-money-bill-transfer text-[14px]"></i> Hoàn tiền & Hủy đơn
                             </button>
                         </form>
                     @endif
@@ -139,7 +139,7 @@
         {{-- Thông báo lý do HỦY ĐƠN --}}
         @if($order->status === 'cancelled' && $order->cancel_reason)
             <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
-                <span class="material-symbols-outlined text-red-500 mt-0.5">info</span>
+                <i class="fa-solid fa-circle-info text-red-500 mt-0.5"></i>
                 <div>
                     <h4 class="font-bold text-red-800">Lý do hủy đơn hàng</h4>
                     <p class="text-sm text-red-600 mt-1">{{ $order->cancel_reason }}</p>
@@ -161,19 +161,18 @@
                     <div class="divide-y divide-gray-100">
                         {{-- Vòng lặp lấy từng món trong mảng $items --}}
                         @foreach($items as $item)
-                            <div class="p-5 flex gap-4">
-                                {{-- Hiển thị hình ảnh sản phẩm --}}
-                                <div
-                                    class="w-20 h-20 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+                            <div class="flex gap-4 p-5">
+                                {{-- Ảnh sản phẩm --}}
+                                <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                                     @if($item->product_image)
                                         <img src="{{ $item->product_image_url }}" alt="{{ $item->product_name }}"
-                                            class="w-full h-full object-cover"
-                                            data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center text-gray-300">
-                                            <span class="material-symbols-outlined text-3xl">local_cafe</span>
-                                        </div>
-                                    @endif
+                                             class="w-full h-full object-cover"
+                                             data-fallback-src="{{ asset('images/products/placeholder.jpg') }}">
+                                     @else
+                                         <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                             <i class="fa-solid fa-mug-hot text-3xl"></i>
+                                         </div>
+                                     @endif
                                 </div>
 
                                 {{-- Thông tin món: Tên, Size, Topping, Đơn giá, Số lượng --}}
@@ -203,134 +202,131 @@
                                 </div>
                             </div>
                         @endforeach
-                    </div>
-                </div>
+                     </div>
+                 </div>
 
-                {{-- Khối 2: Tạm tính và Tổng tiền --}}
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-                    <div class="flex flex-col gap-3">
-                        {{-- Tạm tính tiền món --}}
-                        <div class="flex justify-between text-gray-600">
-                            <span>Tạm tính ({{ $items->sum('quantity') }} món)</span>
-                            <span class="font-medium">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
-                        </div>
-                        {{-- Phí giao hàng dựa theo khoảng cách --}}
-                        <div class="flex justify-between text-gray-600">
-                            <span>Phí giao hàng ({{ $order->distance_km ?? 0 }}km)</span>
-                            <span class="font-medium">{{ number_format($order->shipping_fee ?? 0, 0, ',', '.') }}đ</span>
-                        </div>
-                        {{-- Phụ thu thời tiết xấu --}}
-                        @if($order->weather_fee > 0)
-                            <div class="flex justify-between text-gray-600">
-                                <span>Phụ thu thời tiết xấu</span>
-                                <span class="font-medium">{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
-                            </div>
-                        @endif
-                        {{-- Tiền được giảm giá từ Coupon --}}
-                        @if($order->discount_amount > 0)
-                            <div class="flex justify-between text-emerald-600">
-                                <span>Khuyến mãi {{ $order->coupon_code ? '(' . $order->coupon_code . ')' : '' }}</span>
-                                <span class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
-                            </div>
-                        @endif
-                        @if($order->points_redeemed > 0)
-                            <div class="flex justify-between text-emerald-600 text-sm">
-                                <span>Đã dùng điểm tích lũy</span>
-                                <span class="font-medium">{{ number_format($order->points_redeemed, 0, ',', '.') }} điểm</span>
-                            </div>
-                        @endif
-                        {{-- Tổng tiền cuối cùng khách phải trả --}}
-                        <div class="pt-4 mt-2 border-t border-gray-100 flex justify-between items-center">
-                            <span class="font-bold text-gray-900 text-lg">Tổng cộng</span>
-                            <span
-                                class="font-bold text-primary text-xl">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                 {{-- Khối 2: Tạm tính và Tổng tiền --}}
+                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                     <div class="flex flex-col gap-3">
+                         {{-- Tạm tính tiền món --}}
+                         <div class="flex justify-between text-gray-600">
+                             <span>Tạm tính ({{ $items->sum('quantity') }} món)</span>
+                             <span class="font-medium">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
+                         </div>
+                         {{-- Phí giao hàng dựa theo khoảng cách --}}
+                         <div class="flex justify-between text-gray-600">
+                             <span>Phí giao hàng ({{ $order->distance_km ?? 0 }}km)</span>
+                             <span class="font-medium">{{ number_format($order->shipping_fee ?? 0, 0, ',', '.') }}đ</span>
+                         </div>
+                         {{-- Phụ thu thời tiết xấu --}}
+                         @if($order->weather_fee > 0)
+                             <div class="flex justify-between text-gray-600">
+                                 <span>Phụ thu thời tiết xấu</span>
+                                 <span class="font-medium">{{ number_format($order->weather_fee, 0, ',', '.') }}đ</span>
+                             </div>
+                         @endif
+                         {{-- Tiền được giảm giá từ Coupon --}}
+                         @if($order->discount_amount > 0)
+                             <div class="flex justify-between text-emerald-600">
+                                 <span>Khuyến mãi {{ $order->coupon_code ? '(' . $order->coupon_code . ')' : '' }}</span>
+                                 <span class="font-medium">-{{ number_format($order->discount_amount, 0, ',', '.') }}đ</span>
+                             </div>
+                         @endif
+                         @if($order->points_redeemed > 0)
+                             <div class="flex justify-between text-emerald-600 text-sm">
+                                 <span>Đã dùng điểm tích lũy</span>
+                                 <span class="font-medium">{{ number_format($order->points_redeemed, 0, ',', '.') }} điểm</span>
+                             </div>
+                         @endif
+                         {{-- Tổng tiền cuối cùng khách phải trả --}}
+                         <div class="pt-4 mt-2 border-t border-gray-100 flex justify-between items-center">
+                             <span class="font-bold text-gray-900 text-lg">Tổng cộng</span>
+                             <span
+                                 class="font-bold text-primary text-xl">{{ number_format($order->final_amount, 0, ',', '.') }}đ</span>
+                         </div>
+                     </div>
+                 </div>
+             </div>
 
-            {{-- CỘT PHẢI: Hiển thị thông tin khách hàng, giao --}}
-            <div class="flex flex-col gap-6">
+             {{-- CỘT PHẢI: Hiển thị thông tin khách hàng, giao --}}
+             <div class="flex flex-col gap-6">
 
-                {{-- Khối 3: Thông tin Khách hàng --}}
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">person</span>
-                        Khách hàng
-                    </h3>
-                    <div class="flex items-center gap-3 mb-4">
-                        {{-- Avatar tự động lấy chữ cái đầu tiên của tên khách hàng --}}
-                        <div
-                            class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
-                            {{ substr($order->customer_name, 0, 1) }}
-                        </div>
-                        <div>
-                            <div class="font-bold text-gray-900">{{ $order->customer_name }}</div>
-                            <div class="text-sm text-gray-500">{{ $order->customer_phone }}</div>
-                        </div>
-                    </div>
-                </div>
+                 {{-- Khối 3: Thông tin Khách hàng --}}
+                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                         <i class="fa-solid fa-user text-gray-400"></i>
+                         Khách hàng
+                     </h3>
+                     <div class="flex items-center gap-3 mb-4">
+                         {{-- Avatar tự động lấy chữ cái đầu tiên của tên khách hàng --}}
+                         <div
+                             class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                             {{ substr($order->customer_name, 0, 1) }}
+                         </div>
+                         <div>
+                             <div class="font-bold text-gray-900">{{ $order->customer_name }}</div>
+                             <div class="text-sm text-gray-500">{{ $order->customer_phone }}</div>
+                         </div>
+                     </div>
+                 </div>
 
-                {{-- Khối 4: Thông tin Giao hàng --}}
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">local_shipping</span>
-                        Giao hàng
-                    </h3>
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao</p>
-                            <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
-                        </div>
-                        {{-- Ghi chú của khách hàng khi đặt đơn --}}
-                        @if($order->customer_note)
-                            <div>
-                                <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Ghi chú của khách
-                                </p>
-                                <p class="text-sm text-gray-900 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
-                                    {{ $order->customer_note }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                 {{-- Khối 4: Thông tin Giao hàng --}}
+                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                         <i class="fa-solid fa-truck-fast text-gray-400"></i>
+                         Giao hàng
+                     </h3>
+                     <div class="flex flex-col gap-4">
+                         <div>
+                             <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Địa chỉ giao</p>
+                             <p class="text-sm text-gray-900">{{ $order->delivery_address }}</p>
+                         </div>
+                         {{-- Ghi chú của khách hàng khi đặt đơn --}}
+                         @if($order->customer_note)
+                             <div>
+                                 <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Ghi chú của khách
+                                 </p>
+                                 <p class="text-sm text-gray-900 bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                                     {{ $order->customer_note }}</p>
+                             </div>
+                         @endif
+                     </div>
+                 </div>
 
-                {{-- Khối 5: Tình trạng Thanh toán --}}
-                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-                    <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-gray-400">payments</span>
-                        Thanh toán
-                    </h3>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            {{-- Phương thức thanh toán --}}
-                            <div class="font-bold text-gray-900 uppercase">{{ $order->payment_method ?? 'COD' }}</div>
+                 {{-- Khối 5: Tình trạng Thanh toán --}}
+                 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
+                     <h3 class="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                         <i class="fa-solid fa-money-bill-wave text-gray-400"></i>
+                         Thanh toán
+                     </h3>
+                     <div class="flex items-center justify-between">
+                         <div>
+                             {{-- Phương thức thanh toán --}}
+                             <div class="font-bold text-gray-900 uppercase">{{ $order->payment_method ?? 'COD' }}</div>
 
-                            {{-- Kiểm tra nếu thanh toán online thì in ra trạng --}}
-                            @if($order->payment_method === 'vnpay')
-                                @if(($order->payment_status ?? '') === 'paid')
-                                    <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">check_circle</span> Đã thanh toán
-                                    </div>
-                                @elseif(($order->payment_status ?? '') === 'refunded')
-                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">undo</span> Đã hoàn tiền
-                                    </div>
-                                    @if($order->refunded_at)
-                                        <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
-                                    @endif
-                                @else
-                                    <div class="text-sm font-semibold text-amber-600 flex items-center gap-1 mt-1">
-                                        <span class="material-symbols-outlined text-[16px]">pending</span> Chờ thanh toán
-                                    </div>
-                                @endif
-                            @else
-                                <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
-                            @endif
-                        </div>
+                             {{-- Kiểm tra nếu thanh toán online thì in ra trạng --}}
+                             @if($order->payment_method === 'vnpay')
+                                 @if(($order->payment_status ?? '') === 'paid')
+                                     <div class="text-sm font-semibold text-emerald-600 flex items-center gap-1.5 mt-1">
+                                         <i class="fa-solid fa-circle-check text-[14px]"></i> Đã thanh toán
+                                     </div>
+                                 @elseif(($order->payment_status ?? '') === 'refunded')
+                                     <div class="text-sm font-semibold text-slate-600 flex items-center gap-1.5 mt-1">
+                                         <i class="fa-solid fa-rotate-left text-[14px]"></i> Đã hoàn tiền
+                                     </div>
+                                     @if($order->refunded_at)
+                                         <p class="text-xs text-gray-500 mt-1">Lúc {{ \Carbon\Carbon::parse($order->refunded_at)->format('H:i d/m/Y') }}</p>
+                                     @endif
+                                 @else
+                                     <div class="text-sm font-semibold text-amber-600 flex items-center gap-1.5 mt-1">
+                                         <i class="fa-solid fa-clock text-[14px]"></i> Chờ thanh toán
+                                     </div>
+                                 @endif
+                             @else
+                                 <div class="text-sm text-gray-500 mt-1">Thanh toán khi nhận hàng</div>
+                             @endif
                         {{-- Đổi Icon tương ứng với ví điện tử hoặc tiền mặt --}}
-                        <span class="material-symbols-outlined text-4xl text-gray-200">
-                            {{ ($order->payment_method ?? '') === 'vnpay' ? 'account_balance_wallet' : 'money' }}
-                        </span>
+                        <i class="fa-solid {{ ($order->payment_method ?? '') === 'vnpay' ? 'fa-wallet' : 'fa-money-bill-wave' }} text-4xl text-gray-200"></i>
                     </div>
                 </div>
             </div>

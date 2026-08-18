@@ -76,7 +76,8 @@ class AdministrativeDivisionService
         }
         return null;
     }
-   //tìm kiếm 1 Phường/Xã
+
+    //tìm kiếm 1 Phường/Xã
     public function findWard(int $wardCode, int $provinceCode): ?array
     {
         $wards = $this->wardsOf($provinceCode);

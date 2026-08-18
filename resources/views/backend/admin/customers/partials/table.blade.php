@@ -32,11 +32,11 @@
                 <!-- Thông tin liên hệ -->
                 <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 mt-1 flex flex-col gap-1.5">
                     <div class="flex items-center gap-2 text-sm text-gray-700 overflow-hidden">
-                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">mail</span>
+                        <i class="fa-regular fa-envelope text-[13px] text-gray-400 shrink-0"></i>
                         <span class="truncate" style="overflow-wrap: anywhere; word-break: break-word;">{{ $customer->email }}</span>
                     </div>
                     <div class="flex items-center gap-2 text-sm text-gray-700">
-                        <span class="material-symbols-outlined text-[16px] text-gray-400 shrink-0">call</span>
+                        <i class="fa-solid fa-phone text-[13px] text-gray-400 shrink-0"></i>
                         <span>{{ $customer->phone ?? 'Chưa cập nhật' }}</span>
                     </div>
                 </div>
@@ -99,18 +99,18 @@
                     <div class="flex justify-end gap-2">
                         <a href="{{ route('admin.customers.show', $customer->id) }}"
                             class="px-3 py-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xem">
-                            <span class="material-symbols-outlined text-[16px]">visibility</span>
+                            <i class="fa-solid fa-eye text-[13px]"></i>
                             Xem
                         </a>
                         <a href="{{ route('admin.customers.edit', $customer->id) }}"
                             class="px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Sửa">
-                            <span class="material-symbols-outlined text-[16px]">edit</span>
+                            <i class="fa-solid fa-pen text-[13px]"></i>
                             Sửa
                         </a>
                         <button type="button"
                             onclick="deleteCustomer({{ $customer->id }});"
                             class="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xóa">
-                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            <i class="fa-solid fa-trash-can text-[13px]"></i>
                             Xóa
                         </button>
                     </div>
@@ -164,11 +164,11 @@
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-700">
                                 <div class="flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px] text-gray-400">mail</span>
+                                    <i class="fa-regular fa-envelope text-[13px] text-gray-400"></i>
                                     <span>{{ $customer->email }}</span>
                                 </div>
                                 <div class="flex items-center gap-1.5 mt-1">
-                                    <span class="material-symbols-outlined text-[16px] text-gray-400">call</span>
+                                    <i class="fa-solid fa-phone text-[13px] text-gray-400"></i>
                                     <span>{{ $customer->phone ?? 'Chưa cập nhật' }}</span>
                                 </div>
                             </div>
@@ -227,12 +227,12 @@
                                 <a href="{{ route('admin.customers.show', $customer->id) }}" 
                                     class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                                     title="Xem chi tiết">
-                                    <span class="material-symbols-outlined text-[20px]">visibility</span>
+                                    <i class="fa-solid fa-eye text-[14px]"></i>
                                 </a>
                                 <a href="{{ route('admin.customers.edit', $customer->id) }}" 
                                     class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                     title="Chỉnh sửa">
-                                    <span class="material-symbols-outlined text-[20px]">edit</span>
+                                    <i class="fa-solid fa-pen text-[14px]"></i>
                                 </a>
                                 <form id="delete-form-{{ $customer->id }}" action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" class="m-0 hidden">
                                     @csrf
@@ -242,7 +242,7 @@
                                     onclick="deleteCustomer({{ $customer->id }});"
                                     class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                                     title="Xóa tài khoản">
-                                    <span class="material-symbols-outlined text-[20px]">delete</span>
+                                    <i class="fa-solid fa-trash-can text-[14px]"></i>
                                 </button>
                             </div>
                         </td>
@@ -260,7 +260,7 @@
 @else
     <div class="p-12 text-center bg-white rounded-b-2xl">
         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
-            <span class="material-symbols-outlined text-4xl text-gray-400">group_off</span>
+            <i class="fa-solid fa-users-slash text-3xl text-gray-400"></i>
         </div>
         <h3 class="text-lg font-medium text-gray-900 mb-1">Không tìm thấy khách hàng</h3>
         <p class="text-gray-500 text-sm">Hãy thử thay đổi điều kiện lọc hoặc từ khóa tìm kiếm.</p>

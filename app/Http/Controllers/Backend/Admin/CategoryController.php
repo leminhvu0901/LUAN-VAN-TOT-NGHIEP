@@ -7,9 +7,7 @@ use Illuminate\Http\Request;
 
 class CategoryController
 {
-    /**
-     * HIỂN THỊ DANH SÁCH DANH MỤC
-     */
+    //HIỂN THỊ DANH SÁCH DANH MỤC
     public function index(Request $request)
     {
         $query = Category::query()->withCount('products');
@@ -63,17 +61,13 @@ class CategoryController
         ));
     }
 
-    /**
-     * FORM THÊM MỚI
-     */
+    // FORM THÊM MỚI
     public function create()
     {
         return  view('backend.admin.categories.create');
     }
 
-    /**
-     * LƯU DANH MỤC MỚI
-     */
+    // LƯU DANH MỤC MỚI
     public function store(Request $request)
     {
         $request->validate([
@@ -98,17 +92,13 @@ class CategoryController
             ->with('success', 'Đã tạo danh mục thành công!');
     }
 
-    /**
-     * FORM CHỈNH SỬA
-     */
+    // FORM CHỈNH SỬA
     public function edit(Category $category)
     {
         return  view('backend.admin.categories.edit', compact('category'));
     }
 
-    /**
-     * CẬP NHẬT DANH MỤC
-     */
+    // CẬP NHẬT DANH MỤC
     public function update(Request $request, Category $category)
     {
         $request->validate([

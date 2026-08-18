@@ -2,11 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 1. KHÁCH HÀNG, TUYẾN ĐƯỜNG CÔNG KHAI, CUSTOMER, PUBLIC ROUTES ║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+// 1. KHÁCH HÀNG, TUYẾN ĐƯỜNG CÔNG KHAI, CUSTOMER, PUBLIC ROUTES
+
 Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->group(function () {
 
     // Trang chủ hiển thị banner và danh mục sản phẩm
@@ -20,11 +18,9 @@ Route::middleware([\App\Http\Middleware\RedirectStaffFromFrontend::class])->grou
 });
 
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 2. XÁC THỰC TÀI KHOẢN, AUTHENTICATION & OTP ROUTES ║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+//  2. XÁC THỰC TÀI KHOẢN, AUTHENTICATION & OTP ROUTES ║
+
 // Chuyển hướng đến trang chủ và hiển thị modal đăng ký
 Route::get('/register', function () {
     return redirect('/')->with('show_register', true);
@@ -77,11 +73,9 @@ Route::get('/reset-password', [App\Http\Controllers\Frontend\AuthController::cla
 Route::post('/reset-password', [App\Http\Controllers\Frontend\AuthController::class, 'postResetPassword'])->name('reset.password.post');
 
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 3. KHÁCH HÀNG, ĐÃ ĐĂNG NHẬP, CUSTOMER, AUTHENTICATED ROUTES ║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+//  3. KHÁCH HÀNG, ĐÃ ĐĂNG NHẬP, CUSTOMER, AUTHENTICATED ROUTES ║
+
 Route::middleware(['auth'])->group(function () {
 
     // Trang hồ sơ thông tin cá nhân
@@ -181,30 +175,24 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 4. THANH TOÁN ONLINE, KÊNH IPN SERVER-TO-SERVER, PAYMENT IPN ROUTING║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+//  4. THANH TOÁN ONLINE, KÊNH IPN SERVER-TO-SERVER, PAYMENT IPN ROUTING
+
 
 // Kênh nhận dữ liệu trạng thái IPN tự động từ VNPay, Server-to-Server
 Route::get('/checkout/vnpay/ipn', [App\Http\Controllers\Frontend\VnpayController::class, 'handleIpn'])->name('vnpay.ipn');
 
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 5. TIỆN ÍCH CHUNG, GENERAL UTILITIES ║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+// 5. TIỆN ÍCH CHUNG, GENERAL UTILITIES 
+
 // Lấy thông tin giỏ hàng hiện tại phục vụ hiển thị Sidebar [TRẢ VỀ JSON/AJAX CHO JS]
 Route::get('/cart', [App\Http\Controllers\Frontend\CartController::class, 'getCartData']);
 
 
-// =========================================================================
-// ╔═══════════════════════════════════════════════════════════════════════╗
-// ║ 6. QUẢN TRỊ VIÊN, ADMIN, ADMINISTRATOR ROUTES ║
-// ╚═══════════════════════════════════════════════════════════════════════╝
-// =========================================================================
+
+//  6. QUẢN TRỊ VIÊN, ADMIN, ADMINISTRATOR ROUTES ║
+
 Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
 
     // Trang tổng quan báo cáo quản trị Admin Dashboard
@@ -220,7 +208,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
     // Quản lý thông tin tài khoản khách hàng, CRUD
     Route::resource('customers', App\Http\Controllers\Backend\Admin\CustomerController::class);
 
-    // --- QUẢN LÝ ĐƠN HÀNG, ORDER MANAGEMENT ---
+    // --- QUẢN LÝ ĐƠN HÀNG,
     // Xem danh sách toàn bộ đơn hàng của cửa hàng
     Route::get('/orders', [App\Http\Controllers\Backend\Admin\SecureOrderController::class, 'index'])->name('orders.index');
 
@@ -342,9 +330,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', \App\Http\Middleware
 });
 
 
-// |--------------------------------------------------------------------------
-// | 7. NHÂN VIÊN, LỄ TÂN, STAFF RECEPTIONIST ROUTES
-// |--------------------------------------------------------------------------
+
+//  7. NHÂN VIÊN, LỄ TÂN, STAFF RECEPTIONIST ROUTES
+
 
 Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', \App\Http\Middleware\IsReceptionist::class])->group(function () {
 
@@ -423,9 +411,7 @@ Route::prefix('staff/reception')->name('staff.reception.')->middleware(['auth', 
 });
 
 
-// |--------------------------------------------------------------------------
-// | 8. NHÂN VIÊN, GIAO HÀNG, STAFF DELIVERY/SHIPPER ROUTES
-// |--------------------------------------------------------------------------
+//  8. NHÂN VIÊN, GIAO HÀNG, STAFF DELIVERY/SHIPPER ROUTES
 
 Route::prefix('staff/delivery')->name('staff.delivery.')->middleware(['auth', \App\Http\Middleware\IsDelivery::class])->group(function () {
 

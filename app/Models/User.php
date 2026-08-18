@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
+use App\Models\Setting;
 
 class User extends Authenticatable
 {
@@ -47,25 +49,18 @@ class User extends Authenticatable
     // HÀM CỘNG ĐIỂM TÍCH LŨY VÀ TỰ ĐỘNG NÂNG HẠNG THÀNH VIÊN, Tổng số tiền khách hàng đã thanh toán (đơn vị VNĐ), Quy tắc: Cứ 1,000 VNĐ = 1 điểm
     public function awardPoints(int|float $amount): void
     {
-        $loyaltyEnabled = (bool) \App\Models\Setting::getValue('loyalty_enabled', true);
+        $loyaltyEnabled = (bool) Setting::getValue('loyalty_enabled', true);
         if (!$loyaltyEnabled)
             return;
 
-        $moneyPerPoint = (float) \App\Models\Setting::getValue('loyalty_money_per_point', 10000);
+        $moneyPerPoint = (float) Setting::getValue('loyalty_money_per_point', 10000);
         if ($moneyPerPoint <= 0)
             return;
 
-        // Tính số điểm nhận được
         $earned = (int) floor($amount / $moneyPerPoint);
-
-        // Nếu số tiền quá nhỏ không được 1 điểm nào thì thoát hàm luôn, return
         if ($earned <= 0)
             return;
-
-        // Cộng dồn điểm mới vào tổng điểm hiện tại của user Nếu
         $total = (int) ($this->points ?? 0) + $earned;
-
-        // TỰ ĐỘNG XẾP HẠNG THÀNH VIÊN DỰA TRÊN TỔNG ĐIỂM
         if ($total >= 5000)
             $level = 'diamond';
         elseif ($total >= 2000)
@@ -83,7 +78,7 @@ class User extends Authenticatable
         $this->save();
 
         // Ghi lại lịch sử cộng điểm vào file log hệ thống
-        \Illuminate\Support\Facades\Log::info(
+        Log::info(
             "[Points] User #{$this->id} ({$this->name}): +{$earned} điểm -> tổng {$total} điểm | Hạng: {$level}"
         );
     }

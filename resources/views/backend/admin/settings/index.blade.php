@@ -15,7 +15,7 @@
 
         @if (session('success'))
             <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm animate-fade-in">
-                <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                <i class="fa-solid fa-circle-check text-emerald-500 text-sm"></i>
                 <span>{{ session('success') }}</span>
             </div>
         @endif
@@ -23,7 +23,7 @@
         @if ($errors->any())
             <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-medium space-y-1 shadow-sm">
                 <div class="flex items-center gap-2 font-bold mb-1">
-                    <span class="material-symbols-outlined text-[18px]">error</span>
+                    <i class="fa-solid fa-circle-exclamation text-red-500 text-sm"></i>
                     <span>Vui lòng kiểm tra lại thông tin cấu hình:</span>
                 </div>
                 <ul class="list-disc pl-5 space-y-0.5">
@@ -41,34 +41,34 @@
             <div class="lg:hidden w-full relative z-10">
                 <button type="button" id="mobile-tab-selector-btn" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm flex items-center justify-between font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:bg-gray-50 transition-all">
                     <span class="flex items-center gap-2" id="mobile-tab-active-label">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">storefront</span>
+                        <i class="fa-solid fa-store text-emerald-500 text-base shrink-0"></i>
                         <span>Thông tin cửa hàng</span>
                     </span>
-                    <span class="material-symbols-outlined text-[20px] text-gray-500">expand_more</span>
+                    <i class="fa-solid fa-chevron-down text-gray-500 text-sm"></i>
                 </button>
                 <div id="mobile-tab-dropdown-menu" class="hidden absolute top-full left-0 w-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg z-10 py-1.5 overflow-hidden">
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="store">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">storefront</span>
+                        <i class="fa-solid fa-store text-emerald-500 text-base shrink-0"></i>
                         <span>Thông tin cửa hàng</span>
                     </div>
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="orders">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">shopping_bag</span>
+                        <i class="fa-solid fa-bag-shopping text-emerald-500 text-base shrink-0"></i>
                         <span>Cài đặt đơn hàng</span>
                     </div>
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="shipping">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">local_shipping</span>
+                        <i class="fa-solid fa-truck text-emerald-500 text-base shrink-0"></i>
                         <span>Cài đặt giao hàng</span>
                     </div>
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="payment">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">credit_card</span>
+                        <i class="fa-solid fa-credit-card text-emerald-500 text-base shrink-0"></i>
                         <span>Cài đặt thanh toán</span>
                     </div>
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="loyalty">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">award_star</span>
+                        <i class="fa-solid fa-award text-emerald-500 text-base shrink-0"></i>
                         <span>Điểm tích lũy</span>
                     </div>
                     <div class="mobile-tab-option px-4 py-3 hover:bg-gray-50 flex items-center gap-3 cursor-pointer text-sm font-semibold text-gray-700 active:bg-gray-100" data-value="notifications">
-                        <span class="material-symbols-outlined text-[20px] text-emerald-500 shrink-0">notifications</span>
+                        <i class="fa-solid fa-bell text-emerald-500 text-base shrink-0"></i>
                         <span>Thông báo</span>
                     </div>
                 </div>
@@ -79,37 +79,37 @@
                 <div class="flex flex-col gap-1.5" role="tablist">
                     <button type="button" data-target="store" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start active-tab">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">storefront</span>
+                        <i class="fa-solid fa-store text-base shrink-0"></i>
                         <span>Thông tin cửa hàng</span>
                     </button>
 
                     <button type="button" data-target="orders" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start text-gray-500 hover:bg-gray-50">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">shopping_bag</span>
+                        <i class="fa-solid fa-bag-shopping text-base shrink-0"></i>
                         <span>Cài đặt đơn hàng</span>
                     </button>
 
                     <button type="button" data-target="shipping" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start text-gray-500 hover:bg-gray-50">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">local_shipping</span>
+                        <i class="fa-solid fa-truck text-base shrink-0"></i>
                         <span>Cài đặt giao hàng</span>
                     </button>
 
                     <button type="button" data-target="payment" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start text-gray-500 hover:bg-gray-50">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">credit_card</span>
+                        <i class="fa-solid fa-credit-card text-base shrink-0"></i>
                         <span>Cài đặt thanh toán</span>
                     </button>
 
                     <button type="button" data-target="loyalty" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start text-gray-500 hover:bg-gray-50">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">award_star</span>
+                        <i class="fa-solid fa-award text-base shrink-0"></i>
                         <span>Điểm tích lũy</span>
                     </button>
 
                     <button type="button" data-target="notifications" 
                         class="tab-btn flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left w-full justify-start text-gray-500 hover:bg-gray-50">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">notifications</span>
+                        <i class="fa-solid fa-bell text-base shrink-0"></i>
                         <span>Thông báo</span>
                     </button>
                 </div>
@@ -156,7 +156,7 @@
                             <div class="flex flex-col gap-3 p-4 bg-gray-50 rounded-xl border border-gray-150">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                                        <span class="material-symbols-outlined text-[18px] text-emerald-500 shrink-0">schedule</span>
+                                        <i class="fa-regular fa-clock text-[14px] text-emerald-500 shrink-0"></i>
                                         Giờ hoạt động
                                     </span>
                                     <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold">HẰNG NGÀY</span>
@@ -167,7 +167,7 @@
                                     <div class="flex-1 flex flex-col gap-1.5">
                                         <label for="store_open_time" class="text-[11px] font-bold text-gray-500 uppercase">Mở cửa</label>
                                         <div class="relative flex items-center">
-                                            <span class="material-symbols-outlined absolute left-3 text-gray-400 text-[18px]">schedule</span>
+                                            <i class="fa-regular fa-clock absolute left-3 text-gray-400 text-[14px]"></i>
                                             <input type="text" name="store_open_time" id="store_open_time" value="{{ old('store_open_time', date('H:i', strtotime($settings['store_open_time'] ?? '08:00'))) }}" 
                                                 class="settings-time-picker w-full border {{ $errors->has('store_open_time') ? 'input-error' : 'border-gray-200' }} rounded-xl pl-9 pr-3 py-2.5 outline-none text-gray-800 text-sm font-semibold focus:border-emerald-500 transition-colors bg-white cursor-pointer" placeholder="00:00">
                                         </div>
@@ -176,14 +176,14 @@
 
                                     <!-- Arrow or Line connector on Desktop -->
                                     <div class="hidden sm:flex items-center justify-center pt-5 text-gray-300">
-                                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+                                        <i class="fa-solid fa-arrow-right text-base"></i>
                                     </div>
 
                                     <!-- Field Đóng cửa -->
                                     <div class="flex-1 flex flex-col gap-1.5">
                                         <label for="store_close_time" class="text-[11px] font-bold text-gray-500 uppercase">Đóng cửa</label>
                                         <div class="relative flex items-center">
-                                            <span class="material-symbols-outlined absolute left-3 text-gray-400 text-[18px]">schedule</span>
+                                            <i class="fa-regular fa-clock absolute left-3 text-gray-400 text-[14px]"></i>
                                             <input type="text" name="store_close_time" id="store_close_time" value="{{ old('store_close_time', date('H:i', strtotime($settings['store_close_time'] ?? '22:00'))) }}" 
                                                 class="settings-time-picker w-full border {{ $errors->has('store_close_time') ? 'input-error' : 'border-gray-200' }} rounded-xl pl-9 pr-3 py-2.5 outline-none text-gray-800 text-sm font-semibold focus:border-emerald-500 transition-colors bg-white cursor-pointer" placeholder="00:00">
                                         </div>
@@ -257,7 +257,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>
@@ -322,7 +322,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>
@@ -449,7 +449,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>
@@ -474,7 +474,7 @@
                                 <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Môi trường thanh toán</label>
                                 <input type="hidden" name="payment_environment" id="payment_environment" value="sandbox">
                                 <div class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold w-fit">
-                                    <span class="material-symbols-outlined text-[18px]">science</span>
+                                    <i class="fa-solid fa-flask text-[14px]"></i>
                                     Thử nghiệm (Sandbox)
                                 </div>
                             </div>
@@ -487,7 +487,7 @@
                                 <div class="space-y-1">
                                     <div class="flex items-center justify-between">
                                         <span class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
-                                            <span class="material-symbols-outlined text-[20px] text-gray-500">payments</span>
+                                            <i class="fa-solid fa-money-bill-wave text-[16px] text-gray-500"></i>
                                             Thanh toán COD
                                         </span>
                                         <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold">MẶC ĐỊNH</span>
@@ -533,7 +533,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>
@@ -569,31 +569,31 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="flex flex-col gap-2">
-                                <label for="loyalty_money_per_point" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tỷ lệ tích (Số tiền tương ứng 1 điểm)</label>
+                                <label for="loyalty_money_per_point" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Số tiền để đổi 1 điểm</label>
                                 <div class="settings-page__input-suffix-wrapper">
-                                    <input type="number" name="loyalty_money_per_point" id="loyalty_money_per_point" min="0" value="{{ old('loyalty_money_per_point', $settings['loyalty_money_per_point'] ?? '10000') }}" 
+                                    <input type="number" name="loyalty_money_per_point" id="loyalty_money_per_point" min="1000" step="1000" value="{{ old('loyalty_money_per_point', $settings['loyalty_money_per_point'] ?? '10000') }}" 
                                         class="w-full border {{ $errors->has('loyalty_money_per_point') ? 'input-error' : 'border-gray-200' }} rounded-xl px-3 py-2.5 outline-none text-gray-700 text-sm focus:border-emerald-500 transition-colors">
-                                    <span class="input-suffix">VNĐ</span>
+                                    <span class="input-suffix">VNĐ/điểm</span>
                                 </div>
                                 @error('loyalty_money_per_point') <p class="text-red-500 text-xs mt-0.5 field-error-msg">{{ $message }}</p> @enderror
                             </div>
 
                             <div class="flex flex-col gap-2">
-                                <label for="loyalty_point_value" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Giá trị quy đổi của 1 điểm khi mua</label>
+                                <label for="loyalty_point_to_money" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Giá trị quy đổi 1 điểm</label>
                                 <div class="settings-page__input-suffix-wrapper">
-                                    <input type="number" name="loyalty_point_value" id="loyalty_point_value" min="0" value="{{ old('loyalty_point_value', $settings['loyalty_point_value'] ?? '1') }}" 
-                                        class="w-full border {{ $errors->has('loyalty_point_value') ? 'input-error' : 'border-gray-200' }} rounded-xl px-3 py-2.5 outline-none text-gray-700 text-sm focus:border-emerald-500 transition-colors">
+                                    <input type="number" name="loyalty_point_to_money" id="loyalty_point_to_money" min="100" step="100" value="{{ old('loyalty_point_to_money', $settings['loyalty_point_to_money'] ?? '1000') }}" 
+                                        class="w-full border {{ $errors->has('loyalty_point_to_money') ? 'input-error' : 'border-gray-200' }} rounded-xl px-3 py-2.5 outline-none text-gray-700 text-sm focus:border-emerald-500 transition-colors">
                                     <span class="input-suffix">VNĐ</span>
                                 </div>
-                                @error('loyalty_point_value') <p class="text-red-500 text-xs mt-0.5 field-error-msg">{{ $message }}</p> @enderror
+                                @error('loyalty_point_to_money') <p class="text-red-500 text-xs mt-0.5 field-error-msg">{{ $message }}</p> @enderror
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div class="flex flex-col gap-2">
-                                <label for="loyalty_max_redeem_percent" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Giảm tối đa / Đơn hàng</label>
+                                <label for="loyalty_max_redeem_percent" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tỷ lệ giảm giá tối đa bằng điểm</label>
                                 <div class="settings-page__input-suffix-wrapper">
-                                    <input type="number" name="loyalty_max_redeem_percent" id="loyalty_max_redeem_percent" min="0" max="100" value="{{ old('loyalty_max_redeem_percent', $settings['loyalty_max_redeem_percent'] ?? '100') }}" 
+                                    <input type="number" name="loyalty_max_redeem_percent" id="loyalty_max_redeem_percent" min="1" max="100" value="{{ old('loyalty_max_redeem_percent', $settings['loyalty_max_redeem_percent'] ?? '50') }}" 
                                         class="w-full border {{ $errors->has('loyalty_max_redeem_percent') ? 'input-error' : 'border-gray-200' }} rounded-xl px-3 py-2.5 outline-none text-gray-700 text-sm focus:border-emerald-500 transition-colors">
                                     <span class="input-suffix">%</span>
                                 </div>
@@ -613,7 +613,7 @@
 
                         <!-- Minh họa trực quan -->
                         <div class="flex items-center gap-3 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-indigo-800">
-                            <span class="material-symbols-outlined text-[20px] shrink-0 text-indigo-500">info</span>
+                            <i class="fa-solid fa-circle-info text-[16px] shrink-0 text-indigo-500"></i>
                             <p class="text-xs font-medium" id="loyalty-illustration-text">
                                 Ví dụ: Chi tiêu 10.000 VNĐ nhận được 1 điểm.
                             </p>
@@ -621,7 +621,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>
@@ -700,7 +700,7 @@
 
                         <div class="settings-page__save-actions flex justify-end pt-2">
                             <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md shadow-emerald-100 hover:shadow-emerald-200 border border-emerald-600 h-11 flex items-center justify-center gap-2">
-                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <i class="fa-solid fa-floppy-disk text-[20px]"></i>
                                 Lưu cấu hình
                             </button>
                         </div>

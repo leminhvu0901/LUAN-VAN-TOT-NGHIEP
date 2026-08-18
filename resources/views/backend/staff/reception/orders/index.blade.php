@@ -25,7 +25,7 @@
                 <button type="button"
                     onclick="toggleFilterPanel('search-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ lọc</span>
+                    <i class="fa-solid fa-filter text-xs"></i> <span class="hidden sm:inline">Bộ lọc</span>
                 </button>
             </div>
 
@@ -34,7 +34,7 @@
                 
                 <div class="flex flex-wrap items-center gap-3 w-full">
                     <div class="orders-page-search w-full sm:w-[calc(50%-0.375rem)] lg:w-auto lg:flex-1 flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                        <span class="material-symbols-outlined text-gray-400 text-[20px] shrink-0">search</span>
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm shrink-0"></i>
                         <input type="text" name="search" id="search-input" value="{{ request('search') }}"
                             class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
                             placeholder="Mã đơn, Tên, SĐT...">
@@ -55,13 +55,13 @@
                     </select>
 
                     <div class="orders-page-date w-full sm:w-[calc(50%-0.375rem)] lg:w-auto shrink-0 flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                        <span class="material-symbols-outlined text-gray-400 text-[18px] shrink-0">calendar_today</span>
+                        <i class="fa-regular fa-calendar text-gray-400 text-sm shrink-0"></i>
                         <input type="text" name="date_from" id="date-from-input" value="{{ request('date_from') }}"
                             class="orders-date-picker bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none text-gray-700" title="Từ ngày" placeholder="Từ ngày">
                     </div>
 
                     <div class="orders-page-date w-full sm:w-[calc(50%-0.375rem)] lg:w-auto shrink-0 flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                        <span class="material-symbols-outlined text-gray-400 text-[18px] shrink-0">calendar_today</span>
+                        <i class="fa-regular fa-calendar text-gray-400 text-sm shrink-0"></i>
                         <input type="text" name="date_to" id="date-to-input" value="{{ request('date_to') }}"
                             class="orders-date-picker bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none text-gray-700" title="Đến ngày" placeholder="Đến ngày">
                     </div>
@@ -72,7 +72,7 @@
                         </button>
                         <a href="{{ route('staff.reception.orders.index') }}"
                             class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow">
-                            <span class="material-symbols-outlined text-[20px] shrink-0">filter_alt_off</span>
+                            <i class="fa-solid fa-filter-circle-xmark text-sm shrink-0"></i>
                             <span class="whitespace-nowrap font-medium">Xóa lọc</span>
                         </a>
                     </div>

@@ -12,9 +12,7 @@
             
             {{-- Modal --}}
             <button id="close-otp" type="submit" form="cancel-otp-form" class="l-close-btn" aria-label="Đóng">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
             <form id="cancel-otp-form" action="{{ route('verify.otp.cancel') }}" method="POST" class="hidden">
                 @csrf

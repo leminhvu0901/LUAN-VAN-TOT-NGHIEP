@@ -10,12 +10,9 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Support\Collection;
-// Nạp công cụ tương tác Database Chạy transaction
 use Illuminate\Support\Facades\DB;
-// Nạp ngoại lệ ValidationException để ném lỗi dữ liệu
 use Illuminate\Validation\ValidationException;
 
-// "Dịch vụ xử lý đơn hàng".
 class OrderService
 {
 
@@ -26,7 +23,7 @@ class OrderService
     ) {
     }
 
-  // tao mới đơn hàng trong hệ thống bao gồm kiểm tra cửa
+    // tao mới đơn hàng trong hệ thống bao gồm kiểm tra
     public function create(User $user, array $payload, string $paymentMethod): Order
     {
         $existing = Order::withTrashed()
@@ -280,7 +277,7 @@ class OrderService
         }, 3); // Thử lại tối đa 3 lần nếu có tranh chấp khóa, deadlock
     }
 
-   // Xem trước số tiền giảm khi lễ tân nhập thủ công một mã
+    // Xem trước số tiền giảm khi lễ tân nhập thủ công một mã
     public function previewManualCoupon(
         string $code,
         Collection $items,
@@ -289,7 +286,7 @@ class OrderService
         ?string $deliveryType = null,
         int $totalQuantity = 0
     ): array {
-        return $this->promotions->resolveBestDiscount(
+        return $this->promotions->resolveBestDiscount(//Tìm và áp dụng mã giảm giá phù hợp cho giỏ hàng
             $items,
             $subtotal,
             $orderOwner,
@@ -300,17 +297,17 @@ class OrderService
         );
     }
 
-   // Xem trước số tiền giảm giá khi quy đổi điểm tích lũy
+    // Xem trước số tiền giảm giá khi quy đổi điểm tích lũy
     public function previewPointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): array
     {
         try {
+            // Kiểm tra tính hợp lệ và quy đổi điểm tích lũy sang
             return ['discount' => $this->resolvePointsDiscount($pointsToRedeem, $orderOwner, $subtotal), 'error' => null];
         } catch (ValidationException $e) {
             return ['discount' => 0, 'error' => collect($e->errors())->flatten()->first()];
         }
     }
-
-    // Kiểm tra tính hợp lệ và quy đổi điểm tích lũy sang
+    //Chuyển điểm tích lũy của khách hàng thành số tiền giảm giá cho đơn hàng
     private function resolvePointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): float
     {
         if ($pointsToRedeem <= 0) {

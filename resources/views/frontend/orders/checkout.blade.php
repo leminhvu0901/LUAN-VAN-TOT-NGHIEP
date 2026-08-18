@@ -62,8 +62,7 @@
                             @if ($addresses->isEmpty())
                                 <div id="empty-address-block"
                                     class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-6 rounded-xl flex flex-col items-center text-center">
-                                    <span
-                                        class="material-symbols-outlined text-4xl mb-2 text-yellow-600">location_off</span>
+                                    <span class="material-symbols-outlined text-4xl mb-2 text-yellow-600">location_off</span>
                                     <p class="font-bold">Bạn chưa có địa chỉ giao hàng!</p>
                                     <p class="text-sm mt-1">Vui lòng thêm địa chỉ nhận hàng để hoàn thành đặt hàng.</p>
                                     <button type="button"
@@ -143,15 +142,14 @@
                                         <label
                                             class="address-card flex items-start gap-3 p-3 border {{ $addr->id == $defaultAddress->id ? 'border-primary bg-primary-container/5' : 'border-outline-variant' }} rounded-lg cursor-pointer hover:bg-surface-container-low transition-all">
                                             <input type="radio" name="address_selector" value="{{ $addr->id }}"
-                                                class="mt-1 text-primary focus:ring-primary"
-                                                data-fullname="{{ $addr->fullname }}" data-phone="{{ $addr->phone }}"
+                                                class="mt-1 text-primary focus:ring-primary" data-fullname="{{ $addr->fullname }}"
+                                                data-phone="{{ $addr->phone }}"
                                                 data-address="{{ $addr->specific_address }}, {{ $addr->ward }}{{ $addr->district !== $addr->ward ? ', ' . $addr->district : '' }}, {{ $addr->province }}"
                                                 {{ $addr->id == $defaultAddress->id ? 'checked' : '' }}>
                                             <div class="text-sm flex-1">
                                                 <div class="flex items-center gap-2">
                                                     <span class="font-bold text-on-surface">{{ $addr->fullname }}</span>
-                                                    <span
-                                                        class="text-xs text-on-surface-variant">({{ $addr->phone }})</span>
+                                                    <span class="text-xs text-on-surface-variant">({{ $addr->phone }})</span>
                                                     @if ($addr->type == 'home')
                                                         <span
                                                             class="text-[10px] px-1.5 py-0.5 border border-outline-variant rounded text-on-surface-variant">Nhà</span>
@@ -163,22 +161,18 @@
                                                 <p class="text-xs text-on-surface-variant mt-1">
                                                     {{ $addr->specific_address }},
                                                     {{ $addr->ward }}{{ $addr->district !== $addr->ward ? ', ' . $addr->district : '' }},
-                                                    {{ $addr->province }}</p>
+                                                    {{ $addr->province }}
+                                                </p>
                                             </div>
                                             <div class="ml-auto self-center flex items-center gap-3">
                                                 <button type="button"
                                                     class="edit-address-btn text-primary hover:text-[#005301] text-xs font-bold transition-all"
-                                                    data-address-id="{{ $addr->id }}"
-                                                    data-fullname="{{ $addr->fullname }}"
-                                                    data-phone="{{ $addr->phone }}"
-                                                    data-province="{{ $addr->province }}"
-                                                    data-district="{{ $addr->district }}"
-                                                    data-ward="{{ $addr->ward }}"
+                                                    data-address-id="{{ $addr->id }}" data-fullname="{{ $addr->fullname }}"
+                                                    data-phone="{{ $addr->phone }}" data-province="{{ $addr->province }}"
+                                                    data-district="{{ $addr->district }}" data-ward="{{ $addr->ward }}"
                                                     data-specific-address="{{ $addr->specific_address }}"
-                                                    data-type="{{ $addr->type }}"
-                                                    data-is-default="{{ $addr->is_default }}"
-                                                    data-latitude="{{ $addr->latitude }}"
-                                                    data-longitude="{{ $addr->longitude }}"
+                                                    data-type="{{ $addr->type }}" data-is-default="{{ $addr->is_default }}"
+                                                    data-latitude="{{ $addr->latitude }}" data-longitude="{{ $addr->longitude }}"
                                                     data-location-method="{{ $addr->location_method }}">
                                                     Sửa
                                                 </button>
@@ -206,8 +200,8 @@
 
                                 <!-- Segmented control: 3 phương thức xác định vị trí độc lập -->
 
-                                <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4"
-                                    role="tablist" aria-label="Phương thức xác định vị trí">
+                                <div class="grid grid-cols-3 gap-1 p-1 bg-surface-container rounded-xl mb-4" role="tablist"
+                                    aria-label="Phương thức xác định vị trí">
                                     <button type="button" data-method="gps" onclick="setLocationMethod('gps')"
                                         class="loc-method-btn min-h-[44px] rounded-lg text-[11px] sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 text-center leading-tight transition-all">
                                         <span class="material-symbols-outlined text-[18px]">my_location</span> Vị trí hiện
@@ -316,8 +310,7 @@
                                                     <span
                                                         class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[19px] text-on-surface-variant pointer-events-none">search</span>
                                                     <input type="search" id="addr_ward_search"
-                                                        onfocus="openAreaSearch('ward')"
-                                                        oninput="filterAreaOptions('ward')"
+                                                        onfocus="openAreaSearch('ward')" oninput="filterAreaOptions('ward')"
                                                         onkeydown="handleAreaSearchKeydown(event, 'ward')"
                                                         autocomplete="off" role="combobox" aria-autocomplete="list"
                                                         aria-controls="addr_ward_options" aria-expanded="false"
@@ -460,9 +453,7 @@
                                 @if ($vnpayEnabled)
                                     <label
                                         class="flex items-center gap-4 p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-all">
-                                        <input type="radio" name="payment_method" value="vnpay"
-                                            {{ $autoCheckOnline ? 'checked' : '' }}
-                                            class="text-primary focus:ring-primary">
+                                        <input type="radio" name="payment_method" value="vnpay" {{ $autoCheckOnline ? 'checked' : '' }} class="text-primary focus:ring-primary">
                                         <div class="flex items-center gap-3">
                                             <span
                                                 class="material-symbols-outlined text-primary text-3xl material-filled">credit_card</span>
@@ -511,8 +502,8 @@
                                                 class="w-full h-full object-cover">
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <h4 class="font-bold text-on-surface text-sm truncate"
-                                                title="{{ $item->name }}">{{ $item->name }}</h4>
+                                            <h4 class="font-bold text-on-surface text-sm truncate" title="{{ $item->name }}">
+                                                {{ $item->name }}</h4>
                                             <p class="text-xs text-on-surface-variant mt-0.5 font-medium">
                                                 x{{ $item->quantity }} • Size {{ $item->size_name }}
                                                 @if ($item->sugar_level !== null)
@@ -563,10 +554,10 @@
                                                     if ($cfg->hasDiscount()) {
                                                         $parts[] =
                                                             $cfg->discount_type === 'percent'
-                                                                ? 'giảm ' . (float) $cfg->discount_value . '%'
-                                                                : 'giảm ' .
-                                                                    number_format($cfg->discount_value, 0, ',', '.') .
-                                                                    'đ';
+                                                            ? 'giảm ' . (float) $cfg->discount_value . '%'
+                                                            : 'giảm ' .
+                                                            number_format($cfg->discount_value, 0, ',', '.') .
+                                                            'đ';
                                                     }
                                                     if ($cfg->hasGift() && $cfg->giftProduct) {
                                                         $parts[] =
@@ -590,8 +581,8 @@
                                                 // Điều kiện tối thiểu
                                                 $condition = $promo->min_order_amount
                                                     ? 'Đơn từ ' .
-                                                        number_format($promo->min_order_amount, 0, ',', '.') .
-                                                        'đ'
+                                                    number_format($promo->min_order_amount, 0, ',', '.') .
+                                                    'đ'
                                                     : null;
                                                 // Hạng thành viên
                                                 $memberLabels = [
@@ -601,8 +592,8 @@
                                                 ];
                                                 $memberReq =
                                                     $promo->apply_for && $promo->apply_for !== 'all'
-                                                        ? $memberLabels[$promo->apply_for] ?? $promo->apply_for
-                                                        : null;
+                                                    ? $memberLabels[$promo->apply_for] ?? $promo->apply_for
+                                                    : null;
                                             @endphp
                                             <button type="button"
                                                 class="coupon-chip group flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 hover:bg-primary/15 hover:border-primary text-xs font-semibold text-primary transition-all active:scale-95"
@@ -661,12 +652,10 @@
                                             id="max-redeemable-points">0</span> điểm cho đơn hàng này.
                                     </p>
                                     <div class="flex gap-2">
-                                        <input type="number" name="points_to_redeem" id="points_to_redeem_input"
-                                            min="0" max="{{ $points }}"
-                                            placeholder="Nhập số điểm muốn đổi..."
+                                        <input type="number" name="points_to_redeem" id="points_to_redeem_input" min="0"
+                                            max="{{ $points }}" placeholder="Nhập số điểm muốn đổi..."
                                             class="flex-1 bg-surface-container-low border-none rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary"
-                                            data-points-balance="{{ $points }}"
-                                            data-point-value="{{ $pointValue }}"
+                                            data-points-balance="{{ $points }}" data-point-value="{{ $pointValue }}"
                                             data-max-redeem-percent="{{ $maxRedeemPercent }}"
                                             data-min-points-to-redeem="{{ $minPointsToRedeem }}">
                                         <button type="button" id="apply_points_btn"
@@ -693,8 +682,7 @@
                                 </div>
                                 <div class="flex justify-between text-sm text-on-surface-variant font-medium"
                                     id="summary-shipping-distance-row">
-                                    <span>Phí giao hàng (<span id="summary-distance-km-val">0.0</span> km ×
-                                        {{ number_format((float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000), 0, ',', '.') }}đ)</span>
+                                    <span>Phí giao hàng</span>
                                     <span id="summary-shipping-distance-text">0đ</span>
                                 </div>
                                 <div class="flex justify-between text-sm text-primary font-bold hidden"
@@ -772,7 +760,7 @@
                 shippingBaseFee: {{ (float) \App\Models\Setting::getValue('shipping_base_fee', 15000) }},
                 shippingFeePerKm: {{ (float) \App\Models\Setting::getValue('shipping_fee_per_km', 5000) }},
                 shippingMaxDistanceKm: {{ (float) \App\Models\Setting::getValue('shipping_max_distance_km', 15) }},
-                freeShippingMinimum: {{ (float) \App\Models\Setting::getValue('free_shipping_minimum', 150000) }},
+                freeShippingMinimum: {{ (float) $freeShipThreshold }},
                 geoapifyKey: @json(config('services.geoapify.key')),
                 shopLat: {{ (float) \App\Models\Setting::getValue('store_latitude', 10.73809) }},
                 shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
@@ -841,7 +829,7 @@
                 const hidden = document.getElementById('addr_location_method');
                 if (hidden) hidden.value = method;
 
-                document.querySelectorAll('.loc-method-btn').forEach(function(btn) {
+                document.querySelectorAll('.loc-method-btn').forEach(function (btn) {
                     const active = btn.dataset.method === method;
                     btn.classList.toggle('bg-primary', active);
                     btn.classList.toggle('text-white', active);
@@ -866,7 +854,7 @@
                     grid.classList.add('lg:grid-cols-2');
                     grid.classList.remove('lg:grid-cols-1');
                 }
-                setTimeout(function() {
+                setTimeout(function () {
                     initMapIfNeeded();
                     if (map) {
                         map.invalidateSize();
@@ -907,12 +895,12 @@
                     draggable: true
                 }).addTo(map);
 
-                marker.on('dragend', function() {
+                marker.on('dragend', function () {
                     const position = marker.getLatLng();
                     onMapPointPicked(position.lat, position.lng);
                 });
 
-                map.on('click', function(e) {
+                map.on('click', function (e) {
                     marker.setLatLng(e.latlng);
                     onMapPointPicked(e.latlng.lat, e.latlng.lng);
                 });
@@ -940,7 +928,7 @@
                 setLocStatus('locating', 'Đã chọn 1 điểm — bấm "Xác nhận vị trí này" để dùng.');
 
                 if (mapReverseTimer) clearTimeout(mapReverseTimer);
-                mapReverseTimer = setTimeout(function() {
+                mapReverseTimer = setTimeout(function () {
                     reverseGeocode(lat, lng);
                 }, 500);
             }
@@ -1027,7 +1015,7 @@
                         document.getElementById('addr_lng').value = lng.toFixed(6);
                         document.getElementById('addr_formatted').value = props.formatted || '';
 
-                        if (flagOutOfRange(lat, lng)) {} else if (confidence < MANUAL_GEOCODE_MIN_CONFIDENCE) {
+                        if (flagOutOfRange(lat, lng)) { } else if (confidence < MANUAL_GEOCODE_MIN_CONFIDENCE) {
                             setLocStatus('locating',
                                 'Chưa chắc chắn vị trí này đúng — vui lòng nhìn kỹ ghim trên bản đồ, kéo lại nếu chưa đúng.'
                             );
@@ -1046,7 +1034,7 @@
             // Tính khoảng cách đường chim bay bằng công thức Haversine, dùng kiểm tra nhanh phạm vi giao ngay tại trình duyệt
             function straightLineKm(lat1, lng1, lat2, lng2) {
                 // Đổi độ sang radian cho công thức tính khoảng cách
-                const toRad = function(d) {
+                const toRad = function (d) {
                     return d * Math.PI / 180;
                 };
                 const R = 6371;
@@ -1201,7 +1189,7 @@
                         button.classList.add('bg-primary-container/20', 'text-primary', 'font-bold');
                     }
                     button.textContent = item.name;
-                    button.addEventListener('click', function() {
+                    button.addEventListener('click', function () {
                         chooseAreaOption(which, item.code, item.name);
                     });
                     options.appendChild(button);
@@ -1224,7 +1212,7 @@
                 renderAreaOptions(which, '');
                 dropdown.classList.remove('hidden');
                 search.setAttribute('aria-expanded', 'true');
-                requestAnimationFrame(function() {
+                requestAnimationFrame(function () {
                     search.select();
                 });
             }
@@ -1441,7 +1429,7 @@
             // Tải danh sách Phường/Xã thuộc một tỉnh
             function loadWardsFor(provinceCode) {
                 // Đổ dữ liệu phường/xã vào ô chọn
-                const fillWardOptions = function(wards) {
+                const fillWardOptions = function (wards) {
                     const provinceSelect = document.getElementById('addr_province_select');
                     if (provinceSelect && provinceSelect.value !== String(provinceCode)) return;
                     const wardSelect = document.getElementById('addr_ward_select');
@@ -1684,10 +1672,10 @@
                         if (window.FrontendAlert) window.FrontendAlert.error(msg);
                         else alert(msg);
                     }, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
                 );
             }
 
@@ -1762,7 +1750,7 @@
                 if (modal) modal.classList.add('hidden');
             }
 
-            document.addEventListener('click', function(event) {
+            document.addEventListener('click', function (event) {
                 const addBtn = event.target.closest('.add-address-btn');
                 if (addBtn) {
                     openAddressModal(false);
@@ -1852,7 +1840,7 @@
                 form.method = 'POST';
                 form.action = url;
                 form.style.display = 'none';
-                Object.keys(payload).forEach(function(key) {
+                Object.keys(payload).forEach(function (key) {
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = key;
@@ -1878,38 +1866,38 @@
             window.filterAreaOptions = filterAreaOptions;
             window.handleAreaSearchKeydown = handleAreaSearchKeydown;
 
-            document.addEventListener('DOMContentLoaded', function() {
-                ['addr_fullname', 'addr_phone', 'addr_specific'].forEach(function(elId) {
+            document.addEventListener('DOMContentLoaded', function () {
+                ['addr_fullname', 'addr_phone', 'addr_specific'].forEach(function (elId) {
                     const el = document.getElementById(elId);
                     if (el) el.addEventListener('input', updateSaveButtonState);
                 });
                 const specificEl = document.getElementById('addr_specific');
                 if (specificEl) {
-                    specificEl.addEventListener('input', function() {
+                    specificEl.addEventListener('input', function () {
                         specificUserEdited = true;
                         scheduleManualForwardGeocode();
                     });
                 }
                 const provSel = document.getElementById('addr_province_select');
-                if (provSel) provSel.addEventListener('change', function() {
+                if (provSel) provSel.addEventListener('change', function () {
                     onProvinceChange();
                     updateSaveButtonState();
                 });
                 const wardSel = document.getElementById('addr_ward_select');
-                if (wardSel) wardSel.addEventListener('change', function() {
+                if (wardSel) wardSel.addEventListener('change', function () {
                     onWardChange();
                     updateSaveButtonState();
                 });
 
-                document.addEventListener('click', function(event) {
-                    ['province', 'ward'].forEach(function(which) {
+                document.addEventListener('click', function (event) {
+                    ['province', 'ward'].forEach(function (which) {
                         const root = document.querySelector(`[data-area-search-root="${which}"]`);
                         if (root && !root.contains(event.target)) closeAreaSearch(which);
                     });
                 });
             });
 
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 const priceSummaryEl = document.getElementById('price-summary');
                 if (!priceSummaryEl) return;
 
@@ -1944,7 +1932,7 @@
                 const checkoutForm = document.getElementById('checkout-form');
 
                 if (checkoutForm) {
-                    checkoutForm.addEventListener('keydown', function(e) {
+                    checkoutForm.addEventListener('keydown', function (e) {
                         if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
                             e.preventDefault();
                         }
@@ -2081,16 +2069,16 @@
                         couponMessage.className = 'text-xs text-on-surface-variant font-medium mt-1';
 
                         fetch('/checkout/validate-coupon', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': token
-                                },
-                                body: JSON.stringify({
-                                    coupon_code: code,
-                                    subtotal: currentSubtotal
-                                })
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token
+                            },
+                            body: JSON.stringify({
+                                coupon_code: code,
+                                subtotal: currentSubtotal
                             })
+                        })
                             .then(res => res.json())
                             .then(data => {
                                 if (data.valid) {
@@ -2251,7 +2239,7 @@
                         }
                         if (shippingDistanceText) shippingDistanceText.innerHTML =
                             '<span class="text-error font-bold">Không hỗ trợ giao quá ' + config
-                            .shippingMaxDistanceKm + 'km</span>';
+                                .shippingMaxDistanceKm + 'km</span>';
                         if (totalText) totalText.innerHTML = '<span class="text-error font-bold">---</span>';
 
                         const weatherRowOver = document.getElementById('summary-weather-fee-row');
@@ -2377,8 +2365,8 @@
                     if (!addressId) return;
 
                     fetch(
-                            `/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`
-                            )
+                        `/checkout/weather-fee?address_id=${addressId}&distance_km=${distanceKm}&subtotal=${subtotal}`
+                    )
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
@@ -2450,4 +2438,4 @@
                 form.submit();
             }
         </script>
-    @endsection
+@endsection

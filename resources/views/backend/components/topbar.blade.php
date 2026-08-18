@@ -3,7 +3,7 @@
     data-purpose="top-header">
     <!-- Nút Hamburger: Nút này dùng để mở Sidebar -->
     <button id="mobile-menu-btn" class="lg:hidden p-2 text-gray-500 hover:text-gray-700 focus:outline-none">
-        <span class="material-symbols-outlined">menu</span>
+        <i class="fa-solid fa-bars text-lg"></i>
     </button>
 
     <!-- Khu vực góc phải màn hình -->

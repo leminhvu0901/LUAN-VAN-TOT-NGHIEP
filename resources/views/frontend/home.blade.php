@@ -99,10 +99,7 @@
                         <div class="hero-banner__actions home-hero__actions">
                             <a href="{{ $heroLink ?: '/products' }}"
                                 class="hero-banner__btn hero-banner__btn--primary home-hero__btn home-hero__btn--primary">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                                </svg>
+                                <i class="fa-solid fa-cart-shopping"></i>
                                 Đặt ngay
                             </a>
                             <a href="/products"
@@ -148,38 +145,33 @@
                     1 => [
                         'bg' => '#dcfce7',
                         'color' => '#15803d',
-                        'icon' =>
-                            '<path d="M6 4h10v7a5 5 0 0 1-5 5h0a5 5 0 0 1-5-5V4z"></path><path d="M16 7h1.5a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H16"></path><line x1="6" y1="9" x2="16" y2="9"></line><line x1="5" y1="19" x2="19" y2="19"></line>',
+                        'icon' => 'fa-solid fa-mug-hot', // Cà phê
                     ],
                     2 => [
                         'bg' => '#ede9fe',
                         'color' => '#6d28d9',
-                        'icon' =>
-                            '<rect x="4" y="6" width="13" height="11" rx="2" ry="2"></rect><path d="M9 10l4.5 4.5"></path><path d="M13.5 10v4.5H9"></path><circle cx="19" cy="18" r="2.5" fill="currentColor" stroke="none"></circle>',
+                        'icon' => 'fa-solid fa-wine-glass', // Trà sữa
                     ],
                     4 => [
                         'bg' => '#ffedd5',
                         'color' => '#c2410c',
-                        'icon' =>
-                            '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path><path d="M9 12a3 3 0 0 0 3 3"></path>',
+                        'icon' => 'fa-solid fa-lemon', // Nước ép / Sinh tố
                     ],
                     3 => [
                         'bg' => '#fce7f3',
                         'color' => '#be185d',
-                        'icon' =>
-                            '<path d="M18 6l-9 6v-5l9-6v5z"></path><path d="M9 12v5l9 6v-5z"></path><path d="M18 18v-5"></path>',
-                    ], // Sữa chua using cake icon for now
+                        'icon' => 'fa-solid fa-bowl-food', // Sữa chua
+                    ],
                     5 => [
                         'bg' => '#dbeafe',
                         'color' => '#1d4ed8',
-                        'icon' =>
-                            '<path d="M8 2h8l1 8H7L8 2z"></path><path d="M7 10l1 10h8l1-10"></path><line x1="12" y1="6" x2="12" y2="10"></line>',
-                    ], // Đồ uống khác using blender icon
+                        'icon' => 'fa-solid fa-blender', // Đồ uống khác
+                    ],
                 ];
                 $defaultStyle = [
                     'bg' => '#f3f4f6',
                     'color' => '#4b5563',
-                    'icon' => '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4l3 3"></path>',
+                    'icon' => 'fa-regular fa-circle-question',
                 ];
             @endphp
 
@@ -190,11 +182,7 @@
                 <a href="/products?category[]={{ $cat->id }}" class="home-cat-card">
                     <div class="home-cat-card__icon"
                         style="--cat-bg: {{ $style['bg'] }}; --cat-color: {{ $style['color'] }};">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round">
-                            {!! $style['icon'] !!}
-                        </svg>
+                        <i class="{{ $style['icon'] }}"></i>
                     </div>
                     <span class="home-cat-card__name">{{ $cat->name }}</span>
                     <span class="home-cat-card__count">{{ $cat->product_count }} món</span>
@@ -309,11 +297,7 @@
                             class="home-prod-card__wishlist {{ in_array($product->id, $userFavorites) ? 'is-active' : '' }}"
                             aria-label="Yêu thích" data-id="{{ $product->id }}"
                             onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
+                            <i class="fa-solid fa-heart"></i>
                         </button>
                     </div>
                     <div class="home-prod-card__body">
@@ -323,11 +307,7 @@
                         </a>
                         <div class="p-product-stats"
                             style="display: flex; align-items: center; gap: 4px; margin-top: 0.35rem; margin-bottom: 0.5rem; font-size: 13px; color: #64748b;">
-                            <svg style="color: #f59e0b; width: 14px; height: 14px; flex-shrink: 0;"
-                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
+                            <i class="fa-solid fa-star home-prod-card__star"></i>
                             <span>{{ number_format($product->avg_rating, 1) }} </span>
                             <span style="color: #cbd5e1;">|</span>
                             <span>Đã bán
@@ -350,11 +330,7 @@
                             </div>
                             <button class="home-prod-card__add-btn" aria-label="Thêm vào giỏ hàng"
                                 @if (!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2.5">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
+                                <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
                     </div>
@@ -365,10 +341,7 @@
         <div class="home-popular__view-all">
             <a href="/products" class="home-popular__view-all-btn">
                 Xem tất cả sản phẩm
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5">
-                    <path d="m9 18 6-6-6-6" />
-                </svg>
+                <i class="fa-solid fa-arrow-right"></i>
             </a>
         </div>
     </section>
@@ -385,11 +358,7 @@
         <div class="home-features__grid">
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--green">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
+                    <i class="fa-solid fa-truck-fast"></i>
                 </div>
                 <h3 class="home-feat-card__title">Giao hàng nhanh</h3>
                 <p class="home-feat-card__desc">Đơn hàng của bạn sẽ được giao đến tận cửa trong vòng 30 phút, nhanh
@@ -397,14 +366,7 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--yellow">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <polyline points="20 12 20 22 4 22 4 12" />
-                        <rect x="2" y="7" width="20" height="5" />
-                        <path d="M12 22V7" />
-                        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-                        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-                    </svg>
+                    <i class="fa-solid fa-gift"></i>
                 </div>
                 <h3 class="home-feat-card__title">Giá tốt & ưu đãi</h3>
                 <p class="home-feat-card__desc">Giá hợp lý kèm theo các ưu đãi hoàn tiền hấp dẫn. Nhận mức giá tốt
@@ -412,12 +374,7 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--blue">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                        <line x1="3" y1="6" x2="21" y2="6" />
-                        <path d="M16 10a4 4 0 0 1-8 0" />
-                    </svg>
+                    <i class="fa-solid fa-bag-shopping"></i>
                 </div>
                 <h3 class="home-feat-card__title">Đa dạng lựa chọn</h3>
                 <p class="home-feat-card__desc">Chọn từ hơn 50 món đồ uống: trà sữa, cà phê, nước ép, sinh tố và
@@ -425,11 +382,7 @@
             </div>
             <div class="home-feat-card">
                 <div class="home-feat-card__icon home-feat-card__icon--red">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <polyline points="23 4 23 10 17 10" />
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                    </svg>
+                    <i class="fa-solid fa-rotate-left"></i>
                 </div>
                 <h3 class="home-feat-card__title">Đổi trả dễ dàng</h3>
                 <p class="home-feat-card__desc">Giao nhầm món hay thiếu sản phẩm? Liên hệ ngay để được hỗ trợ đổi

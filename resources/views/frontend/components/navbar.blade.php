@@ -106,10 +106,7 @@
                 <button type="submit"
                     class="happy-navbar__search-icon--desktop mr-2 flex-shrink-0 bg-transparent border-none p-0 cursor-pointer"
                     aria-label="Tìm kiếm">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="8" />
-                        <path stroke-linecap="round" d="m21 21-4.35-4.35" />
-                    </svg>
+                    <i class="fa-solid fa-magnifying-glass text-gray-500 text-sm"></i>
                 </button>
                 <input id="search-input" name="search" type="text" placeholder="Tìm kiếm trà sữa, cà phê..."
                     class="l-nav-search-input" value="{{ request('search') }}" />
@@ -131,10 +128,7 @@
                     {{-- Nút yêu thích --}}
                     <button id="wishlist-btn" type="button" class="happy-navbar__icon-btn"
                         aria-label="Sản phẩm yêu thích">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
+                        <i class="fa-solid fa-heart"></i>
                         {{-- Số lượng sản phẩm yêu thích --}}
                         <span id="wishlist-badge">{{ count($favoriteProducts) }}</span>
                     </button>
@@ -142,11 +136,7 @@
                     
                     @guest
                         <button id="login-btn" type="button" class="happy-navbar__icon-btn" aria-label="Đăng nhập">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                <circle cx="12" cy="7" r="4" />
-                            </svg>
+                            <i class="fa-solid fa-user"></i>
                         </button>
                     @endguest
 
@@ -159,21 +149,14 @@
                                     class="navbar-avatar">
                             @else
                                 {{-- Icon người dùng mặc định khi chưa có avatar --}}
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                    <circle cx="12" cy="7" r="4" />
-                                </svg>
+                                <i class="fa-solid fa-user"></i>
                             @endif
                         </a>
                     @endauth
 
                     {{-- Nút giỏ hàng --}}
                     <button id="cart-btn" type="button" class="happy-navbar__icon-btn" aria-label="Giỏ hàng">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                        </svg>
+                        <i class="fa-solid fa-cart-shopping"></i>
                         {{-- Badge: ẩn nếu giỏ rỗng, hiện nếu có sp --}}
                         <span id="cart-badge"
                             class="{{ $cartCount > 0 ? '' : 'cart-badge--hidden' }}">{{ $cartCount }}</span>
@@ -182,14 +165,8 @@
                     {{-- Nút menu mobile --}}
                     <button id="hamburger" type="button" class="happy-navbar__icon-btn navbar-hamburger"
                         aria-label="Mở menu">
-                        <svg id="ham-icon" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                        <svg id="close-icon" class="h-6 w-6 hidden" fill="none" stroke="currentColor" stroke-width="2"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
+                        <i id="ham-icon" class="fa-solid fa-bars text-lg"></i>
+                        <i id="close-icon" class="fa-solid fa-xmark text-lg hidden"></i>
                     </button>
 
                 </div>
@@ -201,11 +178,7 @@
             <form action="{{ url('/products') }}" method="GET" class="happy-navbar__search">
                 <button type="submit" class="happy-navbar__search-icon bg-transparent border-none p-0 cursor-pointer"
                     aria-label="Tìm kiếm">
-                    
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="8" />
-                        <path stroke-linecap="round" d="m21 21-4.35-4.35" />
-                    </svg>
+                    <i class="fa-solid fa-magnifying-glass text-gray-500 text-sm"></i>
                 </button>
                 <input type="text" name="search" placeholder="Tìm kiếm trà sữa, cà phê..."
                     class="happy-navbar__search-input" value="{{ request('search') }}" autocomplete="off" />
@@ -235,9 +208,7 @@
             <p class="wl-drawer__subtitle">{{ count($favoriteProducts) }} sản phẩm đã lưu</p>
         </div>
         <button id="wishlist-close" class="wl-drawer__close-btn" aria-label="Đóng">
-            <svg width="16" height="16" fill="none" stroke="#374151" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
+            <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
 
@@ -273,16 +244,11 @@
                     {{-- Nút xóa: gọi JS removeFromWishlist --}}
                     <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn"
                         onclick="removeFromWishlist({{ $item->id }})">
-                        <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                     {{-- Nút thêm vào giỏ: gọi JS addToCart --}}
                     <button title="Thêm vào giỏ" class="wl-item__cart-btn" onclick="addToCart({{ $item->id }})">
-                        <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                        </svg>
+                        <i class="fa-solid fa-cart-shopping"></i>
                     </button>
                 </div>
             </div>
@@ -313,9 +279,7 @@
             <p class="cart-drawer__subtitle" id="cart-drawer-subtitle">0 sản phẩm</p>
         </div>
         <button id="cart-close" class="cart-drawer__close" aria-label="Đóng">
-            <svg width="16" height="16" fill="none" stroke="#374151" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
+            <i class="fa-solid fa-xmark text-gray-700 text-base"></i>
         </button>
     </div>
 

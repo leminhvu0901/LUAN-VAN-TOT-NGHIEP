@@ -5,8 +5,8 @@
 @section('content')
     <div class="p-4 sm:p-6 space-y-4 max-w-2xl mx-auto">
         <div class="flex items-center gap-3">
-            <a href="{{ route('staff.delivery.orders.index') }}" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            <a href="{{ route('staff.delivery.orders.index') }}" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-700 transition-colors shadow-sm">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
             </a>
             <h2 class="text-xl font-bold text-gray-900">{{ $order->order_code }}</h2>
         </div>
@@ -49,7 +49,7 @@
 
             <div class="grid grid-cols-2 gap-2 pt-1">
                 <a href="tel:{{ $order->customer_phone }}" class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm">
-                    <span class="material-symbols-outlined text-[18px]">call</span> Gọi khách
+                    <i class="fa-solid fa-phone text-sm"></i> Gọi khách
                 </a>
                 @php
                     // Lấy link bản đồ giao hàng
@@ -58,7 +58,7 @@
                         : 'https://www.google.com/maps/search/?api=1&query=' . urlencode($order->delivery_address);
                 @endphp
                 <a href="{{ $mapUrl }}" target="_blank" class="min-h-[44px] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm">
-                    <span class="material-symbols-outlined text-[18px]">map</span> Mở bản đồ
+                    <i class="fa-solid fa-map-location-dot text-sm"></i> Mở bản đồ
                 </a>
             </div>
         </div>

@@ -11,15 +11,15 @@ use Illuminate\Support\Facades\DB;
 
 class TrackDailyVisit
 {
-    // Số ngày giữ lại số liệu, quá hạn sẽ bị dọn để bảng settings không phình ra mãi
+    // Số ngày giữ lại số liệu
     private const KEEP_DAYS = 30;
-
+    //đếm lượt truy cập mỗi ngày
     public function handle(Request $request, Closure $next)
     {
         $today = today()->toDateString();
 
         if (session('last_visit_date') !== $today) {
-            $this->increaseTodayCounter('daily_visits:' . $today);
+            $this->increaseTodayCounter('daily_visits:' . $today); //+1
             session(['last_visit_date' => $today]);
         }
 
@@ -38,7 +38,6 @@ class TrackDailyVisit
         if ($updated === 0) {
             try {
                 Setting::setValue($key, 1, 'stats', 'integer');
-                // Dòng của hôm nay vừa được tạo nghĩa là đã sang ngày mới, tiện thể dọn số liệu cũ
                 $this->pruneOldCounters();
                 Cache::forget("setting.{$key}");
                 return;

@@ -77,8 +77,8 @@
                                             data-confirm-message="Xác nhận đã nhận {{ number_format($order->final_amount, 0, ',', '.') }}đ tiền mặt cho đơn {{ $order->order_code }}?"
                                             onsubmit="return confirm(this.dataset.confirmMessage);">
                                             @csrf
-                                            <button type="submit" class="min-h-[36px] px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs whitespace-nowrap flex items-center gap-1 transition-colors">
-                                                <span class="material-symbols-outlined text-[16px]">check_circle</span> Xác nhận đã nộp
+                                            <button type="submit" class="min-h-[36px] px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs whitespace-nowrap flex items-center gap-1.5 transition-colors">
+                                                <i class="fa-solid fa-circle-check text-xs"></i> Xác nhận đã nộp
                                             </button>
                                         </form>
                                     </div>

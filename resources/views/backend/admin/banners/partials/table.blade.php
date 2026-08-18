@@ -116,9 +116,7 @@
                                     <form method="POST" action="{{ route('admin.banners.toggle_status', $banner->id) }}">
                                         @csrf
                                         <button type="submit" class="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors" title="Bật/Tắt hiển thị">
-                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">
-                                                {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
-                                            </span>
+                                            <i class="fa-solid {{ $banner->is_active ? 'fa-eye' : 'fa-eye-slash' }} text-[14px]"></i>
                                         </button>
                                     </form>
 
@@ -126,7 +124,7 @@
                                     <a href="{{ route('admin.banners.edit', $banner->id) }}"
                                         class="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                                         title="Sửa">
-                                        <span class="material-symbols-outlined text-[16px] xl:text-[18px]">edit</span>
+                                        <i class="fa-solid fa-pen text-[14px]"></i>
                                     </a>
 
                                     <!-- Xóa -->
@@ -135,7 +133,7 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa">
-                                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                            <i class="fa-solid fa-trash-can text-[14px]"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -253,9 +251,7 @@
                             @csrf
                             <button type="submit"
                                 class="w-full min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-emerald-100">
-                                <span class="material-symbols-outlined text-[18px] shrink-0">
-                                    {{ $banner->is_active ? 'visibility' : 'visibility_off' }}
-                                </span>
+                                <i class="fa-solid {{ $banner->is_active ? 'fa-eye' : 'fa-eye-slash' }} text-[14px] shrink-0"></i>
                                 <span class="whitespace-nowrap">Trạng thái</span>
                             </button>
                         </form>
@@ -263,7 +259,7 @@
                         <!-- Sửa -->
                         <a href="{{ route('admin.banners.edit', $banner->id) }}"
                             class="flex-1 min-w-0 min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-blue-100">
-                            <span class="material-symbols-outlined text-[18px] shrink-0">edit</span>
+                            <i class="fa-solid fa-pen text-[14px] shrink-0"></i>
                             <span class="whitespace-nowrap">Chỉnh sửa</span>
                         </a>
 
@@ -274,7 +270,7 @@
                             @method('DELETE')
                             <button type="submit"
                                 class="w-full min-h-[44px] flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-2 sm:px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-[11px] sm:text-xs font-bold leading-tight transition-all border border-red-100">
-                                <span class="material-symbols-outlined text-[18px] shrink-0">delete</span>
+                                <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                                 <span class="whitespace-nowrap">Xóa</span>
                             </button>
                         </form>
@@ -289,7 +285,7 @@
             <div class="flex flex-col items-center gap-3 text-gray-400">
                 <div
                     class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                    <span class="material-symbols-outlined text-4xl text-gray-300">view_carousel</span>
+                    <i class="fa-solid fa-images text-3xl text-gray-300"></i>
                 </div>
                 <span class="font-medium text-gray-600 text-base">Không tìm thấy banner nào.</span>
                 <p class="text-sm">Hãy thử thay đổi điều kiện lọc hoặc từ khóa tìm kiếm.</p>

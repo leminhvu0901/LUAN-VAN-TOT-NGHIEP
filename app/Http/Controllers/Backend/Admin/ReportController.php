@@ -23,7 +23,7 @@ class ReportController
     // Hiển thị trang Báo cáo & Thống kê với bộ lọc thời gian
     public function index(Request $request)
     {
-        $data = $this->buildReportData($request);
+        $data = $this->buildReportData($request);// Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc.
 
         return view('backend.admin.reports.index', $data);
     }
@@ -392,42 +392,42 @@ class ReportController
                 'label' => 'Tổng doanh thu',
                 'value' => number_format($revenue, 0, ',', '.') . 'đ',
                 'trend' => $getTrend($revenue, $prevRevenue),
-                'icon' => 'payments',
+                'icon' => 'fa-solid fa-money-bill-wave',
                 'color' => 'emerald'
             ],
             'orders' => [
                 'label' => 'Tổng đơn hàng',
                 'value' => number_format($ordersCount, 0, ',', '.'),
                 'trend' => $getTrend($ordersCount, $prevOrdersCount),
-                'icon' => 'shopping_bag',
+                'icon' => 'fa-solid fa-bag-shopping',
                 'color' => 'blue'
             ],
             'completed' => [
                 'label' => 'Đơn hoàn thành',
                 'value' => number_format($completedCount, 0, ',', '.'),
                 'trend' => $getTrend($completedCount, $prevCompletedCount),
-                'icon' => 'check_circle',
+                'icon' => 'fa-solid fa-circle-check',
                 'color' => 'teal'
             ],
             'cancelled' => [
                 'label' => 'Đơn đã hủy',
                 'value' => number_format($cancelledCount, 0, ',', '.'),
                 'trend' => $getTrend($cancelledCount, $prevCancelledCount),
-                'icon' => 'cancel',
+                'icon' => 'fa-solid fa-circle-xmark',
                 'color' => 'red'
             ],
             'customers' => [
                 'label' => 'Khách hàng mới',
                 'value' => number_format($newCustomersCount, 0, ',', '.'),
                 'trend' => $getTrend($newCustomersCount, $prevNewCustomersCount),
-                'icon' => 'person_add',
+                'icon' => 'fa-solid fa-user-plus',
                 'color' => 'indigo'
             ],
             'products_sold' => [
                 'label' => 'Sản phẩm đã bán',
                 'value' => number_format($productsSoldCount, 0, ',', '.'),
                 'trend' => $getTrend($productsSoldCount, $prevProductsSoldCount),
-                'icon' => 'local_cafe',
+                'icon' => 'fa-solid fa-mug-hot',
                 'color' => 'amber'
             ],
         ];
@@ -508,7 +508,7 @@ class ReportController
             'amounts' => [$pickupRevenue, $deliveryRevenue],
         ];
 
-        // 6c. Biểu đồ số lượng đơn hàng theo kênh bán, đếm TẤT
+        // Biểu đồ số lượng đơn hàng theo kênh bán, đếm TẤT
         // thái, khớp với cách tính "Tổng đơn hàng", $ordersCount ở thẻ tổng quan phía trên.
         $pickupOrdersCount = Order::where('delivery_type', 'pickup')->whereBetween('created_at', [$start, $end])->count();
         $deliveryOrdersCount = Order::where('delivery_type', 'delivery')->whereBetween('created_at', [$start, $end])->count();
@@ -607,13 +607,13 @@ class ReportController
             ->get()
             ->map(function ($order) {
                 $labels = [
-                    'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],
-                    'confirmed' => ['Đã xác nhận', 'bg-primary-container text-primary-onContainer border border-primary'],
-                    'shipping' => ['Đang giao', 'bg-info-container text-info-onContainer border border-info'],
-                    'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-100'],
-                    'cancelled' => ['Đã hủy', 'bg-error-container text-error-onContainer border border-error'],
+                    'pending' => ['Chờ xác nhận', 'bg-amber-50 text-amber-700 border border-amber-200'],
+                    'confirmed' => ['Đã xác nhận', 'bg-blue-50 text-blue-700 border border-blue-200'],
+                    'shipping' => ['Đang giao', 'bg-orange-50 text-orange-700 border border-orange-200'],
+                    'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-200'],
+                    'cancelled' => ['Đã hủy', 'bg-rose-50 text-rose-700 border border-rose-200'],
                 ];
-                [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700'];
+                [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700 border border-gray-200'];
                 return [
                     'id' => $order->id,
                     'code' => $order->order_code ?: '#HPY-' . $order->id,

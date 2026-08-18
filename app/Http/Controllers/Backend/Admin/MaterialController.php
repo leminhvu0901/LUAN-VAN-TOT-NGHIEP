@@ -23,17 +23,14 @@ class MaterialController
     public function index(Request $request)
     {
         $query = Material::with([
-            // Chỉ nạp các lô còn hàng
             'imports' => function ($q) {
                 $q->where('remaining_quantity', '>', 0);
             }
         ])->withCount([
-                    // Số lô đang còn tồn thật, loại trừ bản ghi âm là lô đã hủy hoặc xuất
                     'imports as active_lots_count' => function ($q) {
                         $q->where('quantity', '>', 0)
                             ->where('remaining_quantity', '>', 0);
                     },
-                    // Số lần vật tư này đã bị hủy bỏ, tính từ bản ghi quantity âm
                     'imports as disposed_count' => function ($q) {
                         $q->where('quantity', '<', 0);
                     }
@@ -171,8 +168,6 @@ class MaterialController
         return $this->deleteMaterialCollection($materials, $request);
     }
 
-    // Imports
-
     // Hiển thị màn hình lịch sử nhập xuất của một vật tư
     public function imports(Material $material)
     {
@@ -193,7 +188,6 @@ class MaterialController
         $request->merge(['_form_context' => 'import-create']);
         // Phiếu nhập mới nên hạn sử dụng phải sau ngày hôm nay
         $validated = $this->validateImportData($request, today()->toDateString());
-
         $this->inventory->createImportLot(
             $material,
             (string) $validated['quantity'],
@@ -201,7 +195,6 @@ class MaterialController
             $validated['note'] ?? null,
             $validated['expiration_date'] ?? null,
         );
-
         return redirect()->route('admin.materials.imports', $material)->with('success', 'Đã nhập kho thành công!');
     }
 
@@ -486,13 +479,11 @@ class MaterialController
             'name' => preg_replace('/\s+/u', ' ', trim((string) $request->input('name'))),
             'unit' => preg_replace('/\s+/u', ' ', trim((string) $request->input('unit'))),
         ]);
-
         // Khi sửa thì phải loại trừ chính bản ghi đang sửa khỏi kiểm tra trùng tên
         $uniqueNameRule = 'unique:materials,name';
         if ($material !== null) {
             $uniqueNameRule .= ',' . $material->id;
         }
-
         // Chặn nhập số vào đơn vị tính, ví dụ kg2, trừ khi giữ nguyên đơn vị cũ
         $unitCharacterRule = function (string $attribute, mixed $value, $fail) use ($material) {
             if ($material !== null && $value === $material->unit) {
@@ -503,7 +494,6 @@ class MaterialController
                 $fail('Đơn vị chỉ được chứa chữ cái, khoảng trắng, dấu chấm, gạch ngang hoặc dấu /. Không được nhập số.');
             }
         };
-
         return $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:50', $uniqueNameRule],
             'unit' => ['required', 'string', 'max:20', $unitCharacterRule],

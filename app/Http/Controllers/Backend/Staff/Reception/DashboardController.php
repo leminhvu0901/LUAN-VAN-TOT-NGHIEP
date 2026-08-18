@@ -56,13 +56,13 @@ class DashboardController
         // Lấy danh sách 5 đơn hàng mới tạo gần đây nhất
         $recentOrders = Order::latest()->limit(5)->get()->map(function ($order) {
             $labels = [ // Đắp class màu và nhãn tiếng Việt tương ứng trạng thái
-                'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],
-                'confirmed' => ['Đã xác nhận', 'bg-primary-container text-primary-onContainer border border-primary'],
-                'shipping' => ['Đang giao', 'bg-info-container text-info-onContainer border border-info'],
-                'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-100'],
-                'cancelled' => ['Đã hủy', 'bg-error-container text-error-onContainer border border-error'],
+                'pending' => ['Chờ xác nhận', 'bg-amber-50 text-amber-700 border border-amber-200'],
+                'confirmed' => ['Đã xác nhận', 'bg-blue-50 text-blue-700 border border-blue-200'],
+                'shipping' => ['Đang giao', 'bg-orange-50 text-orange-700 border border-orange-200'],
+                'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-200'],
+                'cancelled' => ['Đã hủy', 'bg-rose-50 text-rose-700 border border-rose-200'],
             ];
-            [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700'];
+            [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700 border border-gray-200'];
             return [
                 'id' => $order->id,
                 'code' => $order->order_code ?: '#HPY-' . $order->id,

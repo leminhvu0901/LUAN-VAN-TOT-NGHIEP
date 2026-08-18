@@ -146,7 +146,7 @@ class OrderController
         return view('backend.staff.reception.orders.show', compact('order', 'items', 'deliveryStaffs', 'storeInfo'));
     }
 
-    // Cập nhật trạng thái đơn hàng, Xác nhận, Hủy đơn....
+    // Cập nhật trạng thái đơn hàng
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -249,9 +249,7 @@ class OrderController
         return view('backend.staff.reception.orders.create', compact('products', 'categories', 'vnpayEnabled', 'selectedCustomer', 'posToken'));
     }
 
-
-    // Xem trước tổng tiền đơn hàng tại quầy, POS qua AJAX
-    //   tính số tiền được giảm và tổng thanh toán cuối cùng. Vì là đơn tại quầy, pickup nên phí giao hàng = 0.
+    // Xem trước tổng tiền đơn hàng tại quầy, POS qua AJAX, tính số tiền được giảm và tổng thanh toán cuối cùng
     public function previewTotal(Request $request)
     {
         $cart = Cart::query()->where('user_id', Auth::id())->first();
@@ -400,13 +398,9 @@ class OrderController
             'payment_method' => ['required', 'in:cash,vnpay'],
             'note' => ['nullable', 'string', 'max:500'],
             'pickup_mode' => ['nullable', 'in:dine_in,takeaway'],
-            // Token chống trùng đơn, lấy từ input ẩn trong form chứ không sinh ở đây
             'idempotency_key' => ['required', 'uuid'],
-            // Khách hàng có tài khoản đã chọn qua ô tìm SĐT/tên, để trống = khách vãng lai.
             'customer_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('role', 'customer')],
-            // Chỉ có ý nghĩa khi đã chọn customer_id, validate ràng
             'points_to_redeem' => ['nullable', 'integer', 'min:0'],
-            // Mã khuyến mãi lễ tân nhập tay, tùy chọn, nếu để
             'coupon_code' => ['nullable', 'string', 'max:50'],
         ], [
             'payment_method.required' => 'Vui lòng chọn phương thức thanh toán.',

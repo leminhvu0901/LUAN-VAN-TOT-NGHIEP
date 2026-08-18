@@ -53,7 +53,7 @@ class CartController
         return $cart;
     }
 
-    // TÌM KIẾM GIỎ HÀNG, trả null nếu chưa đăng nhập route
+    // TÌM KIẾM GIỎ HÀNG
     private function findCart(): ?Cart
     {
         if (!Auth::check()) {
@@ -61,7 +61,6 @@ class CartController
         }
         return Cart::query()->where('user_id', Auth::id())->first();
     }
-
 
     // LẤY THONG TIN CHI TIẾT CỦA GIỎ HÀNG HIỆN RA GIAO DIỆN
     public function getCartData()
@@ -114,7 +113,7 @@ class CartController
         ]);
     }
 
-    // THÊM SP YÊU THÍCH VÀO GIỎ HÀNG
+    // THÊM VÀO GIỎ HÀNG
     public function add(Request $request)
     {
         // Kiểm tra định dạng dữ liệu đầu vào gửi lên
@@ -204,11 +203,7 @@ class CartController
 
         $cart = $this->getOrCreateCart();
 
-        // =========================================================================
-        // THUẬT TOÁN SO KHỚP SẢN PHẨM TRÙNG TRONG GIỎ HÀNG
-        // =========================================================================
-
-        // Bước 1: Tìm tất cả các món nước trong giỏ có chung
+        // Tìm tất cả các món nước trong giỏ có chung
         $potentialItems = CartItem::query()
             ->where('cart_id', $cart->id)
             ->where('product_id', $productId)
@@ -221,7 +216,7 @@ class CartController
         $reqTops = $toppingIds;
         sort($reqTops); // Sắp xếp mảng ID topping yêu cầu tăng dần để chuẩn bị so sánh
 
-        // Bước 2: Duyệt qua các món nước tìm được, so sánh danh
+        //  Duyệt qua các món nước tìm được, so sánh danh
         foreach ($potentialItems as $pi) {
             $piToppings = CartItemTopping::query()
                 ->where('cart_item_id', $pi->id)
@@ -237,15 +232,29 @@ class CartController
             }
         }
 
-        // Bước 3: Nếu tìm thấy ly nước trùng cấu hình -> Cập
+        // Nếu tìm thấy ly nước trùng cấu hình -> Cộng thêm số lượng
         if ($existingItem) {
+            $newQty = $existingItem->quantity + $quantity;
+            // Giới hạn: Mỗi loại đồ uống (cùng cấu hình) tối đa 10 ly
+            if ($newQty > 10) {
+                return response()->json(['success' => false, 'message' => 'Mỗi loại đồ uống chỉ được tối đa 10 ly trong giỏ hàng.'], 422);
+            }
             CartItem::query()
                 ->where('id', $existingItem->id)
                 ->update([
-                    'quantity' => min(99, $existingItem->quantity + $quantity),
+                    'quantity' => $newQty,
                     'updated_at' => now()
                 ]);
         } else {
+            // Giới hạn: Tối đa 15 loại đồ uống khác nhau trong một giỏ hàng
+            $distinctCount = CartItem::query()->where('cart_id', $cart->id)->count();
+            if ($distinctCount >= 15) {
+                return response()->json(['success' => false, 'message' => 'Giỏ hàng chỉ chứa tối đa 15 loại đồ uống khác nhau.'], 422);
+            }
+            // Giới hạn: Số lượng đặt ban đầu không vượt quá 10
+            if ($quantity > 10) {
+                return response()->json(['success' => false, 'message' => 'Mỗi loại đồ uống chỉ được tối đa 10 ly trong giỏ hàng.'], 422);
+            }
             // Nếu không trùng khớp -> Tạo mới một dòng sản phẩm
             $newItemId = CartItem::query()->insertGetId([
                 'cart_id' => $cart->id,
@@ -272,8 +281,6 @@ class CartController
                 CartItemTopping::query()->insert($inserts);
             }
         }
-
-        // Trả về dữ liệu giỏ hàng mới nhất sau khi thêm
         return $this->getCartData();
     }
 
@@ -300,6 +307,14 @@ class CartController
             'item_id' => ['required', 'integer'],
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
         ]);
+
+        if ($validated['quantity'] > 10) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mỗi loại đồ uống chỉ được tối đa 10 ly trong giỏ hàng.'
+            ], 422);
+        }
+
         $cart = $this->findCart();
 
         if ($cart) {
@@ -345,7 +360,6 @@ class CartController
 
         return $this->getCartData();
     }
-
 
     // THÊM TOÀN BỘ YÊU THÍCH VÀO GIỎ HÀNG
     public function addAll(Request $request)
@@ -394,15 +408,23 @@ class CartController
                     $existingItem = null; // Tạo mới dòng nếu ly cũ trong giỏ có topping
                 }
             }
-            // NẾU CÓ SP GIỐNG + LUÔN
+            // NẾU CÓ SP GIỐNG: Cộng thêm 1, nhưng không vượt giới hạn 10 ly/loại
             if ($existingItem) {
-                CartItem::query()
-                    ->where('id', $existingItem->id)
-                    ->update([
-                        'quantity' => $existingItem->quantity + 1,
-                        'updated_at' => now()
-                    ]);
+                if ($existingItem->quantity < 10) {
+                    CartItem::query()
+                        ->where('id', $existingItem->id)
+                        ->update([
+                            'quantity' => $existingItem->quantity + 1,
+                            'updated_at' => now()
+                        ]);
+                }
+                // Nếu đã đủ 10 ly thì bỏ qua, không thông báo
             } else {
+                // Giới hạn tối đa 15 loại đồ uống trong giỏ, bỏ qua nếu đã đủ
+                $distinctCount = CartItem::query()->where('cart_id', $cart->id)->count();
+                if ($distinctCount >= 15) {
+                    continue;
+                }
                 CartItem::query()->insert([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
@@ -454,8 +476,14 @@ class CartController
         ]);
     }
 
-
     // TRANG THANH TOÁN
+    // lấy giỏ hàng hiện tại của user
+    // kiểm tra các món đã được chọn để thanh toán
+    // tính tổng tiền giỏ hàng
+    // kiểm tra cửa hàng có mở nhận đơn không
+    // lấy danh sách khuyến mãi hợp lệ
+    // trả về trang checkout để người dùng xác nhận đặt hàng.
+    
     public function checkout()
     {
         $userId = Auth::id();
@@ -583,7 +611,7 @@ class CartController
             })
             ->values();
 
-        // Bước 3, ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ
+        // ghép thêm mã combo mà giỏ hàng đã mua ĐỦ tổ
         $comboPromotions = $this->sv_promotions->applicableCombos($items, 'delivery')
             ->filter(fn($promo) => $promo->checkValidity($user, $subtotal, 'delivery', $totalQuantity)['valid'] === true);
 
@@ -633,7 +661,7 @@ class CartController
         ]); // checkout.js, updateDistanceForAddress()
     }
 
-    ///dùng để lấy đúng danh sách sản phẩm, đã tính giá chính xác
+    //dùng để lấy đúng danh sách sản phẩm, đã tính giá chính xác
     private function pricedSelectedItems(): Collection
     {
         $cart = $this->findCart();
@@ -655,7 +683,6 @@ class CartController
             return collect();
         }
     }
-
 
     // XÁC NHẬN TÍNH HỢP LỆ VÀ MỨC TIỀN ĐƯỢC TRỪ KHI ÁP DỤNG
     public function validateCoupon(Request $request)

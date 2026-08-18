@@ -25,7 +25,7 @@
                         <span class="text-[15px] sm:text-base font-bold text-gray-900 truncate" style="overflow-wrap: anywhere; word-break: break-word;">{{ $review->user->name }}</span>
                         <span class="text-[11px] sm:text-xs text-gray-500 truncate" style="overflow-wrap: anywhere; word-break: break-word;">{{ $review->user->email ?? '' }}</span>
                         <span class="text-[11px] sm:text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                            <span class="material-symbols-outlined text-[12px]">schedule</span>
+                            <i class="fa-regular fa-clock text-[11px]"></i>
                             {{ \Carbon\Carbon::parse($review->created_at)->format('d/m/Y H:i') }}
                         </span>
                     </div>
@@ -42,12 +42,12 @@
                 <div class="flex flex-col sm:items-end gap-1 shrink-0">
                     <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider hidden sm:block">Đánh giá</span>
                     <div class="flex items-center gap-1">
-                        <div class="flex text-amber-400">
+                        <div class="flex gap-0.5 text-amber-400">
                             @for($i = 1; $i <= 5; $i++)
                                 @if($i <= $review->rating)
-                                    <span class="material-symbols-outlined text-[16px] icon-fill">star</span>
+                                    <i class="fa-solid fa-star text-[14px] text-amber-400"></i>
                                 @else
-                                    <span class="material-symbols-outlined text-[16px] text-gray-300 icon-fill">star</span>
+                                    <i class="fa-solid fa-star text-[14px] text-gray-200"></i>
                                 @endif
                             @endfor
                         </div>
@@ -61,7 +61,7 @@
                 @if($review->comment)
                     "{{ $review->comment }}"
                 @else
-                    <span class="text-gray-400 not-italic flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">speaker_notes_off</span> Khách hàng không để lại nhận xét</span>
+                    <span class="text-gray-400 not-italic flex items-center gap-1.5"><i class="fa-solid fa-comment-slash text-[14px]"></i> Khách hàng không để lại nhận xét</span>
                 @endif
             </div>
 
@@ -89,12 +89,12 @@
                         @csrf
                         @if($review->is_visible)
                             <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-[11px] border border-emerald-100 hover:bg-emerald-100 transition-colors">
-                                <span class="material-symbols-outlined text-[14px] icon-fill">visibility</span>
+                                <i class="fa-solid fa-eye text-[12px]"></i>
                                 Đang hiển thị
                             </button>
                         @else
                             <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-[11px] border border-rose-100 hover:bg-rose-100 transition-colors">
-                                <span class="material-symbols-outlined text-[14px] icon-fill">visibility_off</span>
+                                <i class="fa-solid fa-eye-slash text-[12px]"></i>
                                 Đang ẩn
                             </button>
                         @endif
@@ -103,7 +103,7 @@
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('admin.reviews.edit', $review->id) }}"
                         class="px-3 py-2 sm:px-4 text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-100 hover:border-amber-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                        <span class="material-symbols-outlined text-[16px]">edit</span>
+                        <i class="fa-solid fa-pen text-[13px]"></i>
                         Sửa
                     </a>
                     <form method="POST" action="{{ route('admin.reviews.destroy', $review->id) }}"
@@ -111,7 +111,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="px-3 py-2 sm:px-4 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                            <i class="fa-solid fa-trash-can text-[13px]"></i>
                             Xóa
                         </button>
                     </form>
@@ -121,7 +121,7 @@
     @empty
         <div class="bg-white p-8 rounded-2xl organic-shadow border border-gray-100 text-center flex flex-col items-center">
             <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner mb-3">
-                <span class="material-symbols-outlined text-4xl text-gray-300">rate_review</span>
+                <i class="fa-solid fa-comments text-4xl text-gray-300"></i>
             </div>
             <p class="font-bold text-gray-600 text-sm">Không tìm thấy đánh giá nào</p>
             <p class="text-xs text-gray-400 mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
@@ -169,17 +169,17 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-amber-500 text-[18px]">local_cafe</span>
+                            <i class="fa-solid fa-mug-hot text-amber-500 text-[14px]"></i>
                             <span class="text-sm font-semibold text-gray-700 truncate max-w-[200px]" title="{{ $review->product->name }}">{{ $review->product->name }}</span>
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center text-amber-400">
+                        <div class="flex items-center gap-0.5 text-amber-400">
                             @for($i = 1; $i <= 5; $i++)
                                 @if($i <= $review->rating)
-                                    <span class="material-symbols-outlined text-[16px] icon-fill">star</span>
+                                    <i class="fa-solid fa-star text-[14px] text-amber-400"></i>
                                 @else
-                                    <span class="material-symbols-outlined text-[16px] text-gray-300 icon-fill">star</span>
+                                    <i class="fa-solid fa-star text-[14px] text-gray-200"></i>
                                 @endif
                             @endfor
                             <span class="text-xs font-bold text-amber-600 ml-1.5 bg-amber-100 px-1.5 py-0.5 rounded">{{ $review->rating }}/5</span>
@@ -214,12 +214,12 @@
                                 @csrf
                                 @if($review->is_visible)
                                     <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-xs border border-emerald-100 hover:bg-emerald-100 transition-colors">
-                                        <span class="material-symbols-outlined text-[16px] icon-fill">visibility</span>
+                                        <i class="fa-solid fa-eye text-[13px]"></i>
                                         Hiển thị
                                     </button>
                                 @else
                                     <button type="submit" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 text-rose-600 rounded-lg font-bold text-xs border border-rose-100 hover:bg-rose-100 transition-colors">
-                                        <span class="material-symbols-outlined text-[16px] icon-fill">visibility_off</span>
+                                        <i class="fa-solid fa-eye-slash text-[13px]"></i>
                                         Bị ẩn
                                     </button>
                                 @endif
@@ -230,14 +230,14 @@
                         <div class="flex justify-center gap-1.5">
                             <a href="{{ route('admin.reviews.edit', $review->id) }}"
                                 class="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors" title="Sửa đánh giá">
-                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                <i class="fa-solid fa-pen text-[13px]"></i>
                             </a>
                             <form method="POST" action="{{ route('admin.reviews.destroy', $review->id) }}"
                                 onsubmit="return confirm('Xóa đánh giá này? Hành động này không thể hoàn tác.');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Xóa đánh giá">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    <i class="fa-solid fa-trash-can text-[13px]"></i>
                                 </button>
                             </form>
                         </div>
@@ -248,7 +248,7 @@
                     <td colspan="7" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center gap-3 text-gray-400">
                             <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                                <span class="material-symbols-outlined text-4xl text-gray-300">rate_review</span>
+                                <i class="fa-solid fa-comments text-4xl text-gray-300"></i>
                             </div>
                             <div class="space-y-1">
                                 <p class="font-semibold text-gray-600 text-base">Không tìm thấy đánh giá nào</p>

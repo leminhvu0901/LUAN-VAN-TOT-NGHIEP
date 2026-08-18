@@ -14,8 +14,8 @@
     <div id="fail-reason-panel" class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 space-y-4 shadow-xl">
         <div class="flex items-center justify-between">
             <h3 class="font-bold text-gray-900 text-lg">Lý do giao thất bại</h3>
-            <button type="button" id="fail-reason-close" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
-                <span class="material-symbols-outlined text-[20px]">close</span>
+            <button type="button" id="fail-reason-close" class="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 

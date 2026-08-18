@@ -9,7 +9,7 @@
         <a href="{{ route('admin.products.index') }}"
             onclick="smartGoBack(event)"
             class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
-            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Thêm Sản phẩm Mới</h2>
@@ -40,7 +40,7 @@
                         <input type="file" id="image-upload" name="image" class="hidden" accept="image/*">
                         
                         <div id="image-placeholder" class="flex flex-col items-center">
-                            <span class="material-symbols-outlined text-5xl text-gray-400 mb-3 group-hover:text-emerald-500 transition-colors">cloud_upload</span>
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-gray-400 mb-3 group-hover:text-emerald-500 transition-colors"></i>
                             <span class="font-medium text-gray-700">Nhấn để tải ảnh lên</span>
                             <span class="text-sm text-gray-500 mt-1">PNG, JPG (Tối đa 2MB)</span>
                         </div>
@@ -100,11 +100,11 @@
                                 <div class="product-topping-row grid grid-cols-1 sm:grid-cols-[1fr_1fr_40px] gap-2">
                                     <input name="size_names[]" value="{{ $sizeName }}" maxlength="50" placeholder="Tên size" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                                     <input name="size_price_adjustments[]" type="number" min="0" max="50000000" step="1000" value="{{ old('size_price_adjustments.' . $index, 0) }}" placeholder="Giá cộng thêm" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                    <button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước"><span class="material-symbols-outlined">delete</span></button>
+                                    <button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước"><i class="fa-solid fa-trash-can text-sm"></i></button>
                                 </div>
                                 @endforeach
                             </div>
-                            <button type="button" id="add-product-size" class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">add</span>Thêm kích thước</button>
+                            <button type="button" id="add-product-size" class="mt-2 text-sm font-semibold text-emerald-700 flex items-center gap-1.5"><i class="fa-solid fa-plus text-[14px]"></i>Thêm kích thước</button>
                         </div>
                         <div>
                             <h3 class="text-sm font-bold text-gray-800">Topping áp dụng</h3>
@@ -132,7 +132,7 @@
                     Hủy bỏ
                 </a>
                 <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm text-center flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[20px]">save</span>
+                    <i class="fa-solid fa-floppy-disk text-[16px]"></i>
                     Lưu sản phẩm
                 </button>
             </div>
@@ -168,7 +168,7 @@
             '<input name="size_names[]" maxlength="50" placeholder="Tên size" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">' +
             '<input name="size_price_adjustments[]" type="number" min="0" max="50000000" step="1000" value="0" placeholder="Giá cộng thêm" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">' +
             '<button type="button" class="js-remove-size w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa kích thước">' +
-                '<span class="material-symbols-outlined">delete</span>' +
+                '<i class="fa-solid fa-trash-can text-sm"></i>' +
             '</button>';
         return row;
     }

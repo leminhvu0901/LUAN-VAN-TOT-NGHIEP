@@ -40,7 +40,7 @@ class NotificationService
         $this->send($email, 'Xác nhận đơn hàng ' . $order->order_code, $body);
     }
 
-   //Gửi email yêu cầu Admin phê duyệt
+    //Gửi email yêu cầu Admin phê duyệt
     public function sendAdminApprovalRequest(Order $order): void
     {
         $email = Setting::getValue('notification_email', 'admin@happytea.com');
@@ -64,7 +64,7 @@ class NotificationService
         $this->send($email, "[Cần duyệt] Đơn hàng {$order->order_code} — {$amount}đ", $body);
     }
 
-   //Dựng đoạn nội dung liệt kê chi tiết
+    //Dựng đoạn nội dung liệt kê chi tiết
     private function buildOrderItemsSection(Order $order): string
     {
         $items = $order->items()->with('product')->get();
@@ -122,7 +122,7 @@ class NotificationService
         $this->send($email, 'Đơn hàng mới ' . $order->order_code, $body); // Gọi hàm gửi mail thô để thực thi gửi thư cảnh báo
     }
 
-   //Thực hiện việc gửi email
+    //Thực hiện việc gửi email
     private function send(string $to, string $subject, string $body): void
     {
         try {

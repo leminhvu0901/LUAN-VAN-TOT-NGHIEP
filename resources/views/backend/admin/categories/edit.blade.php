@@ -8,7 +8,7 @@
         <a href="{{ route('admin.categories.index') }}"
             onclick="smartGoBack(event)"
             class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 organic-shadow transition-colors">
-            <span class="material-symbols-outlined">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Chỉnh sửa danh mục</h2>

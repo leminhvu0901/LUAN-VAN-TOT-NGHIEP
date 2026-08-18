@@ -10,7 +10,7 @@
             <a href="{{ route('admin.staff_accounts.index') }}"
                 onclick="smartGoBack(event)"
                 class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                <i class="fa-solid fa-arrow-left text-[14px]"></i>
             </a>
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Thêm Nhân viên</h1>
         </div>
@@ -24,10 +24,10 @@
                 <div class="relative w-28 h-28 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden mb-3 group">
                     <img id="avatar-preview" src="" class="w-full h-full object-cover hidden">
                     <div id="avatar-placeholder" class="text-center">
-                        <span class="material-symbols-outlined text-4xl text-gray-400">account_circle</span>
+                        <i class="fa-solid fa-circle-user text-4xl text-gray-400"></i>
                     </div>
                     <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onclick="document.getElementById('avatar-input').click()">
-                        <span class="material-symbols-outlined text-white">photo_camera</span>
+                        <i class="fa-solid fa-camera text-white text-base"></i>
                     </div>
                 </div>
                 <input type="file" name="avatar" id="avatar-input" accept="image/*" class="hidden">
@@ -75,7 +75,7 @@
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors pr-10"
                                 placeholder="Tối thiểu 8 ký tự">
                             <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-emerald-600 toggle-password" data-target="password">
-                                <span class="material-symbols-outlined text-[20px] select-none">visibility_off</span>
+                                <i class="fa-solid fa-eye-slash text-[16px] select-none"></i>
                             </button>
                         </div>
                         @error('password') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
@@ -87,7 +87,7 @@
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors pr-10"
                                 placeholder="Nhập lại mật khẩu">
                             <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-emerald-600 toggle-password" data-target="password_confirmation">
-                                <span class="material-symbols-outlined text-[20px] select-none">visibility_off</span>
+                                <i class="fa-solid fa-eye-slash text-[16px] select-none"></i>
                             </button>
                         </div>
                     </div>
@@ -123,7 +123,7 @@
                     Hủy
                 </a>
                 <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm hover:shadow-md flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-[20px]">save</span>
+                    <i class="fa-solid fa-floppy-disk text-[16px]"></i>
                     Lưu nhân viên
                 </button>
             </div>
@@ -169,14 +169,20 @@
             button.addEventListener('click', function () {
                 const targetId = this.getAttribute('data-target');
                 const input = document.getElementById(targetId);
-                const icon = this.querySelector('.material-symbols-outlined');
+                const icon = this.querySelector('i');
 
                 if (input.type === 'password') {
                     input.type = 'text';
-                    icon.textContent = 'visibility';
+                    if (icon) {
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
                 } else {
                     input.type = 'password';
-                    icon.textContent = 'visibility_off';
+                    if (icon) {
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    }
                 }
             });
         });

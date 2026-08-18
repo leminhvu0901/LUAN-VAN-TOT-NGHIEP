@@ -68,8 +68,8 @@ class OrderController
     // Xác nhận "Giao hàng thành công", Chuyển từ Đang giao
     public function complete(Order $order)
     {
-        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu: Shipper chỉ được xử lý đơn hàng được gán cho chính mình, hoặc Admin
-        $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái đơn hàng sang 'completed', hoàn thành
+        $this->authorizeOwnership($order);/// Xác thực quyền sở hữu
+        $this->sv_orderWorkflow->transition($order, 'completed'); // Chuyển trạng thái 
         return $this->success('history', 'Đã xác nhận giao hàng thành công!');
     }
 

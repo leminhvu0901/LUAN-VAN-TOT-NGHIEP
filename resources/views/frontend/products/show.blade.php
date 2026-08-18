@@ -39,13 +39,7 @@
                     {{-- Nút yêu thích --}}
                     <button class="pd-wishlist-btn {{ $isFavorite ? 'is-active' : '' }}" id="pd-wishlist-btn"
                         onclick="toggleFavorite(this, {{ $product->id }})" aria-label="Yêu thích">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                            fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" class="heart-icon">
-                            <path
-                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-                            </path>
-                        </svg>
+                        <i class="fa-solid fa-heart heart-icon"></i>
                     </button>
 
                     {{-- Ảnh lớn hiển thị sản phẩm chính --}}
@@ -83,29 +77,11 @@
                         @php $avgR = round($product->avg_rating * 2) / 2; @endphp
                         @for ($i = 1; $i <= 5; $i++)
                             @if ($i <= floor($avgR))
-                                <svg class="pd-star pd-star--filled" viewBox="0 0 24 24">
-                                    <path
-                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                                        fill="currentColor" />
-                                </svg>
+                                <i class="fa-solid fa-star text-sm" style="color: #f59e0b;"></i>
                             @elseif($i == ceil($avgR) && $avgR != floor($avgR))
-                                <svg class="pd-star pd-star--half" viewBox="0 0 24 24">
-                                    <defs>
-                                        <linearGradient id="half{{ $i }}">
-                                            <stop offset="50%" stop-color="#f59e0b" />
-                                            <stop offset="50%" stop-color="#d1d5db" />
-                                        </linearGradient>
-                                    </defs>
-                                    <path
-                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                                        fill="url(#half{{ $i }})" />
-                                </svg>
+                                <i class="fa-solid fa-star-half-stroke text-sm" style="color: #f59e0b;"></i>
                             @else
-                                <svg class="pd-star pd-star--empty" viewBox="0 0 24 24">
-                                    <path
-                                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                                        fill="currentColor" />
-                                </svg>
+                                <i class="fa-solid fa-star text-sm" style="color: #d1d5db;"></i>
                             @endif
                         @endfor
                     </div>
@@ -192,11 +168,7 @@
                                 type="button" id="toppingDropdown">
                                 <span id="topping-summary" class="pd-topping-summary">Chọn topping (không bắt
                                     buộc....)</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" class="dropdown-chevron pd-dropdown-chevron">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
+                                <i class="fa-solid fa-chevron-down dropdown-chevron pd-dropdown-chevron text-xs"></i>
                             </button>
                             <ul class="dropdown-menu w-100 shadow-lg pd-topping-dropdown-menu"
                                 aria-labelledby="toppingDropdown">
@@ -238,22 +210,12 @@
                     </div>
                     @if ($product->is_active)
                         <button class="pd-add-cart-btn" id="pd-add-cart" onclick="addToCartFromDetail()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <path d="M16 10a4 4 0 01-8 0" />
-                            </svg>
+                            <i class="fa-solid fa-cart-shopping mr-2"></i>
                             Thêm vào giỏ hàng
                         </button>
                     @else
                         <button class="pd-add-cart-btn pd-add-cart-btn--sold-out" id="pd-add-cart" disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <path d="M16 10a4 4 0 01-8 0" />
-                            </svg>
+                            <i class="fa-solid fa-ban mr-2"></i>
                             Hết hàng
                         </button>
                     @endif
@@ -262,23 +224,14 @@
                 {{-- Nhãn đảm bảo chất lượng và thời gian giao hàng --}}
                 <div class="pd-badges-row">
                     <div class="pd-badge-item">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
-                            stroke-width="2">
-                            <rect x="1" y="3" width="15" height="13" rx="2" />
-                            <path d="M16 8h4l3 3v5h-7V8z" />
-                            <circle cx="5.5" cy="18.5" r="2.5" />
-                            <circle cx="18.5" cy="18.5" r="2.5" />
-                        </svg>
+                        <i class="fa-solid fa-truck-fast text-emerald-600 text-xl"></i>
                         <div>
                             <div class="pd-badge-item__title">Giao hàng</div>
-                            <div class="pd-badge-item__sub">Trong 20–30 phút</div>
+                            <div class="pd-badge-item__sub">Giao sớm nhất có thể</div>
                         </div>
                     </div>
                     <div class="pd-badge-item">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a"
-                            stroke-width="2">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
+                        <i class="fa-solid fa-shield-halved text-emerald-600 text-xl"></i>
                         <div>
                             <div class="pd-badge-item__title">Chất lượng</div>
                             <div class="pd-badge-item__sub">Nguyên liệu sạch</div>
@@ -308,12 +261,7 @@
                     <div class="pd-reviews-score__num">{{ number_format($product->avg_rating, 1) }}</div>
                     <div class="pd-reviews-score__stars">
                         @for ($i = 1; $i <= 5; $i++)
-                            <svg class="pd-star {{ $i <= round($product->avg_rating) ? 'pd-star--filled' : 'pd-star--empty' }}"
-                                viewBox="0 0 24 24">
-                                <path
-                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                                    fill="currentColor" />
-                            </svg>
+                            <i class="fa-solid fa-star text-sm" style="color: {{ $i <= round($product->avg_rating) ? '#f59e0b' : '#d1d5db' }};"></i>
                         @endfor
                     </div>
                     <div class="pd-reviews-score__total">{{ $product->review_count }} đánh giá</div>
@@ -391,10 +339,7 @@
                             <div class="pd-rel-card__body">
                                 <p class="pd-rel-card__name">{{ $rel->name }}</p>
                                 <div class="pd-rel-card__stats">
-                                    <svg class="pd-rel-rating-star" viewBox="0 0 24 24" fill="currentColor">
-                                        <path
-                                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                    </svg>
+                                    <i class="fa-solid fa-star text-amber-400 text-xs"></i>
                                     <span>{{ number_format($rel->avg_rating, 1) }}</span>
                                     <span style="opacity: 0.5;">|</span>
                                     <span>Đã bán
@@ -418,11 +363,7 @@
                                 <button class="pd-rel-card__add"
                                     onclick="event.preventDefault(); addToCart({{ $rel->id }})"
                                     aria-label="Thêm vào giỏ">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="3">
-                                        <line x1="12" y1="5" x2="12" y2="19" />
-                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                    </svg>
+                                    <i class="fa-solid fa-plus text-xs"></i>
                                 </button>
                             </div>
                         </a>
@@ -546,7 +487,7 @@
                                     // Tạm khóa nút để tránh bấm nhiều lần gây thêm trùng sản phẩm khi mạng chậm
                     btn.disabled = true;
                     btn.innerHTML =
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Đang thêm...';
+                        '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang thêm...';
 
                     // Đọc lại lựa chọn hiện tại của khách trực tiếp từ DOM
                     const activeSize = document.querySelector('#pd-sizes .pd-chip.is-active');
@@ -567,7 +508,7 @@
                     setTimeout(() => {
                         btn.disabled = false;
                         btn.innerHTML =
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> Thêm vào giỏ hàng';
+                            '<i class="fa-solid fa-cart-shopping mr-2"></i> Thêm vào giỏ hàng';
                     }, 1200);
                 };
 

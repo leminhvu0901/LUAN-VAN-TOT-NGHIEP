@@ -46,13 +46,7 @@
                         data-id="{{ $product->id }}"
                         onclick="event.stopPropagation(); toggleFavorite(this, {{ $product->id }})"
                         aria-label="Yêu thích">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                            fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" class="heart-icon">
-                            <path
-                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-                            </path>
-                        </svg>
+                        <i class="fa-solid fa-heart heart-icon"></i>
                     </button>
 
                     <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
@@ -66,11 +60,7 @@
 
                     {{-- Số sao đánh giá và tổng lượt bán ra của món này --}}
                     <div class="p-product-stats p-product-stats-layout">
-                        <svg class="p-product-star-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                            fill="currentColor">
-                            <path
-                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
+                        <i class="fa-solid fa-star p-product-star-svg"></i>
                         <span>{{ number_format($product->avg_rating, 1) }} </span>
                         <span class="p-product-stat-divider">|</span>
                         <span>Đã bán @if ($product->total_sold >= 1000)
@@ -95,12 +85,7 @@
                         <div class="p-product-price-actions">
                             <button class="p-add-btn p-product-add-btn-size" aria-label="Thêm vào giỏ"
                                 @if (!$isOos) onclick="addToCart({{ $product->id }})" @else disabled @endif>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                                    stroke-linecap="round">
-                                    <line x1="12" y1="5" x2="12" y2="19" />
-                                    <line x1="5" y1="12" x2="19" y2="12" />
-                                </svg>
+                                <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
                     </div>
@@ -121,7 +106,7 @@
             <a href="{{ $products->previousPageUrl() }}"
                 class="p-pagination__btn {{ $products->onFirstPage() ? 'p-pagination__btn--disabled' : '' }}"
                 @if ($products->onFirstPage()) aria-disabled="true" tabindex="-1" @endif>
-                <span class="material-symbols-outlined">chevron_left</span>
+                <i class="fa-solid fa-chevron-left text-xs"></i>
             </a>
 
             @foreach (range(1, $products->lastPage()) as $page)
@@ -134,7 +119,7 @@
             <a href="{{ $products->nextPageUrl() }}"
                 class="p-pagination__btn {{ !$products->hasMorePages() ? 'p-pagination__btn--disabled' : '' }}"
                 @if (!$products->hasMorePages()) aria-disabled="true" tabindex="-1" @endif>
-                <span class="material-symbols-outlined">chevron_right</span>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
             </a>
         </nav>
     @endif

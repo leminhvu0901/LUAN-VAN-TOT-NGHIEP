@@ -32,7 +32,7 @@
                                         @if($imageUrl)
                                             <img class="w-full h-full object-cover" src="{{ $imageUrl }}" alt="{{ $product->name }}"/>
                                         @else
-                                            <span class="material-symbols-outlined text-gray-400">image</span>
+                                            <i class="fa-regular fa-image text-gray-400 text-lg"></i>
                                         @endif
                                     </div>
                                     <span class="font-semibold text-sm text-gray-900 truncate max-w-[150px] xl:max-w-[250px]" title="{{ $product->name }}">{{ $product->name }}</span>
@@ -61,13 +61,13 @@
                                 <div class="flex justify-center gap-1.5">
                                     <a href="{{ route('admin.products.edit', $product->id) }}"
                                         class="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors group/btn" title="Sửa">
-                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                        <i class="fa-solid fa-pen text-[14px]"></i>
                                     </a>
                                     <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form inline-block m-0 p-0">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group/btn" title="Xóa">
-                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            <i class="fa-solid fa-trash-can text-[14px]"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -77,7 +77,7 @@
                         <tr>
                             <td colspan="7" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
-                                    <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                                    <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3"></i>
                                     <p class="text-gray-500 text-lg font-medium">Không tìm thấy sản phẩm nào</p>
                                     <p class="text-gray-400 text-sm mt-1">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
                                 </div>
@@ -112,7 +112,7 @@
                                 @if($imageUrl)
                                     <img class="w-full h-full object-cover {{ !$product->is_active ? 'grayscale' : '' }}" src="{{ $imageUrl }}" alt="{{ $product->name }}"/>
                                 @else
-                                    <span class="material-symbols-outlined text-gray-400 text-2xl">image</span>
+                                    <i class="fa-regular fa-image text-gray-400 text-xl"></i>
                                 @endif
                             </div>
                             
@@ -140,14 +140,14 @@
 
                         <div class="mobile-card-actions">
                             <a href="{{ route('admin.products.edit', $product->id) }}" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors">
-                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                <i class="fa-solid fa-pen text-[14px]"></i>
                                 Sửa
                             </a>
                             <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="js-product-delete-form flex-1 flex">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-lg font-medium text-sm hover:bg-red-100 transition-colors">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                    <i class="fa-solid fa-trash-can text-[14px]"></i>
                                     Xóa
                                 </button>
                             </form>
@@ -155,7 +155,7 @@
                     </div>
                 @empty
                     <div class="py-12 text-center">
-                        <span class="material-symbols-outlined text-5xl text-gray-300 mb-3 block">search_off</span>
+                        <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3 block"></i>
                         <p class="text-gray-500 font-medium">Không tìm thấy sản phẩm nào</p>
                     </div>
                 @endforelse

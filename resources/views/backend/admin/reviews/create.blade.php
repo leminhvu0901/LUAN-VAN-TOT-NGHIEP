@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex items-center gap-3 sm:gap-4 mb-2 sm:mb-4">
         <a href="{{ route('admin.reviews.index') }}" class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors shrink-0">
-            <span class="material-symbols-outlined text-[18px] sm:text-[20px]">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div class="min-w-0">
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Thêm Đánh giá mới</h2>
@@ -35,7 +35,7 @@
                 <!-- Card: Thông tin chính -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-600 text-[20px] icon-fill">reviews</span>
+                        <i class="fa-solid fa-star text-emerald-600 text-base"></i>
                         Nội dung đánh giá
                     </h3>
                     <div class="space-y-5">
@@ -43,7 +43,7 @@
                         <!-- Khách hàng -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">person</span>
+                                <i class="fa-solid fa-user text-gray-400 text-sm"></i>
                                 Khách hàng <span class="text-red-500">*</span>
                             </label>
                             <select name="user_id" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
@@ -56,7 +56,7 @@
                         <!-- Sản phẩm -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">inventory_2</span>
+                                <i class="fa-solid fa-box text-gray-400 text-sm"></i>
                                 Sản phẩm đánh giá <span class="text-red-500">*</span>
                             </label>
                             <select name="product_id" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
@@ -69,7 +69,7 @@
                         <!-- Số sao -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-amber-500 icon-fill">star</span>
+                                <i class="fa-solid fa-star text-amber-500 text-sm"></i>
                                 Số sao đánh giá <span class="text-red-500">*</span>
                             </label>
                             <select name="rating" class="custom-select-init w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none bg-gray-50 focus:bg-white hover:bg-gray-100 cursor-pointer" data-width-class="w-full">
@@ -84,7 +84,7 @@
                         <!-- Nội dung -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">chat</span>
+                                <i class="fa-solid fa-comment text-gray-400 text-sm"></i>
                                 Nhận xét của khách
                             </label>
                             <textarea id="review-comment" name="comment" rows="4" maxlength="200"
@@ -101,7 +101,7 @@
                         <!-- Quản lý Hình ảnh -->
                         <div>
                             <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                                <span class="material-symbols-outlined text-[18px] text-gray-400">image</span>
+                                <i class="fa-solid fa-image text-gray-400 text-sm"></i>
                                 Hình ảnh đính kèm
                             </label>
                             
@@ -110,7 +110,7 @@
                                 <div class="relative group">
                                     <input type="file" name="new_images[]" id="new-images-input" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                                     <div class="w-full flex flex-col items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 group-hover:bg-emerald-50 group-hover:border-emerald-300 transition-colors">
-                                        <span class="material-symbols-outlined text-[32px] text-gray-400 group-hover:text-emerald-500 transition-colors">cloud_upload</span>
+                                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 group-hover:text-emerald-500 transition-colors"></i>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-gray-700 group-hover:text-emerald-600">Bấm để chọn ảnh hoặc Kéo thả vào đây</p>
                                             <p class="text-xs text-gray-500 mt-1">Hỗ trợ JPG, PNG, GIF</p>
@@ -130,7 +130,7 @@
                 <!-- Card: Trạng thái -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-500 text-[20px] icon-fill">toggle_on</span>
+                        <i class="fa-solid fa-toggle-on text-emerald-500 text-base"></i>
                         Trạng thái
                     </h3>
                     <label class="flex items-center gap-3 cursor-pointer">
@@ -153,12 +153,12 @@
                 <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
                         class="w-full sm:flex-1 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">add_circle</span>
+                        <i class="fa-solid fa-plus text-sm"></i>
                         Thêm
                     </button>
                     <a href="{{ route('admin.reviews.index') }}"
                         class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-200">
-                        <span class="material-symbols-outlined text-[20px]">cancel</span>
+                        <i class="fa-solid fa-xmark text-sm"></i>
                         Hủy
                     </a>
                 </div>
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <img src="${e.target.result}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110">
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <button type="button" class="btn-remove-new-img p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" title="Xóa ảnh này">
-                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                                <i class="fa-solid fa-trash-can text-[13px]"></i>
                             </button>
                         </div>
                     `;

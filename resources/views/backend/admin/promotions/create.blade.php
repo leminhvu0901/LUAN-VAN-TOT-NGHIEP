@@ -10,7 +10,7 @@
         <a href="{{ route('admin.promotions.index') }}"
             onclick="smartGoBack(event)"
             class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
-            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            <i class="fa-solid fa-arrow-left text-[14px]"></i>
         </a>
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Thêm Khuyến mãi Mới</h2>
@@ -37,7 +37,7 @@
                 <!-- Card: Thông tin chính -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-600 text-[20px] icon-fill">local_offer</span>
+                        <i class="fa-solid fa-ticket text-emerald-600 text-[18px]"></i>
                         Thông tin khuyến mãi
                     </h3>
                     <div class="space-y-5">
@@ -53,7 +53,7 @@
                                     oninput="this.value = this.value.toUpperCase()">
                                 <button type="button" id="btn-gen-code"
                                     class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors text-sm font-semibold whitespace-nowrap flex items-center gap-1">
-                                    <span class="material-symbols-outlined text-[18px]">shuffle</span>
+                                    <i class="fa-solid fa-shuffle text-[14px]"></i>
                                     Tự sinh
                                 </button>
                             </div>
@@ -69,7 +69,7 @@
                                 <label class="flex items-center gap-3 border-2 border-emerald-500 bg-emerald-50 rounded-xl p-4 cursor-pointer transition-all" id="type-percent-label">
                                     <input type="radio" name="type" value="percent" class="hidden" {{ old('type', 'percent') == 'percent' ? 'checked' : '' }}>
                                     <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 flex-shrink-0">
-                                        <span class="material-symbols-outlined text-[20px]">percent</span>
+                                        <i class="fa-solid fa-percent text-[18px]"></i>
                                     </div>
                                     <div>
                                         <p class="font-semibold text-sm text-gray-800">Giảm theo %</p>
@@ -79,7 +79,7 @@
                                 <label class="flex items-center gap-3 border-2 border-gray-200 bg-white rounded-xl p-4 cursor-pointer transition-all hover:border-gray-300" id="type-fixed-label">
                                     <input type="radio" name="type" value="fixed" class="hidden" {{ old('type') == 'fixed' ? 'checked' : '' }}>
                                     <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                                        <span class="material-symbols-outlined text-[20px]">payments</span>
+                                        <i class="fa-solid fa-money-bill text-[18px]"></i>
                                     </div>
                                     <div>
                                         <p class="font-semibold text-sm text-gray-800">Giảm tiền cố định</p>
@@ -142,7 +142,7 @@
                 <!-- Card: Điều kiện áp dụng -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-amber-500 text-[20px] icon-fill">rule</span>
+                        <i class="fa-solid fa-list-check text-amber-500 text-[18px]"></i>
                         Điều kiện áp dụng
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -229,7 +229,7 @@
                 <!-- Card: Thời gian -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-5 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-blue-500 text-[20px] icon-fill">calendar_month</span>
+                        <i class="fa-solid fa-calendar-days text-blue-500 text-[18px]"></i>
                         Thời gian áp dụng
                     </h3>
                     
@@ -294,7 +294,7 @@
                 <!-- Card: Trạng thái -->
                 <div class="bg-white rounded-2xl organic-shadow border border-gray-100 p-4 sm:p-6">
                     <h3 class="text-base font-bold text-gray-800 mb-4 pb-3 border-b border-gray-100 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-emerald-500 text-[20px] icon-fill">toggle_on</span>
+                        <i class="fa-solid fa-toggle-on text-emerald-500 text-[18px]"></i>
                         Trạng thái
                     </h3>
                     <label class="flex items-center gap-3 cursor-pointer">
@@ -317,13 +317,13 @@
                 <div class="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3 mt-4">
                     <button type="submit"
                         class="w-full sm:flex-1 px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 organic-shadow transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">save</span>
+                        <i class="fa-solid fa-floppy-disk text-[16px]"></i>
                         Lưu
                     </button>
                     <a href="{{ route('admin.promotions.index') }}"
                         onclick="smartGoBack(event)"
                         class="w-full sm:flex-1 px-6 py-3 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors text-center border border-gray-200 flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">cancel</span>
+                        <i class="fa-solid fa-xmark text-[16px]"></i>
                         Hủy
                     </a>
                 </div>
@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
             row.innerHTML =
                 '<select name="combo_product_ids[]" class="custom-select-init w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" data-width-class="w-full">' + options + '</select>' +
                 '<input name="combo_quantities[]" type="number" min="1" value="1" placeholder="SL" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">' +
-                '<button type="button" class="js-remove-combo-item w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa sản phẩm"><span class="material-symbols-outlined">delete</span></button>';
+                '<button type="button" class="js-remove-combo-item w-10 h-10 text-red-500 hover:bg-red-50 rounded-lg" title="Xóa sản phẩm"><i class="fa-solid fa-trash-can text-sm"></i></button>';
             return row;
         }
 

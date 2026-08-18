@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class StaffAccountController
 {
-    // Danh sách tài khoản nhân viên, có tìm kiếm/lọc/sắp
+    // Danh sách tài khoản nhân viên
     public function index(Request $request)
     {
         $query = User::where('role', 'staff');
@@ -68,7 +68,7 @@ class StaffAccountController
         return view('backend.admin.staff-accounts.create');
     }
 
-    // Tạo tài khoản nhân viên mới, role luôn ép cứng = 'staff', xem dòng insert bên dưới
+    // Tạo tài khoản nhân viên mới
     public function store(Request $request)
     {
         // Chuẩn hóa dữ liệu

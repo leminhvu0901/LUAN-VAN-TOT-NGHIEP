@@ -17,7 +17,7 @@
                     <button type="button" id="bulk-deselect-btn"
                         class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200"
                         title="Bỏ chọn tất cả">
-                        <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                        <i class="fa-solid fa-arrow-rotate-left text-[14px] shrink-0"></i>
                         <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                     </button>
 
@@ -25,7 +25,7 @@
                         <button type="button" id="bulk-delete-btn"
                             class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100"
                             title="Xóa đã chọn">
-                            <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                            <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                             <span class="font-semibold whitespace-nowrap">Xóa (<span id="selected-count"
                                     class="font-bold">0</span>)</span>
                         </button>
@@ -33,7 +33,7 @@
 
                     <a href="{{ route('admin.promotions.create') }}"
                         class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all border border-emerald-600">
-                        <span class="material-symbols-outlined text-[20px] shrink-0">add</span>
+                        <i class="fa-solid fa-plus text-[14px] shrink-0"></i>
                         <span class="whitespace-nowrap">Thêm mới</span>
                     </a>
                 </div>
@@ -56,12 +56,12 @@
                         <p id="stat-total" class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
                             {{ number_format($totalPromotions) }}</p>
                         <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                            <span class="material-symbols-outlined text-[14px]">local_offer</span> mã khuyến mãi
+                            <i class="fa-solid fa-ticket text-[11px]"></i> mã khuyến mãi
                         </p>
                     </div>
                     <div
                         class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                        <span class="material-symbols-outlined text-lg icon-fill">sell</span>
+                        <i class="fa-solid fa-ticket text-base"></i>
                     </div>
                 </div>
 
@@ -73,12 +73,12 @@
                         <p id="stat-active" class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
                             {{ number_format($activePromotions) }}</p>
                         <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                            <span class="material-symbols-outlined text-[14px]">check_circle</span> đang áp dụng
+                            <i class="fa-solid fa-circle-check text-[11px]"></i> đang áp dụng
                         </p>
                     </div>
                     <div
                         class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                        <span class="material-symbols-outlined text-lg icon-fill">check_circle</span>
+                        <i class="fa-solid fa-circle-check text-base"></i>
                     </div>
                 </div>
 
@@ -95,7 +95,7 @@
                     </div>
                     <div
                         class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-100 group-hover:scale-110 transition-all flex-shrink-0">
-                        <span class="material-symbols-outlined text-lg icon-fill">block</span>
+                        <i class="fa-solid fa-ban text-base"></i>
                     </div>
                 </div>
             </div>
@@ -107,7 +107,7 @@
                     <button type="button"
                         onclick="toggleFilterPanel('filter-wrapper')"
                         class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">filter_list</span> <span
+                        <i class="fa-solid fa-filter text-[14px]"></i> <span
                             class="hidden sm:inline">Bộ lọc</span>
                     </button>
                 </div>
@@ -119,7 +119,7 @@
 
                         {{-- Ô tìm kiếm --}}
                         <div class="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 w-full sm:w-auto xl:w-[200px] xl:shrink-0">
-                            <span class="material-symbols-outlined text-gray-400 text-[18px] shrink-0">search</span>
+                            <i class="fa-solid fa-magnifying-glass text-gray-400 text-[14px] shrink-0"></i>
                             <input type="text" name="search" id="search-input" value="{{ request('search') }}"
                                 class="bg-transparent border-none focus:ring-0 text-sm font-medium w-full outline-none min-w-0"
                                 placeholder="Tìm mã...">
@@ -176,7 +176,7 @@
                         <a href="{{ route('admin.promotions.index') }}" id="btn-clear-filter"
                             class="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors xl:shrink-0 whitespace-nowrap"
                             style="display: {{ (request('search') || (request('type') && request('type') != 'all') || (request('applies_to') && request('applies_to') != 'all') || (request('status') && request('status') != 'all') || (request('verification') && request('verification') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
-                            <span class="material-symbols-outlined text-[18px] shrink-0">filter_alt_off</span>
+                            <i class="fa-solid fa-filter-circle-xmark text-[14px] shrink-0"></i>
                             <span class="hidden sm:inline font-medium">Xóa lọc</span>
                         </a>
                     </form>

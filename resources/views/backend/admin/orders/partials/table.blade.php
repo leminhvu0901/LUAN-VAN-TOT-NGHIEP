@@ -53,11 +53,11 @@
                         @if(in_array($order['payment_method'], ['VNPAY'], true))
                             <div class="shrink-0">
                                 @if($order['payment_status'] === 'paid')
-                                    <span class="badge-status badge-pay-paid scale-90 origin-left"><span
-                                            class="material-symbols-outlined text-[14px]">check_circle</span> Đã thanh toán</span>
+                                    <span class="badge-status badge-pay-paid scale-90 origin-left"><i
+                                            class="fa-solid fa-circle-check text-[12px]"></i> Đã thanh toán</span>
                                 @else
-                                    <span class="badge-status badge-pay-pending scale-90 origin-left"><span
-                                            class="material-symbols-outlined text-[14px]">pending</span> Chờ TT</span>
+                                    <span class="badge-status badge-pay-pending scale-90 origin-left"><i
+                                            class="fa-solid fa-clock text-[12px]"></i> Chờ TT</span>
                                 @endif
                             </div>
                         @endif
@@ -93,7 +93,7 @@
                                 $allowedStatuses = array_values(array_diff($allowedStatuses, ['cancelled']));
                         @endphp
                         <select name="status" data-current-status="{{ $order['raw_status'] }}"
-                            class="js-order-status-select text-[11px] xl:text-xs border-gray-300 rounded-full shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} font-bold py-1 px-2 pr-6 cursor-pointer">
+                            class="js-order-status-select text-[11px] xl:text-xs rounded-full shadow-sm badge-status {{ $badgeClass }} font-bold py-1 px-2.5 cursor-pointer">
                             <option value="pending" {{ $order['raw_status'] === 'pending' ? 'selected' : '' }} {{ !in_array('pending', $allowedStatuses) ? 'disabled' : '' }}>Chờ xác nhận</option>
                             <option value="confirmed" {{ $order['raw_status'] === 'confirmed' ? 'selected' : '' }} {{ !in_array('confirmed', $allowedStatuses) ? 'disabled' : '' }}>Đã xác nhận</option>
                             <option value="shipping" {{ $order['raw_status'] === 'shipping' ? 'selected' : '' }} {{ !in_array('shipping', $allowedStatuses) ? 'disabled' : '' }}>Đang giao</option>
@@ -103,7 +103,7 @@
                     </form>
                     @if($order['needs_admin_approval'] ?? false)
                         <a href="{{ route('admin.orders.show', $order['id']) }}" class="mt-1.5 inline-flex items-center gap-1 text-[10px] xl:text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full hover:bg-amber-200 transition-colors">
-                            <span class="material-symbols-outlined text-[12px]">verified_user</span> Chờ Admin duyệt
+                            <i class="fa-solid fa-shield-halved text-[11px]"></i> Chờ Admin duyệt
                         </a>
                     @endif
                 </td>
@@ -115,7 +115,7 @@
                         <a href="{{ route('admin.orders.show', $order['id']) }}"
                             class="text-primary hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-md transition-colors"
                             title="Xem chi tiết">
-                            <span class="material-symbols-outlined text-[16px] xl:text-[18px]">visibility</span>
+                            <i class="fa-solid fa-eye text-[14px]"></i>
                         </a>
                         <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST"
                             onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
@@ -124,7 +124,7 @@
                             <button type="submit"
                                 class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"
                                 title="Xóa đơn hàng">
-                                <span class="material-symbols-outlined text-[16px] xl:text-[18px]">delete</span>
+                                <i class="fa-solid fa-trash-can text-[14px]"></i>
                             </button>
                         </form>
                     </div>
@@ -134,7 +134,7 @@
             <tr>
                 <td colspan="8" class="px-6 py-12 text-center">
                     <div class="flex flex-col items-center justify-center">
-                        <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+                        <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3"></i>
                         <p class="text-gray-500 text-lg font-medium">Không tìm thấy đơn hàng nào</p>
                         <p class="text-gray-400 text-sm mt-1">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
                     </div>
@@ -192,11 +192,11 @@
                     @if(in_array($order['payment_method'], ['VNPAY'], true))
                         <div class="shrink-0">
                             @if($order['payment_status'] === 'paid')
-                                <span class="badge-status badge-pay-paid scale-90 origin-right"><span
-                                        class="material-symbols-outlined text-[12px]">check_circle</span> Đã TT</span>
+                                <span class="badge-status badge-pay-paid scale-90 origin-right"><i
+                                        class="fa-solid fa-circle-check text-[11px]"></i> Đã TT</span>
                             @else
-                                <span class="badge-status badge-pay-pending scale-90 origin-right"><span
-                                        class="material-symbols-outlined text-[12px]">pending</span> Chờ TT</span>
+                                <span class="badge-status badge-pay-pending scale-90 origin-right"><i
+                                        class="fa-solid fa-clock text-[11px]"></i> Chờ TT</span>
                             @endif
                         </div>
                     @endif
@@ -239,7 +239,7 @@
                             $allowedStatuses = array_values(array_diff($allowedStatuses, ['cancelled']));
                     @endphp
                     <select name="status" data-current-status="{{ $order['raw_status'] }}"
-                        class="js-order-status-select text-xs w-full border-gray-200 rounded-lg shadow-sm focus:border-primary focus:ring-primary badge-status {{ $badgeClass }} py-2 px-3 cursor-pointer text-center">
+                        class="js-order-status-select text-xs w-full rounded-xl shadow-sm badge-status {{ $badgeClass }} py-2 px-3 cursor-pointer text-center">
                         <option value="pending" {{ $order['raw_status'] === 'pending' ? 'selected' : '' }} {{ !in_array('pending', $allowedStatuses) ? 'disabled' : '' }}>Chờ xác nhận</option>
                         <option value="confirmed" {{ $order['raw_status'] === 'confirmed' ? 'selected' : '' }} {{ !in_array('confirmed', $allowedStatuses) ? 'disabled' : '' }}>Đã xác nhận</option>
                         <option value="shipping" {{ $order['raw_status'] === 'shipping' ? 'selected' : '' }} {{ !in_array('shipping', $allowedStatuses) ? 'disabled' : '' }}>Đang giao</option>
@@ -251,8 +251,8 @@
 
             <div class="mobile-card-actions">
                 <a href="{{ route('admin.orders.show', $order['id']) }}"
-                    class="flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-2 rounded-lg font-semibold text-sm transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">visibility</span> Xem
+                    class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-2 rounded-lg font-semibold text-sm transition-colors">
+                    <i class="fa-solid fa-eye text-[14px]"></i> Xem
                 </a>
                 <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="flex-1"
                     onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
@@ -260,7 +260,7 @@
                     @method('DELETE')
                     <button type="submit"
                         class="w-full flex items-center justify-center gap-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded-lg font-semibold text-sm transition-colors">
-                        <span class="material-symbols-outlined text-[16px]">delete</span> Xóa
+                        <i class="fa-solid fa-trash-can text-[14px]"></i> Xóa
                     </button>
                 </form>
             </div>
@@ -268,7 +268,7 @@
     @empty
         <!-- Empty state is handled in table above for -->
         <div class="text-center py-10 bg-white rounded-xl border border-gray-100">
-            <span class="material-symbols-outlined text-6xl text-gray-200 mb-4">search_off</span>
+            <i class="fa-solid fa-magnifying-glass-chart text-5xl text-gray-200 mb-3"></i>
             <p class="text-gray-500 text-lg font-medium">Không tìm thấy đơn hàng nào</p>
         </div>
     @endforelse

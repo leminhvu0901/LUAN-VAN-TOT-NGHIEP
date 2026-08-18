@@ -13,7 +13,7 @@
                     <a href="{{ route('admin.customers.index') }}"
                         onclick="smartGoBack(event)"
                         class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors">
-                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                        <i class="fa-solid fa-arrow-left text-[14px]"></i>
                     </a>
 
                     {{-- Tiêu đề --}}
@@ -67,15 +67,15 @@
 
                         <div class="space-y-4">
                             <div class="flex items-center gap-3 text-sm text-gray-600">
-                                <span class="material-symbols-outlined text-[20px] text-gray-400">mail</span>
+                                <i class="fa-regular fa-envelope text-[16px] text-gray-400"></i>
                                 <span>{{ $customer->email }}</span>
                             </div>
                             <div class="flex items-center gap-3 text-sm text-gray-600">
-                                <span class="material-symbols-outlined text-[20px] text-gray-400">call</span>
+                                <i class="fa-solid fa-phone text-[16px] text-gray-400"></i>
                                 <span>{{ $customer->phone ?? 'Chưa cập nhật SĐT' }}</span>
                             </div>
                             <div class="flex items-start gap-3 text-sm text-gray-600">
-                                <span class="material-symbols-outlined text-[20px] text-gray-400 mt-0.5">location_on</span>
+                                <i class="fa-solid fa-location-dot text-[16px] text-gray-400 mt-0.5"></i>
                                 <span>{{ $customer->address ?? 'Chưa cập nhật địa chỉ' }}</span>
                             </div>
                         </div>
@@ -114,8 +114,8 @@
                                         break;
                                 }
                             @endphp
-                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold border {{ $badgeClass }}">
-                                <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border {{ $badgeClass }}">
+                                <i class="fa-solid fa-crown text-[14px]"></i>
                                 {{ $badgeName }}
                             </span>
                         </div>
@@ -197,7 +197,7 @@
                                             </td>
                                             <td class="px-5 py-4 text-right">
                                                 <a href="{{ route('admin.orders.show', $order->id) }}" class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
-                                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                                    <i class="fa-solid fa-eye text-[14px]"></i>
                                                 </a>
                                             </td>
                                         </tr>
@@ -207,7 +207,7 @@
                         @else
                             <div class="p-12 text-center">
                                 <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
-                                    <span class="material-symbols-outlined text-3xl text-gray-400">receipt_long</span>
+                                    <i class="fa-solid fa-receipt text-3xl text-gray-400"></i>
                                 </div>
                                 <h3 class="text-base font-medium text-gray-900 mb-1">Chưa có đơn hàng nào</h3>
                                 <p class="text-gray-500 text-sm">Khách hàng này chưa thực hiện bất kỳ giao dịch nào.</p>

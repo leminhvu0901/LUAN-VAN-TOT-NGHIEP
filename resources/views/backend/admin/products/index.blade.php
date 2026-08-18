@@ -15,21 +15,21 @@
                 <button type="button" id="bulk-deselect-btn"
                     class="hidden flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-200 transition-all shadow-sm border border-gray-200"
                     title="Bỏ chọn tất cả">
-                    <span class="material-symbols-outlined text-[18px] sm:text-[20px] shrink-0">deselect</span>
+                    <i class="fa-solid fa-arrow-rotate-left text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Bỏ chọn</span>
                 </button>
 
                 <button type="button" id="bulk-delete-btn"
                     class="hidden flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-100 transition-all shadow-sm border border-red-100"
                     title="Xóa đã chọn">
-                    <span class="material-symbols-outlined text-[20px] shrink-0">delete_sweep</span>
+                    <i class="fa-solid fa-trash-can text-[14px] shrink-0"></i>
                     <span class="font-semibold whitespace-nowrap">Xóa <span id="selected-count" class="mx-1">0</span> sản
                         phẩm</span>
                 </button>
 
                 <a href="{{ route('admin.products.create') }}"
                     class="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold text-sm organic-shadow hover:bg-emerald-700 transition-all w-full sm:w-auto mt-1 sm:mt-0">
-                    <span class="material-symbols-outlined shrink-0">add</span>
+                    <i class="fa-solid fa-plus text-[14px] shrink-0"></i>
                     <span class="whitespace-nowrap">Thêm sản phẩm mới</span>
                 </a>
             </div>
@@ -59,13 +59,13 @@
                 <div class="space-y-1 min-w-0">
                     <p class="font-semibold text-xs text-gray-500 truncate">Tổng sản phẩm</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($totalProducts) }}</p>
-                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">inventory_2</span> sản phẩm
+                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-box-archive text-[11px]"></i> sản phẩm
                     </p>
                 </div>
                 <div
                     class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">inventory</span>
+                    <i class="fa-solid fa-box-open text-base"></i>
                 </div>
             </div>
 
@@ -76,13 +76,13 @@
                     <p class="font-semibold text-xs text-gray-500 truncate">Đang kinh doanh</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ number_format($activeProducts) }}
                     </p>
-                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1 truncate">
-                        <span class="material-symbols-outlined text-[14px]">trending_up</span> đang bán
+                    <p class="text-emerald-600 font-medium text-[11px] flex items-center gap-1.5 truncate">
+                        <i class="fa-solid fa-arrow-trend-up text-[11px]"></i> đang bán
                     </p>
                 </div>
                 <div
                     class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">check_circle</span>
+                    <i class="fa-solid fa-circle-check text-base"></i>
                 </div>
             </div>
 
@@ -99,7 +99,7 @@
                 </div>
                 <div
                     class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 group-hover:bg-gray-100 group-hover:scale-110 transition-all flex-shrink-0">
-                    <span class="material-symbols-outlined text-lg icon-fill">block</span>
+                    <i class="fa-solid fa-ban text-base"></i>
                 </div>
             </div>
         </div>
@@ -113,7 +113,7 @@
                 <button type="button"
                     onclick="toggleFilterPanel('filter-form')"
                     class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span> <span class="hidden sm:inline">Bộ
+                    <i class="fa-solid fa-filter text-[14px]"></i> <span class="hidden sm:inline">Bộ
                         lọc</span>
                 </button>
             </div>
@@ -123,7 +123,7 @@
 
                 <div
                     class="flex items-center gap-2 px-3 py-1.5 sm:py-2 border border-gray-200 rounded-lg bg-gray-50 w-full xl:max-w-[280px] relative transition-colors hover:border-emerald-300 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                    <span class="material-symbols-outlined text-gray-400 text-[20px]">search</span>
+                    <i class="fa-solid fa-magnifying-glass text-gray-400 text-[14px]"></i>
                     <input type="text" name="search" value="{{ request('search') }}"
                         class="bg-transparent border-none focus:ring-0 text-sm font-medium pr-2 w-full outline-none"
                         placeholder="Tìm tên sản phẩm, SKU...">
@@ -162,7 +162,7 @@
                     <a href="{{ route('admin.products.index') }}" id="btn-clear-filter"
                         class="flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-600 border border-gray-200 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors organic-shadow text-center w-full sm:w-auto"
                         style="display: {{ (request('search') || (request('category_id') && request('category_id') != 'all') || (request('status') && request('status') != 'all') || (request('sort') && request('sort') != 'newest')) ? 'flex' : 'none' }};">
-                        <span class="material-symbols-outlined text-[20px]">filter_alt_off</span>
+                        <i class="fa-solid fa-filter-circle-xmark text-[16px]"></i>
                         Xóa lọc
                     </a>
                 </div>

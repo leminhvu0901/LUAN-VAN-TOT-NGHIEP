@@ -46,6 +46,7 @@ class ShippingQuoteService
         ];
     }
 
+    //tính khoảng cách từ cửa hàng đến địa chỉ giao hàng của khách
     public function distanceFor(UserAddress $address): float
     {
         return $this->distanceForWithSource($address)['distance_km'];
@@ -62,13 +63,13 @@ class ShippingQuoteService
             $destLat = (float) $address->latitude;
             $destLng = (float) $address->longitude;
 
-            // Ưu tiên 1: Geoapify Routing API, khoảng cách lái xe thực tế
+            // Geoapify Routing API, khoảng cách lái xe thực tế
             $distance = $this->geoapify->drivingDistanceKm($storeLat, $storeLng, $destLat, $destLng);
             if ($distance !== null) {
                 return ['distance_km' => $distance, 'is_mock' => false];
             }
 
-            // Ưu tiên 2: Geoapify lỗi thì thử OpenRouteService chỉ
+            //  Geoapify lỗi thì thử OpenRouteService chỉ
             if (config('services.openroute.key')) {
                 try {
                     $response = Http::timeout(8)
@@ -80,12 +81,11 @@ class ShippingQuoteService
                         return ['distance_km' => round($response['routes'][0]['summary']['distance'] / 1000, 1), 'is_mock' => false];
                     }
                 } catch (\Throwable) {
-                    // Rơi xuống ước lượng cố định theo quận/huyện bên dưới.
                 }
             }
         }
 
-        // Ưu tiên 3, luôn có: chưa có tọa độ hoặc cả 2 API đều
+        //  chưa có tọa độ hoặc cả 2 API đều
         $district = mb_strtolower((string) $address->district);
         $estimate = match (true) {
             str_contains($district, '8') => 1.5,

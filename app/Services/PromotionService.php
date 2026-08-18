@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class PromotionService
 {
-    // Áp mã giảm giá cho giỏ hàng. Hệ thống KHÔNG tự chọn mã
+    // Tìm và áp dụng mã giảm giá phù hợp cho giỏ hàng
     public function resolveBestDiscount(Collection $items, float $subtotal, ?User $user, string $channel, int $totalQuantity, ?string $manualCode = null, bool $lock = false): array
     {
         if (filled($manualCode)) {
@@ -21,7 +21,7 @@ class PromotionService
         return ['promotion' => null, 'discount' => 0.0, 'gifts' => []];
     }
 
-    // Kiểm tra và xử lý áp dụng mã giảm giá nhập thủ công
+    // Kiểm tra và xử lý áp dụng mã giảm giá
     private function resolveManualCode(string $code, Collection $items, float $subtotal, ?User $user, string $channel, int $totalQuantity, bool $lock): array
     {
         $query = Promotion::query()->where('code', strtoupper(trim($code)));
@@ -57,8 +57,6 @@ class PromotionService
                 },
             ]);
         }
-
-
         return [
             'promotion' => $promotion,
             'discount' => $this->calculateDiscount($promotion, $items), //  tính số tiền chiết khấu thực tế
@@ -66,7 +64,7 @@ class PromotionService
         ];
     }
 
-    // Áp dụng một mã COMBO khách vừa chọn:
+    // xử lý khuyến mãi dạng “mua đủ combo”
     private function resolveComboCode(Promotion $promotion, Collection $items): array
     {
         $promotion->loadMissing(['combo.giftProduct', 'comboItems.product']);
@@ -164,10 +162,8 @@ class PromotionService
     // TÍNH TỔNG TIỀN RIÊNG CHO SP THUỘC DANH MỤC
     private function eligibleSubtotalForCategories(Promotion $promotion, Collection $items): float
     {
-        // Rút ra mảng danh sách ID danh mục được áp dụng
         $categoryIds = $promotion->categories->pluck('id')->all();
         return (float) $items
-            // Lọc ra các món trong giỏ hàng có danh mục thuộc khuyến mãi
             ->filter(fn($item) => $item->product && in_array($item->product->category_id, $categoryIds, true))
             ->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
@@ -176,7 +172,6 @@ class PromotionService
     public function applicableCombos(Collection $items, string $channel): Collection
     {
         $now = now();
-        // Đếm số lượng từng món đang có trong giỏ, dùng chung
         $inCart = [];
         foreach ($items as $item) {
             $inCart[$item->product_id] = ($inCart[$item->product_id] ?? 0) + (int) $item->quantity;
@@ -203,7 +198,6 @@ class PromotionService
     {
         $applications = null;
         foreach ($promotion->comboItems as $comboItem) {
-            // intdiv: Chia lấy phần nguyên để biết ghép được mấy
             $possible = intdiv($remaining[$comboItem->product_id] ?? 0, max(1, $comboItem->quantity));
 
             if (is_null($applications)) {
@@ -221,17 +215,14 @@ class PromotionService
         if ($eligibleSubtotal <= 0) {
             return 0.0;
         }
-
         if ($combo->discount_type === 'percent') {
             $discount = round($eligibleSubtotal * ((float) $combo->discount_value / 100));
         } else {
             $discount = (float) $combo->discount_value * $applications;
         }
-
         if ($combo->max_discount_amount) {
             $discount = min($discount, (float) $combo->max_discount_amount);
         }
-
         return min($discount, $eligibleSubtotal);
     }
 
@@ -242,7 +233,6 @@ class PromotionService
             $nowStr = $now->format('H:i:s');
             // dayOfWeekIso: Lấy thứ trong tuần, 1 là Thứ 2, 7 là Chủ nhật
             $currentDay = $now->dayOfWeekIso;
-
             if (
                 is_array($promotion->recurring_days) && count($promotion->recurring_days) > 0
                 && !in_array($currentDay, $promotion->recurring_days, true)
@@ -255,11 +245,8 @@ class PromotionService
             if ($promotion->recurring_end_time && $nowStr > $promotion->recurring_end_time) {
                 return false;
             }
-
             return true;
         }
-
-        // gt: lớn hơn, sau thời gian kết thúc, lt: nhỏ hơn
         if ($promotion->end_at && $now->gt($promotion->end_at)) {
             return false;
         }

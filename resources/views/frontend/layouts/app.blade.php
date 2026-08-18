@@ -286,14 +286,10 @@
                         </div>
                         <div class="wl-item__actions">
                             <button title="Xóa khỏi yêu thích" class="wl-item__remove-btn" onclick="removeFromWishlist(${item.id})">
-                                <svg width="13" height="13" fill="none" stroke="#ef4444" stroke-width="2.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                </svg>
+                                <i class="fa-solid fa-xmark"></i>
                             </button>
                             <button class="wl-item__cart-btn" ${cartBtnDisabled} ${cartBtnOnclick}>
-                                <svg width="13" height="13" fill="none" stroke="#10b981" stroke-width="2.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9m-9-4h4" />
-                                </svg>
+                                <i class="fa-solid fa-cart-shopping"></i>
                             </button>
                         </div>
                     </div>`;
@@ -337,14 +333,16 @@
                     }
                     return;
                 }
-                return res.json();
+                return res.json().then(data => ({ ok: res.ok, data }));
             })
-            .then(data => {
-                if (!data) return;
+            .then(result => {
+                if (!result) return;
+                const { ok, data } = result;
 
                 // Thông báo khi backend từ chối
-                if (data.success === false) {
-                    if (window.FrontendAlert) window.FrontendAlert.error(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.'); else alert(data.message || 'Không thể thêm sản phẩm vào giỏ hàng.');
+                if (!ok || data.success === false) {
+                    const msg = data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : 'Không thể thêm sản phẩm vào giỏ hàng.');
+                    if (window.FrontendAlert) window.FrontendAlert.error(msg); else alert(msg);
                     return;
                 }
 
@@ -424,10 +422,19 @@
                     }
                     return;
                 }
-                return res.json();
+                return res.json().then(data => ({ ok: res.ok, data }));
             })
-            .then(data => {
-                if (!data) return;
+            .then(result => {
+                if (!result) return;
+                const { ok, data } = result;
+
+                // Hiện thông báo lỗi khi backend từ chối (vd: vượt giới hạn 10 ly)
+                if (!ok || data.success === false) {
+                    const msg = data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : 'Không thể cập nhật số lượng.');
+                    if (window.FrontendAlert) window.FrontendAlert.error(msg); else alert(msg);
+                    return;
+                }
+
                 updateCartUI(data);
             })
             .catch(err => console.error(err));
@@ -808,12 +815,15 @@
             if (!input) return;
 
             var iconSpan = this.querySelector('.material-symbols-outlined');
+            var iconFa = this.querySelector('i');
             if (input.type === 'password') {
                 input.type = 'text';
                 if (iconSpan) iconSpan.textContent = 'visibility_off';
+                if (iconFa) { iconFa.classList.remove('fa-eye'); iconFa.classList.add('fa-eye-slash'); }
             } else {
                 input.type = 'password';
                 if (iconSpan) iconSpan.textContent = 'visibility';
+                if (iconFa) { iconFa.classList.remove('fa-eye-slash'); iconFa.classList.add('fa-eye'); }
             }
         });
     });

@@ -96,7 +96,7 @@ class DashboardController
                 'label' => 'Đơn chờ xác nhận',
                 'count' => $pendingOrdersCount,
                 'desc' => 'Cần xem duyệt ngay',
-                'icon' => 'pending_actions',
+                'icon' => 'fa-solid fa-clock',
                 'color' => 'amber',
                 'link' => route('admin.orders.index', ['status' => 'pending'])
             ],
@@ -104,7 +104,7 @@ class DashboardController
                 'label' => 'Đơn đang giao',
                 'count' => $shippingOrdersCount,
                 'desc' => 'Đang trên đường giao',
-                'icon' => 'local_shipping',
+                'icon' => 'fa-solid fa-truck-fast',
                 'color' => 'blue',
                 'link' => route('admin.orders.index', ['status' => 'shipping'])
             ],
@@ -112,7 +112,7 @@ class DashboardController
                 'label' => 'Đơn đã hủy',
                 'count' => $cancelledOrdersCount,
                 'desc' => 'Hủy trong hôm nay',
-                'icon' => 'cancel',
+                'icon' => 'fa-solid fa-circle-xmark',
                 'color' => 'red',
                 'link' => route('admin.orders.index', ['status' => 'cancelled'])
             ],
@@ -120,7 +120,7 @@ class DashboardController
                 'label' => 'Đánh giá ẩn',
                 'count' => $unhandledReviewsCount,
                 'desc' => 'Chờ kiểm duyệt hiển thị',
-                'icon' => 'rate_review',
+                'icon' => 'fa-solid fa-star-half-stroke',
                 'color' => 'purple',
                 'link' => route('admin.reviews.index', ['status' => 'hidden'])
             ],
@@ -128,7 +128,7 @@ class DashboardController
                 'label' => 'Sản phẩm đang ẩn',
                 'count' => $hiddenProductsCount,
                 'desc' => 'Đang tạm dừng kinh doanh',
-                'icon' => 'visibility_off',
+                'icon' => 'fa-solid fa-eye-slash',
                 'color' => 'gray',
                 'link' => route('admin.products.index', ['status' => 'inactive'])
             ],
@@ -136,7 +136,7 @@ class DashboardController
                 'label' => 'Nguyên liệu sắp hết',
                 'count' => $lowStockMaterialsCount,
                 'desc' => 'Tồn kho nhỏ hơn mức tối thiểu',
-                'icon' => 'warning',
+                'icon' => 'fa-solid fa-triangle-exclamation',
                 'color' => 'amber',
                 'link' => route('admin.materials.index', ['status' => 'low_stock'])
             ],
@@ -144,7 +144,7 @@ class DashboardController
                 'label' => 'Lô hàng sắp hết hạn',
                 'count' => $expiringMaterialsCount,
                 'desc' => 'Hạn sử dụng dưới 30 ngày',
-                'icon' => 'hourglass_empty',
+                'icon' => 'fa-solid fa-hourglass-half',
                 'color' => 'red',
                 'link' => route('admin.materials.index', ['status' => 'expiring'])
             ],
@@ -152,7 +152,7 @@ class DashboardController
                 'label' => 'Nguyên liệu đã hết',
                 'count' => $outOfStockMaterialsCount,
                 'desc' => 'Cần nhập kho bổ sung gấp',
-                'icon' => 'inventory_2',
+                'icon' => 'fa-solid fa-box-archive',
                 'color' => 'red',
                 'link' => route('admin.materials.index', ['status' => 'out_of_stock'])
             ]
@@ -178,13 +178,13 @@ class DashboardController
         // Danh sách đơn hàng mới nhất
         $recentOrders = Order::latest()->limit(5)->get()->map(function ($order) {
             $labels = [
-                'pending' => ['Chờ xác nhận', 'bg-warning-container text-warning-onContainer border border-warning'],
-                'confirmed' => ['Đã xác nhận', 'bg-primary-container text-primary-onContainer border border-primary'],
-                'shipping' => ['Đang giao', 'bg-info-container text-info-onContainer border border-info'],
-                'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-100'],
-                'cancelled' => ['Đã hủy', 'bg-error-container text-error-onContainer border border-error'],
+                'pending' => ['Chờ xác nhận', 'bg-amber-50 text-amber-700 border border-amber-200'],
+                'confirmed' => ['Đã xác nhận', 'bg-blue-50 text-blue-700 border border-blue-200'],
+                'shipping' => ['Đang giao', 'bg-orange-50 text-orange-700 border border-orange-200'],
+                'completed' => ['Hoàn thành', 'bg-emerald-50 text-emerald-700 border border-emerald-200'],
+                'cancelled' => ['Đã hủy', 'bg-rose-50 text-rose-700 border border-rose-200'],
             ];
-            [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700'];
+            [$label, $classes] = $labels[$order->status] ?? [$order->status, 'bg-gray-100 text-gray-700 border border-gray-200'];
             return [
                 'id' => $order->id,
                 'code' => $order->order_code ?: '#HPY-' . $order->id,
@@ -222,7 +222,7 @@ class DashboardController
                 ]);
             });
 
-        // C. Lô hàng nguyên liệu sắp hết hạn, dưới 30 ngày
+        // Lô hàng nguyên liệu sắp hết hạn, dưới 30 ngày
         MaterialImport::with('material')
             ->where('remaining_quantity', '>', 0)
             ->whereNotNull('expiration_date')
@@ -253,7 +253,7 @@ class DashboardController
         Order::latest()->limit(3)->get()->each(function ($order) use ($activities) {
             $activities->push([
                 'time' => $order->created_at,
-                'icon' => 'shopping_cart',
+                'icon' => 'fa-solid fa-cart-shopping',
                 'color' => 'emerald',
                 'text' => "Đơn hàng " . ($order->order_code ?: '#HPY-' . $order->id) . " vừa được đặt bởi khách hàng " . $order->customer_name,
                 'link' => route('admin.orders.show', $order->id)
@@ -265,7 +265,7 @@ class DashboardController
             $name = $review->user ? $review->user->name : 'Khách vãng lai';
             $activities->push([
                 'time' => $review->created_at,
-                'icon' => 'rate_review',
+                'icon' => 'fa-solid fa-star',
                 'color' => 'amber',
                 'text' => "Khách hàng " . $name . " đã gửi đánh giá " . $review->rating . " sao cho " . ($review->product ? $review->product->name : 'sản phẩm'),
                 'link' => route('admin.reviews.index')
@@ -277,7 +277,7 @@ class DashboardController
             $matName = $import->material ? $import->material->name : 'nguyên liệu';
             $activities->push([
                 'time' => $import->created_at,
-                'icon' => 'inventory_2',
+                'icon' => 'fa-solid fa-box-archive',
                 'color' => 'blue',
                 'text' => "Nhập kho thành công " . $import->quantity . " " . ($import->material->unit ?? '') . " " . $matName,
                 'link' => route('admin.materials.index')
@@ -288,7 +288,7 @@ class DashboardController
         User::where('role', 'customer')->latest()->limit(3)->get()->each(function ($user) use ($activities) {
             $activities->push([
                 'time' => $user->created_at,
-                'icon' => 'person_add',
+                'icon' => 'fa-solid fa-user-plus',
                 'color' => 'indigo',
                 'text' => "Khách hàng mới " . $user->name . " vừa đăng ký tài khoản thành viên",
                 'link' => route('admin.customers.index')
