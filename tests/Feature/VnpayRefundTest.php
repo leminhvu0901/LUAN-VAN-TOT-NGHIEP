@@ -373,7 +373,7 @@ class VnpayRefundTest extends TestCase
         ]);
         $this->get("/staff/reception/orders/{$refundable->id}")
             ->assertOk()
-            ->assertSee('currency_exchange')
+            ->assertSee('refund-cancel-order-btn')
             ->assertDontSee('cần hoàn tiền trước khi hủy');
 
         $refunded = $this->makeOrder([
@@ -396,7 +396,7 @@ class VnpayRefundTest extends TestCase
         ]);
         $this->get("/admin/orders/{$refundable->id}")
             ->assertOk()
-            ->assertSee('currency_exchange');
+            ->assertSee('refund-cancel-order-btn');
 
         $refunded = $this->makeOrder([
             'status' => 'cancelled', 'payment_method' => 'vnpay', 'payment_status' => 'refunded',

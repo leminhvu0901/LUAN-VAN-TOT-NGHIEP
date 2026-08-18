@@ -14,17 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
-    // Cấu hình Middleware
     ->withMiddleware(function (Middleware $middleware): void {
-        // Tin cậy proxy (tránh lỗi HTTPS / mixed content khi deploy)
         $middleware->trustProxies(at: '*');
-
-        // Đếm lượt truy cập trong ngày
         $middleware->web(append: [
             TrackDailyVisit::class,
         ]);
 
-        // Bỏ qua kiểm tra CSRF cho các route chỉ định
         $middleware->validateCsrfTokens(except: [
             'login',
             'logout',
@@ -38,7 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     // Xử lý Ngoại lệ
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Xử lý lỗi khi dung lượng file upload vượt quá giới hạn
         $exceptions->render(function (PostTooLargeException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Tổng dung lượng file quá lớn. Vui lòng giảm bớt kích thước ảnh.'], 413);

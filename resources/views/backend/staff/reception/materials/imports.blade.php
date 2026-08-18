@@ -161,7 +161,13 @@
                                                 <span class="font-bold px-2 py-0.5 rounded-full text-[11px] {{ $daysDiffImport <= 15 ? 'text-red-700 bg-red-50' : 'text-emerald-700 bg-emerald-50' }}">
                                                     Còn {{ $daysDiffImport }} ngày
                                                 </span>
-                                            @endif                            @if($import->note)
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
+                            @if($import->note)
                                 <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
                                      Ghi chú: {{ $import->note }}
                                  </div>

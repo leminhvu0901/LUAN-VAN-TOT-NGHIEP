@@ -1,55 +1,40 @@
-{{-- Khung Modal bao quanh màn hình Quên mật khẩu --}}
 <div id="forgot-modal">
 
-    {{-- Lớp nền tối mờ phía sau Modal --}}
     <div id="forgot-overlay"></div>
 
-    {{-- Khung căn giữa màn hình cho nội dung Modal --}}
     <div class="l-modal-wrapper">
 
-        {{-- Hộp quên mật khẩu chính chứa biểu mẫu và các nút --}}
         <div id="forgot-box" class="l-modal-box">
 
-            {{-- Nút biểu tượng mũi tên quay lại màn hình đăng nhập --}}
             <button id="switch-to-login-from-forgot" type="button" class="l-back-btn" aria-label="Quay lại Đăng nhập">
                 <i class="fa-solid fa-arrow-left text-lg"></i>
             </button>
 
-            {{-- Nút biểu tượng chữ X để đóng Modal --}}
             <button id="close-forgot" type="button" class="l-close-btn" aria-label="Đóng">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
-            {{-- Biểu tượng hình ảnh của Modal Quên mật khẩu --}}
             <div class="l-forgot-icon-wrap">
                 <img src="{{ asset('images/icons/quenmk.png') }}" alt="Quên mật khẩu" class="l-forgot-icon" />
             </div>
 
-            {{-- Tiêu đề của Modal --}}
             <h2 class="l-title">Quên mật khẩu</h2>
 
-            {{-- Dòng mô tả ngắn hướng dẫn cho người dùng --}}
             <p class="l-forgot-desc">
                 Vui lòng nhập email để nhận mã khôi phục mật khẩu.
             </p>
 
-            {{-- Biểu mẫu gửi email yêu cầu đặt lại mật khẩu, gửi --}}
             <form action="{{ route('forgot-password.post') }}" method="post" novalidate>
-                {{-- Token bảo mật CSRF bắt buộc của Laravel để chống --}}
                 @csrf
-
                 
                 <div id="forgot-error-alert" class="l-error-alert {{ $errors->has('forgot_error') ? '' : 'hidden' }}">
                     {{ $errors->first('forgot_error') }}
                 </div>
 
-                {{-- Ô nhập Email để khôi phục tài khoản --}}
                 <div class="l-form-group">
                     <label for="recoveryContact" class="l-label">Email</label>
-                    {{-- Old giữ lại email đã nhập nếu submit form gặp lỗi --}}
                     <input id="recoveryContact" name="recovery_contact" type="text" placeholder="Nhập email của bạn"
                         class="l-input" required value="{{ old('recovery_contact') }}" />
-                    {{-- Hiển thị thông báo lỗi xác thực riêng của trường email --}}
                     @error('recovery_contact')
                         <div class="l-field-error-large">
                             {{ $message }}
@@ -57,21 +42,18 @@
                     @enderror
                 </div>
 
-                {{-- Nút submit gửi yêu cầu lấy lại mật khẩu --}}
                 <button type="submit" class="l-submit-btn">
                     Gửi mã xác nhận
                     <i class="fa-solid fa-arrow-right ml-2 text-sm"></i>
                 </button>
             </form>
 
-            {{-- Thanh phân cách giữa form chính và footer --}}
             <div class="l-divider">
                 <div class="l-divider-line"></div>
                 <span class="l-divider-text">Hoặc</span>
                 <div class="l-divider-line"></div>
             </div>
 
-            {{-- Nút chuyển đổi nhanh sang popup Đăng ký nếu chưa --}}
             <div class="l-footer">
                 Chưa có tài khoản? <a href="#" id="switch-to-register-from-forgot">Đăng ký ngay</a>
             </div>
@@ -81,12 +63,10 @@
 </div>
 
 <script>
-    // Xử lý sự kiện đóng/chuyển đổi modal Quên mật khẩu
     document.addEventListener('click', function(e) {
         const forgotModal = document.getElementById('forgot-modal');
         if (!forgotModal) return;
 
-        // Nút đóng
         const closeForgotBtn = e.target.closest('#close-forgot');
         if (closeForgotBtn) {
             e.preventDefault();
@@ -95,7 +75,6 @@
             return;
         }
 
-        // Click ra ngoài overlay
         const overlayForgot = e.target.closest('#forgot-overlay');
         if (overlayForgot) {
             forgotModal.style.display = 'none';
@@ -103,7 +82,6 @@
             return;
         }
 
-        // Chuyển sang Modal Đăng nhập
         const switchToLoginFromForgotBtn = e.target.closest('#switch-to-login-from-forgot');
         if (switchToLoginFromForgotBtn) {
             e.preventDefault();
@@ -116,7 +94,6 @@
             return;
         }
 
-        // Chuyển sang Modal Đăng ký
         const switchToRegisterFromForgotBtn = e.target.closest('#switch-to-register-from-forgot');
         if (switchToRegisterFromForgotBtn) {
             e.preventDefault();
@@ -130,7 +107,6 @@
         }
     });
 
-    // Tự động mở Modal nếu server gửi flash session show_forgot
     document.addEventListener('DOMContentLoaded', function() {
         @if (session('show_forgot'))
             const forgotModal = document.getElementById('forgot-modal');

@@ -1,22 +1,15 @@
-
-
 <div id="reset-password-modal" data-show-reset-password="{{ (session('show_reset_password') || $errors->has('reset_error') || $errors->has('password')) ? 'true' : 'false' }}">
 
-    {{-- Lớp nền tối mờ phía sau Modal --}}
     <div id="reset-password-overlay"></div>
 
-    {{-- Khung căn giữa màn hình cho nội dung Modal --}}
     <div class="l-modal-wrapper">
 
-        {{-- Hộp đặt lại mật khẩu chính chứa biểu mẫu --}}
         <div id="reset-password-box" class="l-modal-box">
 
-            {{-- Nút biểu tượng chữ X để đóng Modal --}}
             <button id="close-reset-password" type="button" class="l-close-btn" aria-label="Đóng">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
-            {{-- Icon ổ khóa kèm dấu tích xanh biểu thị bước xác thực bảo mật --}}
             <div class="reset-icon-wrap">
                 <div class="reset-icon-bg">
                     <svg width="40" height="40" fill="none" stroke="#1e4a38" stroke-width="2.5" viewBox="0 0 24 24">
@@ -31,29 +24,23 @@
                 </div>
             </div>
 
-            {{-- Tiêu đề chính của form và phần văn bản mô tả quy --}}
             <h2 class="reset-main-title">Mật khẩu mới</h2>
             <p class="reset-desc">
                 Mật khẩu của bạn phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
             </p>
 
-            {{-- Biểu mẫu gửi yêu cầu mật khẩu mới lên server --}}
             <form action="{{ route('reset.password.post') }}" method="post" novalidate>
-                {{-- Token bảo mật tránh tấn công giả mạo yêu cầu chéo CSRF --}}
                 @csrf
-
                 
                 <div id="reset-password-error-alert" class="l-error-alert {{ $errors->has('reset_error') ? '' : 'hidden' }}">
                     {{ $errors->first('reset_error') }}
                 </div>
 
-                {{-- Nhóm nhập mật khẩu mới --}}
                 <div class="l-form-group">
                     <label class="l-label" for="reset_password">Mật khẩu mới</label>
                     <div class="l-input-wrap">
                         <input type="password" id="reset_password" name="password" class="l-input has-password-toggle"
                             placeholder="Nhập mật khẩu mới" required>
-                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                         <button type="button" class="toggle-password toggle-password-visibility" data-target="reset_password" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye text-base"></i>
                         </button>
@@ -63,7 +50,6 @@
                     @enderror
                 </div>
 
-                {{-- Nhóm nhập lại mật khẩu để xác nhận trùng khớp --}}
                 <div class="l-form-group">
                     <label class="l-label" for="reset_password_confirmation">Xác nhận mật khẩu</label>
                     <div class="l-input-wrap">
@@ -75,7 +61,6 @@
                     </div>
                 </div>
 
-                {{-- Nút submit gửi biểu mẫu --}}
                 <div class="reset-submit-wrap">
                     <button type="submit" class="reset-submit">Đặt lại mật khẩu</button>
                 </div>
@@ -85,7 +70,6 @@
 </div>
 
 <script>
-// Tự động mở Modal Đặt lại mật khẩu khi server yêu cầu
 document.addEventListener('DOMContentLoaded', function () {
     const resetModal = document.getElementById('reset-password-modal');
     if (resetModal && resetModal.getAttribute('data-show-reset-password') === 'true') {
@@ -96,7 +80,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Đóng modal Đặt lại mật khẩu khi click nút X hoặc lớp nền overlay
 document.addEventListener('click', function (e) {
     const modal = document.getElementById('reset-password-modal');
     if (!modal) return;
@@ -117,4 +100,3 @@ document.addEventListener('click', function (e) {
     }
 });
 </script>
-

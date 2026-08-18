@@ -1,65 +1,49 @@
-{{-- Khung Modal bao quanh màn hình Đăng ký --}}
 <div id="register-modal" data-show-register="{{ ($errors->has('full_name') || $errors->has('email') || $errors->has('password') || $errors->has('register_error') || session('show_register')) ? 'true' : 'false' }}">
 
-    {{-- Modal --}}
     <div id="register-overlay"></div>
 
-    {{-- Khung căn giữa màn hình cho nội dung Modal --}}
     <div class="l-modal-wrapper">
 
-        {{-- Hộp đăng ký chính chứa biểu mẫu đăng ký và các --}}
         <div id="register-box" class="l-modal-box">
 
-            {{-- Nút quay lại màn hình đăng nhập --}}
             <button id="switch-to-login-back" type="button" class="l-back-btn" aria-label="Quay lại Đăng nhập">
                 <i class="fa-solid fa-arrow-left text-lg"></i>
             </button>
 
-            {{-- Nút dấu X dùng để đóng Modal đăng ký --}}
             <button id="close-register" type="button" class="l-close-btn" aria-label="Đóng">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
-            {{-- Tiêu đề của biểu mẫu --}}
             <h2 class="l-title">Đăng Ký</h2>
 
-            {{-- Biểu mẫu gửi thông tin đăng ký lên hệ thống qua --}}
             <form action="{{ route('register.post') }}" method="post" novalidate>
-                {{-- Token bảo mật bắt buộc của Laravel để phòng chống --}}
                 @csrf
 
-                {{-- Hiển thị thông báo lỗi tổng quát khi có lỗi xảy --}}
                 <div id="register-error-alert" class="l-error-alert {{ $errors->has('register_error') ? '' : 'hidden' }}">
                     {{ $errors->first('register_error') }}
                 </div>
 
-                {{-- Ô nhập thông tin Họ và tên của người dùng --}}
                 <div class="l-form-group">
                     <label for="fullName" class="l-label">Họ và tên</label>
                     <input id="fullName" name="full_name" type="text" placeholder="Nhập tên của bạn"
                         class="l-input @error('full_name') is-invalid @enderror" value="{{ old('full_name') }}"
                         required />
-                    {{-- Hiển thị lỗi xác thực cụ thể cho trường Họ và tên --}}
                     @error('full_name')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
                 </div>
 
-                {{-- Ô nhập thông tin Địa chỉ Email --}}
                 <div class="l-form-group">
                     <label for="email" class="l-label">Email</label>
                     <input id="email" name="email" type="email" placeholder="Nhập email của bạn"
                         class="l-input @error('email') is-invalid @enderror" value="{{ old('email') }}" required />
-                    {{-- Hiển thị lỗi xác thực cụ thể cho trường Email --}}
                     @error('email')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
                 </div>
 
-                {{-- Ô nhập Mật khẩu bảo mật --}}
                 <div class="l-form-group">
                     <label for="password" class="l-label">Mật khẩu</label>
-                    {{-- L-input-wrap: bọc riêng ô input để nút mắt canh --}}
                     <div class="l-input-wrap">
                         <input id="password" name="password" type="password" placeholder="Nhập mật khẩu"
                             class="l-input has-password-toggle @error('password') is-invalid @enderror" required />
@@ -68,13 +52,11 @@
                             <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
-                    {{-- Hiển thị lỗi xác thực cụ thể cho trường Mật khẩu --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
                 </div>
 
-                {{-- Ô xác nhận lại mật khẩu nhằm kiểm tra lỗi gõ phím --}}
                 <div class="l-form-group">
                     <label for="password_confirmation" class="l-label">Xác nhận mật khẩu</label>
                     <div class="l-input-wrap">
@@ -86,7 +68,6 @@
                     </div>
                 </div>
 
-                {{-- Điều khoản dịch vụ và Chính sách bảo mật đồng ý khi đăng ký --}}
                 <div class="l-form-group l-register-terms-group">
                     <p class="l-register-terms-text">
                         Bằng việc đăng ký, bạn đồng ý với
@@ -96,20 +77,17 @@
                     </p>
                 </div>
 
-                {{-- Nút Submit xác nhận việc đăng ký tài khoản --}}
                 <button type="submit" class="l-submit-btn">
                     Đăng Ký Tài Khoản
                 </button>
             </form>
 
-            {{-- Dòng kẻ ngăn cách giữa đăng ký thông thường và bên thứ 3 --}}
             <div class="l-divider">
                 <div class="l-divider-line"></div>
                 <span class="l-divider-text">Hoặc tiếp tục với</span>
                 <div class="l-divider-line"></div>
             </div>
 
-            {{-- Nút Đăng ký nhanh liên kết với dịch vụ Google OAuth --}}
             <a href="{{ route('auth.google') }}" class="l-google-btn">
                 <svg width="22" height="22" viewBox="0 0 24 24">
                     <path fill="#4285F4"
@@ -124,7 +102,6 @@
                 Đăng ký với Google
             </a>
 
-            {{-- Chuyển đổi nhanh sang Popup Đăng nhập nếu đã có tài khoản --}}
             <div class="l-footer">
                 Đã có tài khoản? <a href="#" id="switch-to-login">Đăng nhập</a>
             </div>
@@ -134,7 +111,6 @@
 </div>
 
 <script>
-// Tự động mở modal đăng ký nếu có thông báo lỗi từ server
 document.addEventListener('DOMContentLoaded', function () {
     const registerModal = document.getElementById('register-modal');
     if (registerModal && registerModal.getAttribute('data-show-register') === 'true') {
@@ -143,12 +119,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Xử lý sự kiện đóng modal hoặc chuyển đổi sang modal đăng nhập
 document.addEventListener('click', function(e) {
     const registerModal = document.getElementById('register-modal');
     if (!registerModal) return;
 
-    // Đóng modal đăng ký khi bấm nút đóng
     const closeRegisterBtn = e.target.closest('#close-register');
     if (closeRegisterBtn) {
         e.preventDefault();
@@ -157,7 +131,6 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Đóng modal đăng ký khi click vào lớp nền overlay
     const overlayRegister = e.target.closest('#register-overlay');
     if (overlayRegister) {
         registerModal.style.display = 'none';
@@ -165,7 +138,6 @@ document.addEventListener('click', function(e) {
         return;
     }
 
-    // Chuyển sang modal đăng nhập khi bấm liên kết
     const switchToLoginBtn = e.target.closest('#switch-to-login, #switch-to-login-back');
     if (switchToLoginBtn) {
         e.preventDefault();

@@ -170,6 +170,7 @@ class OrderWorkflowService
             }
             // Dọn dẹp khuyến mãi và hủy đơn hàng
             $this->applyDeliveryFailedCleanup($locked, $reason, $failureType);
+            $locked->save();
             return $locked->fresh();
         }, 3);
     }

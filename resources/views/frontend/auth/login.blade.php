@@ -1,82 +1,63 @@
-{{-- Khung Modal bao quanh màn hình đăng nhập, ẩn mặc định bằng CSS và tự bung khi Backend bật cờ --}}
 <div id="login-modal"
     data-show-login="{{ $errors->has('identity') || $errors->has('password') || $errors->has('login_error') || session('show_login') ? 'true' : 'false' }}">
 
-    {{-- Lớp nền tối mờ phía sau Modal --}}
     <div id="login-overlay"></div>
 
-    {{-- Khung căn giữa màn hình cho nội dung Modal --}}
     <div class="l-modal-wrapper">
 
-        {{-- Hộp đăng nhập chính chứa biểu mẫu và các nút --}}
         <div id="login-box" class="l-modal-box">
 
-            {{-- Nút biểu tượng chữ X để đóng Modal đăng nhập --}}
             <button id="close-login" type="button" class="l-close-btn" aria-label="Đóng">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
-            {{-- Tiêu đề của Modal --}}
             <h2 class="l-title">Đăng Nhập</h2>
 
-            {{-- Biểu mẫu đăng nhập gửi dữ liệu qua phương thức POST tới route xử lý đăng nhập --}}
             <form action="{{ route('login.post') }}" method="POST">
                 @csrf
 
-                {{-- Luôn render sẵn, ẩn bằng "hidden" vì form submit qua fetch, JS cần sẵn chỗ để hiện lỗi --}}
                 <div id="login-error-alert" class="l-error-alert {{ $errors->has('login_error') ? '' : 'hidden' }}">
                     {{ $errors->first('login_error') }}
                 </div>
 
-                {{-- Ô nhập địa chỉ Email --}}
                 <div class="l-form-group">
                     <label class="l-label">Email</label>
-                    {{-- old('email') giữ lại email đã nhập nếu submit lỗi, tránh user phải gõ lại --}}
                     <input type="email" name="email" placeholder="Nhập địa chỉ email"
                         class="l-input @error('email') is-invalid @enderror" value="{{ old('email') }}" required>
-                    {{-- Hiển thị lỗi validate chi tiết của trường Email dưới ô nhập --}}
                     @error('email')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
                 </div>
 
-                {{-- Ô nhập Mật khẩu --}}
                 <div class="l-form-group">
                     <label class="l-label">Mật khẩu</label>
                     <div class="l-input-wrap">
                         <input type="password" id="login-password" name="password" placeholder="Nhập mật khẩu"
                             class="l-input has-password-toggle @error('password') is-invalid @enderror" required>
-                        {{-- Nút biểu tượng mắt nhấp chuột dùng JS toggle --}}
                         <button type="button" class="toggle-password toggle-password-visibility"
                             data-target="login-password" aria-label="Hiện/ẩn mật khẩu">
                             <i class="fa-regular fa-eye text-base"></i>
                         </button>
                     </div>
-                    {{-- Hiển thị lỗi validate chi tiết của trường Mật khẩu --}}
                     @error('password')
                         <div class="l-field-error">{{ $message }}</div>
                     @enderror
                 </div>
 
-                {{-- Nút chuyển hướng sang Popup Quên mật khẩu --}}
                 <div class="l-forgot-wrap">
                     <a href="#" id="switch-to-forgot" class="l-forgot-link">Quên mật khẩu?</a>
                 </div>
 
-                {{-- Nút submit gửi form đăng nhập --}}
                 <button type="submit" class="l-submit-btn">Đăng Nhập</button>
             </form>
 
-            {{-- Thanh phân cách giữa đăng nhập thường và đăng nhập bên thứ 3 --}}
             <div class="l-divider">
                 <div class="l-divider-line"></div>
                 <span class="l-divider-text">Hoặc tiếp tục với</span>
                 <div class="l-divider-line"></div>
             </div>
 
-            {{-- Nút đăng nhập nhanh bằng tài khoản Google --}}
             <a href="{{ route('auth.google') }}" class="l-google-btn">
-                {{-- Biểu tượng Google dạng SVG vẽ bằng code đồ họa vector --}}
                 <svg width="22" height="22" viewBox="0 0 24 24">
                     <path fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -90,7 +71,6 @@
                 Đăng nhập với Google
             </a>
 
-            {{-- Chuyển đổi nhanh sang Modal Đăng ký nếu chưa có tài khoản --}}
             <div class="l-footer">
                 Chưa có tài khoản? <a href="#" id="switch-to-register">Đăng ký ngay</a>
             </div>
@@ -100,21 +80,18 @@
 </div>
 
 <script>
-    // Tự bung modal ngay khi tải trang nếu Backend đánh dấu data-show-login="true", vd login lỗi
     document.addEventListener('DOMContentLoaded', function() {
         const loginModal = document.getElementById('login-modal');
         if (loginModal && loginModal.getAttribute('data-show-login') === 'true') {
             loginModal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Khóa cuộn trang nền trong lúc modal đang mở
+            document.body.style.overflow = 'hidden';
         }
     });
 
-    // Event delegation trên document để bắt được cả nút "#login-btn" nằm ở file layout khác
     document.addEventListener('click', function(e) {
         const modal = document.getElementById('login-modal');
-        if (!modal) return; // Trang hiện tại không có modal đăng nhập -> bỏ qua, không xử lý gì thêm
+        if (!modal) return;
 
-        // Bấm nút/link mở modal đăng nhập
         const loginBtn = e.target.closest('#login-btn');
         if (loginBtn) {
             e.preventDefault();
@@ -123,16 +100,14 @@
             return;
         }
 
-        // Bấm nút "X" để đóng modal
         const closeBtn = e.target.closest('#close-login');
         if (closeBtn) {
             e.preventDefault();
             modal.style.display = 'none';
-            document.body.style.overflow = ''; // Trả lại khả năng cuộn trang nền như bình thường
+            document.body.style.overflow = '';
             return;
         }
 
-        // Bấm ra ngoài vùng modal cũng coi như đóng modal
         const overlay = e.target.closest('#login-overlay');
         if (overlay) {
             modal.style.display = 'none';
@@ -140,7 +115,6 @@
             return;
         }
 
-        // Bấm link "Đăng ký ngay" ở cuối modal -> đóng modal Đăng nhập, mở modal Đăng ký thay vào
         const switchToRegisterBtn = e.target.closest('#switch-to-register');
         if (switchToRegisterBtn) {
             e.preventDefault();
@@ -153,7 +127,6 @@
             return;
         }
 
-        // Bấm link "Quên mật khẩu?" trong form -> đóng modal Đăng nhập, mở modal Quên mật khẩu thay vào
         const switchToForgotBtn = e.target.closest('#switch-to-forgot');
         if (switchToForgotBtn) {
             e.preventDefault();
