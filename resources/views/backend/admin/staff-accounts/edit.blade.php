@@ -101,24 +101,67 @@
                     </div>
                 </div>
 
-                {{-- Loại nhân viên --}}
-                <div>
-                    <label for="staff_type" class="block text-sm font-semibold text-gray-700 mb-1">Loại nhân viên <span class="text-red-500">*</span></label>
-                    <select name="staff_type" id="staff_type" required class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
-                        <option value="receptionist" {{ old('staff_type', $staff->staff_type) === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
-                        <option value="delivery" {{ old('staff_type', $staff->staff_type) === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
-                    </select>
-                    @error('staff_type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                {{-- Vai trò & loại nhân viên --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {{-- Vai trò --}}
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Vai trò <span class="text-red-500">*</span></label>
+                        @if ((int)$staff->id === (int)auth()->id() && $staff->role === 'admin')
+                            {{-- Admin đang xem chính mình: hiển thị tĩnh, không cho đổi --}}
+                            <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 text-sm flex items-center gap-2 min-h-[42px]">
+                                <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                                Quản trị viên (Admin)
+                            </div>
+                            <input type="hidden" name="role" value="admin">
+                            <p class="text-xs text-amber-600 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Bạn không thể tự hạ vai trò của chính mình.</p>
+                        @else
+                            <select name="role" id="role" required
+                                class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white"
+                                data-width-class="w-full">
+                                <option value="staff" {{ old('role', $staff->role) === 'staff' ? 'selected' : '' }}>Nhân viên</option>
+                                <option value="admin" {{ old('role', $staff->role) === 'admin' ? 'selected' : '' }}>Quản trị viên (Admin)</option>
+                            </select>
+                            @error('role') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                        @endif
+                    </div>
+
+                    {{-- Loại nhân viên --}}
+                    <div id="staff-type-wrapper">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Loại nhân viên <span class="text-red-500">*</span></label>
+                        @if ($staff->role === 'admin')
+                            {{-- Admin không có loại nhân viên --}}
+                            <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-400 text-sm flex items-center gap-2 min-h-[42px] italic">
+                                <i class="fa-solid fa-minus text-gray-300"></i>
+                                Không áp dụng (Quản trị viên)
+                            </div>
+                        @else
+                            <select name="staff_type" id="staff_type" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
+                                <option value="receptionist" {{ old('staff_type', $staff->staff_type) === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
+                                <option value="delivery" {{ old('staff_type', $staff->staff_type) === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
+                            </select>
+                            @error('staff_type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Trạng thái --}}
                 <div>
-                    <label for="is_active" class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái hoạt động</label>
-                    <select name="is_active" id="is_active" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
-                        <option value="1" {{ old('is_active', $staff->is_active) == '1' ? 'selected' : '' }}>Hoạt động</option>
-                        <option value="0" {{ old('is_active', $staff->is_active) == '0' ? 'selected' : '' }}>Khóa</option>
-                    </select>
-                    @error('is_active') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái hoạt động</label>
+                    @if ((int)$staff->id === (int)auth()->id())
+                        {{-- Không cho tự khóa chính mình --}}
+                        <div class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 text-sm flex items-center gap-2 min-h-[42px]">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                            Hoạt động
+                        </div>
+                        <input type="hidden" name="is_active" value="1">
+                        <p class="text-xs text-amber-600 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Bạn không thể tự khóa tài khoản của chính mình.</p>
+                    @else
+                        <select name="is_active" id="is_active" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
+                            <option value="1" {{ old('is_active', $staff->is_active) == '1' ? 'selected' : '' }}>Hoạt động</option>
+                            <option value="0" {{ old('is_active', $staff->is_active) == '0' ? 'selected' : '' }}>Khóa</option>
+                        </select>
+                        @error('is_active') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                    @endif
                 </div>
             </div>
 
@@ -193,6 +236,26 @@
                 }
             });
         });
+
+        // Ẩn/hiện field loại nhân viên khi chọn vai trò
+        const roleSelect = document.getElementById('role');
+        const staffTypeWrapper = document.getElementById('staff-type-wrapper');
+        const staffTypeSelect = document.getElementById('staff_type');
+
+        function toggleStaffType() {
+            const isAdmin = roleSelect && roleSelect.value === 'admin';
+            if (staffTypeWrapper) {
+                staffTypeWrapper.style.display = isAdmin ? 'none' : '';
+            }
+            if (staffTypeSelect) {
+                staffTypeSelect.required = !isAdmin;
+            }
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', toggleStaffType);
+            toggleStaffType(); // chạy ngay khi load để ẩn đúng field
+        }
     });
     </script>
 @endpush

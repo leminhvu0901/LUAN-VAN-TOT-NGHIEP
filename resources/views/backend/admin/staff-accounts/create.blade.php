@@ -93,15 +93,28 @@
                     </div>
                 </div>
 
-                {{-- Loại nhân viên --}}
-                <div>
-                    <label for="staff_type" class="block text-sm font-semibold text-gray-700 mb-1">Loại nhân viên <span class="text-red-500">*</span></label>
-                    <select name="staff_type" id="staff_type" required class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
-                        <option value="" disabled {{ old('staff_type') ? '' : 'selected' }}>-- Chọn loại nhân viên --</option>
-                        <option value="receptionist" {{ old('staff_type') === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
-                        <option value="delivery" {{ old('staff_type') === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
-                    </select>
-                    @error('staff_type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                {{-- Vai trò & loại nhân viên --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {{-- Vai trò --}}
+                    <div>
+                        <label for="role" class="block text-sm font-semibold text-gray-700 mb-1">Vai trò <span class="text-red-500">*</span></label>
+                        <select name="role" id="role" required class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
+                            <option value="staff" {{ old('role', 'staff') === 'staff' ? 'selected' : '' }}>Nhân viên</option>
+                            <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Quản trị viên (Admin)</option>
+                        </select>
+                        @error('role') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Loại nhân viên (chỉ hiện khi chọn Nhân viên) --}}
+                    <div id="staff-type-wrapper">
+                        <label for="staff_type" class="block text-sm font-semibold text-gray-700 mb-1">Loại nhân viên <span class="text-red-500">*</span></label>
+                        <select name="staff_type" id="staff_type" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white" data-width-class="w-full">
+                            <option value="" disabled {{ old('staff_type') ? '' : 'selected' }}>-- Chọn loại nhân viên --</option>
+                            <option value="receptionist" {{ old('staff_type') === 'receptionist' ? 'selected' : '' }}>Nhân viên pha chế</option>
+                            <option value="delivery" {{ old('staff_type') === 'delivery' ? 'selected' : '' }}>Nhân viên giao hàng</option>
+                        </select>
+                        @error('staff_type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                    </div>
                 </div>
 
                 {{-- Trạng thái --}}
@@ -186,6 +199,27 @@
                 }
             });
         });
+
+        // Ẩn/hiện field loại nhân viên khi chọn vai trò
+        const roleSelect = document.getElementById('role');
+        const staffTypeWrapper = document.getElementById('staff-type-wrapper');
+        const staffTypeSelect = document.getElementById('staff_type');
+
+        function toggleStaffType() {
+            const isAdmin = roleSelect && roleSelect.value === 'admin';
+            if (staffTypeWrapper) {
+                staffTypeWrapper.style.display = isAdmin ? 'none' : '';
+            }
+            if (staffTypeSelect) {
+                staffTypeSelect.required = !isAdmin;
+                if (isAdmin) staffTypeSelect.value = '';
+            }
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', toggleStaffType);
+            toggleStaffType(); // chạy ngay khi load (giữ old value)
+        }
     });
     </script>
 @endpush

@@ -84,14 +84,16 @@ class StaffAccountController
             $request->merge(['phone' => $trimmedPhone === '' ? null : $trimmedPhone]);
         }
 
+        $role = in_array($request->input('role'), ['staff', 'admin'], true) ? $request->input('role') : 'staff';
+
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:100',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email', 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|vn|net|org|edu|info)(\.vn)?$/i'],
             'password' => 'required|string|min:8|confirmed',
             'phone' => ['nullable', 'string', 'regex:/^0[0-9]{9}$/', 'unique:users,phone'],
             'is_active' => 'required|boolean',
-            // Whitelist cứng, chỉ 2 giá trị hợp lệ, route này đã
-            'staff_type' => ['required', 'in:receptionist,delivery'],
+            // Nếu là admin thì staff_type không bắt buộc
+            'staff_type' => $role === 'admin' ? ['nullable', 'in:receptionist,delivery'] : ['required', 'in:receptionist,delivery'],
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
         ], [
             'email.required' => 'Vui lòng nhập email.',
@@ -124,19 +126,21 @@ class StaffAccountController
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
-            'role' => 'staff', // Bắt buộc lưu vai trò là staff
-            'staff_type' => $validated['staff_type'],
+            'role' => $role,
+            // Admin không có staff_type
+            'staff_type' => $role === 'admin' ? null : ($validated['staff_type'] ?? null),
             'is_active' => $request->is_active,
             'avatar' => $avatarFilename,
         ]);
 
-        return redirect()->route('admin.staff_accounts.index')->with('success', 'Thêm tài khoản nhân viên thành công!');
+        $successMsg = $role === 'admin' ? 'Thêm tài khoản Quản trị viên thành công!' : 'Thêm tài khoản nhân viên thành công!';
+        return redirect()->route('admin.staff_accounts.index')->with('success', $successMsg);
     }
 
     // chuyen tới trang chinh sửa
     public function edit($id)
     {
-        $staff = User::where('role', 'staff')->findOrFail($id);
+        $staff = User::whereIn('role', ['staff', 'admin'])->findOrFail($id);
 
         return view('backend.admin.staff-accounts.edit', compact('staff'));
     }
@@ -144,7 +148,7 @@ class StaffAccountController
     // Cập nhật thông tin nhân viên, mật khẩu/ảnh đại diện
     public function update(Request $request, $id)
     {
-        $staff = User::where('role', 'staff')->findOrFail($id);
+        $staff = User::whereIn('role', ['staff', 'admin'])->findOrFail($id);
 
         // Chuẩn hóa dữ liệu
         if ($request->has('name')) {
@@ -159,12 +163,25 @@ class StaffAccountController
             $request->merge(['phone' => $trimmedPhone === '' ? null : $trimmedPhone]);
         }
 
+        $newRole = in_array($request->input('role'), ['staff', 'admin'], true) ? $request->input('role') : $staff->role;
+
+        // Không cho phép admin tự hạ vai trò của chính mình
+        if ((int)$staff->id === (int)auth()->id() && $staff->role === 'admin' && $newRole !== 'admin') {
+            return redirect()->back()->withInput()->with('error', 'Bạn không thể tự hạ vai trò của chính mình!');
+        }
+
+        // Không cho phép admin tự khóa tài khoản của chính mình
+        if ((int)$staff->id === (int)auth()->id() && (int)$request->input('is_active') === 0) {
+            return redirect()->back()->withInput()->with('error', 'Bạn không thể tự khóa tài khoản của chính mình!');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:100',
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $staff->id, 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|vn|net|org|edu|info)(\.vn)?$/i'],
             'phone' => ['nullable', 'string', 'regex:/^0[0-9]{9}$/', 'unique:users,phone,' . $staff->id],
             'is_active' => 'required|boolean',
-            'staff_type' => ['required', 'in:receptionist,delivery'],
+            // Nếu là admin thì staff_type không bắt buộc
+            'staff_type' => $newRole === 'admin' ? ['nullable', 'in:receptionist,delivery'] : ['required', 'in:receptionist,delivery'],
             // Mật khẩu tùy chọn, để trống nếu không muốn đổi.
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
@@ -186,7 +203,9 @@ class StaffAccountController
         $staff->name = $validated['name'];
         $staff->email = $validated['email'];
         $staff->phone = $validated['phone'] ?? null;
-        $staff->staff_type = $validated['staff_type'];
+        $staff->role = $newRole;
+        // Admin không có staff_type
+        $staff->staff_type = $newRole === 'admin' ? null : ($validated['staff_type'] ?? null);
         $staff->is_active = $validated['is_active'];
         // Kích hoạt lại tài khoản thì xóa luôn lý do khóa cũ
         if ($staff->is_active) {
@@ -211,7 +230,7 @@ class StaffAccountController
         }
         $staff->save();
 
-        return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật tài khoản nhân viên thành công!');
+        return redirect()->route('admin.staff_accounts.index')->with('success', 'Cập nhật tài khoản thành công!');
     }
 
     // Xóa hẳn tài khoản nhân viên, chỉ cho phép nếu chưa có
