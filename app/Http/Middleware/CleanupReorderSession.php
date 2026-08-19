@@ -12,10 +12,6 @@ class CleanupReorderSession
     // Tự động dọn dẹp các sản phẩm tạm của phiên "Mua lại" khi khách rời khỏi trang thanh toán
     public function handle(Request $request, Closure $next)
     {
-        // Tuyệt đối KHÔNG xóa trên:
-        // 1. Các request AJAX, JSON, API (như tải tỉnh thành /administrative/*, tính cước /checkout/*, toggle favorite...)
-        // 2. Các request không phải GET (POST, PUT, DELETE...)
-        // 3. Các trang thuộc quy trình thanh toán / kiểm tra đơn: checkout*, administrative*, payment*
         $isSafeRequest = $request->ajax()
             || $request->expectsJson()
             || !$request->isMethod('GET')

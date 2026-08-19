@@ -300,7 +300,7 @@ class OrderWorkflowService
         return $locked;
     }
 
-    // Cập nhật thông tin giao hàng thất bại và hoàn trả ưu
+    // Cập nhật thông tin giao hàng  thất bại và hoàn trả ưu
     private function applyDeliveryFailedCleanup(Order $locked, string $reason, string $failureType): void
     {
         if ($locked->promotion_id) {

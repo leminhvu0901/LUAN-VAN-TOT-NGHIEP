@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class PromotionService
 {
-    // Tìm và áp dụng mã giảm giá phù hợp cho giỏ hàng
+    // cổng tiếp nhận và xử lý giải quyết khuyến mãi
     public function resolveBestDiscount(Collection $items, float $subtotal, ?User $user, string $channel, int $totalQuantity, ?string $manualCode = null, bool $lock = false): array
     {
         if (filled($manualCode)) {
@@ -64,7 +64,7 @@ class PromotionService
         ];
     }
 
-    // xử lý khuyến mãi dạng “mua đủ combo”
+    // xử lý các chương trình khuyến mãi combo
     private function resolveComboCode(Promotion $promotion, Collection $items): array
     {
         $promotion->loadMissing(['combo.giftProduct', 'comboItems.product']);
@@ -120,7 +120,7 @@ class PromotionService
         return ['promotion' => $promotion, 'discount' => $discount, 'gifts' => $gifts];
     }
 
-    // Tính số tiền giảm giá thực tế của một khuyến mãi trên
+    // Tính số tiền giảm giá thực tế của khuyến mãi (% hoặc số tiền)
     public function calculateDiscount(Promotion $promotion, Collection $items): float
     {
         // Lấy tổng số tiền của các sản phẩm đủ điều kiện giảm
@@ -139,7 +139,7 @@ class PromotionService
         return min($discount, $eligibleSubtotal);
     }
 
-    // tổng tiền của phần sản phẩm trong giỏ hàng thực sự
+    //  tính tổng số tiền của những sản phẩm thực sự đủ điều kiện được giảm giá
     public function eligibleSubtotal(Promotion $promotion, Collection $items): float
     {
         return match ($promotion->scope) {
@@ -159,7 +159,7 @@ class PromotionService
             ->sum(fn($item) => (float) $item->calculated_unit_price * (int) $item->quantity);
     }
 
-    // TÍNH TỔNG TIỀN RIÊNG CHO SP THUỘC DANH MỤC
+    // TÍNH TỔNG TIỀN RIÊNG CHO SP THUỘC DANH MỤC dc giam gia
     private function eligibleSubtotalForCategories(Promotion $promotion, Collection $items): float
     {
         $categoryIds = $promotion->categories->pluck('id')->all();
@@ -209,7 +209,7 @@ class PromotionService
         return (int) ($applications ?? 0);
     }
 
-    // Tính toán số tiền giảm giá chính xác của một Khuyến
+    // Tính toán số tiền giảm giá chính xác của một Khuyến mãi combo
     private function comboDiscountAmount(PromotionCombo $combo, float $eligibleSubtotal, int $applications): float
     {
         if ($eligibleSubtotal <= 0) {
@@ -226,7 +226,7 @@ class PromotionService
         return min($discount, $eligibleSubtotal);
     }
 
-    // Kiểm tra xem khuyến mãi có đang nằm trong khung giờ
+    // Kiểm tra khuyến mãi có nằm trong khung giờ / ngày hợp lệ không
     private function isWithinTimeWindow(Promotion $promotion, $now): bool
     {
         if ($promotion->is_recurring) {

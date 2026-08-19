@@ -476,14 +476,7 @@ class CartController
         ]);
     }
 
-    // TRANG THANH TOÁN
-    // lấy giỏ hàng hiện tại của user
-    // kiểm tra các món đã được chọn để thanh toán
-    // tính tổng tiền giỏ hàng
-    // kiểm tra cửa hàng có mở nhận đơn không
-    // lấy danh sách khuyến mãi hợp lệ
-    // trả về trang checkout để người dùng xác nhận đặt hàng.
-    
+    // TRANG THANH TOÁN    
     public function checkout()
     {
         $userId = Auth::id();

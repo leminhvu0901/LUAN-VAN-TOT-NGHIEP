@@ -23,6 +23,25 @@ class SecureOrderController
         $status = $request->query('status'); // Lấy tham số trạng thái từ đường dẫn URL, query string
         $query = Order::query()->latest(); // Khởi tạo đối tượng truy vấn Builder của bảng orders, mặc định sắp xếp đơn mới nhất lên đầu
 
+        // Lọc theo tìm kiếm: Mã đơn, Tên khách hàng, Số điện thoại hoặc Tên món/sản phẩm trong đơn
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $cleanSearch = ltrim($search, '#');
+            $query->where(function ($q) use ($search, $cleanSearch) {
+                $q->where('order_code', 'like', "%{$search}%")
+                    ->orWhere('order_code', 'like', "%{$cleanSearch}%")
+                    ->orWhere('id', 'like', "%{$cleanSearch}%")
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('customer_phone', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($itemQuery) use ($search) {
+                        $itemQuery->where('product_name', 'like', "%{$search}%")
+                            ->orWhereHas('product', function ($pQuery) use ($search) {
+                                $pQuery->where('name', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
         if ($request->query('status')) {
             if (in_array($status, ['pending', 'confirmed', 'shipping', 'completed', 'cancelled'], true)) {
                 $query->where('status', $status); // Lọc đơn hàng theo trạng thái đã chọn

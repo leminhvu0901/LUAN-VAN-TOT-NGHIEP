@@ -64,6 +64,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const otpModal = document.getElementById('otp-modal');
+    
+    // Tự động mở popup modal OTP và focus vào ô đầu tiên nếu có cờ yêu cầu hiển thị
     if (otpModal && otpModal.getAttribute('data-show-otp') === 'true') {
         otpModal.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -76,7 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const inputs = document.querySelectorAll('.otp-input');
     
+    // Xử lý sự kiện tương tác trên từng ô nhập mã OTP (4 ô)
     inputs.forEach((input, index) => {
+        // Chỉ cho phép nhập ký tự số và tự động nhảy con trỏ sang ô kế tiếp khi gõ xong
         input.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
             
@@ -85,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // Xử lý phím Backspace: Tự động lùi con trỏ về ô trước đó khi xóa
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Backspace' && !this.value && index > 0) {
                 inputs[index - 1].focus();
@@ -92,6 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        // Hỗ trợ dán (Paste) nhanh mã OTP 4 số từ bộ nhớ tạm vào các ô
         input.addEventListener('paste', function(e) {
             e.preventDefault();
             
@@ -117,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         startTimer();
     }
 
+    // Đếm ngược thời gian (58 giây) trước khi cho phép bấm nút gửi lại mã OTP
     function startTimer() {
         if (countdownInterval) clearInterval(countdownInterval);
         
@@ -129,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (timeLeft <= 0) {
                 clearInterval(countdownInterval);
                 timerText.style.display = 'none';
-                resendBtn.classList.add('active');
+                resendBtn.classList.add('active'); // Kích hoạt nút Gửi lại mã khi hết thời gian chờ
             } else {
                 const seconds = timeLeft < 10 ? '0' + timeLeft : timeLeft;
                 if(timerEl) timerEl.textContent = '00:' + seconds;
@@ -138,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Đóng và hủy phiên xác thực OTP khi người dùng click vào vùng nền mờ bên ngoài popup
 document.addEventListener('click', function (e) {
     const overlay = e.target.closest('#otp-overlay');
     if (overlay) {

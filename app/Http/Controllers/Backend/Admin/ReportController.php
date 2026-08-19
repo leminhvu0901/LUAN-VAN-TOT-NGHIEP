@@ -69,7 +69,7 @@ class ReportController
         ]);
     }
 
-   // Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu
+    // Ghi tiêu đề lớn + dòng ghi chú khoảng thời gian ở đầu
     private function writeSheetHeading(Worksheet $sheet, string $title, string $periodLabel, string $lastColumn): int
     {
         $sheet->setCellValue('A1', $title);
@@ -84,7 +84,7 @@ class ReportController
         return 4;
     }
 
- // Định dạng dòng tiêu đề cột nền xanh, chữ trắng, có
+    // Định dạng dòng tiêu đề cột nền xanh, chữ trắng, có
     private function styleHeaderRow(Worksheet $sheet, int $row, string $lastColumn): void
     {
         $range = 'A' . $row . ':' . $lastColumn . $row;
@@ -98,7 +98,7 @@ class ReportController
         $sheet->freezePane('A' . ($row + 1));
     }
 
-  // Kẻ viền vùng dữ liệu và tự giãn bề rộng cột cho dễ đọc
+    // Kẻ viền vùng dữ liệu và tự giãn bề rộng cột cho dễ đọc
     private function finishSheet(Worksheet $sheet, int $headerRow, int $lastRow, string $lastColumn): void
     {
         if ($lastRow > $headerRow) {
@@ -293,7 +293,7 @@ class ReportController
         $this->finishSheet($sheet, $headerRow, $lastRow, 'D');
     }
 
-  // Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc.
+    // Tính toàn bộ số liệu báo cáo cho khoảng thời gian đang lọc.
     private function buildReportData(Request $request): array
     {
         $preset = $request->input('preset', '30_days');

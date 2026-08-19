@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Backend\Admin;
 
+use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -151,13 +152,12 @@ class CustomerController
     {
         $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản theo ID, ném lỗi 404 nếu không tồn tại
 
-        // Lấy số lượng đơn hàng giả sử model User có qh orders
-        $totalOrders = DB::table('orders')->where('user_id', $id)->count(); // Đếm tổng số đơn hàng đã đặt
-        $totalSpent = DB::table('orders')->where('user_id', $id)->where('status', '!=', 'cancelled')->sum('total_amount'); // Tính tổng số tiền đã mua, trừ đơn hủy
+        // Lấy số lượng đơn hàng qua Model Order (tự động loại trừ các đơn đã xóa mềm)
+        $totalOrders = Order::where('user_id', $id)->count();
+        $totalSpent = Order::where('user_id', $id)->where('status', 'completed')->where('payment_status', 'paid')->sum('final_amount');
 
-        // Lấy 5 đơn hàng gần nhất
-        $recentOrders = DB::table('orders') // Lấy chi tiết 5 đơn hàng gần đây nhất để hiển thị ở trang cá nhân khách
-            ->where('user_id', $id)
+        // Lấy 5 đơn hàng gần nhất (không lấy đơn đã xóa)
+        $recentOrders = Order::where('user_id', $id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -213,8 +213,8 @@ class CustomerController
                 continue;
             }
 
-            // Kiểm tra xem khách hàng có đơn hàng hay không
-            $orderCount = DB::table('orders')->where('user_id', $customer->id)->count();
+            // Kiểm tra xem khách hàng có đơn hàng hay không (không tính đơn đã xóa mềm)
+            $orderCount = Order::where('user_id', $customer->id)->count();
             if ($orderCount > 0) {
                 $hasOrdersCount++;
                 continue;
@@ -323,8 +323,8 @@ class CustomerController
             return redirect()->back()->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
         }
 
-        // Kiểm tra xem khách hàng có đơn hàng hay không
-        $orderCount = DB::table('orders')->where('user_id', $user->id)->count();
+        // Kiểm tra xem khách hàng có đơn hàng hay không (không tính đơn đã xóa mềm)
+        $orderCount = Order::where('user_id', $user->id)->count();
         if ($orderCount > 0) {
             return redirect()->back()->with('error', "Khách hàng \"{$user->name}\" đã có {$orderCount} đơn hàng trong hệ thống. Không thể xóa để bảo toàn dữ liệu doanh thu, vui lòng chuyển sang Khóa tài khoản!");
         }

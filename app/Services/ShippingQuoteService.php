@@ -15,7 +15,7 @@ class ShippingQuoteService
     {
     }
 
-    // tinh tien ship theo khoang cach
+    // Báo giá tổng hợp chi phí giao hàng (khoảng cách, phí ship, phụ phí thời tiết)
     public function quote(UserAddress $address, float $subtotal, ?User $user): array
     {
         $distance = $this->distanceFor($address);
@@ -46,7 +46,7 @@ class ShippingQuoteService
         ];
     }
 
-    //tính khoảng cách từ cửa hàng đến địa chỉ giao hàng của khách
+    // tính khoảng cách từ cửa hàng đến địa chỉ giao hàng của khách
     public function distanceFor(UserAddress $address): float
     {
         return $this->distanceForWithSource($address)['distance_km'];
@@ -101,7 +101,7 @@ class ShippingQuoteService
         return ['distance_km' => $estimate, 'is_mock' => true];
     }
 
-    // Nhãn hiển thị cho từng nhóm thời tiết dùng chung cho
+    // Nhãn hiển thị cho từng nhóm trạng thái thời tiết
     public const WEATHER_LABELS = [
         'none' => 'Bình thường',
         'light_rain' => 'Mưa nhỏ',
@@ -120,7 +120,7 @@ class ShippingQuoteService
         };
     }
 
-    // Mức phụ thu, % của từng nhóm, lấy từ Cài đặt để admin
+    // Lấy % mức phụ thu thời tiết theo từng nhóm từ Cài đặt
     private function percentForGroup(string $group): int
     {
         return match ($group) {
@@ -156,7 +156,7 @@ class ShippingQuoteService
         }
     }
 
-    // tính tiền thật
+    // Tính số tiền phụ thu thời tiết xấu 
     public function weatherSurcharge(float $shippingFee, ?float $lat, ?float $lng): array
     {
         $none = ['fee' => 0.0, 'group' => 'none', 'label' => self::WEATHER_LABELS['none']];
@@ -181,7 +181,7 @@ class ShippingQuoteService
         ];
     }
 
-    // tinh phí thời tiết
+    // Lấy số tiền phụ thu thời tiết cho địa chỉ nhận hàng
     private function weatherFee(UserAddress $address, float $shippingFee): float
     {
         return (float) $this->weatherSurcharge(

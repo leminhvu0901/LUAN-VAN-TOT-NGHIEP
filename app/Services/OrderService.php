@@ -306,6 +306,7 @@ class OrderService
             return ['discount' => 0, 'error' => collect($e->errors())->flatten()->first()];
         }
     }
+    
     //Chuyển điểm tích lũy của khách hàng thành số tiền giảm giá cho đơn hàng
     private function resolvePointsDiscount(int $pointsToRedeem, ?User $orderOwner, float $subtotal): float
     {

@@ -8,22 +8,22 @@ use Illuminate\Http\Request;
 class OnlinePaymentGatewayController
 {
 
-    // Điều hướng và xử lý hoàn tiền đơn hàng thanh toán online.
+    // Xử lý trả lại tiền cho khách hàng khi đơn hàng bị hủy hoặc có sự cố.
     public function refund(Request $request, Order $order)
     {
-        return match ($order->payment_method) { // Dùng cấu trúc match rẽ nhánh theo phương thức thanh toán
-            'vnpay' => app(VnpayController::class)->refundOrder($request, $order), // Gọi hàm hoàn tiền của VnpayController xử lý yêu cầu qua API VNPay
+        return match ($order->payment_method) { 
+            'vnpay' => app(VnpayController::class)->refundOrder($request, $order), 
             default => $request->expectsJson()
             ? response()->json(['success' => false, 'message' => 'Đơn hàng này không cần hoàn tiền.'], 422)
             : back()->withErrors(['refund' => 'Đơn hàng này không cần hoàn tiền.']),
         };
     }
 
-   // Điều hướng và xử lý tạo lại liên kết thanh toán cho
+   // Tạo lại liên kết thanh toán (URL / QR VNPay) cho một đơn hàng cũ đang chờ thanh toán.
     public function payExisting(Request $request, Order $order)
     {
-        return match ($order->payment_method) { // Dùng cấu trúc match rẽ nhánh theo phương thức thanh toán
-            'vnpay' => app(VnpayController::class)->payExistingOrder($request, $order), // Gọi hàm thanh toán lại của VnpayController xin link thanh toán VNPay mới
+        return match ($order->payment_method) { 
+            'vnpay' => app(VnpayController::class)->payExistingOrder($request, $order), 
             default => response()->json(['success' => false, 'message' => 'Đơn hàng này không cần thanh toán qua cổng thanh toán online.'], 422), // Trả lỗi 422 nếu đơn không cần thanh toán online
         };
     }

@@ -10,7 +10,7 @@ class Setting extends Model
     // Các cột dữ liệu được phép điền nhanh, mass-assign
     protected $fillable = ['group', 'key', 'value', 'type'];
 
-    // Lấy giá trị cấu hình theo Key (tên cấu hình), Hàm này tự động cache kết quả vĩnh viễn (rememberForever) để tránh việc phải liên tục truy vấn SQL,, giúp tăng tốc độ phản hồi của hệ thống
+    // Lấy giá trị cấu hình
     public static function getValue(string $key, $default = null)
     {
         // Cache vĩnh viễn giá trị cấu hình theo key, nếu có
@@ -51,7 +51,7 @@ class Setting extends Model
         });
     }
 
-    // Lưu hoặc cập nhật một cấu hình cụ thể, đồng thời xóa bộ nhớ đệm (Cache) tương ứng, khi xóa Cache, ở lần gọi getValue() tiếp theo, hệ thống sẽ tự động lấy giá trị mới từ DB và lưu vào Cache lại
+    // Lưu hoặc cập nhật một cấu hình cụ thể
     public static function setValue(string $key, $value, string $group = 'general', string $type = 'string'): void
     {
         // Cập nhật giá trị nếu đã tồn tại, hoặc tạo mới nếu chưa có
@@ -68,7 +68,7 @@ class Setting extends Model
         Cache::forget("setting.{$key}");
     }
 
-    // Lưu/Cập nhật hàng loạt cấu hình trong cùng một nhóm (group), Nhận đầu vào là một mảng có khóa là tên cấu hình và giá trị cấu hình (ví dụ: ['shipping_fee' => 15000])
+    // Lưu/Cập nhật hàng loạt cấu hình trong cùng một nhóm 
     public static function setMany(array $settings, string $group = 'general'): void
     {
         foreach ($settings as $key => $value) {

@@ -59,14 +59,26 @@ class OrderController
             $query->reorder('created_at'); // Thay đổi sang sắp xếp đơn cũ nhất lên trước
         }
 
-        $collection = $query->get(); // Lấy toàn bộ đơn hàng thỏa mãn điều kiện lọc để xử lý Collection nâng cao
+        // Lọc theo tìm kiếm: Mã đơn, Tên khách hàng, Số điện thoại hoặc Tên món/sản phẩm trong đơn
         if ($request->filled('search')) {
-            $needle = Str::ascii(mb_strtolower(trim($request->input('search')))); // Chuyển từ khóa tìm kiếm thành chữ thường không dấu để so khớp
-            $collection = $collection->filter(function ($order) use ($needle) {
-                $haystack = Str::ascii(mb_strtolower(implode(' ', [$order->order_code, $order->customer_name, $order->customer_phone]))); // Chuỗi nguồn để so khớp thông tin đơn hàng
-                return str_contains($haystack, str_replace('#', '', $needle)); // Lọc theo mã đơn, tên hoặc số điện thoại khách hàng
+            $search = trim((string) $request->input('search'));
+            $cleanSearch = ltrim($search, '#');
+            $query->where(function ($q) use ($search, $cleanSearch) {
+                $q->where('order_code', 'like', "%{$search}%")
+                    ->orWhere('order_code', 'like', "%{$cleanSearch}%")
+                    ->orWhere('id', 'like', "%{$cleanSearch}%")
+                    ->orWhere('customer_name', 'like', "%{$search}%")
+                    ->orWhere('customer_phone', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($itemQuery) use ($search) {
+                        $itemQuery->where('product_name', 'like', "%{$search}%")
+                            ->orWhereHas('product', function ($pQuery) use ($search) {
+                                $pQuery->where('name', 'like', "%{$search}%");
+                            });
+                    });
             });
         }
+
+        $collection = $query->get(); // Lấy toàn bộ đơn hàng thỏa mãn điều kiện lọc để xử lý Collection nâng cao
 
         $page = LengthAwarePaginator::resolveCurrentPage(); // Đọc trang hiện tại từ URL phục vụ phân trang Collection thủ công
         $paginator = new LengthAwarePaginator(
@@ -214,7 +226,7 @@ class OrderController
         return redirect()->back()->with('success', 'Đã gửi yêu cầu phê duyệt đơn hàng đến Quản trị viên!');
     }
 
-    // Duyệt đơn hàng trực tiếp tại quầy dành cho Lễ tân khi
+    // Duyệt đơn hàng trực tiếp tại quầy dành cho Lễ tân 
     public function approveDirectly(Request $request, Order $order)
     {
         $order->update([
@@ -270,7 +282,7 @@ class OrderController
         return view('backend.staff.reception.orders.create', compact('products', 'categories', 'vnpayEnabled', 'selectedCustomer', 'posToken'));
     }
 
-    // Xem trước tổng tiền đơn hàng tại quầy, POS qua AJAX, tính số tiền được giảm và tổng thanh toán cuối cùng
+    // Xem trước tổng tiền đơn hàng tại quầy
     public function previewTotal(Request $request)
     {
         $cart = Cart::query()->where('user_id', Auth::id())->first();

@@ -769,7 +769,7 @@
                 </div>
             </form>
         </div>
-        {{-- nạp thư viện Leaflet.js --}}
+        {{-- nạp thư viện bản đồ Leaflet.js --}}
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             window.checkoutConfig = {
@@ -833,7 +833,7 @@
                     cfg[2];
             }
 
-            // Ghi nhận khách lấy tọa độ bằng cách nào: định vị gps, chọn trên bản đồ hay gõ tay
+            // Ghi nhận khách lấy tọa độ 
             function setLocationMethod(method) {
                 if (!['gps', 'map', 'manual'].includes(method)) method = 'map';
                 const methodChanged = method !== locationMethod;
@@ -1634,7 +1634,7 @@
                 btn.disabled = !(fullname && phoneOk && areaOk && specific && locationOk && notLoading);
             }
 
-            // LẤY VỊ TRÍ HIỆN TẠI
+            // LẤY VỊ TRÍ HIỆN TẠI GPS
             function getCurrentLocation() {
                 if (!navigator.geolocation) {
                     setLocStatus('notfound', 'Trình duyệt không hỗ trợ định vị GPS');

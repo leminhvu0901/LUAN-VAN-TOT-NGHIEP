@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class HardenedProductController
 {
-    // Lấy danh sách sản phẩm cho trang quản trị, hỗ trợ tìm kiếm, lọc theo danh mục và trạng thái, sắp xếp và phân trang
+    // Lấy danh sách sản phẩm
     public function index(Request $request)
     {
         $query = Product::query()->with('category');
@@ -90,7 +90,7 @@ class HardenedProductController
         return redirect($this->safeReturnUrl($request))->with('success', 'Thêm sản phẩm thành công!');
     }
 
-    // Cập nhật sản phẩm, chạy transaction ghi đè dữ liệu, tải ảnh mới lên rồi xoá ảnh cũ khỏi ổ đĩa để tránh rác
+    // Cập nhật sản phẩm
     public function update(Request $request, Product $product)
     {
         $validated = $this->validateProduct($request, $product);

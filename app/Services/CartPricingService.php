@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 class CartPricingService
 {
 
-    // TÍNH TOÁN GIÁ CHUẨN NHẤT TỪNG SẢN PHẨM , trả về giá
+    // TÍNH TOÁN GIÁ CHUẨN NHẤT TỪNG SẢN PHẨM 
     public function pricedItems(Cart $cart, bool $lock = false, ?array $selectedIds = null): Collection
     {
         $query = CartItem::query()->with(['product', 'toppings.topping'])->where('cart_id', $cart->id); // Lấy danh sách sản phẩm trong giỏ kèm chi tiết Topping

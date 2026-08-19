@@ -11,7 +11,7 @@ use App\Models\Setting;
 
 class HomeController extends Controller
 {
-    // Hiển thị trang chủ với danh sách banner và danh mục sản phẩm
+    // Hiển thị trang chủ 
     public function index()
     {
         $now = now();
