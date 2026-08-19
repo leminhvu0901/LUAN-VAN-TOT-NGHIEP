@@ -70,10 +70,14 @@ class CustomerOrderController
         if ($codEnabled != '1') {
             throw ValidationException::withMessages(['checkout' => 'Phương thức thanh toán COD hiện đang tạm khóa.']);
         }
+        if ((!isset($validated['selected_item_ids']) || empty($validated['selected_item_ids'])) && session()->has('selected_cart_item_ids')) {
+            $validated['selected_item_ids'] = session('selected_cart_item_ids');
+        }
         $order = $this->orders->create(Auth::user(), $validated, 'cod');
         $this->notifications->orderPlaced($order);
         session()->forget('checkout_token');
         session()->forget('selected_cart_item_ids');
+        session()->forget('reorder_cart_item_ids');
         return redirect()->route('orders')->with('success', "Đơn hàng {$order->order_code} đã được đặt thành công!");
     }
 
@@ -84,8 +88,18 @@ class CustomerOrderController
         abort_unless($order->user_id === Auth::id(), 404);
         // Nạp thông tin chi tiết các món nước trong đơn cũ
         $order->load('items');
+
+        // Dọn dẹp phiên mua lại cũ nếu có
+        $prevReorderIds = session('reorder_cart_item_ids');
+        if (!empty($prevReorderIds) && is_array($prevReorderIds)) {
+            CartItemTopping::query()->whereIn('cart_item_id', $prevReorderIds)->delete();
+            CartItem::query()->whereIn('id', $prevReorderIds)->delete();
+            session()->forget('reorder_cart_item_ids');
+        }
+
+        $addedItemIds = [];
         // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
-        DB::transaction(function () use ($order) {
+        DB::transaction(function () use ($order, &$addedItemIds) {
             // Lấy giỏ hàng hiện tại hoặc tự tạo mới nếu người dùng
             $cart = Cart::query()->firstOrCreate(['user_id' => Auth::id()], ['session_id' => null]);
             $added = 0;
@@ -131,6 +145,7 @@ class CustomerOrderController
                 foreach ($toppings as $topping) {
                     CartItemTopping::create(['cart_item_id' => $item->id, 'topping_id' => $topping->id, 'price' => $topping->price]);
                 }
+                $addedItemIds[] = $item->id;
                 $added++;
             }
 
@@ -139,8 +154,12 @@ class CustomerOrderController
                 throw ValidationException::withMessages(['order' => 'Các sản phẩm trong đơn này hiện không còn kinh doanh.']);
         });
 
-        // Chuyển hướng người dùng sang trang thanh toán luôn để
-        return redirect()->route('checkout')->with('success', 'Đã thêm lại các sản phẩm còn bán vào giỏ hàng.');
+        // Đánh dấu các ID sản phẩm được tạo từ "Mua lại" để chỉ thanh toán những món này
+        session(['reorder_cart_item_ids' => $addedItemIds]);
+        session(['selected_cart_item_ids' => $addedItemIds]);
+
+        // Chuyển hướng người dùng sang trang thanh toán
+        return redirect()->route('checkout')->with('success', 'Đã thêm lại các sản phẩm còn bán vào đơn thanh toán.');
     }
 
     // HỦY ĐƠN HÀNG

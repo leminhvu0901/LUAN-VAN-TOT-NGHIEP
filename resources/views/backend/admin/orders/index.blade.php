@@ -151,21 +151,24 @@
         // Gom danh sách ID đã chọn, hỏi xác nhận và gửi form xóa hàng loạt
         function submitBulkDelete() {
             if (window.selectedOrderIds.size === 0) return;
-            if (!confirm(`Bạn chuẩn bị xóa ${window.selectedOrderIds.size} đơn hàng đã chọn. Tiếp tục?`)) return;
+            window.AdminAlert.confirm(
+                `Bạn chuẩn bị xóa ${window.selectedOrderIds.size} đơn hàng đã chọn. Tiếp tục?`,
+                function () {
+                    const bulkDeleteForm = document.getElementById("bulk-delete-form");
+                    bulkDeleteForm.querySelectorAll('input[name="order_ids[]"]').forEach((el) => el.remove());
 
-            // Đưa danh sách ID đã chọn vào form ẩn và submit
-            const bulkDeleteForm = document.getElementById("bulk-delete-form");
-            bulkDeleteForm.querySelectorAll('input[name="order_ids[]"]').forEach((el) => el.remove());
+                    window.selectedOrderIds.forEach((id) => {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = "order_ids[]";
+                        input.value = id;
+                        bulkDeleteForm.appendChild(input);
+                    });
 
-            window.selectedOrderIds.forEach((id) => {
-                const input = document.createElement("input");
-                input.type = "hidden";
-                input.name = "order_ids[]";
-                input.value = id;
-                bulkDeleteForm.appendChild(input);
-            });
-
-            bulkDeleteForm.submit();
+                    bulkDeleteForm.submit();
+                },
+                'Xác nhận xóa hàng loạt'
+            );
         }
 
         // Khởi tạo bộ chọn ngày Flatpickr cho bộ lọc danh sách đơn hàng
@@ -196,6 +199,21 @@
             if (bulkDeleteBtn) {
                 bulkDeleteBtn.addEventListener("click", submitBulkDelete);
             }
+
+            // Xử lý xác nhận xóa đơn hàng lẻ bằng SweetAlert2
+            tableContainer.addEventListener("submit", function (e) {
+                const deleteForm = e.target.closest(".js-delete-order-form");
+                if (deleteForm) {
+                    e.preventDefault();
+                    window.AdminAlert.confirm(
+                        "Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?",
+                        function () {
+                            deleteForm.submit();
+                        },
+                        "Xác nhận xóa"
+                    );
+                }
+            });
 
             // Lắng nghe các sự kiện thay đổi trên bảng đơn hàng
             tableContainer.addEventListener("change", function (e) {
@@ -241,25 +259,29 @@
                         return;
                     }
 
-                    // Yêu cầu nhập lý do hủy đơn hàng
-                    const reason = prompt("Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):");
-                    if (reason === null) {
-                        select.value = select.dataset.currentStatus;
-                        return;
-                    }
-                    if (reason.trim().length < 5) {
-                        alert("Lý do hủy đơn phải có ít nhất 5 ký tự.");
-                        select.value = select.dataset.currentStatus;
-                        return;
-                    }
+                    // Yêu cầu nhập lý do hủy đơn hàng bằng SweetAlert2
+                    window.AdminAlert.prompt(
+                        "Hủy đơn hàng",
+                        "Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):",
+                        "Nhập lý do...",
+                        function (reason, isConfirmed) {
+                            if (!isConfirmed || !reason || reason.trim().length < 5) {
+                                select.value = select.dataset.currentStatus;
+                                return;
+                            }
 
-                    // Đưa lý do hủy vào input ẩn và gửi form
-                    const reasonInput = document.createElement("input");
-                    reasonInput.type = "hidden";
-                    reasonInput.name = "cancel_reason";
-                    reasonInput.value = reason.trim();
-                    select.form.appendChild(reasonInput);
-                    select.form.submit();
+                            // Đưa lý do hủy vào input ẩn và gửi form
+                            const reasonInput = document.createElement("input");
+                            reasonInput.type = "hidden";
+                            reasonInput.name = "cancel_reason";
+                            reasonInput.value = reason.trim();
+                            select.form.appendChild(reasonInput);
+                            select.form.submit();
+                        },
+                        "Lý do hủy đơn phải có ít nhất 5 ký tự.",
+                        "Xác nhận hủy",
+                        5
+                    );
                 }
             });
 

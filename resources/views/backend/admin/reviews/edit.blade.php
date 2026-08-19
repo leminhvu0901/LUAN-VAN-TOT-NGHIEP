@@ -281,37 +281,41 @@ document.addEventListener('DOMContentLoaded', function() {
             const btn = e.target.closest('.js-delete-review-image');
             if (!btn) return;
 
-            if (!confirm('Ảnh này sẽ bị xóa vĩnh viễn. Tiếp tục?')) return;
+            window.AdminAlert.confirm(
+                'Ảnh này sẽ bị xóa vĩnh viễn. Tiếp tục?',
+                function () {
+                    const imageName = btn.dataset.image;
+                    const reviewId = btn.dataset.id;
+                    const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
 
-            const imageName = btn.dataset.image;
-            const reviewId = btn.dataset.id;
-            const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin/reviews/' + reviewId + '/image';
+                    form.style.display = 'none';
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/admin/reviews/' + reviewId + '/image';
-            form.style.display = 'none';
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = csrfToken;
+                    form.appendChild(tokenInput);
 
-            const tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = '_token';
-            tokenInput.value = csrfToken;
-            form.appendChild(tokenInput);
+                    const methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    methodInput.value = 'DELETE';
+                    form.appendChild(methodInput);
 
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = 'DELETE';
-            form.appendChild(methodInput);
+                    const imageInput = document.createElement('input');
+                    imageInput.type = 'hidden';
+                    imageInput.name = 'image';
+                    imageInput.value = imageName;
+                    form.appendChild(imageInput);
 
-            const imageInput = document.createElement('input');
-            imageInput.type = 'hidden';
-            imageInput.name = 'image';
-            imageInput.value = imageName;
-            form.appendChild(imageInput);
-
-            document.body.appendChild(form);
-            form.submit();
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+                'Xác nhận xóa ảnh'
+            );
         });
     }
 

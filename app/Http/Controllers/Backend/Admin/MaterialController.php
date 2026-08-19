@@ -80,8 +80,12 @@ class MaterialController
         $expiredItems = MaterialImport::where('expiration_date', '<', today())
             ->where('remaining_quantity', '>', 0)->count();
 
-        $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)->count();
-        $disposedValue = abs(MaterialImport::where('quantity', '<', 0)->sum('total_price'));
+        $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)
+            ->where('note', 'like', 'Hủy từ lô%')
+            ->count();
+        $disposedValue = abs(MaterialImport::where('quantity', '<', 0)
+            ->where('note', 'like', 'Hủy từ lô%')
+            ->sum('total_price'));
 
         $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price'));
 
@@ -145,14 +149,18 @@ class MaterialController
     // Xóa hẳn vật tư khỏi hệ thống
     public function destroy(Material $material, Request $request = null)
     {
-        // Kiểm tra vật tư có còn lô hàng hoặc đang dùng trong công thức sản phẩm không
+        // Kiểm tra vật tư có còn lô hàng hoặc đang dùng trong công thức/lịch sử kho không
         $blockReason = $this->getMaterialDeleteBlockReason($material);
         if ($blockReason !== null) {
             return redirect()->back()->withErrors(['delete' => $blockReason]);
         }
 
-        $material->delete();
-        return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
+        try {
+            $material->delete();
+            return redirect()->route('admin.materials.index')->with('success', 'Vật tư đã được xóa!');
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['delete' => "Không thể xóa vật tư \"{$material->name}\" do có dữ liệu liên kết trong hệ thống."]);
+        }
     }
 
     // Xóa nhiều vật tư, chỉ áp dụng cho các dòng đang chọn
@@ -286,9 +294,14 @@ class MaterialController
         return redirect()->back()->with('success', 'Đã cập nhật phiếu nhập kho thành công!');
     }
 
-    // Hủy bỏ một phần hoặc toàn bộ số lượng của một lô hàng cụ thể
+    // Hủy bỏ toàn bộ số lượng của một lô hàng cụ thể
     public function disposeBatch(Request $request, MaterialImport $import)
     {
+        $disposeQty = $request->filled('quantity') ? (float) $request->input('quantity') : (float) $import->remaining_quantity;
+        if ($disposeQty <= 0) {
+            $disposeQty = (float) $import->remaining_quantity;
+        }
+
         // _max_quantity để Blade giới hạn ô nhập số lượng hủy
         $request->merge([
             '_form_context' => 'dispose-batch',
@@ -296,20 +309,33 @@ class MaterialController
             '_lot_id' => $import->id,
             '_unit' => $import->material?->unit,
             '_max_quantity' => $import->remaining_quantity,
-            'note' => trim((string) $request->input('note')),
+            'quantity' => $disposeQty,
+            'note' => $request->filled('note') ? trim((string) $request->input('note')) : 'Bị hư hại',
         ]);
 
-        // Bắt buộc phải có lý do hủy, dùng cho việc tra soát sau này
+        // Validate lý do hủy: chỉ được chọn "Hết hạn" hoặc "Bị hư hại"
         $validated = $request->validate([
             'quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999',
-            'note' => 'required|string|max:255',
+            'note' => 'required|string|in:Hết hạn,Bị hư hại',
         ], [
             'quantity.numeric' => 'Số lượng hủy phải là số hợp lệ.',
             'quantity.decimal' => 'Số lượng hủy chỉ được có tối đa 2 chữ số thập phân.',
             'quantity.min' => 'Số lượng hủy phải từ 1 trở lên.',
             'quantity.max' => 'Số lượng hủy vượt quá giới hạn cho phép.',
-            'note.required' => 'Vui lòng nhập lý do hủy lô hàng.'
+            'note.required' => 'Vui lòng chọn lý do hủy lô hàng.',
+            'note.in' => 'Lý do hủy chỉ được chọn là "Hết hạn" hoặc "Bị hư hại".',
         ]);
+
+        // Nếu chọn lý do "Hết hạn", kiểm tra ràng buộc xem lô hàng đã thực sự quá hạn sử dụng hay chưa
+        if ($validated['note'] === 'Hết hạn') {
+            $isExpired = $import->expiration_date && $import->expiration_date->startOfDay()->isPast();
+            if (!$isExpired) {
+                $expiryText = $import->expiration_date ? $import->expiration_date->format('d/m/Y') : 'Không có HSD';
+                throw ValidationException::withMessages([
+                    'note' => "Lô hàng chưa quá hạn sử dụng (HSD: {$expiryText}). Không thể chọn lý do 'Hết hạn', vui lòng chọn 'Bị hư hại' nếu hàng bị lỗi/hư hỏng.",
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($import, $validated) {
             // Khóa dòng để tránh 2 request hủy hoặc xuất cùng lúc trên cùng một lô
@@ -386,7 +412,7 @@ class MaterialController
             '_lot_id' => $import->id,
             '_unit' => $import->material?->unit,
             '_max_quantity' => $import->remaining_quantity,
-            'reason' => trim((string) $request->input('reason')),
+            'reason' => $request->filled('reason') ? trim((string) $request->input('reason')) : 'Hết tại quầy',
         ]);
 
         // Bắt buộc phải có lý do xuất, khác dispose là dùng cho hàng hủy hỏng hoặc hết hạn
@@ -544,13 +570,20 @@ class MaterialController
     private function getMaterialDeleteBlockReason(Material $material): ?string
     {
         $activeLotsCount = $material->imports()->count();
-
         if ($activeLotsCount > 0) {
-            return "Không thể xóa vật tư vì vẫn còn {$activeLotsCount} lô/lịch sử kho.";
+            return "Không thể xóa vật tư \"{$material->name}\" vì vẫn còn {$activeLotsCount} lô/lịch sử nhập xuất kho.";
         }
 
-        if (DB::table('product_materials')->where('material_id', $material->id)->exists()) {
-            return 'Không thể xóa vật tư vì đang được dùng trong định lượng sản phẩm.';
+        if (Schema::hasTable('inventory_movements') && DB::table('inventory_movements')->where('material_id', $material->id)->exists()) {
+            return "Không thể xóa vật tư \"{$material->name}\" vì đã có phát sinh lịch sử biến động kho.";
+        }
+
+        if (Schema::hasTable('product_materials') && DB::table('product_materials')->where('material_id', $material->id)->exists()) {
+            return "Không thể xóa vật tư \"{$material->name}\" vì đang được dùng trong định lượng sản phẩm.";
+        }
+
+        if (Schema::hasTable('order_material_consumptions') && DB::table('order_material_consumptions')->where('material_id', $material->id)->exists()) {
+            return "Không thể xóa vật tư \"{$material->name}\" vì đã từng tiêu thụ trong đơn hàng.";
         }
 
         return null;
@@ -612,29 +645,32 @@ class MaterialController
     private function deleteMaterialCollection($materials, Request $request = null)
     {
         $deletedCount = 0;
-        $blockedCount = 0;
+        $blockedReasons = [];
 
         foreach ($materials as $material) {
-            // Dùng cùng hàm kiểm tra như destroy, chặn nếu vật tư còn lô hàng
-            if ($this->getMaterialDeleteBlockReason($material) !== null) {
-                $blockedCount++;
+            $blockReason = $this->getMaterialDeleteBlockReason($material);
+            if ($blockReason !== null) {
+                $blockedReasons[] = $blockReason;
                 continue;
             }
 
-            $material->delete();
-            $deletedCount++;
+            try {
+                $material->delete();
+                $deletedCount++;
+            } catch (\Throwable $e) {
+                $blockedReasons[] = "Không thể xóa vật tư \"{$material->name}\" do có dữ liệu liên kết trong hệ thống.";
+            }
         }
 
         $response = redirect()->back();
 
         if ($deletedCount > 0) {
-            $response->with('success', "Đã xóa {$deletedCount} vật tư.");
+            $response->with('success', "Đã xóa thành công {$deletedCount} vật tư.");
         }
 
-        if ($blockedCount > 0) {
-            $msg = "Có {$blockedCount} vật tư không thể xóa vì vẫn còn lô hàng trong kho.";
+        if (!empty($blockedReasons)) {
             $response->withErrors([
-                'delete' => $msg,
+                'delete' => implode('<br>', array_slice($blockedReasons, 0, 5)) . (count($blockedReasons) > 5 ? '<br>...và một số vật tư khác không thể xóa.' : ''),
             ]);
         }
 

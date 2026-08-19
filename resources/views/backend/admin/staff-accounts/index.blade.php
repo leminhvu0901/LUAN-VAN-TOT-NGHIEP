@@ -128,11 +128,14 @@
                     if (newValue === oldValue) return;
 
                     const label = newValue === 'receptionist' ? 'Nhân viên pha chế' : 'Nhân viên giao hàng';
-                    if (confirm(`Đổi loại nhân viên thành "${label}"? Quyền truy cập của tài khoản này sẽ thay đổi ngay lập tức.`)) {
-                        select.closest('form').submit();
-                    } else {
-                        select.value = oldValue;
-                    }
+                    window.AdminAlert.confirm(
+                        `Đổi loại nhân viên thành "${label}"? Quyền truy cập của tài khoản này sẽ thay đổi ngay lập tức.`,
+                        function () {
+                            select.closest('form').submit();
+                        },
+                        'Xác nhận đổi vai trò'
+                    );
+                    select.value = oldValue;
                 }
             });
 
@@ -144,15 +147,26 @@
                     const willBeActive = checkbox.checked;
 
                     if (!willBeActive) {
-                        const reason = prompt('Vui lòng nhập lý do khóa tài khoản nhân viên này:');
-                        if (reason === null || reason.trim() === '') {
-                            checkbox.checked = true;
-                            return;
-                        }
-                        form.querySelector('input[name="lock_reason"]').value = reason.trim();
+                        window.AdminAlert.prompt(
+                            'Khóa tài khoản nhân viên',
+                            'Vui lòng nhập lý do khóa tài khoản nhân viên này:',
+                            'Nhập lý do khóa...',
+                            function (reason, isConfirmed) {
+                                if (!isConfirmed || !reason || reason.trim() === '') {
+                                    checkbox.checked = true;
+                                    return;
+                                }
+                                form.querySelector('input[name="lock_reason"]').value = reason.trim();
+                                form.querySelector('input[name="is_active"]').value = '0';
+                                form.submit();
+                            },
+                            'Vui lòng nhập lý do khóa tài khoản!',
+                            'Khóa tài khoản'
+                        );
+                        return;
                     }
 
-                    form.querySelector('input[name="is_active"]').value = willBeActive ? '1' : '0';
+                    form.querySelector('input[name="is_active"]').value = '1';
                     form.submit();
                 }
             });

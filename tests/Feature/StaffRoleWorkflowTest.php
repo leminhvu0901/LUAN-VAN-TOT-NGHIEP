@@ -1699,26 +1699,6 @@ class StaffRoleWorkflowTest extends TestCase
         $this->assertEquals('Khách tại quầy', $order->customer_name);
     }
 
-    // Giảm giá theo hạng thành viên phải tính trên hạng của KHÁCH ĐƯỢC CHỌN, không phải hạng của
-    // tài khoản lễ tân (luôn là 'new' vì lễ tân không tích điểm mua hàng như khách thật).
-    public function test_pos_order_membership_discount_uses_selected_customers_tier(): void
-    {
-        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
-
-        $receptionist = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);
-        $goldCustomer = User::factory()->create(['role' => 'customer', 'membership_level' => 'gold']);
-        $product = $this->makeProduct(['base_price' => 100000]);
-
-        $this->actingAs($receptionist);
-        $this->postJson('/cart/add', ['product_id' => $product->id, 'quantity' => 1])->assertOk();
-        $this->post('/staff/reception/orders', ['idempotency_key' => $this->posToken(), 'payment_method' => 'cash', 'customer_id' => $goldCustomer->id]);
-
-        $order = Order::where('created_by', $receptionist->id)->orderByDesc('id')->first();
-        // Hạng gold = giảm 5% trên subtotal 100.000đ = 5.000đ
-        $this->assertEquals(5000, (float) $order->discount_amount);
-        $this->assertEquals(95000, (float) $order->final_amount);
-    }
-
     // Dùng điểm tích lũy của khách đã chọn: điểm phải bị trừ đúng trên tài khoản KHÁCH đó, không
     // phải tài khoản lễ tân — và discount_amount phải phản ánh đúng giá trị điểm quy đổi.
     public function test_pos_order_can_redeem_selected_customers_points(): void

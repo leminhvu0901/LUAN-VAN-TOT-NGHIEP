@@ -76,6 +76,7 @@
                     $order->payment_status === 'paid';
                 // Kiểm tra trạng thái thu tiền mặt tại quầy
                 $cashNotYetCollected = $order->payment_method === 'cash' && $order->payment_status !== 'paid';
+                $largeOrderThreshold = $largeOrderThreshold ?? (float) \App\Models\Setting::getValue('large_order_threshold', 500000);
             @endphp
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -110,9 +111,9 @@
                             Cần xác nhận đã thu tiền mặt (khối "Thanh toán" bên dưới) trước khi xác nhận đơn.
                         </p>
                     @elseif($order->status === 'pending')
-                        @if ((float) $order->final_amount >= 500000)
-                            {{-- Đơn hàng từ 500k trở lên phải gửi Admin phê duyệt trước --}}
-                            <form action="{{ route('staff.reception.orders.request_approval', $order->id) }}"
+                        @if ((float) $order->final_amount >= (float) ($largeOrderThreshold ?? 500000))
+                            {{-- Đơn hàng vượt ngưỡng cấu hình phải gửi Admin phê duyệt trước --}}
+                             <form action="{{ route('staff.reception.orders.request_approval', $order->id) }}"
                                 method="POST">
                                 @csrf
                                 <button type="submit"
@@ -616,20 +617,6 @@
                 window.print();
             }
 
-            // Bắt buộc nhập lý do hủy qua hộp thoại rồi mới gửi form, không cho hủy đơn suông
-            function askCancelReasonAndSubmit(form, reasonInput, message) {
-                const reason = prompt(message);
-                if (reason === null) return;
-
-                if (reason.trim().length < 5) {
-                    alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
-                    return;
-                }
-
-                reasonInput.value = reason.trim();
-                form.submit();
-            }
-
             // Khởi tạo trang chi tiết đơn hàng
             function initOrderShowPage() {
                 const prepTicketBtn = document.getElementById("print-prep-ticket-btn");
@@ -695,10 +682,22 @@
                 const cancelBtn = document.getElementById('cancel-order-btn');
                 if (cancelBtn) {
                     cancelBtn.addEventListener('click', function() {
-                        askCancelReasonAndSubmit(
-                            document.getElementById('cancel-order-form'),
-                            document.getElementById('cancel_reason_input'),
-                            'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                        window.AdminAlert.prompt(
+                            'Hủy đơn hàng',
+                            'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):',
+                            'Nhập lý do...',
+                            function(reason, isConfirmed) {
+                                if (!isConfirmed || !reason || reason.trim().length < 5) return;
+                                const form = document.getElementById('cancel-order-form');
+                                const input = document.getElementById('cancel_reason_input');
+                                if (form && input) {
+                                    input.value = reason.trim();
+                                    form.submit();
+                                }
+                            },
+                            'Vui lòng nhập lý do hủy đơn!',
+                            'Xác nhận hủy',
+                            5
                         );
                     });
                 }
@@ -706,10 +705,22 @@
                 const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
                 if (refundCancelBtn) {
                     refundCancelBtn.addEventListener('click', function() {
-                        askCancelReasonAndSubmit(
-                            document.getElementById('refund-cancel-order-form'),
-                            document.getElementById('refund_cancel_reason_input'),
-                            'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn — không thể hoàn tác. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                        window.AdminAlert.prompt(
+                            'Hoàn tiền & Hủy đơn',
+                            'Hệ thống sẽ hoàn tiền cho khách rồi hủy đơn. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
+                            'Nhập lý do...',
+                            function(reason, isConfirmed) {
+                                if (!isConfirmed || !reason || reason.trim().length < 5) return;
+                                const form = document.getElementById('refund-cancel-order-form');
+                                const input = document.getElementById('refund_cancel_reason_input');
+                                if (form && input) {
+                                    input.value = reason.trim();
+                                    form.submit();
+                                }
+                            },
+                            'Vui lòng nhập lý do hủy đơn!',
+                            'Xác nhận hủy',
+                            5
                         );
                     });
                 }

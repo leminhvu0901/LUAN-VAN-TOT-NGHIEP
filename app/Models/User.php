@@ -46,7 +46,38 @@ class User extends Authenticatable
         ];
     }
 
-    // HÀM CỘNG ĐIỂM TÍCH LŨY VÀ TỰ ĐỘNG NÂNG HẠNG THÀNH VIÊN, Tổng số tiền khách hàng đã thanh toán (đơn vị VNĐ), Quy tắc: Cứ 1,000 VNĐ = 1 điểm
+    // Xác định hạng thành viên theo mốc điểm cấu hình hiện tại trong Setting
+    public static function determineMembershipLevel(int $points): string
+    {
+        $diamondPoints = (int) Setting::getValue('membership_points_diamond', 5000);
+        $goldPoints = (int) Setting::getValue('membership_points_gold', 2000);
+        $silverPoints = (int) Setting::getValue('membership_points_silver', 500);
+
+        if ($points >= $diamondPoints) {
+            return 'diamond';
+        } elseif ($points >= $goldPoints) {
+            return 'gold';
+        } elseif ($points >= $silverPoints) {
+            return 'silver';
+        }
+
+        return 'new';
+    }
+
+    // Đồng bộ lại hạng thành viên cho toàn bộ tài khoản trong Database theo mốc điểm Setting mới
+    public static function syncAllMembershipLevels(): void
+    {
+        $diamond = (int) Setting::getValue('membership_points_diamond', 5000);
+        $gold = (int) Setting::getValue('membership_points_gold', 2000);
+        $silver = (int) Setting::getValue('membership_points_silver', 500);
+
+        self::query()->where('points', '>=', $diamond)->update(['membership_level' => 'diamond']);
+        self::query()->where('points', '>=', $gold)->where('points', '<', $diamond)->update(['membership_level' => 'gold']);
+        self::query()->where('points', '>=', $silver)->where('points', '<', $gold)->update(['membership_level' => 'silver']);
+        self::query()->where('points', '<', $silver)->update(['membership_level' => 'new']);
+    }
+
+    // HÀM CỘNG ĐIỂM TÍCH LŨY VÀ TỰ ĐỘNG NÂNG HẠNG THÀNH VIÊN
     public function awardPoints(int|float $amount): void
     {
         $loyaltyEnabled = (bool) Setting::getValue('loyalty_enabled', true);
@@ -61,14 +92,8 @@ class User extends Authenticatable
         if ($earned <= 0)
             return;
         $total = (int) ($this->points ?? 0) + $earned;
-        if ($total >= 5000)
-            $level = 'diamond';
-        elseif ($total >= 2000)
-            $level = 'gold';
-        elseif ($total >= 500)
-            $level = 'silver';
-        else
-            $level = 'new';
+
+        $level = self::determineMembershipLevel($total);
 
         // Cập nhật dữ liệu mới vào đối tượng $this
         $this->points = $total;

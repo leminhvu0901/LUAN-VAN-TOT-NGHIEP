@@ -26,7 +26,11 @@
                             <span class="text-xs text-gray-500">{{ $customer->created_at->format('d/m/Y') }}</span>
                         </div>
                     </div>
-                    <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
+                    @if ($customer->id === auth()->id())
+                        <input type="checkbox" disabled class="rounded border-gray-200 text-gray-300 cursor-not-allowed opacity-40" title="Tài khoản của bạn (Không thể chọn)">
+                    @else
+                        <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
+                    @endif
                 </div>
 
                 <!-- Thông tin liên hệ -->
@@ -83,18 +87,27 @@
                 <!-- Actions -->
                 <div class="flex items-center justify-between">
                     <div class="flex flex-col gap-1">
-                        <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
-                            @csrf
-                            <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
-                            <input type="hidden" name="lock_reason" value="">
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
-                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                            </label>
-                        </form>
-                        <span class="text-[10px] font-semibold {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}">
-                            {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
-                        </span>
+                        @if ($customer->id === auth()->id())
+                            <div class="inline-flex items-center" title="Tài khoản đang đăng nhập (Không thể tự khóa)">
+                                <div class="w-9 h-5 bg-emerald-500/60 rounded-full cursor-not-allowed relative">
+                                    <div class="w-4 h-4 bg-white rounded-full absolute top-[2px] right-[2px] shadow-sm"></div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-semibold text-emerald-600">Đang dùng</span>
+                        @else
+                            <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
+                                @csrf
+                                <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
+                                <input type="hidden" name="lock_reason" value="">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
+                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                                </label>
+                            </form>
+                            <span class="text-[10px] font-semibold {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}">
+                                {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
+                            </span>
+                        @endif
                     </div>
                     <div class="flex justify-end gap-2">
                         <a href="{{ route('admin.customers.show', $customer->id) }}"
@@ -107,12 +120,20 @@
                             <i class="fa-solid fa-pen text-[13px]"></i>
                             Sửa
                         </a>
-                        <button type="button"
-                            onclick="deleteCustomer({{ $customer->id }});"
-                            class="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xóa">
-                            <i class="fa-solid fa-trash-can text-[13px]"></i>
-                            Xóa
-                        </button>
+                        @if ($customer->id !== auth()->id())
+                            <button type="button"
+                                onclick="deleteCustomer({{ $customer->id }});"
+                                class="px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1" title="Xóa">
+                                <i class="fa-solid fa-trash-can text-[13px]"></i>
+                                Xóa
+                            </button>
+                        @else
+                            <button type="button" disabled
+                                class="px-3 py-1.5 text-gray-300 bg-gray-50 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-not-allowed" title="Không thể xóa tài khoản của chính mình">
+                                <i class="fa-solid fa-trash-can text-[13px]"></i>
+                                Xóa
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -129,9 +150,9 @@
                     </th>
                     <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Khách hàng</th>
                     <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Liên hệ</th>
-                    <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Điểm / Hạng</th>
+                    <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Hạng / Điểm</th>
                     <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-center">Trạng thái</th>
-                    <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right rounded-tr-xl w-24">Thao tác</th>
+                    <th class="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
@@ -139,7 +160,11 @@
                     <tr class="hover:bg-gray-50/50 transition-colors group">
                         <!-- Checkbox -->
                         <td class="px-4 py-4 text-center">
-                            <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
+                            @if ($customer->id === auth()->id())
+                                <input type="checkbox" disabled class="rounded border-gray-200 text-gray-300 cursor-not-allowed opacity-40" title="Tài khoản của bạn (Không thể chọn)">
+                            @else
+                                <input type="checkbox" class="row-checkbox rounded border-gray-300 text-emerald-500 focus:ring-emerald-400 cursor-pointer" value="{{ $customer->id }}">
+                            @endif
                         </td>
 
                         <!-- Thông tin khách hàng -->
@@ -207,18 +232,27 @@
 
                         <!-- Trạng thái -->
                         <td class="px-6 py-4 text-center">
-                            <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
-                                @csrf
-                                <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
-                                <input type="hidden" name="lock_reason" value="">
-                                <label class="relative inline-flex items-center cursor-pointer" title="Nhấp để đổi trạng thái">
-                                    <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-                                </label>
-                            </form>
-                            <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" {!! !$customer->is_active && $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
-                                {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
-                            </p>
+                            @if ($customer->id === auth()->id())
+                                <div class="inline-flex items-center" title="Tài khoản đang đăng nhập (Không thể tự khóa)">
+                                    <div class="w-11 h-6 bg-emerald-500/60 rounded-full cursor-not-allowed relative">
+                                        <div class="w-5 h-5 bg-white rounded-full absolute top-[2px] right-[2px] shadow-sm"></div>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] font-semibold mt-1 text-emerald-600">Đang dùng</p>
+                            @else
+                                <form method="POST" action="{{ route('admin.customers.toggle_status', $customer->id) }}">
+                                    @csrf
+                                    <input type="hidden" name="is_active" value="{{ $customer->is_active }}">
+                                    <input type="hidden" name="lock_reason" value="">
+                                    <label class="relative inline-flex items-center cursor-pointer" title="Nhấp để đổi trạng thái">
+                                        <input type="checkbox" class="sr-only peer toggle-status" {{ $customer->is_active ? 'checked' : '' }}>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                                    </label>
+                                </form>
+                                <p class="text-[11px] font-medium mt-1 {{ $customer->is_active ? 'text-emerald-600' : 'text-rose-500' }}" {!! !$customer->is_active && $customer->lock_reason ? 'title="Lý do: '.e($customer->lock_reason).'"' : '' !!}>
+                                    {{ $customer->is_active ? 'Hoạt động' : 'Bị khóa' }}
+                                </p>
+                            @endif
                         </td>
 
                         <!-- Thao tác -->
@@ -234,16 +268,24 @@
                                     title="Chỉnh sửa">
                                     <i class="fa-solid fa-pen text-[14px]"></i>
                                 </a>
-                                <form id="delete-form-{{ $customer->id }}" action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" class="m-0 hidden">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                                <button type="button" 
-                                    onclick="deleteCustomer({{ $customer->id }});"
-                                    class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
-                                    title="Xóa tài khoản">
-                                    <i class="fa-solid fa-trash-can text-[14px]"></i>
-                                </button>
+                                @if ($customer->id !== auth()->id())
+                                    <form id="delete-form-{{ $customer->id }}" action="{{ route('admin.customers.destroy', $customer->id) }}" method="POST" class="m-0 hidden">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                    <button type="button" 
+                                        onclick="deleteCustomer({{ $customer->id }});"
+                                        class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                        title="Xóa tài khoản">
+                                        <i class="fa-solid fa-trash-can text-[14px]"></i>
+                                    </button>
+                                @else
+                                    <button type="button" disabled
+                                        class="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-300 cursor-not-allowed"
+                                        title="Không thể xóa tài khoản của chính mình">
+                                        <i class="fa-solid fa-trash-can text-[14px]"></i>
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

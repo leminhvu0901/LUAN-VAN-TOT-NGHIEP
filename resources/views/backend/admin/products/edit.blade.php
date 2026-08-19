@@ -318,27 +318,31 @@
             const button = event.target.closest('.js-delete-gallery-image');
             if (!button) return;
 
-            if (!window.confirm('Xóa ảnh này? Không thể hoàn tác.')) return;
+            window.AdminAlert.confirm(
+                'Xóa ảnh này? Không thể hoàn tác.',
+                function () {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin/products/gallery/' + button.dataset.galleryImageId;
+                    form.style.display = 'none';
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/admin/products/gallery/' + button.dataset.galleryImageId;
-            form.style.display = 'none';
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+                    form.appendChild(csrfInput);
 
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            form.appendChild(csrfInput);
+                    const methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    methodInput.value = 'DELETE';
+                    form.appendChild(methodInput);
 
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = 'DELETE';
-            form.appendChild(methodInput);
-
-            document.body.appendChild(form);
-            form.submit();
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+                'Xác nhận xóa ảnh'
+            );
         });
     }
 

@@ -24,9 +24,9 @@ class ShippingQuoteService
         $feePerKm = (float) Setting::getValue('shipping_fee_per_km', 5000);
 
         $threshold = match ($user?->membership_level) {
-            'silver' => 120000,
-            'gold' => 90000,
-            'diamond' => 0,
+            'silver' => (float) Setting::getValue('free_shipping_min_silver', 120000),
+            'gold' => (float) Setting::getValue('free_shipping_min_gold', 90000),
+            'diamond' => (float) Setting::getValue('free_shipping_min_diamond', 0),
             default => (float) Setting::getValue('free_shipping_minimum', 150000),
         };
 

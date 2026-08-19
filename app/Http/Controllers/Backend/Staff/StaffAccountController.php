@@ -13,7 +13,7 @@ class StaffAccountController
     // Danh sách tài khoản nhân viên
     public function index(Request $request)
     {
-        $query = User::where('role', 'staff');
+        $query = User::whereIn('role', ['staff', 'admin']);
 
         // Lọc theo tìm kiếm, tên, email, sđt
         if ($request->filled('search')) {
@@ -55,9 +55,9 @@ class StaffAccountController
 
         $staffs = $query->paginate(10)->appends($request->query());
 
-        $totalStaff = User::where('role', 'staff')->count();
-        $activeStaff = User::where('role', 'staff')->where('is_active', 1)->count();
-        $inactiveStaff = User::where('role', 'staff')->where('is_active', 0)->count();
+        $totalStaff = User::whereIn('role', ['staff', 'admin'])->count();
+        $activeStaff = User::whereIn('role', ['staff', 'admin'])->where('is_active', 1)->count();
+        $inactiveStaff = User::whereIn('role', ['staff', 'admin'])->where('is_active', 0)->count();
 
         return view('backend.admin.staff-accounts.index', compact('staffs', 'totalStaff', 'activeStaff', 'inactiveStaff'));
     }
@@ -217,9 +217,19 @@ class StaffAccountController
     // Xóa hẳn tài khoản nhân viên, chỉ cho phép nếu chưa có
     public function destroy($id)
     {
-        $staff = User::where('role', 'staff')->find($id);
+        $staff = User::whereIn('role', ['staff', 'admin'])->find($id);
         if (!$staff) {
             return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên.');
+        }
+
+        // Không cho phép xóa chính mình
+        if ((int)$staff->id === (int)auth()->id()) {
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
+        }
+
+        // Không cho phép xóa tài khoản Admin chính của hệ thống
+        if ($staff->role === 'admin') {
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không thể xóa tài khoản Quản trị viên chính của hệ thống!');
         }
 
         // Không cho xóa nếu nhân viên đã có lịch sử hoạt động
@@ -243,10 +253,10 @@ class StaffAccountController
   // Cập nhật quyền hạn/phân loại vai trò của nhân viên Lễ
     public function updateType(Request $request, $id)
     {
-        // Chỉ tác động tài khoản role=staff, không đụng customer/admin dù ID có trùng.
+        // Chỉ tác động tài khoản role=staff, không đụng admin dù ID có trùng.
         $staff = User::where('role', 'staff')->find($id);
         if (!$staff) {
-            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên.');
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không tìm thấy tài khoản nhân viên hoặc không thể thay đổi loại tài khoản Quản trị viên.');
         }
 
         $validated = $request->validate([
@@ -266,7 +276,18 @@ class StaffAccountController
    // Khóa hoặc kích hoạt tài khoản nhân viên.
     public function toggleStatus(Request $request, $id)
     {
-        $staff = User::where('role', 'staff')->findOrFail($id);
+        $staff = User::whereIn('role', ['staff', 'admin'])->findOrFail($id);
+
+        // Không cho phép tự khóa chính mình
+        if ((int)$staff->id === (int)auth()->id()) {
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Bạn không thể tự khóa tài khoản của chính mình!');
+        }
+
+        // Không cho phép khóa tài khoản admin chính
+        if ($staff->role === 'admin') {
+            return redirect()->route('admin.staff_accounts.index')->with('error', 'Không thể thay đổi trạng thái tài khoản Quản trị viên chính của hệ thống!');
+        }
+
         $staff->is_active = $request->input('is_active');
 
         // Khóa thì lưu lý do khóa, hiện cho admin khác xem; mở khóa thì xóa lý do cũ đi

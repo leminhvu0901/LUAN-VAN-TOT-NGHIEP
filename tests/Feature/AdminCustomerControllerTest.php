@@ -147,13 +147,7 @@ class AdminCustomerControllerTest extends TestCase
         $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
     }
 
-    // LƯU Ý: orders.user_id là nullOnDelete() (không phải restrictOnDelete), nên xóa khách hàng có
-    // lịch sử đơn hàng KHÔNG bị chặn bởi khóa ngoại như comment trong CustomerController::destroy()
-    // mô tả ("sẽ bị lỗi foreign key nếu có Order") - đơn hàng vẫn còn (dữ liệu snapshot customer_name/
-    // customer_phone không đổi) nhưng liên kết user_id bị NULL hóa. Test này xác nhận hành vi THỰC TẾ
-    // của schema hiện tại, không phải hành vi comment mô tả (nhánh "khóa thay vì xóa" chỉ chạy nếu có
-    // bảng khác thực sự chặn - hiện không còn bảng user_id nào dùng restrictOnDelete).
-    public function test_deleting_customer_with_order_history_hard_deletes_and_nulls_order_owner(): void
+    public function test_deleting_customer_with_order_history_is_blocked_to_protect_data(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $customer = User::factory()->create(['role' => 'customer', 'is_active' => 1]);
@@ -168,12 +162,11 @@ class AdminCustomerControllerTest extends TestCase
         $response = $this->actingAs($admin)->delete("/admin/customers/{$customer->id}");
 
         $response->assertRedirect();
-        $response->assertSessionHas('success');
-        $this->assertDatabaseMissing('users', ['id' => $customer->id]);
-        $this->assertDatabaseHas('orders', ['id' => $order->id, 'user_id' => null]);
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('users', ['id' => $customer->id]);
     }
 
-    public function test_bulk_delete_hard_deletes_customers_including_those_with_order_history(): void
+    public function test_bulk_delete_deletes_free_customers_and_skips_those_with_order_history(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $freeCustomer = User::factory()->create(['role' => 'customer']);
@@ -191,9 +184,9 @@ class AdminCustomerControllerTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.customers.index'));
-        $response->assertSessionHas('success');
+        $response->assertSessionHas('warning');
         $this->assertDatabaseMissing('users', ['id' => $freeCustomer->id]);
-        $this->assertDatabaseMissing('users', ['id' => $customerWithOrder->id]);
+        $this->assertDatabaseHas('users', ['id' => $customerWithOrder->id]);
     }
 
     public function test_guest_and_customer_cannot_access_customer_management_routes(): void

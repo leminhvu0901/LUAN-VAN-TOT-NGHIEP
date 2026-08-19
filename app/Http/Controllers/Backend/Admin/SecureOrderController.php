@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Setting;
 use App\Services\OrderWorkflowService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -37,16 +38,10 @@ class SecureOrderController
             $query->reorder('created_at'); // Đổi sang sắp xếp đơn cũ nhất lên trước
         }
 
-        $collection = $query->get(); // Thực hiện truy vấn lấy toàn bộ dữ liệu đơn hàng thỏa mãn điều kiện lọc để lọc nâng cao bằng Collection
-        if ($request->filled('search')) {
-            $needle = Str::ascii(mb_strtolower(trim($request->input('search')))); // Chuyển từ khóa tìm kiếm về chữ thường không dấu để so khớp chính xác
-            $collection = $collection->filter(function ($order) use ($needle) { // Lọc Collection động theo mã đơn hàng, tên khách hoặc số điện thoại
-                $haystack = Str::ascii(mb_strtolower(implode(' ', [$order->order_code, $order->customer_name, $order->customer_phone]))); // Nối các trường thông tin đơn hàng làm chuỗi nguồn so khớp
-                return str_contains($haystack, str_replace('#', '', $needle)); // Kiểm tra xem chuỗi nguồn có chứa từ khóa cần tìm hay không
-            });
-        }
-        $page = LengthAwarePaginator::resolveCurrentPage(); // Xác định trang hiện tại từ URL phục vụ phân trang thủ công
-        $paginator = new LengthAwarePaginator($collection->slice(($page - 1) * 10, 10)->values(), $collection->count(), 10, $page, [
+        $collection = $query->get();
+        $perPage = 10;
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $paginator = new LengthAwarePaginator($collection->forPage($page, $perPage)->values(), $collection->count(), $perPage, $page, [
             'path' => LengthAwarePaginator::resolveCurrentPath(),
             'query' => $request->query(), // Tạo bộ phân trang thủ công, 10 đơn/trang cho Collection
         ]);
@@ -94,7 +89,10 @@ class SecureOrderController
             ->where('order_items.order_id', $id)->select('order_items.*') // Lấy danh sách sản phẩm nằm trong đơn hàng
             ->selectRaw('COALESCE(order_items.product_name, products.name) as product_name')
             ->selectRaw('COALESCE(order_items.product_image, products.image) as product_image')->get();
-        return view('backend.admin.orders.show', compact('order', 'items')); // Load giao diện chi tiết đơn hàng
+
+        $largeOrderThreshold = (float) Setting::getValue('large_order_threshold', 500000);
+
+        return view('backend.admin.orders.show', compact('order', 'items', 'largeOrderThreshold')); // Load giao diện chi tiết đơn hàng
     }
 
     // Hàm cập nhật trạng thái xử lý của đơn hàng
@@ -104,7 +102,16 @@ class SecureOrderController
             'status' => ['required', 'in:pending,confirmed,shipping,completed,cancelled'],
             'cancel_reason' => ['nullable', 'string', 'max:500'],
         ]);
-        $this->orderWorkflow->transition(Order::findOrFail($id), $validated['status'], $validated['cancel_reason'] ?? null); // Gọi OrderWorkflowService để thực thi nghiệp vụ chuyển đổi trạng thái đơn hàng và ghi nhận lý do nếu hủy đơn
+
+        $order = Order::findOrFail($id);
+
+        // Nếu Admin xác nhận đơn đang chờ duyệt -> tự động gỡ cờ needs_admin_approval
+        if ($order->needs_admin_approval && in_array($validated['status'], ['confirmed', 'shipping', 'completed'])) {
+            $order->needs_admin_approval = false;
+            $order->save();
+        }
+
+        $this->orderWorkflow->transition($order, $validated['status'], $validated['cancel_reason'] ?? null); // Gọi OrderWorkflowService để thực thi nghiệp vụ chuyển đổi trạng thái đơn hàng và ghi nhận lý do nếu hủy đơn
 
         return back()->with('success', 'Đã cập nhật trạng thái đơn hàng!');
     }

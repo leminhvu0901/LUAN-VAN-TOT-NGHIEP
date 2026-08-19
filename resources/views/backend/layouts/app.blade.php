@@ -295,12 +295,49 @@
             if (window.flashSuccessMessage) {
                 Toast.fire({ icon: 'success', title: window.flashSuccessMessage });
             }
+            if (window.flashWarningMessage) {
+                Toast.fire({ icon: 'warning', title: window.flashWarningMessage, timer: 5000 });
+            }
             if (window.flashErrorMessages) {
                 let htmlContent = '<div class="text-left text-xs font-semibold space-y-0.5 mt-1">';
                 window.flashErrorMessages.forEach(msg => { htmlContent += `<div>• ${msg}</div>`; });
                 htmlContent += '</div>';
                 Toast.fire({ icon: 'error', title: 'Có lỗi xảy ra!', html: htmlContent, timer: 5000 });
             }
+        }
+
+        // Tự động chuyển toàn bộ form có onsubmit confirm() sang SweetAlert2 chuẩn
+        function enhanceConfirmForms(root = document) {
+            root.querySelectorAll('form[onsubmit*="confirm("]').forEach(function (form) {
+                const rawAttr = form.getAttribute('onsubmit') || '';
+                const match = rawAttr.match(/confirm\(['"]([^'"]+)['"]\)/);
+                let message = match ? match[1] : '';
+                if (!message && form.dataset.confirmMessage) {
+                    message = form.dataset.confirmMessage;
+                }
+                if (!message) {
+                    message = 'Bạn có chắc chắn muốn thực hiện thao tác này?';
+                }
+                form.removeAttribute('onsubmit');
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (window.AdminAlert) {
+                        window.AdminAlert.confirm(message, function () {
+                            form.submit();
+                        }, 'Xác nhận');
+                    } else if (confirm(message)) {
+                        form.submit();
+                    }
+                });
+            });
+        }
+        enhanceConfirmForms();
+
+        const confirmObserver = new MutationObserver(function () {
+            enhanceConfirmForms();
+        });
+        if (document.body) {
+            confirmObserver.observe(document.body, { childList: true, subtree: true });
         }
     });
 

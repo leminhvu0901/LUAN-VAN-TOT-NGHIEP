@@ -537,22 +537,15 @@ class CartController
             return redirect('/')->with('warning', 'Giỏ hàng của bạn đang trống.');
         }
 
-        // Xác định ngưỡng miễn phí vận chuyển theo hạng thành
-        $freeShipThreshold = (float) Setting::getValue('free_shipping_minimum', 150000);
         $user = Auth::user();
-        if ($user) {
-            switch ($user->membership_level) {
-                case 'silver':
-                    $freeShipThreshold = 120000;
-                    break;
-                case 'gold':
-                    $freeShipThreshold = 90000;
-                    break;
-                case 'diamond':
-                    $freeShipThreshold = 0;
-                    break;
-            }
-        }
+
+        // Xác định ngưỡng miễn phí vận chuyển theo hạng thành viên
+        $freeShipThreshold = match ($user?->membership_level) {
+            'silver' => (float) Setting::getValue('free_shipping_min_silver', 120000),
+            'gold' => (float) Setting::getValue('free_shipping_min_gold', 90000),
+            'diamond' => (float) Setting::getValue('free_shipping_min_diamond', 0),
+            default => (float) Setting::getValue('free_shipping_minimum', 150000),
+        };
 
         // Kiểm tra trạng thái tắt nhận đơn hàng từ trang quản
         $receiveEnabled = (bool) Setting::getValue('orders_enabled', true);
@@ -658,7 +651,7 @@ class CartController
             'distance_km' => $result['distance_km'],
             'is_mock' => $result['is_mock'],
             'message' => $result['is_mock'] ? 'Sử dụng khoảng cách mô phỏng dự phòng.' : null,
-        ]); // checkout.js, updateDistanceForAddress()
+        ]); 
     }
 
     //dùng để lấy đúng danh sách sản phẩm, đã tính giá chính xác
@@ -751,9 +744,9 @@ class CartController
 
         // Lấy ngưỡng được miễn phí vận chuyển theo hạng thành viên
         $threshold = match (Auth::user()?->membership_level) {
-            'silver' => 120000.0,
-            'gold' => 90000.0,
-            'diamond' => 0.0,
+            'silver' => (float) Setting::getValue('free_shipping_min_silver', 120000),
+            'gold' => (float) Setting::getValue('free_shipping_min_gold', 90000),
+            'diamond' => (float) Setting::getValue('free_shipping_min_diamond', 0),
             default => (float) Setting::getValue('free_shipping_minimum', 150000),
         };
 
@@ -774,6 +767,6 @@ class CartController
             'success' => true,
             'fee' => $result['fee'],
             'condition' => $result['label'],
-        ]); // checkout.js, updateWeatherFeeForAddress()
+        ]); //  updateWeatherFeeForAddress()
     }
 }

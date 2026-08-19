@@ -12,7 +12,7 @@ class CustomerController
     // Hàm lấy danh sách khách hàng và hiển thị, lọc
     public function index(Request $request)
     {
-        $query = User::whereIn('role', ['customer', 'admin']); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng, role = customer
+        $query = User::where('role', 'customer'); // Khởi tạo câu truy vấn lấy danh sách tài khoản là Khách hàng, role = customer
 
         // Lọc theo tìm kiếm, tên, email, sđt
         if ($request->filled('search')) {
@@ -61,7 +61,7 @@ class CustomerController
         $customers = $query->paginate(10)->appends($request->query()); // Phân trang kết quả, 10 khách/trang và giữ lại các tham số lọc trên URL
 
         // Các thống kê cho thẻ phía trên
-        $totalCustomers = User::where('role', 'customer')->count(); // Đếm tổng số lượng khách hàng trong DB
+        $totalCustomers = User::where('role', 'customer')->count(); // Đếm tổng số lượng tài khoản trong danh sách
 
         $membershipCounts = User::where('role', 'customer')
             ->select('membership_level', DB::raw('count(*) as total'))
@@ -71,9 +71,13 @@ class CustomerController
         $diamondCount = $membershipCounts['diamond'] ?? 0;
         $goldCount = $membershipCounts['gold'] ?? 0;
         $silverCount = $membershipCounts['silver'] ?? 0;
-        $newCount = $membershipCounts['new'] ?? 0;
 
-        $inactiveCount = User::where('role', 'customer')->where('is_active', 0)->count(); // Đếm số lượng tài khoản khách hàng đang bị khóa
+        // Tài khoản được tạo trong vòng 1 tháng gần nhất mới được coi là "Mới đăng ký"
+        $newCount = User::where('role', 'customer')
+            ->where('created_at', '>=', now()->subMonths(1))
+            ->count();
+
+        $inactiveCount = User::where('role', 'customer')->where('is_active', 0)->count(); // Đếm số lượng tài khoản đang bị khóa
 
         return view('backend.admin.customers.index', compact(
             'customers',
@@ -145,7 +149,7 @@ class CustomerController
     // Hàm hiển thị trang hồ sơ chi tiết của một khách hàng cụ thể.
     public function show($id)
     {
-        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID, ném lỗi 404 nếu không tồn tại
+        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản theo ID, ném lỗi 404 nếu không tồn tại
 
         // Lấy số lượng đơn hàng giả sử model User có qh orders
         $totalOrders = DB::table('orders')->where('user_id', $id)->count(); // Đếm tổng số đơn hàng đã đặt
@@ -164,7 +168,13 @@ class CustomerController
     // Hàm bật/tắt, Khóa hoặc Mở khóa trạng thái hoạt động
     public function toggleStatus(Request $request, $id)
     {
-        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản khách hàng theo ID
+        $customer = User::where('role', 'customer')->findOrFail($id);
+
+        // Không cho phép Admin tự khóa tài khoản của chính mình
+        if ((int)$customer->id === (int)auth()->id()) {
+            return redirect()->back()->with('error', 'Bạn không thể tự khóa tài khoản của chính mình!');
+        }
+
         $customer->is_active = $request->input('is_active');
 
         // Cập nhật lý do khóa tài khoản
@@ -193,47 +203,58 @@ class CustomerController
             return redirect()->route('admin.customers.index')->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
         }
 
-        // Xóa cứng, Hard Delete
         $deletedCount = 0;
-        $failedCount = 0;
+        $hasOrdersCount = 0;
 
-        $customers = User::whereIn('id', $ids)->whereIn('role', ['customer', 'admin'])->get();
+        $customers = User::whereIn('id', $ids)->where('role', 'customer')->get();
 
         foreach ($customers as $customer) {
+            if ((int)$customer->id === (int)$currentAdminId) {
+                continue;
+            }
+
+            // Kiểm tra xem khách hàng có đơn hàng hay không
+            $orderCount = DB::table('orders')->where('user_id', $customer->id)->count();
+            if ($orderCount > 0) {
+                $hasOrdersCount++;
+                continue;
+            }
+
             try {
                 $customer->delete();
                 $deletedCount++;
-            } catch (QueryException $e) {
-                // Lỗi rảng buộc khóa ngoại, ví dụ có đơn hàng
-                if ($e->getCode() == "23000") {
-                    // Khóa tài khoản thay vì xóa
-                    $customer->is_active = 0;
-                    $customer->save();
-                    $failedCount++;
-                } else {
-                    throw $e;
-                }
+            } catch (\Throwable $e) {
+                $hasOrdersCount++;
             }
         }
 
-        if ($failedCount > 0) {
-            return redirect()->route('admin.customers.index')->with('success', "Đã xóa {$deletedCount} KH. Có {$failedCount} KH có lịch sử (đơn hàng/đánh giá) nên được chuyển sang KHÓA.");
+        if ($deletedCount === 0 && $hasOrdersCount > 0) {
+            return redirect()->route('admin.customers.index')->with('error', "Không thể xóa {$hasOrdersCount} tài khoản đã chọn vì đều đã có lịch sử đơn hàng. Vui lòng chuyển sang Khóa tài khoản!");
         }
 
-        return redirect()->route('admin.customers.index')->with('success', 'Đã xóa thành công các tài khoản đã chọn!');
+        if ($hasOrdersCount > 0) {
+            return redirect()->route('admin.customers.index')->with('warning', "Đã xóa {$deletedCount} tài khoản chưa có đơn hàng. Có {$hasOrdersCount} tài khoản đã có lịch sử đơn hàng nên không thể xóa (vui lòng Khóa nếu cần).");
+        }
+
+        return redirect()->route('admin.customers.index')->with('success', "Đã xóa thành công {$deletedCount} tài khoản!");
     }
 
     //Hàm hiển thị giao diện form chỉnh sửa thông tin cho một tài khoản cụ thể.
     public function edit($id)
     {
-        $customer = User::whereIn('role', ['customer', 'admin'])->findOrFail($id); // Tìm tài khoản theo ID cần sửa đổi
+        $customer = User::where('role', 'customer')->findOrFail($id); // Tìm tài khoản theo ID cần sửa đổi
         return view('backend.admin.customers.edit', compact('customer')); // Load giao diện form sửa đổi thông tin tài khoản
     }
 
     // Hàm xử lý cập nhật các thông tin tài khoản
     public function update(Request $request, $id)
     {
-        $customer = User::whereIn('role', ['customer', 'admin'])->findOrFail($id);
+        $customer = User::where('role', 'customer')->findOrFail($id);
+
+        // Không cho phép Admin tự khóa tài khoản của chính mình
+        if ((int)$customer->id === (int)auth()->id() && (int)$request->input('is_active') === 0) {
+            return redirect()->back()->withInput()->with('error', 'Bạn không thể tự khóa tài khoản của chính mình!');
+        }
 
         // Name: trim khoảng trắng
         if ($request->has('name')) {
@@ -295,23 +316,24 @@ class CustomerController
     // Hàm xử lý xóa một tài khoản cụ thể ra khỏi hệ thống
     public function destroy($id)
     {
-        $user = User::whereIn('role', ['customer', 'admin'])->findOrFail($id);
+        $user = User::where('role', 'customer')->findOrFail($id);
 
         // Không cho phép Admin xóa chính mình
-        if ($user->id === auth()->id()) {
+        if ((int)$user->id === (int)auth()->id()) {
             return redirect()->back()->with('error', 'Bạn không thể xóa tài khoản của chính mình!');
+        }
+
+        // Kiểm tra xem khách hàng có đơn hàng hay không
+        $orderCount = DB::table('orders')->where('user_id', $user->id)->count();
+        if ($orderCount > 0) {
+            return redirect()->back()->with('error', "Khách hàng \"{$user->name}\" đã có {$orderCount} đơn hàng trong hệ thống. Không thể xóa để bảo toàn dữ liệu doanh thu, vui lòng chuyển sang Khóa tài khoản!");
         }
 
         try {
             $user->delete();
             return redirect()->back()->with('success', 'Xóa tài khoản thành công!');
-        } catch (QueryException $e) {
-            if ($e->getCode() == "23000") {
-                $user->is_active = 0;
-                $user->save();
-                return redirect()->back()->with('warning', 'Tài khoản có lịch sử giao dịch nên chỉ bị khóa thay vì xóa!');
-            }
-            throw $e;
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Không thể xóa tài khoản này do có dữ liệu liên quan trong hệ thống. Vui lòng chuyển sang Khóa tài khoản!');
         }
     }
 }

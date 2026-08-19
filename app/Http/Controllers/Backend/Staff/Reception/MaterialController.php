@@ -75,8 +75,12 @@ class MaterialController
         $expiredItems = MaterialImport::where('expiration_date', '<', today())
             ->where('remaining_quantity', '>', 0)->count();
 
-        $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)->count(); // Số lần xuất hủy
-        $disposedValue = abs(MaterialImport::where('quantity', '<', 0)->sum('total_price')); // Tổng giá trị tiền của lượng vật tư bị hủy
+        $disposedBatchesCount = MaterialImport::where('quantity', '<', 0)
+            ->where('note', 'like', 'Hủy từ lô%')
+            ->count(); // Số lần xuất hủy
+        $disposedValue = abs(MaterialImport::where('quantity', '<', 0)
+            ->where('note', 'like', 'Hủy từ lô%')
+            ->sum('total_price')); // Tổng giá trị tiền của lượng vật tư bị hủy
 
         $totalValue = (float) Material::query()->sum(DB::raw('current_stock * unit_price')); // Tính tổng trị giá tồn kho hiện tại
 
@@ -136,7 +140,7 @@ class MaterialController
             '_lot_id' => $import->id,
             '_unit' => $import->material?->unit,
             '_max_quantity' => $import->remaining_quantity,
-            'reason' => trim((string) $request->input('reason')),
+            'reason' => $request->filled('reason') ? trim((string) $request->input('reason')) : 'Hết tại quầy',
         ]);
 
         $validated = $request->validate([ // Validate số lượng xuất dùng và lý do xuất dùng

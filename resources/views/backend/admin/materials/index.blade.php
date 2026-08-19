@@ -627,17 +627,21 @@ document.addEventListener("DOMContentLoaded", function () {
         bulkDeleteButton.addEventListener("click", function () {
             const ids = getCheckedIds();
             if (ids.length === 0) return;
-            if (!confirm(`Bạn chuẩn bị xóa ${ids.length} vật tư đã chọn. Các vật tư đang bị ràng buộc sẽ được giữ lại. Tiếp tục?`)) return;
-
-            bulkDeleteForm.querySelectorAll('input[name="material_ids[]"]').forEach((el) => el.remove());
-            ids.forEach((id) => {
-                const input = document.createElement("input");
-                input.type = "hidden";
-                input.name = "material_ids[]";
-                input.value = id;
-                bulkDeleteForm.appendChild(input);
-            });
-            bulkDeleteForm.submit();
+            window.AdminAlert.confirm(
+                `Bạn chuẩn bị xóa ${ids.length} vật tư đã chọn. Các vật tư đang bị ràng buộc sẽ được giữ lại. Tiếp tục?`,
+                function () {
+                    bulkDeleteForm.querySelectorAll('input[name="material_ids[]"]').forEach((el) => el.remove());
+                    ids.forEach((id) => {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = "material_ids[]";
+                        input.value = id;
+                        bulkDeleteForm.appendChild(input);
+                    });
+                    bulkDeleteForm.submit();
+                },
+                'Xác nhận xóa hàng loạt'
+            );
         });
     }
 

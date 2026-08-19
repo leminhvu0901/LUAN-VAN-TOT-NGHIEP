@@ -67,6 +67,7 @@
                 <div class="space-y-1 min-w-0 z-10">
                     <p class="font-semibold text-xs text-gray-500 truncate uppercase tracking-wide">Mới đăng ký</p>
                     <p class="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate tracking-tight">{{ number_format($newCount) }}</p>
+                    <p class="text-[10px] text-gray-400 truncate">Trong vòng 1 tháng</p>
                 </div>
             </div>
 
@@ -208,18 +209,22 @@ document.addEventListener('DOMContentLoaded', function () {
         bulkDeleteBtn.addEventListener('click', function () {
             const ids = getCheckedIds();
             if (ids.length === 0) return;
-            if (!confirm(`Xóa ${ids.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`)) return;
-
-            // Đưa danh sách ID vào form ẩn và submit
-            bulkDeleteForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
-            ids.forEach(id => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'ids[]';
-                input.value = id;
-                bulkDeleteForm.appendChild(input);
-            });
-            bulkDeleteForm.submit();
+            window.AdminAlert.confirm(
+                `Xóa ${ids.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`,
+                function () {
+                    // Đưa danh sách ID vào form ẩn và submit
+                    bulkDeleteForm.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());
+                    ids.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
+                        bulkDeleteForm.appendChild(input);
+                    });
+                    bulkDeleteForm.submit();
+                },
+                'Xác nhận xóa hàng loạt'
+            );
         });
     }
 
@@ -231,15 +236,26 @@ document.addEventListener('DOMContentLoaded', function () {
             const willBeActive = checkbox.checked;
 
             if (!willBeActive) {
-                const reason = prompt('Vui lòng nhập lý do khóa tài khoản này:');
-                if (reason === null || reason.trim() === '') {
-                    checkbox.checked = true;
-                    return;
-                }
-                form.querySelector('input[name="lock_reason"]').value = reason.trim();
+                window.AdminAlert.prompt(
+                    'Khóa tài khoản khách hàng',
+                    'Vui lòng nhập lý do khóa tài khoản này:',
+                    'Nhập lý do khóa...',
+                    function (reason, isConfirmed) {
+                        if (!isConfirmed || !reason || reason.trim() === '') {
+                            checkbox.checked = true;
+                            return;
+                        }
+                        form.querySelector('input[name="lock_reason"]').value = reason.trim();
+                        form.querySelector('input[name="is_active"]').value = '0';
+                        form.submit();
+                    },
+                    'Vui lòng nhập lý do khóa tài khoản!',
+                    'Khóa tài khoản'
+                );
+                return;
             }
 
-            form.querySelector('input[name="is_active"]').value = willBeActive ? '1' : '0';
+            form.querySelector('input[name="is_active"]').value = '1';
             form.submit();
         }
     });
@@ -247,10 +263,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Xác nhận và gửi yêu cầu xóa một khách hàng
 window.deleteCustomer = function (id) {
-    if (confirm('Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.')) {
-        const form = document.getElementById('delete-form-' + id);
-        if (form) form.submit();
-    }
+    window.AdminAlert.confirm(
+        'Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác.',
+        function () {
+            const form = document.getElementById('delete-form-' + id);
+            if (form) form.submit();
+        },
+        'Xác nhận xóa tài khoản'
+    );
 };
 </script>
 @endpush

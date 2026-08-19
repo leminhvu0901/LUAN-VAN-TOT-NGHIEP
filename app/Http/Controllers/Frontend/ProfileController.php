@@ -249,6 +249,12 @@ class ProfileController
     // LƯU ĐỊA CHỈ MỚI
     public function storeAddress(Request $request)
     {
+        $userId = Auth::id();
+        $currentAddressCount = UserAddress::query()->where('user_id', $userId)->count();
+        if ($currentAddressCount >= 3) {
+            return $this->addressError($request, 'general', 'Bạn chỉ được lưu tối đa 3 địa chỉ nhận hàng. Vui lòng xóa bớt địa chỉ cũ.');
+        }
+
         // Kiểm tra thông tin nhập vào
         $request->validate($this->addressValidationRules(), $this->addressValidationMessages());
 

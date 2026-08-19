@@ -251,32 +251,39 @@ function submitBulkDelete() {
     const ids = Array.from(document.querySelectorAll(".product-checkbox:checked")).map((cb) => cb.value);
     if (ids.length === 0) return;
 
-    if (!confirm(`Bạn chuẩn bị xóa ${ids.length} sản phẩm đã chọn. Tiếp tục?`)) return;
+    window.AdminAlert.confirm(
+        `Bạn chuẩn bị xóa ${ids.length} sản phẩm đã chọn. Tiếp tục?`,
+        function () {
+            const bulkDeleteForm = document.getElementById("bulk-delete-form");
+            if (!bulkDeleteForm) return;
 
-    const bulkDeleteForm = document.getElementById("bulk-delete-form");
-    if (!bulkDeleteForm) return;
+            bulkDeleteForm.querySelectorAll('input[name="product_ids[]"]').forEach((el) => el.remove());
+            ids.forEach((id) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "product_ids[]";
+                input.value = id;
+                bulkDeleteForm.appendChild(input);
+            });
 
-    bulkDeleteForm.querySelectorAll('input[name="product_ids[]"]').forEach((el) => el.remove());
-    ids.forEach((id) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "product_ids[]";
-        input.value = id;
-        bulkDeleteForm.appendChild(input);
-    });
-
-    window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
-    bulkDeleteForm.submit();
+            window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
+            bulkDeleteForm.submit();
+        },
+        "Xác nhận xóa hàng loạt"
+    );
 }
 
 // Hỏi xác nhận trước khi xóa một sản phẩm
 function confirmDeleteProduct(event, formElement) {
-    if (!confirm("Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?")) {
-        event.preventDefault();
-        return false;
-    }
-    window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
-    return true;
+    event.preventDefault();
+    window.AdminAlert.confirm(
+        "Sản phẩm này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?",
+        function () {
+            window.pendingScrollY = getScrollContainer()?.scrollTop ?? 0;
+            formElement.submit();
+        },
+        "Xác nhận xóa"
+    );
 }
 
 // Gắn sự kiện cho bảng danh sách sản phẩm

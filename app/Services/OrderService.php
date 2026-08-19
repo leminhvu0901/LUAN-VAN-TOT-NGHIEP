@@ -140,8 +140,7 @@ class OrderService
             }
             $couponDiscount = $autoResult['discount'];
             $giftEntries = $autoResult['gifts'] ?? [];
-            $membershipDiscount = $this->membershipDiscount($orderOwner, $subtotal); // Gọi hàm nội bộ để tính mức giảm giá tri ân theo thứ hạng thành viên
-            $discount = min($subtotal, $couponDiscount + $membershipDiscount + $pointsDiscount);
+            $discount = min($subtotal, $couponDiscount + $pointsDiscount);
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discount);
             do {
                 $orderCode = 'HPY-' . strtoupper(bin2hex(random_bytes(4)));
@@ -343,16 +342,5 @@ class OrderService
             throw ValidationException::withMessages(['points_to_redeem' => "Số điểm quy đổi vượt quá giới hạn tối đa ({$maxRedeemPercent}%) giá trị đơn hàng."]);
         }
         return $pointsDiscount;
-    }
-
-    // Tính số tiền giảm giá tri ân theo cấp hạng thành viên
-    public function membershipDiscount(?User $orderOwner, float $subtotal): float
-    {
-        return match ($orderOwner?->membership_level) {
-            'silver' => round($subtotal * 0.02),
-            'gold' => round($subtotal * 0.05),
-            'diamond' => round($subtotal * 0.10),
-            default => 0,
-        };
     }
 }

@@ -48,10 +48,6 @@
                             $statuses[] = ['text' => 'Còn hàng', 'color' => 'bg-emerald-100 text-emerald-700', 'dot' => 'bg-emerald-500'];
                         }
                     }
-                    // Hiển thị thêm trạng thái nếu có lịch sử thu hồi
-                    if (isset($material->disposed_count) && $material->disposed_count > 0) {
-                        $statuses[] = ['text' => "Đã thu hồi ({$material->disposed_count} lần)", 'color' => 'bg-gray-100 text-gray-700 font-medium', 'dot' => 'bg-gray-500'];
-                    }
                 }
             @endphp
             
@@ -186,10 +182,6 @@
                             } else {
                                 $statuses[] = ['text' => 'Còn hàng', 'color' => 'bg-emerald-100 text-emerald-700', 'dot' => 'bg-emerald-500'];
                             }
-                        }
-                        // Hiển thị thêm trạng thái nếu có lịch sử thu hồi
-                        if (isset($material->disposed_count) && $material->disposed_count > 0) {
-                            $statuses[] = ['text' => "Đã thu hồi ({$material->disposed_count} lần)", 'color' => 'bg-gray-100 text-gray-700 font-medium', 'dot' => 'bg-gray-500'];
                         }
                     }
                 @endphp

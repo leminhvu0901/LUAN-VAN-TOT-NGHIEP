@@ -96,12 +96,18 @@
                 </form>
             </div>
 
-            <!-- Bảng Lịch sử Nhập kho & Xuất kho -->
+            <!-- Bảng Lịch sử Nhập kho, Xuất kho & Hủy lô hàng -->
             @php
                 $nhapKho = $imports->where('quantity', '>', 0);
-                $xuatHuy = $imports->where('quantity', '<', 0);
+                $xuatKho = $imports->filter(function($item) {
+                    return $item->quantity < 0 && !str_starts_with($item->note ?? '', 'Hủy từ lô');
+                });
+                $huyLo = $imports->filter(function($item) {
+                    return $item->quantity < 0 && str_starts_with($item->note ?? '', 'Hủy từ lô');
+                });
             @endphp
 
+            <!-- BẢNG 1: LỊCH SỬ NHẬP KHO -->
             <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
                     <h3 class="font-bold text-gray-900 flex items-center"><i class="fa-solid fa-arrow-right-to-bracket align-middle mr-2 text-emerald-600"></i>Lịch sử Nhập kho</h3>
@@ -267,19 +273,20 @@
                 </div>
             </div>
 
-            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
+            <!-- BẢNG 2: LỊCH SỬ XUẤT KHO SỬ DỤNG -->
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
-                    <h3 class="font-bold text-gray-900 flex items-center"><i class="fa-solid fa-arrow-right-from-bracket align-middle mr-2 text-red-600"></i>Lịch sử Xuất kho</h3>
-                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
+                    <h3 class="font-bold text-gray-900 flex items-center"><i class="fa-solid fa-arrow-up-from-bracket align-middle mr-2 text-amber-600"></i>Lịch sử Xuất kho</h3>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatKho->count() }} phiếu xuất</span>
                 </div>
                 <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
-                    @forelse($xuatHuy as $export)
+                    @forelse($xuatKho as $export)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                                    <span class="text-sm font-extrabold text-red-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                    <span class="text-sm font-extrabold text-amber-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </div>
                                 <span class="text-xs text-gray-400 flex items-center gap-1.5">
                                     <i class="fa-regular fa-clock text-xs"></i>
@@ -288,9 +295,9 @@
                             </div>
 
                             <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
-                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng xuất</p>
-                                    <p class="font-bold text-red-600 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                <div class="bg-amber-50/30 p-2.5 rounded-xl border border-amber-100/20">
+                                    <p class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Số lượng xuất</p>
+                                    <p class="font-bold text-amber-700 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
                                 </div>
                                 <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
                                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị xuất</p>
@@ -300,14 +307,14 @@
 
                             @if($export->note)
                                 <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
-                                    Lý do: {{ $export->note }}
+                                    Ghi chú: {{ $export->note }}
                                 </div>
                             @endif
                         </div>
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
                             <i class="fa-solid fa-box text-3xl text-gray-300"></i>
-                            <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho.</span>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho sử dụng.</span>
                         </div>
                     @endforelse
                 </div>
@@ -325,17 +332,94 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
-                            @forelse($xuatHuy as $export)
+                            @forelse($xuatKho as $export)
                                 <tr class="hover:bg-gray-50/50">
-                                    <td class="px-4 py-4 font-bold text-red-600">EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="px-4 py-4 font-bold text-amber-600">EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</td>
                                     <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ $export->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="px-4 py-4 font-bold text-red-600 text-right">{{ number_format($export->quantity, 2, ',', '.') }}</td>
+                                    <td class="px-4 py-4 font-bold text-amber-600 text-right">{{ number_format($export->quantity, 2, ',', '.') }}</td>
                                     <td class="px-4 py-4 font-bold text-gray-900 text-right">{{ number_format($export->total_price, 0, ',', '.') }}đ</td>
                                     <td class="px-4 py-4 text-gray-500">{{ $export->note ?? '-' }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-4 py-10 text-center text-gray-400">Chưa có dữ liệu xuất kho.</td>
+                                    <td colspan="5" class="px-4 py-10 text-center text-gray-400">Chưa có dữ liệu xuất kho sử dụng.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BẢNG 3: LỊCH SỬ HỦY LÔ HÀNG / HẾT HẠN -->
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
+                <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
+                    <h3 class="font-bold text-gray-900 flex items-center"><i class="fa-solid fa-trash-can align-middle mr-2 text-red-600"></i>Lịch sử Hủy lô hàng hết hạn</h3>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $huyLo->count() }} phiếu hủy</span>
+                </div>
+                <!-- Giao diện Mobile -->
+                <div class="block lg:hidden space-y-4 px-1 py-2">
+                    @forelse($huyLo as $disposed)
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                    <span class="text-sm font-extrabold text-red-600">Mã GD: DIS-{{ str_pad($disposed->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="text-xs text-gray-400 flex items-center gap-1.5">
+                                    <i class="fa-regular fa-clock text-xs"></i>
+                                    {{ $disposed->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
+                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng hủy</p>
+                                    <p class="font-bold text-red-600 mt-0.5">{{ number_format($disposed->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                </div>
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị hủy</p>
+                                    <p class="font-bold text-gray-900 mt-0.5">{{ number_format($disposed->total_price, 0, ',', '.') }}đ</p>
+                                </div>
+                            </div>
+
+                            @if($disposed->note)
+                                <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
+                                    Lý do: {{ $disposed->note }}
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
+                            <i class="fa-solid fa-box text-3xl text-gray-300"></i>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu hủy lô hàng.</span>
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Giao diện Desktop -->
+                <div class="hidden lg:block overflow-x-auto">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
+                            <tr>
+                                <th class="px-4 py-4 font-semibold">Mã GD</th>
+                                <th class="px-4 py-4 font-semibold">Thời gian</th>
+                                <th class="px-4 py-4 font-semibold text-right">Số lượng hủy</th>
+                                <th class="px-4 py-4 font-semibold text-right">Giá trị hủy</th>
+                                <th class="px-4 py-4 font-semibold">Lý do hủy</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-sm">
+                            @forelse($huyLo as $disposed)
+                                <tr class="hover:bg-gray-50/50">
+                                    <td class="px-4 py-4 font-bold text-red-600">DIS-{{ str_pad($disposed->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="px-4 py-4 text-gray-500 whitespace-nowrap">{{ $disposed->created_at->format('d/m/Y H:i') }}</td>
+                                    <td class="px-4 py-4 font-bold text-red-600 text-right">{{ number_format($disposed->quantity, 2, ',', '.') }}</td>
+                                    <td class="px-4 py-4 font-bold text-gray-900 text-right">{{ number_format($disposed->total_price, 0, ',', '.') }}đ</td>
+                                    <td class="px-4 py-4 text-gray-500">{{ $disposed->note ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-4 py-10 text-center text-gray-400">Chưa có dữ liệu hủy lô hàng.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -371,11 +455,9 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Lý do</label>
                         <input type="hidden" name="_max_quantity" id="consume-max-quantity" value="{{ old('_max_quantity') }}">
-                        <input type="text" id="consume-reason" name="reason" required placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế..."
-                            data-max-length="255" data-field-label="Lý do" aria-describedby="consume-reason-error"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                            value="{{ old('_form_context') === 'consume-batch' ? old('reason') : '' }}">
-                        <p id="consume-reason-error" data-error-for="consume-reason" class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                        <input type="text" id="consume-reason" name="reason" required readonly
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 font-medium rounded-xl outline-none cursor-not-allowed select-none"
+                            value="Hết tại quầy">
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">

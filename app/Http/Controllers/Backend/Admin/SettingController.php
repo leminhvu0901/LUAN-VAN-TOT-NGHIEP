@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend\Admin;
 
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -44,11 +45,15 @@ class SettingController
             'orders_enabled' => '1',
             'auto_cancel_unpaid_enabled' => '1',
             'auto_cancel_unpaid_minutes' => '30',
+            'large_order_threshold' => '500000',
 
             'shipping_base_fee' => '15000',
             'shipping_fee_per_km' => '5000',
             'shipping_max_distance_km' => '15',
             'free_shipping_minimum' => '150000',
+            'free_shipping_min_silver' => '120000',
+            'free_shipping_min_gold' => '90000',
+            'free_shipping_min_diamond' => '0',
             'weather_surcharge_enabled' => '0',
             'weather_override' => 'auto',
             'weather_light_rain_percent' => '5',
@@ -64,6 +69,9 @@ class SettingController
             'loyalty_point_value' => '1',
             'loyalty_max_redeem_percent' => '100',
             'loyalty_min_points_to_redeem' => '10',
+            'membership_points_silver' => '500',
+            'membership_points_gold' => '2000',
+            'membership_points_diamond' => '5000',
 
             'order_confirmation_email_enabled' => '1',
             'new_order_admin_notification_enabled' => '1',
@@ -138,10 +146,32 @@ class SettingController
         // Danh sách key hợp lệ của từng tab, chỉ những key trong đúng $section mới được ghi vào DB
         $allowedKeys = [
             'store' => ['store_name', 'store_email', 'store_phone', 'store_address', 'store_open_time', 'store_close_time', 'store_facebook_url', 'store_zalo_url', 'store_latitude', 'store_longitude'],
-            'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes'],
-            'shipping' => ['shipping_base_fee', 'shipping_fee_per_km', 'shipping_max_distance_km', 'free_shipping_minimum', 'weather_surcharge_enabled', 'weather_override', 'weather_light_rain_percent', 'weather_heavy_rain_percent', 'weather_storm_percent'],
+            'orders' => ['orders_enabled', 'auto_cancel_unpaid_enabled', 'auto_cancel_unpaid_minutes', 'large_order_threshold'],
+            'shipping' => [
+                'shipping_base_fee',
+                'shipping_fee_per_km',
+                'shipping_max_distance_km',
+                'free_shipping_minimum',
+                'free_shipping_min_silver',
+                'free_shipping_min_gold',
+                'free_shipping_min_diamond',
+                'weather_surcharge_enabled',
+                'weather_override',
+                'weather_light_rain_percent',
+                'weather_heavy_rain_percent',
+                'weather_storm_percent'
+            ],
             'payment' => ['cod_enabled', 'vnpay_enabled', 'payment_environment'],
-            'loyalty' => ['loyalty_enabled', 'loyalty_money_per_point', 'loyalty_point_value', 'loyalty_max_redeem_percent', 'loyalty_min_points_to_redeem'],
+            'loyalty' => [
+                'loyalty_enabled',
+                'loyalty_money_per_point',
+                'loyalty_point_value',
+                'loyalty_max_redeem_percent',
+                'loyalty_min_points_to_redeem',
+                'membership_points_silver',
+                'membership_points_gold',
+                'membership_points_diamond'
+            ],
             'notifications' => ['order_confirmation_email_enabled', 'new_order_admin_notification_enabled', 'low_stock_notification_enabled', 'notification_email'],
         ];
 
@@ -162,11 +192,15 @@ class SettingController
             'orders_enabled' => 'boolean',
             'auto_cancel_unpaid_enabled' => 'boolean',
             'auto_cancel_unpaid_minutes' => 'integer',
+            'large_order_threshold' => 'decimal',
 
             'shipping_base_fee' => 'decimal',
             'shipping_fee_per_km' => 'decimal',
             'shipping_max_distance_km' => 'decimal',
             'free_shipping_minimum' => 'decimal',
+            'free_shipping_min_silver' => 'decimal',
+            'free_shipping_min_gold' => 'decimal',
+            'free_shipping_min_diamond' => 'decimal',
             'weather_surcharge_enabled' => 'boolean',
             'weather_override' => 'string',
             'weather_light_rain_percent' => 'integer',
@@ -182,6 +216,9 @@ class SettingController
             'loyalty_point_value' => 'decimal',
             'loyalty_max_redeem_percent' => 'decimal',
             'loyalty_min_points_to_redeem' => 'integer',
+            'membership_points_silver' => 'integer',
+            'membership_points_gold' => 'integer',
+            'membership_points_diamond' => 'integer',
 
             'order_confirmation_email_enabled' => 'boolean',
             'new_order_admin_notification_enabled' => 'boolean',
@@ -210,6 +247,7 @@ class SettingController
                     'orders_enabled' => 'required|in:0,1',
                     'auto_cancel_unpaid_enabled' => 'required|in:0,1',
                     'auto_cancel_unpaid_minutes' => 'required|integer|min:0',
+                    'large_order_threshold' => 'required|numeric|min:0',
                 ];
                 break;
             case 'shipping':
@@ -218,6 +256,9 @@ class SettingController
                     'shipping_fee_per_km' => 'required|numeric|min:0',
                     'shipping_max_distance_km' => 'required|numeric|min:0',
                     'free_shipping_minimum' => 'required|numeric|min:0',
+                    'free_shipping_min_silver' => 'required|numeric|min:0',
+                    'free_shipping_min_gold' => 'required|numeric|min:0',
+                    'free_shipping_min_diamond' => 'required|numeric|min:0',
                     'weather_surcharge_enabled' => 'required|in:0,1',
                     // 'auto' = đọc thời tiết thật; các giá trị còn lại là ép cứng để trình diễn.
                     'weather_override' => 'required|in:auto,light_rain,heavy_rain,storm',
@@ -234,12 +275,18 @@ class SettingController
                 ];
                 break;
             case 'loyalty':
+                if (!$request->has('loyalty_point_value') && $request->has('loyalty_point_to_money')) {
+                    $request->merge(['loyalty_point_value' => $request->input('loyalty_point_to_money')]);
+                }
                 $rules = [
                     'loyalty_enabled' => 'required|in:0,1',
                     'loyalty_money_per_point' => 'required|numeric|min:0',
                     'loyalty_point_value' => 'required|numeric|min:0',
                     'loyalty_max_redeem_percent' => 'required|numeric|between:0,100',
                     'loyalty_min_points_to_redeem' => 'required|integer|min:0',
+                    'membership_points_silver' => 'required|integer|min:0',
+                    'membership_points_gold' => 'required|integer|min:0',
+                    'membership_points_diamond' => 'required|integer|min:0',
                 ];
                 break;
             case 'notifications':
@@ -254,7 +301,17 @@ class SettingController
                 return back()->with('error', 'Phân mục cấu hình không hợp lệ.');
         }
 
-        $validator = Validator::make($request->all(), $rules, $messages);
+        $customAttributes = [
+            'loyalty_point_value' => 'Giá trị quy đổi 1 điểm',
+            'loyalty_money_per_point' => 'Số tiền để đổi 1 điểm',
+            'loyalty_max_redeem_percent' => 'Tỷ lệ giảm giá tối đa bằng điểm',
+            'loyalty_min_points_to_redeem' => 'Số điểm tối thiểu để được đổi',
+            'membership_points_silver' => 'Điểm thăng hạng Bạc',
+            'membership_points_gold' => 'Điểm thăng hạng Vàng',
+            'membership_points_diamond' => 'Điểm thăng hạng Kim Cương',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages, $customAttributes);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput()->with('error_section', $section);
@@ -287,6 +344,11 @@ class SettingController
                 Setting::setValue($field, $val, $section, $type);
             }
         });
+
+        // Tự động đồng bộ lại hạng thành viên cho toàn bộ người dùng khi mốc điểm thay đổi
+        if ($section === 'loyalty') {
+            User::syncAllMembershipLevels();
+        }
 
         // Logo là file upload, không nằm trong $allowedKeys/$types nên xử lý tách riêng khỏi vòng lặp trên
         $logoPath = null;

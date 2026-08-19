@@ -428,4 +428,118 @@ class FrontendCustomerActionsTest extends TestCase
         $response->assertSee(route('orders.reorder', ['order' => $order->id]), false);
         $response->assertSee('action="' . route('orders.reorder', ['order' => $order->id]) . '" class="inline-block"', false);
     }
+
+    public function test_reorder_isolates_checkout_and_cleans_up_when_abandoned(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+        $cart = Cart::create(['user_id' => $user->id]);
+
+        $existingProduct = $this->makeProduct(['name' => 'Existing Product', 'base_price' => 20000]);
+        $existingItem = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $existingProduct->id,
+            'quantity' => 1,
+            'unit_price' => 20000,
+        ]);
+
+        $reorderProduct = $this->makeProduct(['name' => 'Reorder Product', 'base_price' => 30000]);
+        $order = $this->makeOrderWithItem($user, $reorderProduct, ['quantity' => 2]);
+
+        // Nhấn Mua lại
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/reorder");
+        $response->assertRedirect(route('checkout'));
+
+        // Giỏ hàng tạm thời có 2 dòng (existing + reorder)
+        $this->assertSame(2, CartItem::where('cart_id', $cart->id)->count());
+
+        // Mở giỏ theo cách thông thường nghĩa là đã rời luồng checkout "Mua lại".
+        $this->actingAs($user)->get('/cart')->assertOk()->assertJsonPath('count', 1);
+
+        // Món mua lại bị tự động dọn dẹp, giỏ hàng chỉ còn duy nhất 1 món ban đầu
+        $this->assertSame(1, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertDatabaseHas('cart_items', [
+            'id' => $existingItem->id,
+            'product_id' => $existingProduct->id,
+        ]);
+        $this->assertDatabaseMissing('cart_items', [
+            'product_id' => $reorderProduct->id,
+        ]);
+    }
+
+    public function test_reorder_and_checkout_flow_succeeds_even_with_ajax_requests(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('14:00:00'));
+
+        $user = User::factory()->create(['role' => 'customer']);
+        $address = \App\Models\UserAddress::create([
+            'user_id' => $user->id,
+            'fullname' => 'Test Customer',
+            'phone' => '0987654321',
+            'specific_address' => '123 Main St',
+            'ward' => 'Phường 1',
+            'district' => 'Quận 1',
+            'province' => 'TP. Hồ Chí Minh',
+            'is_default' => 1,
+            'latitude' => 10.7769,
+            'longitude' => 106.7009,
+        ]);
+
+        $cart = Cart::create(['user_id' => $user->id]);
+
+        $existingProduct = $this->makeProduct(['name' => 'Existing Cart Item', 'base_price' => 20000]);
+        $existingItem = CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $existingProduct->id,
+            'quantity' => 1,
+            'unit_price' => 20000,
+        ]);
+
+        $reorderProduct = $this->makeProduct(['name' => 'Reordered Item', 'base_price' => 35000]);
+        $order = $this->makeOrderWithItem($user, $reorderProduct, ['quantity' => 2]);
+
+        // 1. Nhấn Mua lại
+        $response = $this->actingAs($user)->post("/orders/{$order->id}/reorder");
+        $response->assertRedirect(route('checkout'));
+
+        // 2. Vào trang checkout
+        $checkoutPage = $this->actingAs($user)->get(route('checkout'));
+        $checkoutPage->assertOk();
+
+        // 3. Checkout trang tải dữ liệu hành chính qua AJAX
+        $this->actingAs($user)->getJson('/administrative/provinces')->assertOk();
+
+        // Navbar gọi endpoint này để cập nhật badge giỏ hàng; request nền đó
+        // không được xóa món "Mua lại".
+        $this->actingAs($user)->get('/cart', [
+            'X-Requested-With' => 'XMLHttpRequest',
+            'Accept' => 'application/json',
+        ])->assertOk()->assertJsonPath('count', 2);
+
+        // Kiểm tra món mua lại vẫn còn nguyên trong giỏ
+        $this->assertSame(2, CartItem::where('cart_id', $cart->id)->count());
+
+        // 4. Bấm đặt hàng (COD)
+        $token = session('checkout_token');
+        $reorderCartItem = CartItem::where('cart_id', $cart->id)->where('product_id', $reorderProduct->id)->first();
+        $this->assertNotNull($reorderCartItem);
+
+        $orderResponse = $this->actingAs($user)->post(route('checkout.store'), [
+            'address_id' => $address->id,
+            'idempotency_key' => $token,
+            'selected_item_ids' => [$reorderCartItem->id],
+        ]);
+
+        $orderResponse->assertRedirect(route('orders'));
+        $orderResponse->assertSessionHas('success');
+
+        // Đơn hàng mới đã được tạo với món mua lại
+        $newOrder = Order::where('user_id', $user->id)->orderByDesc('id')->first();
+        $this->assertNotSame($order->id, $newOrder->id);
+        $this->assertCount(1, $newOrder->items);
+        $this->assertSame($reorderProduct->id, $newOrder->items->first()->product_id);
+
+        // Món cũ trong giỏ vẫn còn nguyên vẹn
+        $this->assertSame(1, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertSame($existingProduct->id, CartItem::where('cart_id', $cart->id)->first()->product_id);
+    }
 }

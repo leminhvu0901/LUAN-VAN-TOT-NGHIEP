@@ -48,6 +48,9 @@
                 <input type="hidden" name="idempotency_key" value="{{ $checkoutToken }}">
                 <input type="hidden" name="distance_km" id="hidden_distance_km" value="2.5">
                 <input type="hidden" name="weather_fee" id="hidden_weather_fee" value="0">
+                @foreach ($items as $item)
+                    <input type="hidden" name="selected_item_ids[]" value="{{ $item->id }}">
+                @endforeach
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- Left: Shipping Address & Method & Payment -->
@@ -119,11 +122,22 @@
 
                                 <div id="address-action-buttons"
                                     class="mt-3 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                                    <button type="button"
-                                        class="add-address-btn text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm">add</span>
-                                        Thêm địa chỉ mới
-                                    </button>
+                                    @if ($addresses->count() < 3)
+                                        <button type="button"
+                                            class="add-address-btn text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">add</span>
+                                            Thêm địa chỉ mới
+                                            <span
+                                                class="text-xs font-normal text-on-surface-variant">({{ $addresses->count() }}/3)</span>
+                                        </button>
+                                    @else
+                                        <span
+                                            class="text-xs text-amber-700 font-medium flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200"
+                                            title="Tối đa 3 địa chỉ nhận hàng">
+                                            <i class="fa-solid fa-circle-info text-amber-600"></i>
+                                            Đã lưu tối đa 3/3 địa chỉ
+                                        </span>
+                                    @endif
                                     @if ($addresses->count() > 1)
                                         <button type="button" id="change-address-btn"
                                             class="text-primary hover:text-[#005301] text-sm font-bold flex items-center gap-1 sm:ml-auto">
@@ -503,7 +517,8 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <h4 class="font-bold text-on-surface text-sm truncate" title="{{ $item->name }}">
-                                                {{ $item->name }}</h4>
+                                                {{ $item->name }}
+                                            </h4>
                                             <p class="text-xs text-on-surface-variant mt-0.5 font-medium">
                                                 x{{ $item->quantity }} • Size {{ $item->size_name }}
                                                 @if ($item->sugar_level !== null)
@@ -682,8 +697,9 @@
                                 </div>
                                 <div class="flex justify-between text-sm text-on-surface-variant font-medium"
                                     id="summary-shipping-distance-row">
-                                    <span>Phí giao hàng</span>
-                                    <span id="summary-shipping-distance-text">0đ</span>
+                                    <span>Phí giao hàng (<span id="summary-distance-km-val">2.5</span> km)</span>
+                                    <span
+                                        id="summary-shipping-distance-text">{{ number_format(15000, 0, ',', '.') }}đ</span>
                                 </div>
                                 <div class="flex justify-between text-sm text-primary font-bold hidden"
                                     id="summary-free-ship-row">
@@ -764,7 +780,7 @@
                 geoapifyKey: @json(config('services.geoapify.key')),
                 shopLat: {{ (float) \App\Models\Setting::getValue('store_latitude', 10.73809) }},
                 shopLng: {{ (float) \App\Models\Setting::getValue('store_longitude', 106.67812) }}
-            };
+                };
         </script>
         <script>
             let map;
@@ -906,7 +922,7 @@
                 });
             }
 
-            // Xử lý khi khách bấm chọn một điểm trên bản đồ
+            // CHỌN VỊ TRÍ TRÊN BẢN ĐỒ
             function onMapPointPicked(lat, lng) {
                 if (locationMethod === 'gps') {
                     document.getElementById('addr_lat').value = lat.toFixed(6);
@@ -950,7 +966,7 @@
             let manualGeocodeTimer = null;
             const MANUAL_GEOCODE_MIN_CONFIDENCE = 0.3;
 
-            // Ghép địa chỉ đầy đủ để tra cứu tọa độ; thiếu phần nào thì trả null để khỏi gọi API
+            //  NHẬP ĐỊA CHỈ 
             function buildManualAddressQuery() {
                 const specific = (document.getElementById('addr_specific').value || '').trim();
                 const wardName = (document.getElementById('addr_ward_search').value || '').trim();
@@ -1618,7 +1634,7 @@
                 btn.disabled = !(fullname && phoneOk && areaOk && specific && locationOk && notLoading);
             }
 
-            // Xin quyền định vị trình duyệt để lấy vị trí hiện tại của khách
+            // LẤY VỊ TRÍ HIỆN TẠI
             function getCurrentLocation() {
                 if (!navigator.geolocation) {
                     setLocStatus('notfound', 'Trình duyệt không hỗ trợ định vị GPS');
@@ -1866,6 +1882,7 @@
             window.filterAreaOptions = filterAreaOptions;
             window.handleAreaSearchKeydown = handleAreaSearchKeydown;
 
+            //Khởi tạo form địa chỉ
             document.addEventListener('DOMContentLoaded', function () {
                 ['addr_fullname', 'addr_phone', 'addr_specific'].forEach(function (elId) {
                     const el = document.getElementById(elId);
@@ -1897,6 +1914,7 @@
                 });
             });
 
+            //Khởi tạo thanh toán & tính tiền
             document.addEventListener('DOMContentLoaded', function () {
                 const priceSummaryEl = document.getElementById('price-summary');
                 if (!priceSummaryEl) return;
@@ -2224,7 +2242,7 @@
                     const total = Math.max(0, subtotal + distanceFee + (freeShip ? 0 : weatherFee) - totalDiscount);
 
                     const distValEl = document.getElementById('summary-distance-km-val');
-                    if (distValEl) distValEl.innerText = distanceKm.toFixed(1);
+                    if (distValEl) distValEl.innerText = Number(distanceKm.toFixed(1));
 
                     const freeShipRow = document.getElementById('summary-free-ship-row');
                     const shippingDistRow = document.getElementById('summary-shipping-distance-row');

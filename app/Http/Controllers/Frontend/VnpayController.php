@@ -193,8 +193,7 @@ class VnpayController
                 $giftEntries = $autoResult['gifts'] ?? [];
             }
 
-            $membershipDiscount = $this->orderService->membershipDiscount($user, $subtotal);
-            $discountAmount = min($subtotal, $couponDiscount + $membershipDiscount);
+            $discountAmount = min($subtotal, $couponDiscount);
             $finalAmount = max(0, $subtotal + $quote['shipping_fee'] + $quote['weather_fee'] - $discountAmount);
 
             $orderId = Order::query()->insertGetId([
@@ -522,15 +521,27 @@ class VnpayController
             return;
         }
 
-        $cartItemIds = CartItem::query()
-            ->where('cart_id', $cart->id)
-            ->pluck('id')
-            ->toArray();
+        $selectedIds = session('selected_cart_item_ids');
+        if (!empty($selectedIds) && is_array($selectedIds)) {
+            $cartItemIds = CartItem::query()
+                ->where('cart_id', $cart->id)
+                ->whereIn('id', $selectedIds)
+                ->pluck('id')
+                ->toArray();
+        } else {
+            $cartItemIds = CartItem::query()
+                ->where('cart_id', $cart->id)
+                ->pluck('id')
+                ->toArray();
+        }
 
         if (!empty($cartItemIds)) {
             CartItemTopping::query()->whereIn('cart_item_id', $cartItemIds)->delete();
             CartItem::query()->whereIn('id', $cartItemIds)->delete();
         }
+
+        session()->forget('reorder_cart_item_ids');
+        session()->forget('selected_cart_item_ids');
     }
 
     // người dùng quay lại sau khi thanh toán

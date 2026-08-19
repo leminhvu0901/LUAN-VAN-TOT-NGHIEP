@@ -61,7 +61,7 @@
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-shield-halved text-amber-600 text-[24px]"></i>
                         <div>
-                            <h4 class="font-bold text-amber-900">Yêu cầu phê duyệt đơn hàng (≥ 500.000đ)</h4>
+                            <h4 class="font-bold text-amber-900">Yêu cầu phê duyệt đơn hàng (≥ {{ number_format($largeOrderThreshold ?? 500000, 0, ',', '.') }}đ)</h4>
                             <p class="text-xs text-amber-700 mt-0.5">Đơn hàng này cần Admin phê duyệt trước khi nhân viên lễ tân có thể tiếp tục các bước tiếp theo.</p>
                         </div>
                     </div>
@@ -342,20 +342,6 @@
             image.src = image.dataset.fallbackSrc;
         }
 
-        // Yêu cầu nhập lý do hủy qua hộp thoại trước khi submit form
-        function askCancelReasonAndSubmit(btn, form, reasonInput, message) {
-            const reason = prompt(message);
-            if (reason === null) return;
-
-            if (reason.trim().length < 5) {
-                alert('Lý do hủy đơn phải có ít nhất 5 ký tự.');
-                return;
-            }
-
-            reasonInput.value = reason.trim();
-            form.submit();
-        }
-
         // Khởi tạo các sự kiện trên trang chi tiết đơn hàng
         function initOrderShowPage() {
             // Gắn sự kiện in hóa đơn
@@ -381,11 +367,22 @@
             const cancelBtn = document.getElementById('cancel-order-btn');
             if (cancelBtn) {
                 cancelBtn.addEventListener('click', function () {
-                    askCancelReasonAndSubmit(
-                        cancelBtn,
-                        document.getElementById('cancel-order-form'),
-                        document.getElementById('cancel_reason_input'),
-                        'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):'
+                    window.AdminAlert.prompt(
+                        'Hủy đơn hàng',
+                        'Vui lòng nhập lý do hủy đơn (tối thiểu 5 ký tự):',
+                        'Nhập lý do...',
+                        function (reason, isConfirmed) {
+                            if (!isConfirmed || !reason || reason.trim().length < 5) return;
+                            const form = document.getElementById('cancel-order-form');
+                            const input = document.getElementById('cancel_reason_input');
+                            if (form && input) {
+                                input.value = reason.trim();
+                                form.submit();
+                            }
+                        },
+                        'Vui lòng nhập lý do hủy đơn!',
+                        'Xác nhận hủy',
+                        5
                     );
                 });
             }
@@ -394,11 +391,22 @@
             const refundCancelBtn = document.getElementById('refund-cancel-order-btn');
             if (refundCancelBtn) {
                 refundCancelBtn.addEventListener('click', function () {
-                    askCancelReasonAndSubmit(
-                        refundCancelBtn,
-                        document.getElementById('refund-cancel-order-form'),
-                        document.getElementById('refund_cancel_reason_input'),
-                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):'
+                    window.AdminAlert.prompt(
+                        'Hoàn tiền & Hủy đơn',
+                        'Hệ thống sẽ gọi hoàn tiền cho khách rồi hủy đơn. Vui lòng nhập lý do hủy (tối thiểu 5 ký tự):',
+                        'Nhập lý do...',
+                        function (reason, isConfirmed) {
+                            if (!isConfirmed || !reason || reason.trim().length < 5) return;
+                            const form = document.getElementById('refund-cancel-order-form');
+                            const input = document.getElementById('refund_cancel_reason_input');
+                            if (form && input) {
+                                input.value = reason.trim();
+                                form.submit();
+                            }
+                        },
+                        'Vui lòng nhập lý do hủy đơn!',
+                        'Xác nhận',
+                        5
                     );
                 });
             }

@@ -117,8 +117,7 @@
                             title="Xem chi tiết">
                             <i class="fa-solid fa-eye text-[14px]"></i>
                         </a>
-                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST"
-                            onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
+                        <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="js-delete-order-form">
                             @csrf
                             @method('DELETE')
                             <button type="submit"
@@ -254,8 +253,7 @@
                     class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-2 rounded-lg font-semibold text-sm transition-colors">
                     <i class="fa-solid fa-eye text-[14px]"></i> Xem
                 </a>
-                <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="flex-1"
-                    onsubmit="return confirm('Đơn hàng này sẽ bị xóa vĩnh viễn khỏi hệ thống. Tiếp tục?');">
+                <form action="{{ route('admin.orders.destroy', $order['id']) }}" method="POST" class="flex-1 js-delete-order-form">
                     @csrf
                     @method('DELETE')
                     <button type="submit"

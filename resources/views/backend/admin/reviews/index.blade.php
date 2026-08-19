@@ -241,18 +241,22 @@ document.addEventListener('DOMContentLoaded', function () {
         bulkDeleteBtn.addEventListener('click', function () {
             const ids = getCheckedIds();
             if (ids.length === 0) return;
-            if (!confirm(`Bạn chuẩn bị xóa ${ids.length} đánh giá đã chọn. Tiếp tục?`)) return;
-
-            // Đưa danh sách ID vào form ẩn và submit
-            bulkDeleteForm.querySelectorAll('input[name="review_ids[]"]').forEach(el => el.remove());
-            ids.forEach(id => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'review_ids[]';
-                input.value = id;
-                bulkDeleteForm.appendChild(input);
-            });
-            bulkDeleteForm.submit();
+            window.AdminAlert.confirm(
+                `Bạn chuẩn bị xóa ${ids.length} đánh giá đã chọn. Tiếp tục?`,
+                function () {
+                    // Đưa danh sách ID vào form ẩn và submit
+                    bulkDeleteForm.querySelectorAll('input[name="review_ids[]"]').forEach(el => el.remove());
+                    ids.forEach(id => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'review_ids[]';
+                        input.value = id;
+                        bulkDeleteForm.appendChild(input);
+                    });
+                    bulkDeleteForm.submit();
+                },
+                'Xác nhận xóa hàng loạt'
+            );
         });
     }
 });

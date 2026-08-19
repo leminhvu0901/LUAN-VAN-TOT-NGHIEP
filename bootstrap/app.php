@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CleanupReorderSession;
 use App\Http\Middleware\TrackDailyVisit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             TrackDailyVisit::class,
+            CleanupReorderSession::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

@@ -156,10 +156,22 @@
                         {{-- Trạng thái --}}
                         <div>
                             <label for="is_active" class="block text-sm font-semibold text-gray-700 mb-1">Trạng thái tài khoản</label>
-                            <select name="is_active" id="is_active" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white" data-width-class="w-full">
-                                <option value="1" {{ old('is_active', $customer->is_active) == '1' ? 'selected' : '' }}>Hoạt động</option>
-                                <option value="0" {{ old('is_active', $customer->is_active) == '0' ? 'selected' : '' }}>Khóa</option>
-                            </select>
+                            @if ($customer->id === auth()->id())
+                                <input type="hidden" name="is_active" value="1">
+                                <div class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium flex items-center justify-between">
+                                    <span class="text-emerald-600 font-semibold flex items-center gap-1.5">
+                                        <i class="fa-solid fa-circle-check text-xs"></i> Hoạt động
+                                    </span>
+                                    <span class="text-xs text-amber-600 font-medium flex items-center gap-1">
+                                        <i class="fa-solid fa-lock text-[11px]"></i> Không thể tự khóa chính mình
+                                    </span>
+                                </div>
+                            @else
+                                <select name="is_active" id="is_active" class="custom-select-init w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white" data-width-class="w-full">
+                                    <option value="1" {{ old('is_active', $customer->is_active) == '1' ? 'selected' : '' }}>Hoạt động</option>
+                                    <option value="0" {{ old('is_active', $customer->is_active) == '0' ? 'selected' : '' }}>Khóa</option>
+                                </select>
+                            @endif
                             @error('is_active') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>

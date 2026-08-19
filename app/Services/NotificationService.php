@@ -40,11 +40,35 @@ class NotificationService
         $this->send($email, 'Xác nhận đơn hàng ' . $order->order_code, $body);
     }
 
-    //Gửi email yêu cầu Admin phê duyệt
+    // Lấy danh sách email nhận thông báo của Admin (cấu hình Setting + các tài khoản Admin đang hoạt động)
+    public function getAdminRecipients(): array
+    {
+        $recipients = [];
+        $settingEmail = Setting::getValue('notification_email');
+        if ($settingEmail && filter_var($settingEmail, FILTER_VALIDATE_EMAIL)) {
+            $recipients[] = trim($settingEmail);
+        }
+
+        $adminEmails = User::query()->where('role', 'admin')->where('is_active', 1)->pluck('email')->toArray();
+        foreach ($adminEmails as $email) {
+            if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = trim($email);
+            }
+        }
+
+        // Mặc định fallback nếu không tìm thấy email nào
+        if (empty($recipients)) {
+            $recipients[] = 'adminhappy123@gmail.com';
+        }
+
+        return array_values(array_unique($recipients));
+    }
+
+    // Gửi email yêu cầu Admin phê duyệt
     public function sendAdminApprovalRequest(Order $order): void
     {
-        $email = Setting::getValue('notification_email', 'admin@happytea.com');
-        if (!$email) {
+        $recipients = $this->getAdminRecipients();
+        if (empty($recipients)) {
             return;
         }
 
@@ -61,10 +85,18 @@ class NotificationService
             . "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             . $this->buildOrderItemsSection($order);
 
-        $this->send($email, "[Cần duyệt] Đơn hàng {$order->order_code} — {$amount}đ", $body);
+        foreach ($recipients as $toEmail) {
+            $this->send($toEmail, "[Cần duyệt] Đơn hàng {$order->order_code} — {$amount}đ", $body);
+        }
     }
 
-    //Dựng đoạn nội dung liệt kê chi tiết
+    // Alias hỗ trợ gọi tên notifyAdminForApproval
+    public function notifyAdminForApproval(Order $order): void
+    {
+        $this->sendAdminApprovalRequest($order);
+    }
+
+    // Dựng đoạn nội dung liệt kê chi tiết
     private function buildOrderItemsSection(Order $order): string
     {
         $items = $order->items()->with('product')->get();
@@ -103,14 +135,14 @@ class NotificationService
         return $section;
     }
 
-    //gửi email thông báo cho Admin
+    // Gửi email thông báo cho Admin khi có đơn hàng mới
     private function sendAdminNewOrderAlert(Order $order): void
     {
         if (Setting::getValue('new_order_admin_notification_enabled', '1') != '1') {
             return;
         }
-        $email = Setting::getValue('notification_email', 'admin@happytea.com');
-        if (!$email) {
+        $recipients = $this->getAdminRecipients();
+        if (empty($recipients)) {
             return;
         }
         $body = "Có đơn hàng mới: {$order->order_code}\n"
@@ -119,7 +151,9 @@ class NotificationService
             . 'Phương thức thanh toán: ' . strtoupper($order->payment_method) . "\n"
             . "Trạng thái thanh toán: {$order->payment_status}";
 
-        $this->send($email, 'Đơn hàng mới ' . $order->order_code, $body); // Gọi hàm gửi mail thô để thực thi gửi thư cảnh báo
+        foreach ($recipients as $toEmail) {
+            $this->send($toEmail, 'Đơn hàng mới ' . $order->order_code, $body); // Gọi hàm gửi mail thô để thực thi gửi thư cảnh báo
+        }
     }
 
     //Thực hiện việc gửi email

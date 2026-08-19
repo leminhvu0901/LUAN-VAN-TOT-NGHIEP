@@ -143,7 +143,9 @@ class OrderController
             'address' => Setting::getValue('store_address', ''),
         ];
 
-        return view('backend.staff.reception.orders.show', compact('order', 'items', 'deliveryStaffs', 'storeInfo'));
+        $largeOrderThreshold = (float) Setting::getValue('large_order_threshold', 500000);
+
+        return view('backend.staff.reception.orders.show', compact('order', 'items', 'deliveryStaffs', 'storeInfo', 'largeOrderThreshold'));
     }
 
     // Cập nhật trạng thái đơn hàng
@@ -153,6 +155,23 @@ class OrderController
             'status' => ['required', 'in:pending,confirmed,shipping,completed,cancelled'],
             'cancel_reason' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $largeOrderThreshold = (float) Setting::getValue('large_order_threshold', 500000);
+
+        // Chặn xác nhận nếu đơn hàng đang chờ duyệt hoặc vượt ngưỡng giá trị lớn
+        if ($validated['status'] === 'confirmed') {
+            if ($order->needs_admin_approval) {
+                throw ValidationException::withMessages([
+                    'status' => 'Đơn hàng giá trị lớn đang chờ Quản trị viên phê duyệt.',
+                ]);
+            }
+
+            if ((float) $order->final_amount >= $largeOrderThreshold) {
+                throw ValidationException::withMessages([
+                    'status' => 'Đơn hàng có giá trị từ ' . number_format($largeOrderThreshold, 0, ',', '.') . 'đ cần gửi Admin phê duyệt trước khi xác nhận.',
+                ]);
+            }
+        }
 
         // Kiểm tra điều kiện bảo vệ: lễ tân chỉ được xử lý đơn
         $isDeliveryOrder = $order->delivery_type !== 'pickup';
@@ -171,9 +190,11 @@ class OrderController
     // Lễ tân gửi yêu cầu Admin phê duyệt đơn hàng giá trị lớn.
     public function requestAdminApproval(Request $request, Order $order)
     {
-        if ($order->total_amount < 500000 && $order->final_amount < 500000) {
+        $largeOrderThreshold = (float) Setting::getValue('large_order_threshold', 500000);
+
+        if ((float) $order->total_amount < $largeOrderThreshold && (float) $order->final_amount < $largeOrderThreshold) {
             throw ValidationException::withMessages([
-                'order' => 'Chỉ các đơn hàng có tổng giá trị từ 500.000đ mới cần gửi yêu cầu duyệt Admin.'
+                'order' => 'Chỉ các đơn hàng có tổng giá trị từ ' . number_format($largeOrderThreshold, 0, ',', '.') . 'đ mới cần gửi yêu cầu duyệt Admin.'
             ]);
         }
 
@@ -193,7 +214,7 @@ class OrderController
         return redirect()->back()->with('success', 'Đã gửi yêu cầu phê duyệt đơn hàng đến Quản trị viên!');
     }
 
-   // Duyệt đơn hàng trực tiếp tại quầy dành cho Lễ tân khi
+    // Duyệt đơn hàng trực tiếp tại quầy dành cho Lễ tân khi
     public function approveDirectly(Request $request, Order $order)
     {
         $order->update([
@@ -205,7 +226,7 @@ class OrderController
         return back()->with('success', 'Đã phê duyệt đơn hàng thành công!');
     }
 
-   // Phân công Nhân viên vận chuyển, Shipper cho đơn giao
+    // Phân công Nhân viên vận chuyển, Shipper cho đơn giao
     public function assignDelivery(Request $request, Order $order)
     {
         $validated = $request->validate([
@@ -259,7 +280,6 @@ class OrderController
             return response()->json([
                 'subtotal' => 0,
                 'discount' => 0,
-                'membership_discount' => 0,
                 'shipping_fee' => 0,
                 'promotion_code' => null,
                 'promotion_label' => null,
@@ -300,20 +320,17 @@ class OrderController
             }
         }
 
-        ////Tính số tiền giảm giá tri ân theo cấp hạng thành viên của khách.
-        $membershipDiscount = $this->sv_orderService->membershipDiscount($orderOwner, $subtotal);
         $pointsToRedeem = (int) $request->query('points_to_redeem', 0);
         ////Xem trước số tiền giảm giá khi quy đổi điểm tích lũy của khách hàng thành viên.
         $pointsPreview = $this->sv_orderService->previewPointsDiscount($pointsToRedeem, $orderOwner, $subtotal);
         $pointsDiscount = $pointsPreview['discount'];
         $pointsError = $pointsPreview['error'];
 
-        $totalDiscount = min($subtotal, $discount + $membershipDiscount + $pointsDiscount);
+        $totalDiscount = min($subtotal, $discount + $pointsDiscount);
 
         return response()->json([
             'subtotal' => $subtotal,
             'discount' => $discount,
-            'membership_discount' => $membershipDiscount,
             'shipping_fee' => 0,
             'promotion_code' => $promotion?->code,
             'promotion_label' => $promotion

@@ -476,7 +476,14 @@
 
     // Hàm gọi API lấy dữ liệu giỏ hàng ngay khi trang vừa tải xong
     window.loadCart = function () {
-        fetch('/cart')
+        // Đánh dấu đây là request nền. Nhờ vậy việc cập nhật badge trên trang
+        // checkout không bị hiểu nhầm là người dùng đã rời luồng "Mua lại".
+        fetch('/cart', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
             .then(res => res.json())
             .then(updateCartUI)
             .catch(err => console.error(err));

@@ -130,6 +130,33 @@ class AdminSettingControllerTest extends TestCase
         $this->actingAs($customer)->get('/admin/settings')->assertStatus(403);
     }
 
+    public function test_admin_can_save_loyalty_section_with_membership_tier_thresholds(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $customer = User::factory()->create(['role' => 'customer', 'points' => 851, 'membership_level' => 'silver']);
+
+        $response = $this->actingAs($admin)->put('/admin/settings', [
+            'section' => 'loyalty',
+            'loyalty_enabled' => '1',
+            'loyalty_money_per_point' => '10000',
+            'loyalty_point_value' => '1',
+            'loyalty_max_redeem_percent' => '50',
+            'loyalty_min_points_to_redeem' => '10',
+            'membership_points_silver' => '500',
+            'membership_points_gold' => '700',
+            'membership_points_diamond' => '5000',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertSame(500, (int) Setting::getValue('membership_points_silver'));
+        $this->assertSame(700, (int) Setting::getValue('membership_points_gold'));
+        $this->assertSame(5000, (int) Setting::getValue('membership_points_diamond'));
+
+        $customer->refresh();
+        $this->assertSame('gold', $customer->membership_level);
+    }
+
     public function test_receptionist_and_delivery_staff_cannot_access_settings(): void
     {
         $reception = User::factory()->create(['role' => 'staff', 'staff_type' => 'receptionist']);

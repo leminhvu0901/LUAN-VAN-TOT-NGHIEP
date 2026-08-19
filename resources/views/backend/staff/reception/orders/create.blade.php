@@ -118,11 +118,6 @@
                             <span id="pos-cart-discount">-0đ</span>
                         </div>
                         <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden"
-                            id="pos-cart-membership-row">
-                            <span>Ưu đãi hạng thành viên</span>
-                            <span id="pos-cart-membership-discount">-0đ</span>
-                        </div>
-                        <div class="flex items-center justify-between text-sm text-emerald-600 font-semibold hidden"
                             id="pos-cart-points-row">
                             <span>Điểm tích lũy</span>
                             <span id="pos-cart-points-discount">-0đ</span>
@@ -501,7 +496,7 @@
 
             // Đổ dữ liệu từ API preview-total vào bảng tổng tiền, mỗi dòng chỉ hiện khi giá trị lớn hơn 0
             function updatePreviewTotal(subtotal, discount, promotionLabel, shippingFee, finalAmount, gifts,
-                membershipDiscount, pointsDiscount) {
+                pointsDiscount) {
                 document.getElementById('pos-cart-subtotal').textContent = formatMoney(subtotal);
 
                 const discountRow = document.getElementById('pos-cart-discount-row');
@@ -511,15 +506,6 @@
                     discountRow.classList.remove('hidden');
                 } else {
                     discountRow.classList.add('hidden');
-                }
-
-                const membershipRow = document.getElementById('pos-cart-membership-row');
-                if (membershipDiscount > 0) {
-                    document.getElementById('pos-cart-membership-discount').textContent = '-' + formatMoney(
-                        membershipDiscount);
-                    membershipRow.classList.remove('hidden');
-                } else {
-                    membershipRow.classList.add('hidden');
                 }
 
                 const pointsRow = document.getElementById('pos-cart-points-row');
@@ -595,7 +581,7 @@
                         updatePreviewTotal(
                             data.subtotal, data.discount, data.promotion_label, data.shipping_fee || 0, data
                             .final_amount,
-                            data.gifts || [], data.membership_discount || 0, data.points_discount || 0
+                            data.gifts || [], data.points_discount || 0
                         );
 
                         if (feedbackEl) {

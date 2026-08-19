@@ -122,17 +122,22 @@
                 </form>
             </div>
 
-            <!-- Bảng Lịch sử Nhập kho & Xuất kho -->
+            <!-- Bảng Lịch sử Nhập kho, Xuất kho & Hủy lô hàng -->
             @php
                 $nhapKho = $imports->where('quantity', '>', 0);
-                $xuatHuy = $imports->where('quantity', '<', 0);
+                $xuatKho = $imports->filter(function($item) {
+                    return $item->quantity < 0 && !str_starts_with($item->note ?? '', 'Hủy từ lô');
+                });
+                $huyLo = $imports->filter(function($item) {
+                    return $item->quantity < 0 && str_starts_with($item->note ?? '', 'Hủy từ lô');
+                });
             @endphp
 
+            <!-- BẢNG 1: LỊCH SỬ NHẬP KHO -->
             <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
                     <h3 class="font-bold text-gray-900 flex items-center"><i
-                            class="fa-solid fa-boxes-packing align-middle mr-1.5 text-emerald-600"></i>Lịch sử Nhập
-                        kho</h3>
+                            class="fa-solid fa-boxes-packing align-middle mr-1.5 text-emerald-600"></i>Lịch sử Nhập kho</h3>
                     <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $nhapKho->count() }} phiếu nhập</span>
                 </div>
                 <!-- Giao diện Mobile -->
@@ -226,10 +231,12 @@
                                         data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
                                         <i class="fa-solid fa-arrow-up-from-bracket text-[14px]"></i> Xuất
                                     </button>
-                                    <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
+                                    <button type="button" title="Hủy toàn bộ lô này"
                                         class="js-dispose-batch flex-1 py-2 bg-white border border-gray-200 text-gray-700 hover:text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                                         data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
-                                        data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                        data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}"
+                                        data-expiration-date="{{ $import->expiration_date ? $import->expiration_date->format('d/m/Y') : '' }}"
+                                        data-is-expired="{{ ($import->expiration_date && $import->expiration_date->startOfDay()->isPast()) ? '1' : '0' }}">
                                         <i class="fa-solid fa-trash-can text-[14px]"></i> Hủy lô
                                     </button>
                                 @endif
@@ -329,10 +336,12 @@
                                             data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
                                             <i class="fa-solid fa-arrow-up-from-bracket text-[14px]"></i>
                                         </button>
-                                        <button type="button" title="Hủy một phần hoặc toàn bộ lô này"
+                                        <button type="button" title="Hủy toàn bộ lô này"
                                             class="js-dispose-batch p-1 text-gray-400 hover:text-red-600 transition-colors"
                                             data-id="{{ $import->id }}" data-action="{{ route('admin.materials.imports.dispose_batch', $import) }}"
-                                            data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}">
+                                            data-unit="{{ $material->unit }}" data-max="{{ $import->remaining_quantity }}"
+                                            data-expiration-date="{{ $import->expiration_date ? $import->expiration_date->format('d/m/Y') : '' }}"
+                                            data-is-expired="{{ ($import->expiration_date && $import->expiration_date->startOfDay()->isPast()) ? '1' : '0' }}">
                                             <i class="fa-solid fa-trash-can text-[14px]"></i>
                                         </button>
                                     @endif
@@ -350,22 +359,22 @@
                 </div>
             </div>
 
-            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
+            <!-- BẢNG 2: LỊCH SỬ XUẤT KHO SỬ DỤNG -->
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden mb-6">
                 <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
                     <h3 class="font-bold text-gray-900 flex items-center"><i
-                            class="fa-solid fa-box-open align-middle mr-1.5 text-red-600"></i>Lịch sử Xuất
-                        kho</h3>
-                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatHuy->count() }} phiếu xuất</span>
+                            class="fa-solid fa-arrow-up-from-bracket align-middle mr-1.5 text-amber-600"></i>Lịch sử Xuất kho</h3>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $xuatKho->count() }} phiếu xuất</span>
                 </div>
                 <!-- Giao diện Mobile -->
                 <div class="block lg:hidden space-y-4 px-1 py-2">
-                    @forelse($xuatHuy as $export)
+                    @forelse($xuatKho as $export)
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
                             <!-- Header -->
                             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                                    <span class="text-sm font-extrabold text-red-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                    <span class="text-sm font-extrabold text-amber-600">Mã GD: EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </div>
                                 <span class="text-xs text-gray-400 flex items-center gap-1">
                                     <i class="fa-solid fa-clock text-[12px]"></i>
@@ -375,9 +384,9 @@
 
                             <!-- Info Grid -->
                             <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
-                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng xuất</p>
-                                    <p class="font-bold text-red-600 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                <div class="bg-amber-50/30 p-2.5 rounded-xl border border-amber-100/20">
+                                    <p class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Số lượng xuất</p>
+                                    <p class="font-bold text-amber-700 mt-0.5">{{ number_format($export->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
                                 </div>
                                 <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
                                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị xuất</p>
@@ -388,14 +397,14 @@
                             <!-- Note -->
                             @if($export->note)
                                 <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
-                                    Lý do: {{ $export->note }}
+                                    Ghi chú: {{ $export->note }}
                                 </div>
                             @endif
                         </div>
                     @empty
                         <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
                             <i class="fa-solid fa-boxes-stacked text-3xl text-gray-300"></i>
-                            <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho.</span>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu xuất kho sử dụng.</span>
                         </div>
                     @endforelse
                 </div>
@@ -412,13 +421,13 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
-                            @forelse($xuatHuy as $export)
+                            @forelse($xuatKho as $export)
                                 <tr class="hover:bg-gray-50/50">
-                                    <td class="px-4 py-4 font-bold text-red-600">
+                                    <td class="px-4 py-4 font-bold text-amber-600">
                                         EXP-{{ str_pad($export->id, 4, '0', STR_PAD_LEFT) }}</td>
                                     <td class="px-4 py-4 text-gray-500 whitespace-nowrap">
                                         {{ $export->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="px-4 py-4 font-bold text-red-600 text-right">
+                                    <td class="px-4 py-4 font-bold text-amber-600 text-right">
                                         {{ number_format($export->quantity, 2, ',', '.') }}</td>
                                     <td class="px-4 py-4 font-bold text-gray-900 text-right">
                                         {{ number_format($export->total_price, 0, ',', '.') }}đ</td>
@@ -427,7 +436,93 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="px-4 py-10 text-center text-gray-400">
-                                        Chưa có dữ liệu xuất kho.
+                                        Chưa có dữ liệu xuất kho sử dụng.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BẢNG 3: LỊCH SỬ HỦY LÔ HÀNG / HẾT HẠN -->
+            <div class="bg-transparent lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 lg:shadow-sm lg:overflow-hidden">
+                <div class="px-4 py-3 flex items-center justify-between lg:p-5 lg:border-b lg:border-gray-100 lg:bg-gray-50/50">
+                    <h3 class="font-bold text-gray-900 flex items-center"><i
+                            class="fa-solid fa-trash-can align-middle mr-1.5 text-red-600"></i>Lịch sử Hủy lô hàng (Hết hạn / Hư hại)</h3>
+                    <span class="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full lg:bg-transparent lg:p-0">{{ $huyLo->count() }} phiếu hủy</span>
+                </div>
+                <!-- Giao diện Mobile -->
+                <div class="block lg:hidden space-y-4 px-1 py-2">
+                    @forelse($huyLo as $disposed)
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3.5 relative hover:shadow-md transition-shadow">
+                            <!-- Header -->
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                    <span class="text-sm font-extrabold text-red-600">Mã GD: DIS-{{ str_pad($disposed->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                </div>
+                                <span class="text-xs text-gray-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-clock text-[12px]"></i>
+                                    {{ $disposed->created_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+
+                            <!-- Info Grid -->
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div class="bg-red-50/30 p-2.5 rounded-xl border border-red-100/20">
+                                    <p class="text-[10px] text-red-500 font-bold uppercase tracking-wider">Số lượng hủy</p>
+                                    <p class="font-bold text-red-600 mt-0.5">{{ number_format($disposed->quantity, 2, ',', '.') }} {{ $material->unit }}</p>
+                                </div>
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/30">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Giá trị hủy</p>
+                                    <p class="font-bold text-gray-900 mt-0.5">{{ number_format($disposed->total_price, 0, ',', '.') }}đ</p>
+                                </div>
+                            </div>
+
+                            <!-- Note -->
+                            @if($disposed->note)
+                                <div class="text-xs text-gray-600 bg-gray-50 p-3 rounded-xl border border-gray-100 italic" style="overflow-wrap: anywhere; word-break: break-word;">
+                                    Lý do: {{ $disposed->note }}
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-3xl text-gray-300"></i>
+                            <span class="text-xs font-semibold">Chưa có dữ liệu hủy lô hàng.</span>
+                        </div>
+                    @endforelse
+                </div>
+                <!-- Giao diện Desktop -->
+                <div class="hidden lg:block overflow-x-auto">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead class="bg-white text-xs uppercase text-gray-500 border-b border-gray-100">
+                            <tr>
+                                <th class="px-4 py-4 font-semibold">Mã GD</th>
+                                <th class="px-4 py-4 font-semibold">Thời gian</th>
+                                <th class="px-4 py-4 font-semibold text-right">Số lượng hủy</th>
+                                <th class="px-4 py-4 font-semibold text-right">Giá trị hủy</th>
+                                <th class="px-4 py-4 font-semibold">Lý do hủy</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-sm">
+                            @forelse($huyLo as $disposed)
+                                <tr class="hover:bg-gray-50/50">
+                                    <td class="px-4 py-4 font-bold text-red-600">
+                                        DIS-{{ str_pad($disposed->id, 4, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="px-4 py-4 text-gray-500 whitespace-nowrap">
+                                        {{ $disposed->created_at->format('d/m/Y H:i') }}</td>
+                                    <td class="px-4 py-4 font-bold text-red-600 text-right">
+                                        {{ number_format($disposed->quantity, 2, ',', '.') }}</td>
+                                    <td class="px-4 py-4 font-bold text-gray-900 text-right">
+                                        {{ number_format($disposed->total_price, 0, ',', '.') }}đ</td>
+                                    <td class="px-4 py-4 text-gray-500">{{ $disposed->note ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-4 py-10 text-center text-gray-400">
+                                        Chưa có dữ liệu hủy lô hàng.
                                     </td>
                                 </tr>
                             @endforelse
@@ -439,50 +534,80 @@
         </div>
     </div>
 
-    <!-- Hộp thoại Xóa/Hủy một phần hoặc toàn bộ Lô hàng -->
+    <!-- Hộp thoại Hủy toàn bộ Lô hàng -->
     <div id="modal-dispose-batch"
         class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center {{ $errors->any() && old('_form_context') === 'dispose-batch' ? '' : 'hidden' }} z-50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 sm:mx-0 overflow-hidden animate-fade-in-up">
-            <div class="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h3 class="font-bold text-lg text-gray-900">Hủy Hàng Từ Lô <span id="dispose-batch-id"
-                        class="text-blue-600">{{ old('_form_context') === 'dispose-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span></h3>
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-lg text-gray-900">Hủy Hàng Từ Lô</h3>
                 <button type="button" data-close-modal="modal-dispose-batch"
                     class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
+
             <form id="form-dispose-batch" method="POST" action="{{ old('_form_context') === 'dispose-batch' ? old('_form_action') : '' }}" class="p-6">
                 @csrf
                 <input type="hidden" name="_form_context" value="dispose-batch">
                 <input type="hidden" name="_form_action" id="dispose-form-action" value="{{ old('_form_action') }}">
+                <input type="hidden" name="quantity" id="dispose-batch-quantity" value="{{ old('_form_context') === 'dispose-batch' ? old('quantity', old('_max_quantity')) : '' }}">
+                <input type="hidden" name="_max_quantity" id="dispose-max-quantity" value="{{ old('_max_quantity') }}">
+                <input type="hidden" name="note" id="dispose-note" value="{{ old('_form_context') === 'dispose-batch' ? old('note', 'Bị hư hại') : 'Bị hư hại' }}">
+
                 <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Số lượng hủy (<span
-                                id="dispose-batch-unit">{{ old('_form_context') === 'dispose-batch' ? old('_unit') : '' }}</span>)</label>
-                        <input type="number" step="1" min="1" id="dispose-batch-quantity" name="quantity" required
-                            value="{{ old('_form_context') === 'dispose-batch' ? old('quantity') : '' }}"
-                            max="{{ old('_form_context') === 'dispose-batch' ? old('_max_quantity') : '' }}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
-                        <p class="text-xs text-gray-500 mt-1">Tồn kho của lô này: <span id="dispose-batch-max"
-                                class="font-bold text-red-600">{{ old('_form_context') === 'dispose-batch' ? old('_max_quantity') : '' }}</span></p>
+                    <!-- Thông tin tóm tắt lô hàng -->
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 text-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Mã lô:</span>
+                            <span id="dispose-batch-id" class="font-bold text-blue-600">{{ old('_form_context') === 'dispose-batch' ? 'LOT-' . str_pad((string) old('_lot_id'), 4, '0', STR_PAD_LEFT) : '' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Số lượng hủy:</span>
+                            <span class="font-bold text-red-600">
+                                <span id="dispose-batch-display-quantity">{{ old('_form_context') === 'dispose-batch' ? old('_max_quantity') : '' }}</span>
+                                <span id="dispose-batch-unit">{{ old('_form_context') === 'dispose-batch' ? old('_unit') : '' }}</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">Hạn sử dụng:</span>
+                            <span id="dispose-batch-expiry-text" class="font-medium text-gray-800">--/--/----</span>
+                        </div>
                     </div>
+
+                    <!-- Chọn lý do hủy -->
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Lý do</label>
-                        <input type="hidden" name="_max_quantity" id="dispose-max-quantity" value="{{ old('_max_quantity') }}">
-                        <input type="text" id="dispose-note" name="note" required placeholder="VD: Hàng hết hạn..."
-                            data-max-length="255" data-field-label="Lý do" aria-describedby="dispose-note-error"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                            value="{{ old('_form_context') === 'dispose-batch' ? old('note') : 'Hàng hết hạn' }}">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Lý do hủy <span class="text-red-500">*</span></label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label id="dispose-option-expired"
+                                class="flex items-center gap-2.5 p-3 rounded-xl border border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors select-none">
+                                <input type="radio" name="dispose_reason_radio" id="radio-expired" value="Hết hạn"
+                                    class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300 cursor-pointer">
+                                <span class="text-sm font-medium text-gray-800">Hết hạn</span>
+                            </label>
+                            <label id="dispose-option-damaged"
+                                class="flex items-center gap-2.5 p-3 rounded-xl border border-gray-300 cursor-pointer hover:bg-gray-50 transition-colors select-none">
+                                <input type="radio" name="dispose_reason_radio" id="radio-damaged" value="Bị hư hại"
+                                    class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300 cursor-pointer">
+                                <span class="text-sm font-medium text-gray-800">Bị hư hại</span>
+                            </label>
+                        </div>
+
+                        <div id="dispose-note-warning" class="hidden mt-2.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
+                            <span id="dispose-note-warning-text"></span>
+                        </div>
+
                         <p id="dispose-note-error" data-error-for="dispose-note"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                            class="{{ $errors->has('note') && old('_form_context') === 'dispose-batch' ? '' : 'hidden' }} mt-1 text-xs text-red-600">
+                            {{ $errors->has('note') && old('_form_context') === 'dispose-batch' ? $errors->first('note') : '' }}
+                        </p>
                     </div>
                 </div>
+
                 <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" data-close-modal="modal-dispose-batch"
-                        class="w-full sm:w-auto text-center px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent">Hủy</button>
-                    <button type="submit"
-                        class="w-full sm:w-auto text-center px-5 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 organic-shadow transition-all">Xác
-                        nhận Hủy Lô</button>
+                        class="w-full sm:w-auto px-5 py-2 text-gray-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors border border-gray-200 sm:border-transparent text-sm">Hủy</button>
+                    <button type="submit" id="dispose-submit-btn"
+                        class="w-full sm:w-auto px-5 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors text-sm">Xác nhận Hủy Lô</button>
                 </div>
             </form>
         </div>
@@ -518,12 +643,9 @@
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Lý do</label>
                         <input type="hidden" name="_max_quantity" id="consume-max-quantity" value="{{ old('_max_quantity') }}">
-                        <input type="text" id="consume-reason" name="reason" required placeholder="VD: Hết ly tại quầy, lấy thêm để pha chế..."
-                            data-max-length="255" data-field-label="Lý do" aria-describedby="consume-reason-error"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                            value="{{ old('_form_context') === 'consume-batch' ? old('reason') : '' }}">
-                        <p id="consume-reason-error" data-error-for="consume-reason"
-                            class="hidden mt-1 text-xs font-medium text-red-600" aria-live="polite"></p>
+                        <input type="text" id="consume-reason" name="reason" required readonly
+                            class="w-full px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 font-medium rounded-xl outline-none cursor-not-allowed select-none"
+                            value="Hết tại quầy">
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
@@ -1134,26 +1256,90 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        let currentDisposeLotIsExpired = false;
+        let currentDisposeLotExpiryDate = "";
+
+        function setDisposeReason(reason) {
+            const hiddenInput = document.getElementById("dispose-note");
+            const radioExpired = document.getElementById("radio-expired");
+            const radioDamaged = document.getElementById("radio-damaged");
+            const labelExpired = document.getElementById("dispose-option-expired");
+            const labelDamaged = document.getElementById("dispose-option-damaged");
+            const warning = document.getElementById("dispose-note-warning");
+            const warningText = document.getElementById("dispose-note-warning-text");
+            const submitBtn = document.getElementById("dispose-submit-btn");
+
+            if (!hiddenInput) return;
+
+            hiddenInput.value = reason;
+            if (radioExpired) radioExpired.checked = (reason === "Hết hạn");
+            if (radioDamaged) radioDamaged.checked = (reason === "Bị hư hại");
+
+            if (labelExpired && labelDamaged) {
+                if (reason === "Hết hạn") {
+                    labelExpired.classList.add("border-red-500", "bg-red-50/40");
+                    labelExpired.classList.remove("border-gray-300");
+                    labelDamaged.classList.remove("border-red-500", "bg-red-50/40");
+                    labelDamaged.classList.add("border-gray-300");
+                } else {
+                    labelDamaged.classList.add("border-red-500", "bg-red-50/40");
+                    labelDamaged.classList.remove("border-gray-300");
+                    labelExpired.classList.remove("border-red-500", "bg-red-50/40");
+                    labelExpired.classList.add("border-gray-300");
+                }
+            }
+
+            if (reason === "Hết hạn" && !currentDisposeLotIsExpired) {
+                if (warning) warning.classList.remove("hidden");
+                if (warningText) {
+                    warningText.textContent = `Lô hàng này chưa quá hạn sử dụng (HSD: ${currentDisposeLotExpiryDate || "Không có HSD"}). Không thể chọn "Hết hạn", vui lòng chọn "Bị hư hại".`;
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+                }
+            } else {
+                if (warning) warning.classList.add("hidden");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+                }
+            }
+        }
+
+        document.getElementById("radio-expired")?.addEventListener("change", function () {
+            setDisposeReason("Hết hạn");
+        });
+        document.getElementById("radio-damaged")?.addEventListener("change", function () {
+            setDisposeReason("Bị hư hại");
+        });
+
         const disposeButton = event.target.closest(".js-dispose-batch");
         if (disposeButton) {
             const quantityInput = document.getElementById("dispose-batch-quantity");
+            const displayQuantityText = document.getElementById("dispose-batch-display-quantity");
             const unitText = document.getElementById("dispose-batch-unit");
-            const maxText = document.getElementById("dispose-batch-max");
             const idText = document.getElementById("dispose-batch-id");
             const form = document.getElementById("form-dispose-batch");
             const formAction = document.getElementById("dispose-form-action");
             const maxQuantity = document.getElementById("dispose-max-quantity");
+            const expiryText = document.getElementById("dispose-batch-expiry-text");
 
-            if (quantityInput) {
-                quantityInput.value = "";
-                quantityInput.max = disposeButton.dataset.max;
-            }
+            currentDisposeLotIsExpired = disposeButton.dataset.isExpired === "1";
+            currentDisposeLotExpiryDate = disposeButton.dataset.expirationDate || "";
+
+            if (quantityInput) quantityInput.value = disposeButton.dataset.max;
+            if (displayQuantityText) displayQuantityText.textContent = disposeButton.dataset.max;
             if (unitText) unitText.textContent = disposeButton.dataset.unit;
-            if (maxText) maxText.textContent = disposeButton.dataset.max;
             if (idText) idText.textContent = `LOT-${String(disposeButton.dataset.id).padStart(4, "0")}`;
             if (form) form.action = disposeButton.dataset.action;
             if (formAction) formAction.value = disposeButton.dataset.action;
             if (maxQuantity) maxQuantity.value = disposeButton.dataset.max;
+            if (expiryText) expiryText.textContent = currentDisposeLotExpiryDate ? currentDisposeLotExpiryDate : "Không có";
+
+            const initialReason = currentDisposeLotIsExpired ? "Hết hạn" : "Bị hư hại";
+            setDisposeReason(initialReason);
+
             MaterialsCommon.openModal("modal-dispose-batch");
         }
 
